@@ -1,0 +1,107 @@
+
+PURE - The Pure programming language.
+
+Pure is a functional programming language based on term rewriting. It has a
+modern syntax featuring curried function applications, lexical closures and
+equational definitions with pattern matching, and thus is somewhat similar to
+languages of the Haskell and ML variety. But Pure is also a very dynamic and
+reflective language, and is more like Lisp in this respect. The interpreter
+has an LLVM backend to do JIT compilation, hence programs run blazingly fast
+and interfacing to C modules is easy.
+
+Please note that this is a preliminary, "beta" release, so please report bugs
+to the author. Also have a look at the TODO file for stuff that still needs to
+be done.
+
+WHERE TO GET IT
+
+You can find tarballs and the svn repository at http://pure-lang.sf.net.
+
+LICENSE
+
+GPL V3 or later. See the accompanying COPYING file for details.
+
+INSTALLATION
+
+The usual 'make && make install' should do the trick. (No 'configure' step
+necessary.) This requires GNU make and g++. For other setups, you'll probably
+have to fiddle with the Makefile and the sources. The sources should be pretty
+portable, but the Makefile really needs GNU make right now.
+
+You'll also need LLVM (version 2.2 has been tested) for the compiler backend;
+install it before compiling Pure. Instructions for installing LLVM can be
+found at the LLVM website (http://llvm.org).
+
+By default, the program is installed under /usr/local/bin, with the library
+files going into /usr/local/lib/pure. The installation directory can be
+changed by editing the definition of the 'prefix' variable in the Makefile, or
+by specifying the desired value on the 'make' command line, e.g.:
+
+	make all install prefix=/usr
+
+Note that you should specify this option *both* at compile and installation
+time since certain default paths are hardcoded into the interpreter (but can
+be changed at runtime by setting corresponding environment variables, see the
+manpage for details).
+
+You can (and should) also run 'make check' to verify that your Pure
+interpreter works correctly. This can be done without installing the software.
+In fact, there's no need to install the interpreter if you just want to take
+it for a test drive, you can simply run it from the source directory. Just
+make sure that you set the PURELIB environment variable to the lib directory
+in the sources which holds the prelude and the other library scripts. The
+following command,
+
+	PURELIB=./lib ./pure
+
+will run the Pure interpreter with that setting in Bourne-compatible shells.
+
+For the release version, you should build the interpreter as follows:
+
+	make build=release
+
+This disables all runtime checks and debugging information in the interpreter.
+(Don't worry, your Pure programs will still be executed "safely" and shouldn't
+segfault unless you run out of memory or there's a bug in the interpreter.) 
+The 'release' build gives you *much* faster execution times (factor of 2
+compared to the default flags on my Linux system running gcc 4.1, YMMV). It
+also takes a *long* time to compile runtime.cc, but it's really worth the
+wait, so please be patient. ;-)
+
+Please also have a look at the Makefile for details on the build and
+installation process and other available targets and options.
+
+USING PURE
+
+Pure scripts are just ordinary text files, which can be created with any text
+editor. The source directory contains Pure syntax highlighting files for Kate
+and Vim (no Emacs mode yet, sorry). You might wish to install these into your
+katepart/syntax and .vim/syntax directories, respectively. (For Vim you also
+need to enable the syntax highlighting for .pure files; see the comments at
+the beginning of pure.vim for details.)
+
+See the manpage ('man pure' after installation) for information on how to use
+the interpreter and a brief description of the Pure language. Some example
+programs can be found in the examples subdir in the sources; in particular,
+have a look at the hello.pure program which will quickly give you an idea how
+Pure programs look like. You should also browse the scripts in the lib
+directory which contain the "built-in" definitions readily available when you
+start up the Pure interpreter.
+
+This is currently all you get; more elaborate documentation of the Pure
+language still needs to be written. But Pure is a really simple language; if
+you have some experience using FPLs then you should be able to find your way
+with the manpage and the provided examples. Of course, you can also post
+questions to the Pure mailing list (see http://pure-lang.sf.net).
+
+Enjoy! :)
+
+AUTHOR
+
+Albert Graef
+Dept. of Computer Music
+Johannes Gutenberg University of Mainz
+Germany
+
+<Dr.Graef@t-online.de>
+http://pure-lang.sf.net
