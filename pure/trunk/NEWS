@@ -1,0 +1,20 @@
+
+** Pure 0.1 2008-04-29
+
+The much-awaited initial release. ;-) The interpreter is already fully
+functional, but of course there's still a lot to be done (see the TODO file
+for details). Please note that this is a preliminary, "beta" release, so
+expect some bugs (and please report them to the author!).
+
+The Pure project is now hosted at SourceForge, see http://pure-lang.sf.net. A
+mailing list should soon be available, too.
+
+See the INSTALLATION section in the README file to get up and running quickly.
+After Pure is installed, read the Pure manual page (also available in various
+formats from the Pure website) and have a look at the stuff in the examples
+subdir, especially hello.pure, and review the standard library modules
+(lib/*.pure).
+
+Enjoy!
+
+Albert Graef <Dr.Graef@t-online.de>
