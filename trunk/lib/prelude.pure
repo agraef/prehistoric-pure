@@ -1,0 +1,316 @@
+
+/* Pure's standard prelude. */
+
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure programming language and system.
+
+   Pure is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* Signature of commonly used constant and operator symbols. This should be
+   the first thing in the prelude, as these symbols are heavily used almost
+   everywhere. */
+
+/* Built-in exception values. */
+
+nullary	   failed_cond;		// failed conditional (guard, if-then-else)
+nullary	   failed_match;	// failed pattern match (lambda, case, etc.)
+nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
+
+/* Other constants. */
+
+nullary    [] ();		// empty list and tuple
+
+/* Operators. Note that the parser will automagically give unary minus the
+   same precedence level as the corresponding binary operator. */
+
+infixr 0   $ ;			// right-associative application
+infixr 1   , ;			// pair (tuple)
+infixr 2   || ;			// logical or (short-circuit)
+infixr 3   && ;			// logical and (short-circuit)
+prefix 3   not ;		// logical negation
+infix  4   < > <= >= == != ;	// relations
+infixr 4   : ;			// list cons
+infixl 5   << >> ;		// bit shifts
+infixl 6   + - | ;		// addition, bitwise or
+infixl 7   * / div mod & ;	// multiplication, bitwise and
+prefix 7   ~ ;			// bitwise not
+infixr 8   ^ ;			// exponentiation (undefined for now)
+prefix 8   # ;			// size operator
+infixl 9   ! ;			// indexing
+infixr 9   . ;			// function composition
+
+/* Pull in the primitives (arithmetic etc.) and the standard string functions.
+   Note that the system module is *not* included here, so you have to do that
+   yourself if your program does any I/O or uses other system functions. */
+
+using primitives strings;
+
+/* Basic combinators. */
+
+f $ x		= f x;
+(f . g) x	= f (g x);
+
+void _		= ();
+id x		= x;
+const x y	= x;
+
+flip f x y	= f y x;
+curry f x y	= f (x,y);
+curry3 f x y z	= f (x,y,z);
+uncurry f (x,y)	= f x y;
+uncurry3 f (x,y,z)
+		= f x y z;
+
+/* Poor man's tuples(TM). These are constructed with the pairing operator ',',
+   are always flat and associate to the right. The empty tuple, denoted (), is
+   neutral with respect to ','. Operations are provided to test for equality/
+   inequality and emptiness, to determine the size of a tuple, and for
+   zero-based indexing. */
+
+x,()		= x;
+(),y		= y;
+(x,y),z		= x,(y,z);
+
+()==()		= 1;
+(x,xs)==()	= 0;
+()==(x,xs)	= 0;
+(x,xs)==(y,ys)	= x==y && xs==ys;
+
+()!=()		= 0;
+(x,xs)!=()	= 1;
+()!=(x,xs)	= 1;
+(x,xs)!=(y,ys)	= x!=y || xs!=ys;
+
+null ()		= 1;
+null (x,xs)	= 0;
+
+#()		= 0;
+#(x,y,xs)	= 1+#(y,xs);
+#(x,y)		= 2 otherwise;
+
+(x,xs)!0	= x;
+(x,y,xs)!n::int	= (y,xs)!(n-1) if n>0;
+(x,y)!1		= y;
+
+/* Lists are the usual "conses" written using the infix ':' operator. '[]'
+   denotes the empty list. Moreover, the parser provides the customary sugar
+   for proper list values [x] where x is any singleton or tuple (in the latter
+   case you'll get a list made from all the elements of x). The usual basic
+   operations are provided to test for equality/inequality and emptiness, to
+   compute the size of a list, and for indexing and concatenation. We also
+   provide two frequently used operations to reverse a list and to concatenate
+   a list of lists. */
+
+[]==[]		= 1;
+(x:xs)==[]	= 0;
+[]==(x:xs)	= 0;
+(x:xs)==(y:ys)	= x==y && xs==ys;
+
+[]!=[]		= 0;
+(x:xs)!=[]	= 1;
+[]!=(x:xs)	= 1;
+(x:xs)!=(y:ys)	= x!=y || xs!=ys;
+
+null []		= 1;
+null (x:xs)	= 0;
+
+#[]		= 0;
+#(x:xs)		= 1+#xs;
+
+(x:xs)!0	= x;
+(x:xs)!n::int	= xs!(n-1) if n>0;
+
+[]+ys		= ys;
+(x:xs)+ys	= x:xs+ys;
+
+/* Convert between lists and tuples. */
+
+list ()		= [];
+list (x,y,xs)	= x:list (y,xs);
+list (x,y)	= [x,y];
+
+tuple []	= ();
+tuple [x]	= x;
+tuple (x:y:xs)	= x,tuple (y:xs);
+
+/* Slicing. xs!ns returns the list of xs!n for all members n of the index list
+   ns which are in the range 0..#xs-1. This works on any data structure with
+   zero-based indices and thus, in particular, on the list and tuple
+   structures defined above. */
+
+xs![]		= [];
+xs!(n::int:ns)	= slice xs (n:ns) with
+		    slice xs []     = [];
+		    slice xs (n::int:ns)
+		                    = xs!n:slice xs ns if n>=0 && n<m;
+		                    = xs!ns otherwise;
+		  end when m::int = #xs end;
+
+/* Arithmetic sequences. */
+
+infix 1 .. ;
+
+n1,n2..m	= while (\i->s*i<=s*m) (\x->x+k) n1
+		  when k = n2-n1; s = if k>0 then 1 else -1 end if n1!=n2;
+n..m		= while (\i->i<=m) (\x->x+1) n;
+
+/* Common list functions. This mostly comes straight from the Q prelude which
+   in turn was based on the first edition of the Bird/Wadler book, and is very
+   similar to what you can find in the Haskell prelude (although some
+   functions have slightly different names). */
+
+all p []	= 1;
+all p (x:xs)	= p x && all p xs;
+
+any p []	= 0;
+any p (x:xs)	= p x || any p xs;
+
+do f []		= ();
+do f (x:xs)	= do f xs when _ = f x end;
+
+drop n []	= [];
+drop n (x:xs)	= drop (n-1) xs if n>0;
+		= (x:xs) otherwise;
+
+dropwhile p []	= [];
+dropwhile p (x:xs)
+		= dropwhile p xs if p x;
+		= x:xs otherwise;
+
+filter p []	= [];
+filter p (x:xs)	= x:filter p xs if p x;
+		= filter p xs otherwise;
+
+foldl f a []	= a;
+foldl f a (x:xs)
+		= foldl f (f a x) xs;
+
+foldl1 f (x:xs)	= foldl f x xs;
+
+foldr f a []	= a;
+foldr f a (x:xs)
+		= f x (foldr f a xs);
+
+foldr1 f [x]	= x;
+foldr1 f (x:y:xs)
+		= f x (foldr1 f (y:xs));
+
+head (x:xs)	= x;
+
+init [x]	= [];
+init (x:xs)	= x:init xs;
+
+last [x]	= x;
+last (x:xs)	= last xs;
+
+map f []	= [];
+map f (x:xs)	= f x:map f xs;
+
+scanl f a []	= [a];
+scanl f a (x:xs)
+		= a:scanl f (f a x) xs;
+
+scanl1 f []	= [];
+scanl1 f (x:xs)	= scanl f x xs;
+
+scanr f a []	= [a];
+scanr f a (x:xs)
+		= f x y:ys when ys = scanr f a xs; y:_ = ys end;
+
+scanr1 f []	= [];
+scanr1 f [x]	= [x];
+scanr1 f (x:xs)	= f x y:ys when ys = scanr1 f xs; y:_ = ys end;
+
+tail (x:xs)	= xs;
+
+take n []	= [];
+take n (x:xs)	= x:take (n-1) xs if n>0;
+		= [] otherwise;
+
+takewhile p []	= [];
+takewhile p (x:xs)
+		= x:takewhile p xs if p x;
+		= [] otherwise;
+
+/* Concatenate a list of lists in both linear time and constant space. */
+
+cat []		= [];
+cat (xs:xss)	= accum (reverse xs) xss with
+  accum xs []		= reverse xs;
+  accum xs ([]:yss)	= accum xs yss;
+  accum xs ((y:ys):yss)	= accum (y:xs) (ys:yss);
+  accum xs yss		= reverse xs+cat yss otherwise;
+end if listp xs;
+
+/* Combine cat and map. This is used by list comprehensions. */
+
+catmap f xs	= cat (map f xs);
+
+/* Reverse a list (must be a proper list). */
+
+reverse xs	= foldl (flip (:)) [] xs if listp xs;
+
+/* Some useful list generators. */
+
+repeat n x	= [] if n<=0;
+		= x:repeat (n-1) x otherwise;
+
+cycle n []	= [];
+cycle n (x:xs)	= [] if n<=0;
+		= mkcycle n xs with
+		    mkcycle n xs = take n xs if n<=m;
+		                 = xs+mkcycle (n-m) xs otherwise;
+		  end when xs = x:xs; m = #xs end;
+
+while p f a	= a:while p f (f a) if p a;
+		= [] otherwise;
+
+until p f a	= [] if p a;
+		= a:until p f (f a) otherwise;
+
+/* zip, unzip and friends. */
+
+zip (x:xs) (y:ys)
+		= (x,y):zip xs ys;
+zip _ _		= [] otherwise;
+
+zip3 (x:xs) (y:ys) (z:zs)
+		= (x,y,z):zip3 xs ys zs;
+zip3 _ _ _	= [] otherwise;
+
+zipwith f (x:xs) (y:ys)
+		= f x y:zipwith f xs ys;
+zipwith f _ _	= [] otherwise;
+
+zipwith3 f (x:xs) (y:ys) (z:zs)
+		= f x y z:zipwith3 f xs ys zs;
+zipwith3 f _ _ _
+		= [] otherwise;
+
+dowith f (x:xs) (y:ys)
+		= dowith f xs ys when _ = f x y end;
+dowith f _ _	= () otherwise;
+
+dowith3 f (x:xs) (y:ys) (z:zs)
+		= dowith3 f xs ys zs when _ = f x y z end;
+dowith3 f _ _ _	= () otherwise;
+
+unzip ((x,y):us)
+		= x:xs,y:ys when xs,ys = unzip us end;
+unzip []	= [],[];
+
+unzip3 ((x,y,z):us)
+		= x:xs,y:ys,z:zs when xs,ys,zs = unzip3 us end;
+unzip3 []	= [],[],[];

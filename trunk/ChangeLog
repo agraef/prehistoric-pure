@@ -1,0 +1,35 @@
+2008-04-28  Albert Graef  <Dr.Graef@t-online.de>
+
+	* examples/symbolic.pure: Add symbolic evaluation example. This is
+	just a straightforward port of some Q examples.
+
+	* runtime.cc: Add support for advisory stack checks.
+
+	* matcher.cc: Bugfixes.
+
+2008-04-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/string.pure: Added split and join functions.
+
+	* pure.1, examples/hello.pure: Overhaul n queens example, added
+	quicksort and binary search tree examples.
+
+	* lib/prelude.pure: Added void and curry/uncurry combinators, do,
+	zipdo.
+
+	* interpreter.cc, pure.cc, runtime.cc: Make SIGINT generate a
+	useful exception value.
+
+	* pure.cc: Add completion for global function and variable
+	symbols.
+
+2008-04-22  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Got a working interpreter, at last. There's still lots of stuff
+	to do (see the TODO file), but the interpreter should now be
+	usable as it is.
+
+2008-03-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* ChangeLog started
+
