@@ -1,0 +1,4491 @@
+#include "interpreter.hh"
+#include "parser.hh"
+#include <sstream>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <regex.h>
+#include <fnmatch.h>
+#include <glob.h>
+
+#include <llvm/CallingConv.h>
+#include <llvm/System/DynamicLibrary.h>
+#include <llvm/Transforms/Utils/BasicBlockUtils.h>
+
+uint8_t interpreter::g_verbose = 0;
+bool interpreter::g_interactive = false;
+interpreter* interpreter::g_interp = 0;
+char *interpreter::baseptr = 0;
+int interpreter::stackmax = 0;
+int interpreter::stackdir = 0;
+int interpreter::brkflag = 0;
+
+static void* resolve_external(const std::string& name)
+{
+  // This is just to give a little more informative error message before we
+  // bail out anyway.
+  cerr << "error trying to resolve external: " << name << endl;
+  assert(0);
+  return 0;
+}
+
+/* Check the C stack direction (pilfered from the Chicken sources). A value >0
+   indicates that the stack grows upward, towards higher addresses, <0 that
+   the stack grows downward, towards lower addresses, and =0 that the
+   direction is not known (this shouldn't happen, though).  */
+
+static int c_stack_dir_tester(int counter, char *baseptr)
+{
+  if (counter < 100) {
+    return c_stack_dir_tester(counter + 1, baseptr);
+  } else {
+    char tester;
+    return &tester - baseptr;
+  }
+}
+
+static int c_stack_dir()
+{
+  char basechar;
+  int dir = c_stack_dir_tester(0, &basechar);
+  return (dir>0)?1:(dir<0)?-1:0;
+}
+
+interpreter::interpreter()
+  : verbose(0), interactive(false), ttymode(false), override(false),
+    stats(false), temp(0),
+    ps("> "), lib(""), histfile("/.pure_history"), modname("pure"),
+    nerrs(0), source_s(0), result(0), mem(0), exps(0), tmps(0),
+    module(0), JIT(0), FPM(0)
+{
+  if (!g_interp) {
+    g_interp = this;
+    stackdir = c_stack_dir();
+  }
+
+  // Initialize the JIT.
+
+  using namespace llvm;
+
+  module = new Module("pure");
+  ModuleProvider *PM = new ExistingModuleProvider(module);
+  JIT = ExecutionEngine::create(PM);
+  FPM = new FunctionPassManager(PM);
+
+  // Set up the optimizer pipeline. Start with registering info about how the
+  // target lays out data structures.
+  FPM->add(new TargetData(*JIT->getTargetData()));
+  // Promote allocas to registers.
+  FPM->add(createPromoteMemoryToRegisterPass());
+  // Do simple "peephole" optimizations and bit-twiddling optimizations.
+  FPM->add(createInstructionCombiningPass());
+  // Reassociate expressions.
+  FPM->add(createReassociatePass());
+  // Eliminate common subexpressions.
+  FPM->add(createGVNPass());
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
+  FPM->add(createCFGSimplificationPass());
+
+  // Install a fallback mechanism to resolve references to the runtime, on
+  // systems which do not allow the program to dlopen itself.
+  JIT->InstallLazyFunctionCreator(resolve_external);
+
+  // Generic pointer type. LLVM doesn't like void*, so we use short* instead.
+  // (This is a bit of a kludge. We'd rather use char*, but we need to keep
+  // char* and void* apart, and short* isn't used for anything else here.)
+
+  VoidPtrTy = PointerType::get(Type::Int16Ty, 0);
+
+  // Create the expr struct type.
+
+  /* NOTE: This is in fact just a part of the prologue of the expression data
+     structure as defined by the runtime. In order to perform certain
+     operations like built-in arithmetic, conditionals and expression matching
+     in an efficient manner, we need to know about the layout of the relevant
+     fields in memory. The runtime will add additional variants and fields of
+     its own. The declarations below correspond to the following C struct:
+
+     struct expr {
+       int32_t tag; // see expr.hh, determines the variant
+       union {
+         struct { // application
+	   struct expr *x, *y;
+	 };
+	 int32_t i; // integer
+	 double d; // double
+	 char *s; // string
+	 void *p; // generic pointer
+       };
+     };
+
+     The different variants are implemented by the LLVM structs expr
+     (application), intexpr (integer), dblexpr (double), strexpr (string) and
+     ptrexpr (pointer). The expr (application) struct is considered the basic
+     expression type since this is what gets used most frequently. It is cast
+     to the other types (using a bitcast on a pointer) as needed. */
+
+  {
+    PATypeHolder StructTy = OpaqueType::get();
+    std::vector<const Type*> elts;
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(PointerType::get(StructTy, 0));
+    elts.push_back(PointerType::get(StructTy, 0));
+    ExprTy = StructType::get(elts);
+    cast<OpaqueType>(StructTy.get())->refineAbstractTypeTo(ExprTy);
+    ExprTy = cast<StructType>(StructTy.get());
+    module->addTypeName("struct.expr", ExprTy);
+  }
+  // other variants
+  {
+    std::vector<const Type*> elts;
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(Type::Int32Ty);
+    IntExprTy = StructType::get(elts);
+    module->addTypeName("struct.intexpr", IntExprTy);
+  }
+  {
+    std::vector<const Type*> elts;
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(Type::DoubleTy);
+    DblExprTy = StructType::get(elts);
+    module->addTypeName("struct.dblexpr", DblExprTy);
+  }
+  {
+    std::vector<const Type*> elts;
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(PointerType::get(Type::Int8Ty, 0));
+    StrExprTy = StructType::get(elts);
+    module->addTypeName("struct.strexpr", StrExprTy);
+  }
+  {
+    std::vector<const Type*> elts;
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(VoidPtrTy);
+    PtrExprTy = StructType::get(elts);
+    module->addTypeName("struct.ptrexpr", PtrExprTy);
+  }
+
+  // Corresponding pointer types.
+
+  ExprPtrTy = PointerType::get(ExprTy, 0);
+  ExprPtrPtrTy = PointerType::get(ExprPtrTy, 0);
+  IntExprPtrTy = PointerType::get(IntExprTy, 0);
+  DblExprPtrTy = PointerType::get(DblExprTy, 0);
+  StrExprPtrTy = PointerType::get(StrExprTy, 0);
+  PtrExprPtrTy = PointerType::get(PtrExprTy, 0);
+
+  // Add prototypes for the runtime interface and enter the corresponding
+  // function pointers into the runtime map.
+
+  declare_extern((void*)pure_clos,
+		 "pure_clos",       "expr*", -6, "bool", "bool", "int",
+		                                 "int", "void*", "int");
+  declare_extern((void*)pure_call,
+		 "pure_call",       "expr*",  1, "expr*");
+  declare_extern((void*)pure_const,
+		 "pure_const",      "expr*",  1, "int");
+  declare_extern((void*)pure_int,
+		 "pure_int",        "expr*",  1, "int");
+  declare_extern((void*)pure_bigint,
+		 "pure_bigint",     "expr*",  2, "int", "int*");
+  declare_extern((void*)pure_double,
+		 "pure_double",     "expr*",  1, "double");
+  declare_extern((void*)pure_string_dup,
+		 "pure_string_dup",     "expr*",  1, "char*");
+  declare_extern((void*)pure_cstring_dup,
+		 "pure_cstring_dup",    "expr*",  1, "char*");
+  declare_extern((void*)pure_pointer,
+		 "pure_pointer",    "expr*",  1, "void*");
+  declare_extern((void*)pure_apply,
+		 "pure_apply",      "expr*",  2, "expr*", "expr*");
+  declare_extern((void*)pure_cmp_bigint,
+		 "pure_cmp_bigint", "int",    3, "expr*", "int", "int*");
+  declare_extern((void*)pure_cmp_string,
+		 "pure_cmp_string", "int",    2, "expr*", "char*");
+
+  declare_extern((void*)pure_get_cstring,
+		 "pure_get_cstring",   "char*", 1, "expr*");
+  declare_extern((void*)pure_free_cstrings,
+		 "pure_free_cstrings", "void", 0);
+  declare_extern((void*)pure_get_bigint,
+		 "pure_get_bigint",    "void*", 1, "expr*");
+
+  declare_extern((void*)pure_catch,
+		 "pure_catch",      "expr*",  2, "expr*", "expr*");
+  declare_extern((void*)pure_throw,
+		 "pure_throw",      "void",   1, "expr*");
+
+  declare_extern((void*)pure_new,
+		 "pure_new",        "expr*",  1, "expr*");
+  declare_extern((void*)pure_free,
+		 "pure_free",       "void",   1, "expr*");
+  declare_extern((void*)pure_freenew,
+		 "pure_freenew",    "void",   1, "expr*");
+  declare_extern((void*)pure_ref,
+		 "pure_ref",        "void",   1, "expr*");
+  declare_extern((void*)pure_unref,
+		 "pure_unref",      "void",   1, "expr*");
+
+  declare_extern((void*)pure_new_args,
+		 "pure_new_args",   "void",  -1, "expr*");
+  declare_extern((void*)pure_free_args,
+		 "pure_free_args",  "void",  -1, "expr*");
+
+  declare_extern((void*)pure_debug,
+		 "pure_debug",      "void",  -2, "int", "char*");
+}
+
+interpreter::~interpreter()
+{
+  // free expression memory
+  pure_mem *m = mem, *n;
+  while (m) {
+    n = m->next;
+    delete m;
+    m = n;
+  }
+  // get rid of global environments and the LLVM data
+  globalfuns.clear(); globalvars.clear();
+  if (JIT) delete JIT;
+  if (FPM) delete FPM;
+  // if this was the global interpreter, reset it now
+  if (g_interp == this) g_interp = 0;
+}
+
+void interpreter::init_sys_vars(const string& version,
+				const list<string>& argv)
+{
+  // command line arguments and version information
+  pure_expr *args = pure_const(symtab.nil_sym().f);
+  for (list<string>::const_reverse_iterator it = argv.rbegin();
+       it != argv.rend(); it++) {
+    pure_expr *f = pure_const(symtab.cons_sym().f);
+    pure_expr *x = pure_cstring_dup(it->c_str());
+    args = pure_apply(pure_new(pure_apply(pure_new(f), pure_new(x))),
+		      pure_new(args));
+  }
+  defn("argc",		pure_int(argv.size()));
+  defn("argv",		args);
+  defn("version",	pure_cstring_dup(version.c_str()));
+}
+
+// Errors and warnings.
+
+void
+interpreter::error(const yy::location& l, const string& m)
+{
+  nerrs++;
+  if (!source_s) cerr << l << ": " << m << endl;
+}
+
+void
+interpreter::error(const string& m)
+{
+  nerrs++;
+  if (!source_s) cerr << m << endl;
+}
+
+void
+interpreter::warning(const yy::location& l, const string& m)
+{
+  if (!source_s) cerr << l << ": " << m << endl;
+}
+
+void
+interpreter::warning(const string& m)
+{
+  if (!source_s) cerr << m << endl;
+}
+
+// Run the interpreter on a source file, collection of source files, or on
+// string data.
+
+pure_expr* interpreter::run(const string &s, bool check)
+{
+  // check for library modules
+  size_t p = s.find(":");
+  if (p != string::npos && s.substr(0, p) == "lib") {
+    if (p+1 >= s.size()) throw err("empty lib name");
+    string name = s.substr(p+1), msg;
+    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str(), &msg))
+      throw err(msg);
+    return 0;
+  }
+  // ordinary source file
+  if (check && sources.find(s) != sources.end())
+    // already loaded, skip
+    return 0;
+  // save local data
+  bool l_interactive = interactive;
+  string l_source = source;
+  int l_nerrs = nerrs;
+  uint8_t l_temp = temp;
+  // save global data
+  uint8_t s_verbose = g_verbose;
+  bool s_interactive = g_interactive;
+  interpreter* s_interp = g_interp;
+  g_verbose = verbose;
+  g_interactive = interactive = interactive && s.empty();
+  g_interp = this;
+  // initialize
+  nerrs = 0;
+  source = s; declare_op = false;
+  if (check && !interactive) temp = 0;
+  bool ok = lex_begin();
+  if (ok) {
+    if (temp == 0 && !s.empty()) sources.insert(s);
+    yy::parser parser(*this);
+    parser.set_debug_level((verbose&verbosity::parser) != 0);
+    // parse
+    if (result) pure_free(result); result = 0;
+    parser.parse();
+    // finalize
+    lex_end();
+  }
+  // restore global data
+  g_verbose = s_verbose;
+  g_interactive = s_interactive;
+  g_interp = s_interp;
+  // restore local data
+  interactive = l_interactive;
+  source = l_source;
+  nerrs = l_nerrs;
+  temp = l_temp;
+  // return last computed result, if any
+  return result;
+}
+
+pure_expr* interpreter::run(const list<string> &sl, bool check)
+{
+  for (list<string>::const_iterator s = sl.begin(); s != sl.end(); s++)
+    run(*s, check);
+  return result;
+}
+
+pure_expr *interpreter::runstr(const string& s)
+{
+  // save local data
+  bool l_interactive = interactive;
+  string l_source = source;
+  int l_nerrs = nerrs;
+  // save global data
+  uint8_t s_verbose = g_verbose;
+  bool s_interactive = g_interactive;
+  interpreter* s_interp = g_interp;
+  g_verbose = 0;
+  g_interactive = interactive = false;
+  g_interp = this;
+  // initialize
+  nerrs = 0;
+  source = ""; declare_op = false;
+  source_s = s.c_str();
+  bool ok = lex_begin();
+  if (ok) {
+    yy::parser parser(*this);
+    // parse
+    if (result) pure_free(result); result = 0;
+    parser.parse();
+    // finalize
+    lex_end();
+  }
+  // restore global data
+  g_verbose = s_verbose;
+  g_interactive = s_interactive;
+  g_interp = s_interp;
+  // restore local data
+  interactive = l_interactive;
+  source = l_source;
+  source_s = 0;
+  nerrs = l_nerrs;
+  // return last computed result, if any
+  return result;
+}
+
+// Evaluate an expression.
+
+pure_expr *interpreter::eval(expr x)
+{
+  globals g;
+  save_globals(g);
+  pure_expr *e, *res = eval(x, e);
+  if (!res && e) pure_freenew(e);
+  restore_globals(g);
+  return res;
+}
+
+pure_expr *interpreter::eval(expr x, pure_expr*& e)
+{
+  globals g;
+  save_globals(g);
+  compile();
+  // promote type tags:
+  env vars; expr u = subst(vars, x);
+  compile(u);
+  pure_expr *res = doeval(u, e);
+  restore_globals(g);
+  return res;
+}
+
+// Define global variables.
+
+pure_expr *interpreter::defn(expr pat, expr x)
+{
+  globals g;
+  save_globals(g);
+  pure_expr *e, *res = defn(pat, x, e);
+  if (!res && e) pure_freenew(e);
+  restore_globals(g);
+  return res;
+}
+
+pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
+{
+  globals g;
+  save_globals(g);
+  compile();
+  env vars;
+  expr lhs = bind(vars, pat), rhs = x;
+  build_env(vars, lhs);
+  for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+    int32_t f = it->first;
+    const symbol& sym = symtab.sym(f);
+    env::const_iterator jt = environ.find(f);
+    if (jt != environ.end() && jt->second.t == env_info::fun) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a function");
+    } else if (externals.find(f) != externals.end()) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+
+		"' is already declared as an extern function");
+    }
+  }
+  compile(rhs);
+  pure_expr *res = dodefn(vars, lhs, rhs, e);
+  if (!res) return 0;
+  for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+    int32_t f = it->first;
+    pure_expr **x = &globalvars[f].x;
+    assert(*x);
+    environ[f] = env_info(x, temp);
+  }
+  restore_globals(g);
+  return res;
+}
+
+// Process pending fundefs.
+
+void interpreter::mark_dirty(int32_t f)
+{
+  env::iterator e = environ.find(f);
+  if (e != environ.end()) {
+    // mark this closure for recompilation
+    env_info& info = e->second;
+    if (info.m) {
+      delete info.m; info.m = 0;
+    }
+    dirty.insert(f);
+  }
+}
+
+void interpreter::compile()
+{
+  using namespace llvm;
+  if (!dirty.empty()) {
+    // there are some fundefs in the global environment waiting to be
+    // recompiled, do it now
+    for (funset::const_iterator f = dirty.begin(); f != dirty.end(); f++) {
+      env::iterator e = environ.find(*f);
+      if (e != environ.end()) {
+	int32_t ftag = e->first;
+	env_info& info = e->second;
+	info.m = new matcher(*info.rules, info.argc+1);
+	if (verbose&verbosity::code) std::cout << *info.m << endl;
+	// regenerate LLVM code (prolog)
+	Env& f = globalfuns[ftag] = Env(ftag, info, false, false);
+	push("compile", &f);
+	globalfuns[ftag].f = fun_prolog(symtab.sym(ftag).s);
+	pop(&f);
+      }
+    }
+    for (funset::const_iterator f = dirty.begin(); f != dirty.end(); f++) {
+      env::iterator e = environ.find(*f);
+      if (e != environ.end()) {
+	int32_t ftag = e->first;
+	env_info& info = e->second;
+	// regenerate LLVM code (body)
+	Env& f = globalfuns[ftag];
+	push("compile", &f);
+	fun_body(info.m);
+	pop(&f);
+	// compile to native code (always use the C-callable stub here)
+	assert(!f.fp); f.fp = JIT->getPointerToFunction(f.h);
+#if DEBUG>1
+	llvm::cerr << "JIT " << f.f->getName() << " -> " << f.fp << endl;
+#endif
+	// do a direct call to the runtime to create the fbox and cache it in
+	// a global variable
+	pure_expr *fv = pure_clos(false, false, f.tag, f.n, f.fp, 0);
+	GlobalVar& v = globalvars[f.tag];
+	if (!v.v) {
+	  v.v = new GlobalVariable
+	    (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+	     mkvarlabel(f.tag), module);
+	  JIT->addGlobalMapping(v.v, &v.x);
+	}
+	if (v.x) pure_free(v.x); v.x = pure_new(fv);
+#if DEBUG>1
+	llvm::cerr << "global " << &v.x << " (== "
+		   << JIT->getPointerToGlobal(v.v) << ") -> "
+		   << (void*)fv << endl;
+#endif
+      }
+    }
+    dirty.clear();
+    clear_cache();
+  }
+}
+
+// Semantic routines.
+
+// parse a toplevel function application, return arg count and head symbol
+
+uint32_t count_args(expr x, int32_t& f)
+{
+  expr y, z;
+  uint32_t count = 0;
+  while (x.is_app(y, z)) ++count, x = y;
+  f = x.tag();
+  return count;
+}
+
+uint32_t count_args(expr x, expr& f)
+{
+  expr y, z;
+  uint32_t count = 0;
+  while (x.is_app(y, z)) ++count, x = y;
+  f = x;
+  return count;
+}
+
+// build a local variable environment from an already processed pattern
+
+void interpreter::build_env(env& vars, expr x)
+{
+  assert(!x.is_null());
+  switch (x.tag()) {
+  case EXPR::VAR: {
+    const symbol& sym = symtab.sym(x.vtag());
+    if (sym.s != "_") vars[sym.f] = env_info(x.ttag(), x.vpath());
+    break;
+  }
+  case EXPR::APP:
+    build_env(vars, x.xval1());
+    build_env(vars, x.xval2());
+    break;
+  default:
+    break;
+  }
+}
+
+void interpreter::compile(expr x)
+{
+  if (x.is_null()) return;
+  switch (x.tag()) {
+  case EXPR::APP:
+    compile(x.xval1());
+    compile(x.xval2());
+    break;
+  case EXPR::COND:
+    compile(x.xval1());
+    compile(x.xval2());
+    compile(x.xval3());
+    break;
+  case EXPR::LAMBDA: {
+    matcher *&m = x.pm();
+    assert(m == 0);
+    m = new matcher(rule(x.xval1(), x.xval2()));
+    compile(x.xval2());
+    break;
+  }
+  case EXPR::CASE: {
+    compile(x.xval());
+    matcher *&m = x.pm();
+    assert(m == 0);
+    for (rulel::iterator r = x.rules()->begin();
+	 r != x.rules()->end(); r++) {
+      compile(r->rhs); compile(r->qual);
+    }
+    m = new matcher(*x.rules());
+    break;
+  }
+  case EXPR::WHEN: {
+    compile(x.xval());
+    matcher *&m = x.pm();
+    assert(m == 0);
+    rulel *rl = x.rules();
+    m = new matcher[rl->size()];
+    rulel::const_iterator r;
+    size_t i;
+    for (i = 0, r = rl->begin(); r != rl->end(); r++, i++) {
+      compile(r->rhs);
+      m[i].make(*r);
+    }
+    break;
+  }
+  case EXPR::WITH: {
+    compile(x.xval());
+    env *e = x.fenv();
+    env::iterator p;
+    for (p = e->begin(); p != e->end(); p++) {
+      env_info& info = p->second;
+      assert(info.m == 0);
+      for (rulel::iterator r = info.rules->begin();
+	   r != info.rules->end(); r++) {
+	compile(r->rhs); compile(r->qual);
+      }
+      info.m = new matcher(*info.rules, info.argc+1);
+    }
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
+{
+  for (list<string>::const_iterator it = ids->begin();
+       it != ids->end(); ++it) {
+    symbol* sym = symtab.lookup(*it);
+    if (sym) {
+      // crosscheck declarations
+      if (sym->prec != prec || sym->fix != fix) {
+	delete ids;
+	throw err("conflicting fixity declaration for symbol '"+*it+"'");
+      }
+    } else
+      symtab.sym(*it, prec, fix);
+  }
+  delete ids;
+}
+
+void interpreter::exec(expr *x)
+{
+  last = expr();
+  if (result) pure_free(result); result = 0;
+  pure_expr *e, *res = eval(*x, e);
+  if ((verbose&verbosity::defs) != 0) cout << *x << ";\n";
+  if (!res) {
+    ostringstream msg;
+    if (e) {
+      msg << "unhandled exception '" << e << "' while evaluating '"
+	  << *x << "'";
+      pure_freenew(e);
+    } else
+      msg << "unhandled exception while evaluating '" << *x << "'";
+    throw err(msg.str());
+  }
+  result = pure_new(res);
+  delete x;
+  if (interactive) {
+    cout << result << endl;
+    if (stats)
+      cout << ((double)clocks)/(double)CLOCKS_PER_SEC << "s\n";
+  }
+}
+
+void interpreter::define(rule *r)
+{
+  last = expr();
+  pure_expr *res = defn(r->lhs, r->rhs);
+  if (!res) {
+    ostringstream msg;
+    msg << "failed match: " << r->lhs << " = " << r->rhs;
+    throw err(msg.str());
+  }
+  if ((verbose&verbosity::defs) != 0)
+    cout << "let " << r->lhs << " = " << res << ";\n";
+  delete r;
+  pure_freenew(res);
+  if (interactive && stats)
+    cout << ((double)clocks)/(double)CLOCKS_PER_SEC << "s\n";
+}
+
+void interpreter::clearsym(int32_t f)
+{
+  // Check whether this symbol was already compiled; in that case
+  // patch up the global variable table to replace it with a cbox.
+  map<int32_t,GlobalVar>::iterator v = globalvars.find(f);
+  if (v != globalvars.end()) {
+    pure_expr *cv = pure_const(f);
+    if (v->second.x) pure_free(v->second.x);
+    v->second.x = pure_new(cv);
+  }
+  map<int32_t,Env>::iterator g = globalfuns.find(f);
+  if (g != globalfuns.end()) {
+    llvm::Function *f = g->second.f, *h = g->second.h;
+    assert(f && h);
+    globalfuns.erase(g);
+    if (h != f) h->dropAllReferences();
+    f->dropAllReferences();
+    if (h != f) h->eraseFromParent();
+    f->eraseFromParent();
+    reset();
+  }
+}
+
+void interpreter::clear(int32_t f)
+{
+  if (f > 0) {
+    env::iterator it = environ.find(f);
+    if (it != environ.end()) {
+      environ.erase(it);
+      clearsym(f);
+    }
+  } else if (f == 0 && temp > 0) {
+    // purge all temporary functions and variables
+    for (env::iterator it = environ.begin(); it != environ.end(); ) {
+      env::iterator jt = it; ++it;
+      int32_t f = jt->first;
+      env_info& info = jt->second;
+      if (info.temp >= temp) {
+	environ.erase(jt);
+	clearsym(f);
+      } else if (info.t == env_info::fun) {
+	// purge temporary rules for non-temporary functions
+	bool d = false;
+	rulel& r = *info.rules;
+	for (rulel::iterator it = r.begin(); it != r.end(); )
+	  if (it->temp >= temp) {
+	    d = true;
+	    it = r.erase(it);
+	  } else
+	    ++it;
+	if (d) {
+	  assert(!r.empty());
+	  mark_dirty(f);
+	}
+      }
+    }
+    if (temp > 1) --temp;
+  }
+}
+
+void interpreter::add_rule(rulel &rl, rule *r, bool b, yy::location* yylloc)
+{
+  rule r1 = *r;
+  if (r->lhs.is_null()) {
+    // empty lhs, repeat the one from the previous rule
+    rulel::reverse_iterator last = rl.rbegin();
+    if (last == rl.rend()) {
+      delete r;
+      throw err("error in function definition (missing left-hand side)");
+    } else
+      r1 = rule(last->lhs, r->rhs, r->qual);
+  }
+  delete r;
+  closure(r1, b);
+  rl.push_back(r1);
+}
+
+void interpreter::add_rule(env &e, expr &l, rule *r, bool toplevel)
+{
+  rule r1 = *r;
+  if (r->lhs.is_null()) {
+    // empty lhs, repeat the one from the previous rule
+    if (l.is_null()) {
+      delete r;
+      throw err("error in function definition (missing left-hand side)");
+    } else
+      r1 = rule(l, r->rhs, r->qual);
+  }
+  delete r;
+  closure(r1, false);
+  if (toplevel) {
+    compile(r1.rhs);
+    compile(r1.qual);
+  }
+  int32_t f; uint32_t argc = count_args(r1.lhs, f);
+  if (f <= 0)
+    throw err("error in function definition (invalid head symbol)");
+  env::iterator it = e.find(f);
+  const symbol& sym = symtab.sym(f);
+  if (it != e.end()) {
+    if (it->second.t == env_info::fvar)
+      throw err("symbol '"+sym.s+"' is already defined as a variable");
+    else if (it->second.argc != argc) {
+      ostringstream msg;
+      msg << "symbol '" << sym.s
+	  << "' was previously defined with " << it->second.argc << " args";
+      throw err(msg.str());
+    }
+  } else if (toplevel) {
+    map<int32_t,ExternInfo>::const_iterator it = externals.find(f);
+    if (it != externals.end() && it->second.argtypes.size() != argc) {
+      ostringstream msg;
+      msg << "symbol '" << sym.s
+	  << "' was previously declared as an external with "
+	  << it->second.argtypes.size() << " args";
+      throw err(msg.str());
+    }
+  }
+  env_info &info = e[f];
+  if (info.t == env_info::none)
+    info = env_info(argc, rulel(), toplevel?temp:0);
+  assert(info.argc == argc);
+  if (toplevel) {
+    r1.temp = temp;
+    if (override) {
+      rulel::iterator p = info.rules->begin();
+      for (; p != info.rules->end() && p->temp >= temp; p++) ;
+      info.rules->insert(p, r1);
+    } else
+      info.rules->push_back(r1);
+  } else {
+    r1.temp = 0;
+    info.rules->push_back(r1);
+  }
+  if (l != r1.lhs) l = r1.lhs;
+  if (toplevel && (verbose&verbosity::defs) != 0) cout << r1 << ";\n";
+  if (toplevel) mark_dirty(f);
+}
+
+void interpreter::add_simple_rule(rulel &rl, rule *r)
+{
+  assert(!r->lhs.is_null());
+  rule r1 = *r;
+  rl.push_back(r1);
+  delete r;
+}
+
+void interpreter::closure(expr& l, expr& r, bool b)
+{
+  env vars;
+  expr u = bind(vars, l, b), v = subst(vars, r);
+  l = u; r = v;
+}
+
+void interpreter::closure(rule& r, bool b)
+{
+  env vars;
+  expr u = expr(bind(vars, r.lhs, b)),
+    v = expr(subst(vars, r.rhs)),
+    w = expr(subst(vars, r.qual));
+  r = rule(u, v, w);
+}
+
+expr interpreter::bind(env& vars, expr x, bool b, path p)
+{
+  assert(!x.is_null());
+  switch (x.tag()) {
+  case EXPR::VAR: {
+    // previously bound variable (successor rule)
+    const symbol& sym = symtab.sym(x.vtag());
+    if (sym.s != "_") { // '_' = anonymous variable
+      assert(p == x.vpath());
+      vars[sym.f] = env_info(x.ttag(), p);
+    }
+    return x;
+  }
+  // constants:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP: {
+    if (p.len() >= MAXDEPTH)
+      throw err("error in pattern (nesting too deep)");
+    expr u = bind(vars, x.xval1(), 1, path(p, 0)),
+      v = bind(vars, x.xval2(), 1, path(p, 1));
+    return expr(u, v);
+  }
+  // these must not occur on the lhs:
+  case EXPR::LAMBDA:
+    throw err("lambda expression not permitted in pattern");
+  case EXPR::COND:
+    throw err("conditional expression not permitted in pattern");
+  case EXPR::CASE:
+    throw err("case expression not permitted in pattern");
+  case EXPR::WHEN:
+    throw err("when expression not permitted in pattern");
+  case EXPR::WITH:
+    throw err("with expression not permitted in pattern");
+  default:
+    assert(x.tag() > 0);
+    const symbol& sym = symtab.sym(x.tag());
+    if (sym.prec < 10 || sym.fix == nullary || p.len() == 0 && !b ||
+	p.len() > 0 && p.last() == 0) {
+      // constant or constructor
+      if (x.ttag() != 0)
+	throw err("error in expression (misplaced type tag)");
+      return x;
+    }
+    env::iterator it = vars.find(sym.f);
+    if (sym.s != "_") { // '_' = anonymous variable
+      if (it != vars.end())
+	throw err("error in pattern (repeated variable '"+sym.s+"')");
+      vars[sym.f] = env_info(x.ttag(), p);
+    }
+    return expr(EXPR::VAR, sym.f, 0, x.ttag(), p);
+  }
+}
+
+void interpreter::promote_ttags(expr f, expr x, expr u)
+{
+  if (u.ttag() == EXPR::INT) {
+    // unary int operations
+    if (f.ftag() == symtab.neg_sym().f || f.ftag() == symtab.not_sym().f ||
+	f.ftag() == symtab.bitnot_sym().f)
+      x.set_ttag(EXPR::INT);
+  } else if (u.ttag() == EXPR::DBL) {
+    // unary double operations
+    if (f.ftag() == symtab.neg_sym().f) {
+      x.set_ttag(EXPR::DBL);
+    }
+  }
+}
+
+void interpreter::promote_ttags(expr f, expr x, expr u, expr v)
+{
+  if (((u.ttag() == EXPR::INT || u.ttag() == EXPR::DBL) &&
+       (v.ttag() == EXPR::INT || v.ttag() == EXPR::DBL))) {
+    if (u.ttag() == EXPR::INT && v.ttag() == EXPR::INT) {
+      // binary int operations
+      if (f.ftag() == symtab.or_sym().f ||
+	  f.ftag() == symtab.and_sym().f ||
+	  f.ftag() == symtab.bitor_sym().f ||
+	  f.ftag() == symtab.bitand_sym().f ||
+	  f.ftag() == symtab.shl_sym().f ||
+	  f.ftag() == symtab.shr_sym().f ||
+	  f.ftag() == symtab.less_sym().f ||
+	  f.ftag() == symtab.greater_sym().f ||
+	  f.ftag() == symtab.lesseq_sym().f ||
+	  f.ftag() == symtab.greatereq_sym().f ||
+	  f.ftag() == symtab.equal_sym().f ||
+	  f.ftag() == symtab.notequal_sym().f ||
+	  f.ftag() == symtab.plus_sym().f ||
+	  f.ftag() == symtab.minus_sym().f ||
+	  f.ftag() == symtab.mult_sym().f ||
+	  f.ftag() == symtab.div_sym().f ||
+	  f.ftag() == symtab.mod_sym().f) {
+	x.set_ttag(EXPR::INT);
+      } else if (f.ftag() == symtab.fdiv_sym().f) {
+	x.set_ttag(EXPR::DBL);
+      }
+    } else {
+      // binary int/double operations
+      if (f.ftag() == symtab.less_sym().f ||
+	  f.ftag() == symtab.greater_sym().f ||
+	  f.ftag() == symtab.lesseq_sym().f ||
+	  f.ftag() == symtab.greatereq_sym().f ||
+	  f.ftag() == symtab.equal_sym().f ||
+	  f.ftag() == symtab.notequal_sym().f) {
+	x.set_ttag(EXPR::INT);
+      } else if (f.ftag() == symtab.plus_sym().f ||
+		 f.ftag() == symtab.minus_sym().f ||
+		 f.ftag() == symtab.mult_sym().f ||
+		 f.ftag() == symtab.fdiv_sym().f) {
+	x.set_ttag(EXPR::DBL);
+      }
+    }
+  } else if (f.ftag() == symtab.or_sym().f || f.ftag() == symtab.and_sym().f)
+    /* These two get special treatment, because they have to be evaluated in
+       short-circuit mode. Operand types will be checked at runtime if
+       necessary. */
+    x.set_ttag(EXPR::INT);
+}
+
+expr interpreter::subst(const env& vars, expr x, uint8_t idx)
+{
+  if (x.is_null()) return x;
+  switch (x.tag()) {
+  // constants:
+  case EXPR::VAR:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP:
+    if (x.xval1().tag() == EXPR::APP &&
+	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+      expr u = subst(vars, x.xval1().xval2(), idx);
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      expr v = subst(vars, x.xval2(), idx);
+      return expr(symtab.catch_sym().x, u, v);
+    } else {
+      expr u = subst(vars, x.xval1(), idx),
+	v = subst(vars, x.xval2(), idx);
+      expr w = expr(u, v);
+      // promote type tags
+      expr f; uint32_t n = count_args(w, f);
+      if (n == 1)
+	promote_ttags(f, w, w.xval2());
+      else if (n == 2)
+	promote_ttags(f, w, w.xval1().xval2(), w.xval2());
+      return w;
+    }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = subst(vars, x.xval1(), idx),
+      v = subst(vars, x.xval2(), idx),
+      w = subst(vars, x.xval3(), idx);
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    expr u = x.xval1(), v = subst(vars, x.xval2(), idx);
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = subst(vars, x.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = subst(vars, it->rhs, idx),
+	w = subst(vars, it->qual, idx);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    // This is slightly more involved, since a 'when' expression with k rules
+    // actually introduces k different levels of bindings:
+    // x when l1 = r1; ...; lk = rk end  ===
+    // @@0: case r1 of l1 = ... @@k-1: case rk of lk = @@k:x end ... end
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = subst(vars, it->rhs, idx);
+      s->push_back(rule(u, v));
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+    }
+    expr u = subst(vars, x.xval(), idx);
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = subst(vars, x.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = subst(vars, jt->rhs, idx),
+	  w = subst(vars, jt->qual, idx);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    const symbol& sym = symtab.sym(x.tag());
+    env::const_iterator it = vars.find(sym.f);
+    if (sym.prec < 10 || sym.fix == nullary || it == vars.end()) {
+      // not a bound variable
+      if (x.ttag() != 0)
+	throw err("error in expression (misplaced type tag)");
+      return x;
+    }
+    const env_info& info = it->second;
+    return expr(EXPR::VAR, sym.f, idx, info.ttag, *info.p);
+  }
+}
+
+expr interpreter::fsubst(const env& funs, expr x, uint8_t idx)
+{
+  if (x.is_null()) return x;
+  switch (x.tag()) {
+  // constants:
+  case EXPR::VAR:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP:
+    if (x.xval1().tag() == EXPR::APP &&
+	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+      expr u = fsubst(funs, x.xval1().xval2(), idx);
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      expr v = fsubst(funs, x.xval2(), idx);
+      return expr(symtab.catch_sym().x, u, v);
+    } else {
+      expr u = fsubst(funs, x.xval1(), idx),
+	v = fsubst(funs, x.xval2(), idx);
+      return expr(u, v);
+    }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = fsubst(funs, x.xval1(), idx),
+      v = fsubst(funs, x.xval2(), idx),
+      w = fsubst(funs, x.xval3(), idx);
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    expr u = x.xval1(), v = fsubst(funs, x.xval2(), idx);
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = fsubst(funs, x.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = fsubst(funs, it->rhs, idx),
+	w = fsubst(funs, it->qual, idx);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = fsubst(funs, it->rhs, idx);
+      s->push_back(rule(u, v));
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+    }
+    expr u = fsubst(funs, x.xval(), idx);
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = fsubst(funs, x.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = fsubst(funs, jt->rhs, idx),
+	  w = fsubst(funs, jt->qual, idx);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    const symbol& sym = symtab.sym(x.tag());
+    env::const_iterator it = funs.find(sym.f);
+    if (it != funs.end())
+      return expr(EXPR::FVAR, sym.f, idx);
+    else
+      return x;
+  }
+}
+
+expr* interpreter::uminop(expr *op, expr *x)
+{
+  if (op->tag() != symtab.sym("-").f) {
+    int32_t f = op->tag();
+    delete op; delete x;
+    throw err("syntax error, '" + symtab.sym(f).s +
+	      "' is not a unary operator");
+  }
+  expr *y;
+  // handle special case of a numeric argument
+  if (x->tag() == EXPR::INT)
+    y = new expr(EXPR::INT, -x->ival());
+  else if (x->tag() == EXPR::DBL)
+    y = new expr(EXPR::DBL, -x->dval());
+  else // otherwise fall back to the neg builtin
+    y = new expr(symtab.neg_sym().x, *x);
+  delete op; delete x;
+  return y;
+}
+
+expr *interpreter::mkexpr(expr *x, expr *y)
+{
+  expr *u = new expr(*x, *y);
+  delete x; delete y;
+  return u;
+}
+
+expr *interpreter::mkexpr(expr *x, expr *y, expr *z)
+{
+  expr *u = new expr(*x, *y, *z);
+  delete x; delete y; delete z;
+  return u;
+}
+
+expr *interpreter::mksym_expr(string *s, int8_t tag)
+{
+  expr *x;
+  const symbol &sym = symtab.sym(*s);
+  if (tag == 0)
+    x = new expr(sym.x);
+  else if (sym.f <= 0 || sym.prec < 10 || sym.fix == nullary)
+    throw err("error in expression (misplaced type tag)");
+  else {
+    x = new expr(sym.f);
+    // record type tag:
+    x->set_ttag(tag);
+  }
+  delete s;
+  return x;
+}
+
+expr *interpreter::mkcond_expr(expr *x, expr *y, expr *z)
+{
+  expr *u = new expr(expr::cond(*x, *y, *z));
+  delete x; delete y; delete z;
+  return u;
+}
+
+static inline expr lambda_expr(interpreter& interp, expr arg, expr body)
+{
+  interp.closure(arg, body);
+  return expr::lambda(arg, body);
+}
+
+static expr lambda_expr(interpreter& interp, 
+			exprl::iterator it, exprl::iterator end, expr body)
+{
+  if (it == end)
+    return body;
+  else {
+    expr arg = *it;
+    return lambda_expr(interp, arg, lambda_expr(interp, ++it, end, body));
+  }
+}
+
+expr *interpreter::mklambda_expr(exprl *args, expr *body)
+{
+  assert(!args->empty());
+  expr *x;
+  try {
+    x = new expr(lambda_expr(*this, args->begin(), args->end(), *body));
+  } catch (err &e) {
+    delete args; delete body;
+    throw e;
+  }
+  delete args; delete body;
+  return x;
+}
+
+expr *interpreter::mkcase_expr(expr *x, rulel *r)
+{
+  expr *u;
+  if (r->empty()) {
+    u = new expr(); delete r;
+  } else
+    u = new expr(expr::cases(*x, r));
+  delete x;
+  return u;
+}
+
+expr *interpreter::mkwhen_expr(expr *x, rulel *r)
+{
+  if (r->empty()) {
+    delete x; delete r;
+    return new expr();
+  }
+  expr u = *x;
+  delete x;
+  rulel *s = new rulel;
+  // x when l1 = r1; ...; lk = rk end  ===
+  // case r1 of l1 = ... case rk of lk = x end ... end
+  if (r->size() > 0x100)
+    throw err("error in expression (too many nested closures)");
+  uint8_t idx = 0;
+  for (rulel::const_reverse_iterator it = r->rbegin();
+       it != r->rend(); ++it, ++idx) {
+    env vars;
+    expr v = bind(vars, it->lhs), w = it->rhs;
+    u = subst(vars, u, idx);
+    uint8_t jdx = 0;
+    for (rulel::iterator jt = s->begin(); jt != s->end(); ++jdx, ++jt) {
+      expr v = jt->lhs, w = subst(vars, jt->rhs, jdx);
+      *jt = rule(v, w);
+    }
+    s->push_front(rule(v, w));
+  }
+  delete r;
+  return new expr(expr::when(u, s));
+}
+
+expr *interpreter::mkwith_expr(expr *x, env *e)
+{
+  expr *u;
+  if (e->empty()) {
+    delete x; delete e;
+    u = new expr();
+  } else {
+    expr v = fsubst(*e, *x);
+    delete x;
+    for (env::iterator it = e->begin(); it != e->end(); ++it) {
+      env_info& info = it->second;
+      rulel *r = info.rules;
+      for (rulel::iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr rhs = fsubst(*e, jt->rhs, 1), qual = fsubst(*e, jt->qual, 1);
+	*jt = rule(jt->lhs, rhs, qual);
+      }
+    }
+    u = new expr(expr::with(v, e));
+  }
+  return u;
+}
+
+expr *interpreter::mklist_expr(expr *x)
+{
+  expr *u;
+  exprl xs;
+  if (x->is_pair() && x->is_tuple(xs))
+    u = new expr(expr::list(xs));
+  else
+    u = new expr(expr::cons(*x, expr::nil()));
+  delete x;
+  return u;
+}
+
+expr interpreter::mklistcomp_expr(expr x, comp_clause_list::iterator cs,
+				  comp_clause_list::iterator end)
+{
+  if (cs == end)
+    return expr::cons(x, expr::nil());
+  else {
+    comp_clause& c = *cs;
+    if (c.second.is_null()) {
+      expr p = c.first;
+      return expr::cond(p, mklistcomp_expr(x, ++cs, end), expr::nil());
+    } else {
+      expr pat = c.first, body = mklistcomp_expr(x, ++cs, end),
+	arg = c.second;
+      closure(pat, body);
+      return expr(symtab.catmap_sym().x, expr::lambda(pat, body), arg);
+    }
+  }
+}
+
+expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
+{
+  expr y = mklistcomp_expr(*x, cs->begin(), cs->end());
+  delete x; delete cs;
+  return new expr(y);
+}
+
+// Code generation.
+
+#define Dbl(d)		ConstantFP::get(Type::DoubleTy, APFloat(d))
+#define Bool(i)		ConstantInt::get(Type::Int1Ty, i)
+#define UInt(i)		ConstantInt::get(Type::Int32Ty, i)
+#define SInt(i)		ConstantInt::get(Type::Int32Ty, i, true)
+#define UInt64(i)	ConstantInt::get(Type::Int64Ty, i)
+#define SInt64(i)	ConstantInt::get(Type::Int64Ty, i, true)
+#define False		Bool(0)
+#define True		Bool(1)
+#define Zero		UInt(0)
+#define One		UInt(1)
+#define Two		UInt(2)
+#define NullExprPtr	ConstantPointerNull::get(ExprPtrTy)
+#define NullExprPtrPtr	ConstantPointerNull::get(ExprPtrPtrTy)
+
+const char *interpreter::mklabel(const char *name, uint32_t i)
+{
+  char lab[128];
+  sprintf(lab, "%s%u", name, i);
+  char *s = strdup(lab);
+  cache.push_back(s);
+  return s;
+}
+
+const char *interpreter::mklabel(const char *name, uint32_t i, uint32_t j)
+{
+  char lab[128];
+  sprintf(lab, "%s%u.%u", name, i, j);
+  char *s = strdup(lab);
+  cache.push_back(s);
+  return s;
+}
+
+const char *interpreter::mkvarlabel(int32_t tag)
+{
+  assert(tag > 0);
+  const symbol& sym = symtab.sym(tag);
+  string lab;
+  if (sym.prec < 10 || sym.fix == nullary)
+    lab = "$("+sym.s+")";
+  else
+    lab = "$"+sym.s;
+  char *s = strdup(lab.c_str());
+  cache.push_back(s);
+  return s;
+}
+
+void interpreter::clear_cache()
+{
+  for (list<char*>::iterator s = cache.begin(); s != cache.end(); s++)
+    free(*s);
+  cache.clear();
+}
+
+using namespace llvm;
+
+void interpreter::defn(int32_t tag, pure_expr *x)
+{
+  assert(tag > 0);
+  globals g;
+  save_globals(g);
+  symbol& sym = symtab.sym(tag);
+  env::const_iterator jt = environ.find(tag);
+  if (jt != environ.end() && jt->second.t == env_info::fun) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a function");
+  } else if (externals.find(tag) != externals.end()) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+
+	      "' is already declared as an extern function");
+  }
+  GlobalVar& v = globalvars[tag];
+  if (!v.v) {
+    v.v = new GlobalVariable
+      (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
+    JIT->addGlobalMapping(v.v, &v.x);
+  }
+  if (v.x) pure_free(v.x); v.x = pure_new(x);
+  environ[tag] = env_info(&v.x, temp);
+  restore_globals(g);
+}
+
+ostream &operator<< (ostream& os, const ExternInfo& info)
+{
+  interpreter& interp = *interpreter::g_interp;
+  assert(info.tag > 0);
+  os << "extern " << interp.type_name(info.type) << " "
+     << interp.symtab.sym(info.tag).s << "(";
+  size_t n = info.argtypes.size();
+  for (size_t i = 0; i < n; i++) {
+    if (i > 0) os << ", ";
+    os << interp.type_name(info.argtypes[i]);
+  }
+  return os << ")";
+}
+
+Env& Env::operator= (const Env& e)
+{
+  if (f) {
+    // already initialized; we only allow this for global function definitions
+    assert(!local && !parent && e.n == n && e.tag == tag && b == e.b &&
+	   !e.local && !e.parent);
+    clear();
+  } else {
+    // uninitialized environment; simply copy everything
+    tag = e.tag; name = e.name; n = e.n; f = e.f; h = e.h; fp = e.fp;
+    args = e.args; envs = e.envs; argv = e.argv;
+    b = e.b; local = e.local; parent = e.parent;
+  }
+  fmap = e.fmap; xmap = e.xmap; xtab = e.xtab; prop = e.prop; m = e.m;
+  return *this;
+}
+
+void Env::clear()
+{
+  static list<Function*> to_be_deleted;
+  if (!f) return; // not initialized
+  interpreter& interp = *interpreter::g_interp;
+  if (local) {
+    // purge local functions
+    f->dropAllReferences(); if (h != f) h->dropAllReferences();
+    fmap.clear();
+    interp.JIT->freeMachineCodeForFunction(f);
+    if (h != f) interp.JIT->freeMachineCodeForFunction(h);
+    fp = 0;
+    to_be_deleted.push_back(f); if (h != f) to_be_deleted.push_back(h);
+  } else {
+    // only delete the body, this keeps existing references intact
+    f->deleteBody();
+    interp.JIT->freeMachineCodeForFunction(f);
+    if (h != f) interp.JIT->freeMachineCodeForFunction(h);
+    fp = 0;
+    // delete all nested environments and reinitialize other body-related data
+    fmap.clear(); xmap.clear(); xtab.clear(); prop.clear(); m = 0; argv = 0;
+    // now that all references have been removed, delete the function pointers
+    for (list<Function*>::iterator fi = to_be_deleted.begin();
+	 fi != to_be_deleted.end(); fi++) {
+      (*fi)->eraseFromParent();
+    }
+    to_be_deleted.clear();
+  }
+}
+
+CallInst *Env::CreateCall(Function *f, const vector<Value*>& args)
+{
+#if DEBUG
+  // do some sanity checks
+  bool ok = true;
+  Function::arg_iterator a = f->arg_begin();
+  vector<Value*>::const_iterator b = args.begin();
+  for (size_t i = 0; a != f->arg_end() && b != args.end(); i++, a++, b++) {
+    Value* c = *b;
+    if (a->getType() != c->getType()) {
+      llvm::cerr << "** argument mismatch!\n";
+      llvm::cerr << "function parameter #" << i << ": "; a->dump();
+      llvm::cerr << "provided argument  #" << i << ": "; c->dump();
+      ok = false;
+    }
+  }
+  if (ok && a != f->arg_end()) {
+    llvm::cerr << "** missing arguments!\n";
+    ok = false;
+  }
+  if (ok && b != args.end() && !f->isVarArg()) {
+    llvm::cerr << "** extra arguments!\n";
+    ok = false;
+  }
+  if (!ok) {
+    llvm::cerr << "** calling function: " << f->getName() << endl;
+    f->dump();
+    assert(0 && "bad function call");
+  }
+#endif
+  CallInst* v = builder.CreateCall(f, args.begin(), args.end());
+  v->setCallingConv(f->getCallingConv());
+  return v;
+}
+
+ReturnInst *Env::CreateRet(Value *v)
+{
+  interpreter& interp = *interpreter::g_interp;
+  ReturnInst *ret = builder.CreateRet(v);
+  Instruction *pi = ret;
+  if (isa<CallInst>(v)) {
+    CallInst* c = cast<CallInst>(v);
+    // Check whether the call is actually subject to tail call elimination (as
+    // determined by the calling convention).
+    if (c->getCallingConv() == CallingConv::Fast) c->setTailCall();
+    pi = c;
+  }
+  // We must garbage-collect args and environment here, immediately before the
+  // call (if any), or the return instruction otherwise.
+  vector<Value*> myargs;
+  if (pi != ret && n == 1 && m == 0)
+    new CallInst(interp.module->getFunction("pure_free"),
+		 args[0], "", pi);
+  else if (pi != ret && n == 0 && m == 1) {
+    Value *v = new GetElementPtrInst(envs, Zero, "", pi);
+    new CallInst(interp.module->getFunction("pure_free"),
+		 new LoadInst(v, "", pi), "", pi);
+  } else if (n+m != 0) {
+    if (pi == ret)
+      myargs.push_back(v);
+    else
+      myargs.push_back(ConstantPointerNull::get(interp.ExprPtrTy));
+    for (size_t i = 0; i < n; i++)
+      myargs.push_back(args[i]);
+    for (size_t i = 0; i < m; i++) {
+      Value *v = new GetElementPtrInst(envs, UInt(i), "", pi);
+      myargs.push_back(new LoadInst(v, "", pi));
+    }
+    myargs.push_back(ConstantPointerNull::get(interp.ExprPtrTy));
+    new CallInst(interp.module->getFunction("pure_free_args"),
+		 myargs.begin(), myargs.end(), "", pi);
+    if (pi == ret) {
+      Value *x[1] = { v };
+      new CallInst(interp.module->getFunction("pure_unref"), x, x+1, "", ret);
+    }
+  }
+  return ret;
+}
+
+// XXXFIXME: this should be TLD
+EnvStack Env::envstk;
+set<Env*> Env::props;
+
+void Env::push(const char *msg)
+{
+  envstk.push_front(this);
+#if DEBUG>1
+  interpreter& interp = *interpreter::g_interp;
+  llvm::cerr << "push (" << msg << ") " << this << " -> "
+	     << (tag>0?interp.symtab.sym(tag).s:"<<anonymous>>")
+	     << endl;
+#endif
+}
+
+void Env::pop()
+{
+  assert(envstk.front() == this);
+  envstk.pop_front();
+#if DEBUG>1
+  interpreter& interp = *interpreter::g_interp;
+  llvm::cerr << "pop " << this << " -> "
+	     << (tag>0?interp.symtab.sym(tag).s:"<<anonymous>>")
+	     << endl;
+#endif
+}
+
+#if DEBUG>1
+void print_map(ostream& os, const Env *e)
+{
+  static size_t indent = 0;
+  string blanks(indent, ' ');
+  interpreter& interp = *interpreter::g_interp;
+  os << blanks << ((e->tag>0)?interp.symtab.sym(e->tag).s:"anonymous")
+     << " {\n" << blanks << "XMAP:\n";
+  list<VarInfo>::const_iterator xi;
+  for (xi = e->xtab.begin(); xi != e->xtab.end(); xi++) {
+    const VarInfo& x = *xi;
+    assert(x.vtag > 0);
+    os << blanks << "  " << interp.symtab.sym(x.vtag).s << " (#" << x.v << ") "
+       << (uint32_t)x.idx << ":";
+    const path &p = x.p;
+    for (size_t i = 0; i < p.len(); i++) os << p[i];
+    os << endl;
+  }
+  os << blanks << "FMAP:\n";
+  indent += 2;
+  map<int32_t,Env>::const_iterator fi;
+  for (fi = e->fmap.begin(); fi != e->fmap.end(); fi++) {
+    const Env& e = fi->second;
+    print_map(os, &e);
+  }
+  indent -= 2;
+  os << blanks << "}\n";
+}
+#endif
+
+void Env::build_map(expr x)
+{
+  // build the maps for a (rhs) expression
+  assert(!x.is_null());
+  switch (x.tag()) {
+  case EXPR::FVAR: {
+    // Function call site; if it's a local function, we'll have to propogate
+    // the environment of that function to the current scope.
+    assert(x.vtag() > 0);
+    if (x.vidx() == 0 || x.vtag() == tag) break;
+    Env *fenv = this;
+    // First locate the function environment; the de Bruijn index tells us
+    // where it's at.
+    EnvStack::iterator ei = envstk.begin();
+    uint32_t i = x.vidx();
+    while (i-- > 0) {
+      assert(ei != envstk.end());
+      fenv = *ei++;
+    }
+    assert(fenv->fmap.find(x.vtag()) != fenv->fmap.end());
+    fenv = &fenv->fmap[x.vtag()];
+    if (!fenv->local) break;
+    // fenv now points to the environment of the (local) function
+    assert(fenv != this && fenv->tag == x.vtag());
+    // As the map of the function environment might not be instantiated yet,
+    // just leave a propagation link there for now, it will be processed
+    // later.
+    if (fenv->prop.find(this) == fenv->prop.end()) {
+#if DEBUG>1
+    {
+      interpreter& interp = *interpreter::g_interp;
+      string name = tag>0?interp.symtab.sym(tag).s:"<<anonymous>>";
+      EnvStack::iterator ei = envstk.begin();
+      while (ei != envstk.end()) {
+	Env *fenv = *ei++;
+	name = (fenv->tag>0?interp.symtab.sym(fenv->tag).s:"<<anonymous>>") +
+	  "." + name;
+      }
+      llvm::cerr << name << ": call " << interp.symtab.sym(x.vtag()).s
+		 << ":" << (unsigned)x.vidx() << endl;
+    }
+#endif
+      fenv->prop[this] = x.vidx();
+      props.insert(fenv);
+    } else
+      assert(fenv->prop[this] == x.vidx());
+    break;
+  }
+  case EXPR::VAR:
+    if (x.vidx() > 0) {
+      // reference to a local variable outside the current environment, which
+      // needs to be captured when building a closure, cf. fbox()
+      int32_t tag = x.vtag();
+      uint8_t idx = x.vidx();
+      path p = x.vpath();
+      map<xmap_key,uint32_t>::const_iterator e = xmap.find(xmap_key(tag, idx));
+      if (e == xmap.end()) {
+	uint32_t v = m++;
+	xmap[xmap_key(tag, idx)] = v;
+	// record the new local and its properties, so that we can generate
+	// code to capture the variable when boxing the function
+	xtab.push_back(VarInfo(v, tag, idx, p));
+#if DEBUG
+      } else {
+	// sanity checking; the idx and path of each given environment
+	// reference should be uniquely determined by the variable symbol
+	uint32_t v = e->second;
+	list<VarInfo>::const_iterator info = xtab.begin();
+	for (; v > 0; --v) ++info;
+	assert(tag == info->vtag && idx == info->idx && p == info->p);
+#endif
+      }
+    }
+    break;
+  case EXPR::APP: {
+    expr f; uint32_t n = count_args(x, f);
+    interpreter& interp = *interpreter::g_interp;
+    if (n == 2 && f.tag() == interp.symtab.catch_sym().f) {
+      expr h = x.xval1().xval2(), y = x.xval2();
+      push("catch");
+      Env& e = fmap[-x.hash()] = Env(0, 0, y, true, true);
+      e.build_map(y); e.promote_map();
+      pop();
+      build_map(h);
+    } else {
+      build_map(x.xval1());
+      build_map(x.xval2());
+    }
+    break;
+  }
+  case EXPR::COND:
+    build_map(x.xval1());
+    build_map(x.xval2());
+    build_map(x.xval3());
+    break;
+  case EXPR::LAMBDA: {
+    push("lambda");
+    Env& e = fmap[-x.hash()] = Env(0, 1, x.xval2(), true, true);
+    e.build_map(x.xval2()); e.promote_map();
+    pop();
+    break;
+  }
+  case EXPR::CASE: {
+    push("case");
+    Env& e = fmap[-x.hash()] = Env(0, 1, x.xval(), true, true);
+    e.build_map(*x.rules()); e.promote_map();
+    pop();
+    build_map(x.xval());
+    break;
+  }
+  case EXPR::WHEN:
+    assert(!x.rules()->empty());
+    build_map(x.xval(), x.rules()->begin(), x.rules()->end());
+    break;
+  case EXPR::WITH: {
+    env *fe = x.fenv();
+    push("with");
+    // First enter all the environments into the fmap.
+    for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
+      int32_t ftag = p->first;
+      const env_info& info = p->second;
+      fmap[ftag] = Env(ftag, info, false, true);
+    }
+    // Now recursively build the maps for the child environments.
+    for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
+      int32_t ftag = p->first;
+      const env_info& info = p->second;
+      Env& e = fmap[ftag];
+      e.build_map(info); e.promote_map();
+    }
+    pop();
+    build_map(x.xval());
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+void Env::build_map(expr x, rulel::const_iterator r, rulel::const_iterator end)
+{
+  // build the maps for a 'when' expression (cf. when_codegen())
+  // x = subject expression to be evaluated in the context of the bindings
+  // r = current pattern binding rule
+  // end = end of rule list
+  if (r == end)
+    build_map(x);
+  else {
+    rulel::const_iterator s = r;
+    expr y = (++s == end)?x:s->rhs;
+    push("when");
+    Env& e = fmap[-y.hash()] = Env(0, 1, y, true, true);
+    e.build_map(x, s, end); e.promote_map();
+    pop();
+    build_map(r->rhs);
+  }
+}
+
+void Env::build_map(const rulel& rl)
+{
+  // build the maps for the rh sides in a 'case' expression
+  for (rulel::const_iterator r = rl.begin(); r != rl.end(); r++) {
+    build_map(r->rhs);
+    if (!r->qual.is_null()) build_map(r->qual);
+  }
+}
+
+void Env::build_map(const env_info& info)
+{
+  // build the maps for a global function definition
+  assert(info.t == env_info::fun);
+  rulel::const_iterator r = info.rules->begin();
+  while (r != info.rules->end()) {
+    build_map(r->rhs);
+    if (!r->qual.is_null()) build_map(r->qual);
+    r++;
+  }
+#if DEBUG>1
+  if (!local) print_map(std::cerr, this);
+#endif
+}
+
+void Env::promote_map()
+{
+  for (list<VarInfo>::iterator x = xtab.begin(); x != xtab.end(); x++) {
+    // promote a non-local reference to outer environments
+    VarInfo& info = *x;
+    Env *f = parent;
+    uint32_t i = info.idx;
+    assert(i > 0);
+    for (; --i > 0; f = f->parent) {
+      assert(f);
+      assert(f->local);
+#if DEBUG>1
+      {
+	interpreter& interp = *interpreter::g_interp;
+	assert(info.vtag>0);
+	llvm::cerr << "promoting " << interp.symtab.sym(info.vtag).s
+		   << " (idx " << (uint32_t)info.idx << ")"
+		   << " from "
+		   << (tag>0?interp.symtab.sym(tag).s:"<<anonymous>>")
+		   << " (offset " << info.idx-i << ") "
+		   << " to "
+		   << (f->tag>0?interp.symtab.sym(f->tag).s:"<<anonymous>>")
+		   << endl;
+      }
+#endif
+      int32_t tag = info.vtag;
+      uint8_t idx = i;
+      path p = info.p;
+      map<xmap_key,uint32_t>::const_iterator e =
+	f->xmap.find(xmap_key(tag, idx));
+      if (e == f->xmap.end()) {
+	uint32_t v = f->m++;
+	f->xmap[xmap_key(tag, idx)] = v;
+	f->xtab.push_back(VarInfo(v, tag, idx, p));
+#if DEBUG>0
+      } else {
+	uint32_t v = e->second;
+	list<VarInfo>::const_iterator info = f->xtab.begin();
+	for (; v > 0; --v) ++info;
+	assert(tag == info->vtag && idx == info->idx && p == info->p);
+#endif
+      }
+    }
+  }
+}
+
+void Env::propagate_maps()
+{
+  size_t count = props.size();
+  // Repeatedly pass over the props set to propagate environments until no
+  // more changes happened in the previous pass.
+  while (count > 0) {
+    count = 0;
+    for (set<Env*>::iterator e = props.begin(); e != props.end(); e++)
+      count += (*e)->propagate_map();
+  }
+  props.clear();
+}
+
+size_t Env::propagate_map()
+{
+  if (prop.empty() || xtab.empty()) return 0;
+  size_t total = 0;
+  map<Env*,uint8_t>::iterator ep = prop.begin();
+  for (; ep != prop.end(); ep++) {
+    Env& e = *ep->first;
+    uint8_t idx = ep->second;
+    assert(idx>0);
+    uint32_t offs = idx-1;
+    // Promote the environment of a local function to a call site, and from
+    // there to the call site's parents.
+    size_t count = 0;
+    for (list<VarInfo>::iterator x = xtab.begin(); x != xtab.end(); x++) {
+      VarInfo& info = *x;
+#if DEBUG>1
+      {
+	interpreter& interp = *interpreter::g_interp;
+	assert(info.vtag>0);
+	llvm::cerr << "propagating " << interp.symtab.sym(info.vtag).s
+		   << " (idx " << (uint32_t)info.idx << ")"
+		   << " from "
+		   << (tag>0?interp.symtab.sym(tag).s:"<<anonymous>>")
+		   << " (offset " << offs << ") "
+		   << " to "
+		   << (e.tag>0?interp.symtab.sym(e.tag).s:"<<anonymous>>")
+		   << endl;
+      }
+#endif
+      int32_t tag = info.vtag;
+      uint8_t idx = info.idx+offs;
+      path p = info.p;
+      map<xmap_key,uint32_t>::const_iterator ei =
+	e.xmap.find(xmap_key(tag, idx));
+      if (ei == e.xmap.end()) {
+	uint32_t v = e.m++;
+	e.xmap[xmap_key(tag, idx)] = v;
+	e.xtab.push_back(VarInfo(v, tag, idx, p));
+	count++;
+#if DEBUG>0
+      } else {
+	uint32_t v = ei->second;
+	list<VarInfo>::const_iterator info = e.xtab.begin();
+	for (; v > 0; --v) ++info;
+	assert(tag == info->vtag && idx == info->idx && p == info->p);
+#endif
+      }
+    }
+    if (count>0) e.promote_map();
+#if DEBUG>1
+    {
+      Env *f = &e;
+      while (f->parent) f = f->parent;
+      assert(!f->local);
+      print_map(std::cerr, f);
+    }
+#endif
+    total += count;
+  }
+  return total;
+}
+
+void interpreter::push(const char *msg, Env *e)
+{
+  envstk.push_front(e);
+#if DEBUG>1
+  interpreter& interp = *interpreter::g_interp;
+  llvm::cerr << "push (" << msg << ") " << e << " -> "
+	     << (e->tag>0?interp.symtab.sym(e->tag).s:"<<anonymous>>")
+	     << endl;
+#endif
+}
+
+void interpreter::pop(Env *e)
+{
+  assert(envstk.front() == e);
+  envstk.pop_front();
+#if DEBUG>1
+  interpreter& interp = *interpreter::g_interp;
+  llvm::cerr << "pop (" << e << ") -> "
+	     << (e->tag>0?interp.symtab.sym(e->tag).s:"<<anonymous>>")
+	     << endl;
+#endif
+}
+
+Env *interpreter::find_stacked(int32_t tag)
+{
+  list<Env*>::iterator e = envstk.begin();
+  while (e != envstk.end() && (*e)->tag != tag) ++e;
+  if (e != envstk.end()) {
+    assert((*e)->tag == tag);
+    return *e;
+  } else
+    return 0;
+}
+
+const Type *interpreter::named_type(string name)
+{
+  if (name == "void")
+    return Type::VoidTy;
+  else if (name == "bool")
+    return Type::Int1Ty;
+  else if (name == "char")
+    return Type::Int8Ty;
+  else if (name == "int")
+    return Type::Int32Ty;
+  else if (name == "double")
+    return Type::DoubleTy;
+  else if (name == "char*")
+    return PointerType::get(Type::Int8Ty, 0);
+  else if (name == "int*")
+    return PointerType::get(Type::Int32Ty, 0);
+  else if (name == "double*")
+    return PointerType::get(Type::DoubleTy, 0);
+  else if (name == "expr*")
+    return ExprPtrTy;
+  else if (name == "expr**")
+    return ExprPtrPtrTy;
+  else if (name == "void*")
+    return VoidPtrTy;
+  else if (name.size() > 0 && name[name.size()-1] == '*')
+    // all other pointer types effectively treated as void*
+    return VoidPtrTy;
+  else
+    throw err("unknown C type '"+name+"'");
+}
+
+const char *interpreter::type_name(const Type *type)
+{
+  if (type == Type::VoidTy)
+    return "void";
+  else if (type == Type::Int1Ty)
+    return "bool";
+  else if (type == Type::Int8Ty)
+    return "char";
+  else if (type == Type::Int32Ty)
+    return "int";
+  else if (type == Type::DoubleTy)
+    return "double";
+  else if (type == PointerType::get(Type::Int8Ty, 0))
+    return "char*";
+  else if (type == PointerType::get(Type::Int32Ty, 0))
+    return "int*";
+  else if (type == PointerType::get(Type::DoubleTy, 0))
+    return "double*";
+  else if (type == ExprPtrTy)
+    return "expr*";
+  else if (type == ExprPtrPtrTy)
+    return "expr**";
+  else if (type == VoidPtrTy)
+    return "void*";
+  else if (type->getTypeID() == Type::PointerTyID)
+    return "<unknown C pointer type>";
+  else
+    return "<unknown C type>";
+}
+
+Function *interpreter::declare_extern(void *fp, string name, string restype,
+				      int n, ...)
+{
+  va_list ap;
+  bool varargs = n<0;
+  if (varargs) n = -n;
+  list<string> argtypes;
+  va_start(ap, n);
+  for (int i = 0; i < n; i++) {
+    const char *s = va_arg(ap, char*);
+    argtypes.push_back(s);
+  }
+  va_end(ap);
+  return declare_extern(name, restype, argtypes, varargs, fp);
+}
+
+Function *interpreter::declare_extern(string name, string restype,
+				      const list<string>& argtypes,
+				      bool varargs, void *fp,
+				      string asname)
+{
+  // translate type names to LLVM types
+  size_t n = argtypes.size();
+  const Type* type = named_type(restype);
+  vector<const Type*> argt(n);
+  list<string>::const_iterator atype = argtypes.begin();
+  for (size_t i = 0; i < n; i++, atype++) {
+    argt[i] = named_type(*atype);
+    // sanity check
+    if (argt[i] == Type::VoidTy)
+      throw err("'void' not permitted as an argument type");
+  }
+  if (fp) {
+    // These are for internal use only (runtime calls).
+    Function *f = module->getFunction(name);
+    if (f) {
+      assert(sys::DynamicLibrary::SearchForAddressOfSymbol(name) == fp);
+      return f;
+    }
+    // The function declaration hasn't been assembled yet. Do it now.
+    FunctionType *ft = FunctionType::get(type, argt, varargs);
+    f = new Function(ft, Function::ExternalLinkage, name, module);
+    // Enter a fixed association into the dynamic linker table. This ensures
+    // that even if the runtime functions can't be resolved via dlopening
+    // the interpreter executable (e.g., if the interpreter was linked
+    // without -rdynamic), the interpreter will still find them.
+    sys::DynamicLibrary::AddSymbol(name, fp);
+    return f;
+  }
+  // External C function visible in the Pure program. No varargs are allowed
+  // here for now. Also, we have to translate some of the parameter types
+  // (expr** becomes void*, int32_t gets promoted in64_t if the default int
+  // type of the target platform has 64 bit).
+  assert(!varargs);
+  if (type == ExprPtrPtrTy)
+    type = VoidPtrTy;
+  else if (type == Type::Int32Ty && sizeof(int) > 4)
+    type = Type::Int64Ty;
+  for (size_t i = 0; i < n; i++, atype++)
+    if (argt[i] == ExprPtrPtrTy)
+      argt[i] = VoidPtrTy;
+    else if (argt[i] == Type::Int32Ty && sizeof(int) > 4)
+      argt[i] = Type::Int64Ty;
+  if (asname.empty()) asname = name;
+  // First check whether there already is a Pure function or global variable
+  // for this symbol. This is an error (unless it's already declared as an
+  // external, too).
+  symbol& sym = symtab.sym(asname);
+  if (environ.find(sym.f) != environ.end() &&
+      externals.find(sym.f) == externals.end())
+    throw err("symbol '"+name+
+	      "' is already defined as a Pure function or variable");
+  // Create the function type and check for an existing declaration of the
+  // external.
+  FunctionType *ft = FunctionType::get(type, argt, false);
+  Function *g = module->getFunction(name);
+  const FunctionType *gt = g?g->getFunctionType():0;
+  // Check whether we already have an external declaration for this symbol.
+  map<int32_t,ExternInfo>::const_iterator it = externals.find(sym.f);
+  if (it == externals.end() && g) {
+    // Cross-check with a builtin declaration.
+    assert(g->isDeclaration() && gt);
+    if (gt != ft) {
+      bool ok = gt->getReturnType()==type && gt->getNumParams()==n &&
+	gt->isVarArg()==varargs;
+      for (size_t i = 0; ok && i < n; i++) {
+	// In Pure, we allow void* to be passed for a char*, to bypass the
+	// automatic marshalling from Pure to C strings. Oh well.
+	ok = gt->getParamType(i)==argt[i] ||
+	  gt->getParamType(i)==PointerType::get(Type::Int8Ty, 0) &&
+	  argt[i] == VoidPtrTy;
+      }
+      if (!ok) {
+	// Give some reasonable diagnostic. gt itself shows as LLVM assembler
+	// when printed, so instead we manufacture an ExternInfo for gt which
+	// supposedly is more informative and hopefully looks nicer to the
+	// Pure programmer. ;-)
+	size_t n = gt->getNumParams();
+	vector<const Type*> argt(n);
+	for (size_t i = 0; i < n; i++)
+	  argt[i] = gt->getParamType(i);
+	ExternInfo info(sym.f, gt->getReturnType(), argt, g);
+	ostringstream msg;
+	msg << "declaration of extern function '" << name
+	    << "' does not match builtin declaration: " << info;
+	throw err(msg.str());
+      }
+    }
+  }
+  if (it != externals.end()) {
+    // already declared, check that declarations match
+    const ExternInfo& info = it->second;
+    if (type != info.type || argt != info.argtypes) {
+      ostringstream msg;
+      msg << "declaration of extern function '" << name
+	  << "' does not match previous declaration: " << info;
+      throw err(msg.str());
+    }
+    return info.f;
+  }
+  // Check that the external function actually exists by searching the program
+  // and resident libraries.
+  if (!sys::DynamicLibrary::SearchForAddressOfSymbol(name))
+    throw err("external symbol '"+name+"' cannot be found");
+  // If we come here, we have a new external symbol for which we create a
+  // declaration (if needed), as well as a Pure wrapper function which is
+  // entered into the externals table.
+  if (!g) {
+    gt = ft;
+    g = new Function(gt, Function::ExternalLinkage, name, module);
+    Function::arg_iterator a = g->arg_begin();
+    for (size_t i = 0; a != g->arg_end(); ++a, ++i)
+      a->setName(mklabel("arg", i));
+  }
+  assert(gt);
+  // Create a little wrapper function which checks arguments, unboxes them,
+  // calls the external function, and finally boxes the result. If the
+  // arguments fail to match, provide a default value (cbox) which may be
+  // patched up later with a Pure function. Note that this function is known
+  // to Pure under the given alias name which may be different from the real
+  // external name, so that the external name may be reused for a Pure
+  // function (usually a wrapper function replacing the C external in Pure
+  // programs).
+  vector<const Type*> argt2(n, ExprPtrTy);
+  FunctionType *ft2 = FunctionType::get(ExprPtrTy, argt2, false);
+  Function *f = new Function(ft2, Function::InternalLinkage,
+			     "$$pure."+asname, module);
+  vector<Value*> args(n), unboxed(n);
+  Function::arg_iterator a = f->arg_begin();
+  for (size_t i = 0; a != f->arg_end(); ++a, ++i) {
+    a->setName(mklabel("arg", i)); args[i] = a;
+  }
+  Builder b;
+  BasicBlock *bb = new BasicBlock("entry", f),
+    *failedbb = new BasicBlock("failed");
+  b.SetInsertPoint(bb);
+  // unbox arguments
+  bool temps = false;
+  for (size_t i = 0; i < n; i++) {
+    Value *x = args[i];
+    if (argt[i] == Type::Int1Ty) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      idx[1] = One;
+      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      unboxed[i] = b.CreateICmpNE(iv, Zero);
+    } else if (argt[i] == Type::Int8Ty) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      idx[1] = One;
+      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      unboxed[i] = b.CreateTrunc(iv, Type::Int8Ty);
+    } else if (argt[i] == Type::Int32Ty) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      idx[1] = One;
+      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      unboxed[i] = iv;
+    } else if (argt[i] == Type::Int64Ty) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      idx[1] = One;
+      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      unboxed[i] = b.CreateSExt(iv, Type::Int64Ty);
+    } else if (argt[i] == Type::DoubleTy) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::DBL), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, DblExprPtrTy, "dblexpr");
+      idx[1] = One;
+      Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
+      unboxed[i] = dv;
+    } else if (argt[i] == PointerType::get(Type::Int8Ty, 0)) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::STR), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *sv = b.CreateCall(module->getFunction("pure_get_cstring"), x);
+      unboxed[i] = sv; temps = true;
+    } else if (argt[i] == PointerType::get(Type::Int32Ty, 0)) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::PTR), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
+      idx[1] = One;
+      Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
+      unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
+    } else if (argt[i] == PointerType::get(Type::DoubleTy, 0)) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::PTR), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
+      idx[1] = One;
+      Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
+      unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
+    } else if (argt[i] == ExprPtrTy) {
+      // passed through
+      unboxed[i] = x;
+    } else if (argt[i] == VoidPtrTy) {
+      BasicBlock *ptrbb = new BasicBlock("ptr");
+      BasicBlock *mpzbb = new BasicBlock("mpz");
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 3);
+      /* We also allow bigints and strings to be passed as a void* here. The
+	 former lets you use GMP routines directly in Pure if you declare the
+	 mpz_t params as void*. The latter allows a string to be passed
+	 without implicitly converting it to the system encoding first. Note
+	 that in both cases a direct pointer to the data will be passed, which
+	 enables mutation of the data; if this isn't desired then you should
+	 copy the data first. */
+      sw->addCase(SInt(EXPR::PTR), ptrbb);
+      sw->addCase(SInt(EXPR::STR), ptrbb);
+      sw->addCase(SInt(EXPR::BIGINT), mpzbb);
+      f->getBasicBlockList().push_back(ptrbb);
+      b.SetInsertPoint(ptrbb);
+      // The following will work with both pointer and string expressions.
+      Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
+      idx[1] = One;
+      Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(mpzbb);
+      b.SetInsertPoint(mpzbb);
+      // Handle the case of a bigint (mpz_t -> void*).
+      Value *mpzv = b.CreateCall(module->getFunction("pure_get_bigint"), x);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      PHINode *phi = b.CreatePHI(VoidPtrTy);
+      phi->addIncoming(ptrv, ptrbb);
+      phi->addIncoming(mpzv, mpzbb);
+      unboxed[i] = phi;
+      if (gt->getParamType(i)==PointerType::get(Type::Int8Ty, 0))
+	// An external builtin already has this parameter declared as char*.
+	// We allow void* to be passed anyway, so just cast it to char* to
+	// make the LLVM typechecker happy.
+	unboxed[i] = b.CreateBitCast
+	  (unboxed[i], PointerType::get(Type::Int8Ty, 0));
+    } else
+      assert(0 && "invalid C type");
+  }
+  // call the function
+  Value* u = b.CreateCall(g, unboxed.begin(), unboxed.end());
+  // free temporaries and arguments
+  if (temps) b.CreateCall(module->getFunction("pure_free_cstrings"));
+  if (n == 1)
+    b.CreateCall(module->getFunction("pure_free"), args[0]);
+  else if (n > 0) {
+    vector<Value*> freeargs(n+2);
+    freeargs[0] = NullExprPtr;
+    for (size_t i = 0; i < n; i++)
+      freeargs[i+1] = args[i];
+    freeargs[n+1] = NullExprPtr;
+    b.CreateCall(module->getFunction("pure_free_args"),
+		 freeargs.begin(), freeargs.end());
+  }
+  // box the result
+  if (type == Type::VoidTy)
+    u = b.CreateCall(module->getFunction("pure_const"),
+		     SInt(symtab.void_sym().f));
+  else if (type == Type::Int1Ty)
+    u = b.CreateCall(module->getFunction("pure_int"),
+		     b.CreateZExt(u, Type::Int32Ty));
+  else if (type == Type::Int8Ty)
+    // char treated as an unsigned integer here
+    u = b.CreateCall(module->getFunction("pure_int"),
+		     b.CreateZExt(u, Type::Int32Ty));
+  else if (type == Type::Int32Ty)
+    u = b.CreateCall(module->getFunction("pure_int"), u);
+  else if (type == Type::Int64Ty)
+    u = b.CreateCall(module->getFunction("pure_int"),
+		     b.CreateTrunc(u, Type::Int32Ty));
+  else if (type == Type::DoubleTy)
+    u = b.CreateCall(module->getFunction("pure_double"), u);
+  else if (type == PointerType::get(Type::Int8Ty, 0))
+    u = b.CreateCall(module->getFunction("pure_cstring_dup"), u);
+  else if (type == PointerType::get(Type::Int32Ty, 0))
+    u = b.CreateCall(module->getFunction("pure_pointer"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == PointerType::get(Type::DoubleTy, 0))
+    u = b.CreateCall(module->getFunction("pure_pointer"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == ExprPtrTy) {
+    // check that we actually got a valid pointer; otherwise the call failed
+    BasicBlock *okbb = new BasicBlock("ok");
+    b.CreateCondBr
+      (b.CreateICmpNE(u, NullExprPtr, "cmp"), okbb, failedbb);
+    f->getBasicBlockList().push_back(okbb);
+    b.SetInsertPoint(okbb);
+    // value is passed through
+  } else if (type == VoidPtrTy)
+    u = b.CreateCall(module->getFunction("pure_pointer"), u);
+  else
+    assert(0 && "invalid C type");
+  b.CreateRet(u);
+  // The call failed. Provide a default value.
+  f->getBasicBlockList().push_back(failedbb);
+  b.SetInsertPoint(failedbb);
+  // free temporaries
+  if (temps) b.CreateCall(module->getFunction("pure_free_cstrings"));
+  // As default, create a cbox for the function symbol and apply that to our
+  // parameters. The cbox may be patched up later to become a Pure function.
+  // In effect, this allows an external function to be augmented with Pure
+  // equations, but note that the external C function will always be tried
+  // first.
+  pure_expr *cv = pure_const(sym.f);
+  assert(JIT);
+  GlobalVar& v = globalvars[sym.f];
+  if (!v.v) {
+    v.v = new GlobalVariable
+      (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+       mkvarlabel(sym.f), module);
+    JIT->addGlobalMapping(v.v, &v.x);
+  }
+  if (v.x) pure_free(v.x); v.x = pure_new(cv);
+  Value *defaultv = b.CreateLoad(v.v);
+  vector<Value*> myargs(2);
+  for (size_t i = 0; i < n; ++i) {
+    myargs[0] = b.CreateCall(module->getFunction("pure_new"), defaultv);
+    myargs[1] = args[i];
+    defaultv = b.CreateCall(module->getFunction("pure_apply"),
+			    myargs.begin(), myargs.end());
+  }
+  b.CreateRet(defaultv);
+  verifyFunction(*f);
+  if (FPM) FPM->run(*f);
+  if (verbose&verbosity::dump) f->print(std::cout);
+  externals[sym.f] = ExternInfo(sym.f, type, argt, f);
+  return f;
+}
+
+void interpreter::reset()
+{
+  /* XXXFIXME: Compile a trivial function to reprime the JIT. Apparently this
+     is needed to convince the JIT to pick up changes after clearing a
+     function definition. Don't ask, I don't understand it either. :( Maybe
+     it's a subtle bug somewhere in the code generator, but I found no other
+     way to work around it. If anyone knows why this is needed, or has a
+     better way to do it, please let me know. */
+  expr x(EXPR::INT, 0);
+  Env e(0, 0, x, false);
+  push("reset", &e);
+  fun_prolog("");
+  e.CreateRet(codegen(x));
+  fun_finish();
+  pop(&e);
+  e.fp = JIT->getPointerToFunction(e.f);
+  assert(e.fp);
+  pure_expr *y = 0, *res = pure_invoke(e.fp, y);
+  assert(res); pure_freenew(res);
+  e.f->eraseFromParent();
+}
+
+pure_expr *interpreter::doeval(expr x, pure_expr*& e)
+{
+  char test;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax) {
+    e = pure_const(symtab.segfault_sym().f);
+    return 0;
+  }
+  // Create an anonymous function to call in order to evaluate the target
+  // expression.
+  Env f(0, 0, x, false);
+  push("doeval", &f);
+  fun_prolog("");
+#if DEBUG>1
+  ostringstream msg;
+  msg << "doeval: " << x;
+  debug(msg.str().c_str());
+#endif
+  f.CreateRet(codegen(x));
+  fun_finish();
+  pop(&f);
+  // JIT the function.
+  f.fp = JIT->getPointerToFunction(f.f);
+  assert(f.fp);
+  e = 0;
+  clock_t t0 = clock();
+  pure_expr *res = pure_invoke(f.fp, e);
+  if (interactive && stats) clocks = clock()-t0;
+  // Get rid of our anonymous function.
+  f.f->eraseFromParent();
+  // NOTE: Result (if any) is to be freed by the caller.
+  return res;
+}
+
+pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
+{
+  char test;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax) {
+    e = pure_const(symtab.segfault_sym().f);
+    return 0;
+  }
+  // Create an anonymous function to call in order to evaluate the rhs
+  // expression, match against the lhs and bind variables in lhs accordingly.
+  Env f(0, 0, rhs, false);
+  push("dodefn", &f);
+  fun_prolog("");
+#if DEBUG>1
+  ostringstream msg;
+  msg << "dodef: " << lhs << "=" << rhs;
+  debug(msg.str().c_str());
+#endif
+  // compute the matchee
+  Value *arg = codegen(rhs);
+  // emit the matching code
+  BasicBlock *matchedbb = new BasicBlock("matched");
+  BasicBlock *failedbb = new BasicBlock("failed");
+  matcher m(rule(lhs, rhs));
+  if (verbose&verbosity::code) std::cout << m << endl;
+  state *start = m.start;
+  simple_match(arg, start, matchedbb, failedbb);
+  // matched => emit code for binding the variables
+  f.f->getBasicBlockList().push_back(matchedbb);
+  f.builder.SetInsertPoint(matchedbb);
+  for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+    int32_t tag = it->first;
+    const env_info& info = it->second;
+    assert(info.t == env_info::lvar && info.p);
+    // walk the arg value to find the subterm at info.p
+    Value *x = arg;
+    path& p = *info.p;
+    size_t n = p.len();
+    for (size_t i = 0; i < n; i++)
+      x = f.CreateLoadGEP(x, Zero, UInt(p[i]+1), mklabel("x", i, p[i]+1));
+    // store the value in a global variable of the same name
+    const symbol& sym = symtab.sym(tag);
+    GlobalVar& v = globalvars[tag];
+    if (!v.v) {
+      v.v = new GlobalVariable
+	(ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
+      JIT->addGlobalMapping(v.v, &v.x);
+    }
+    if (v.x) call("pure_free", f.builder.CreateLoad(v.v));
+    call("pure_new", x);
+    f.builder.CreateStore(x, v.v);
+  }
+  // return the matchee to indicate success
+  f.builder.CreateRet(arg);
+  // failed => throw an exception
+  f.f->getBasicBlockList().push_back(failedbb);
+  f.builder.SetInsertPoint(failedbb);
+  unwind();
+  fun_finish();
+  pop(&f);
+  // JIT the function.
+  f.fp = JIT->getPointerToFunction(f.f);
+  assert(f.fp);
+  e = 0;
+  clock_t t0 = clock();
+  pure_expr *res = pure_invoke(f.fp, e);
+  if (interactive && stats) clocks = clock()-t0;
+  // Get rid of our anonymous function.
+  f.f->eraseFromParent();
+  if (!res) {
+    // We caught an exception, clean up the mess.
+    for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+      int32_t tag = it->first;
+      GlobalVar& v = globalvars[tag];
+      if (!v.x) {
+	JIT->updateGlobalMapping(v.v, 0);
+	v.v->eraseFromParent();
+	globalvars.erase(tag);
+      }
+    }
+  }
+  // NOTE: Result (if any) is to be freed by the caller.
+  return res;
+}
+
+Value *interpreter::when_codegen(expr x, matcher *m,
+				 rulel::const_iterator r,
+				 rulel::const_iterator end)
+// x = subject expression to be evaluated in the context of the bindings
+// m = matching automaton for current rule
+// r = current pattern binding rule
+// end = end of rule list
+{
+  if (r == end) {
+    Value *v = codegen(x);
+    return v;
+  } else {
+    Env& act = act_env();
+    rulel::const_iterator s = r;
+    expr y = (++s == end)?x:s->rhs;
+    assert(act.fmap.find(-y.hash()) != act.fmap.end());
+    Env& e = act.fmap[-y.hash()];
+    push("when", &e);
+    fun_prolog("anonymous");
+    BasicBlock *bodybb = new BasicBlock("body");
+    BasicBlock *matchedbb = new BasicBlock("matched");
+    BasicBlock *failedbb = new BasicBlock("failed");
+    e.builder.CreateBr(bodybb);
+    e.f->getBasicBlockList().push_back(bodybb);
+    e.builder.SetInsertPoint(bodybb);
+    Value *arg = e.args[0];
+    // emit the matching code
+    state *start = m->start;
+    simple_match(arg, start, matchedbb, failedbb);
+    // matched => emit code for the reduct
+    e.f->getBasicBlockList().push_back(matchedbb);
+    e.builder.SetInsertPoint(matchedbb);
+    e.CreateRet(when_codegen(x, m+1, s, end));
+    // failed => throw an exception
+    e.f->getBasicBlockList().push_back(failedbb);
+    e.builder.SetInsertPoint(failedbb);
+    unwind(symtab.failed_match_sym().f);
+    fun_finish();
+    pop(&e);
+    return funcall(&e, codegen(r->rhs));
+  }
+}
+
+Value *interpreter::get_int(expr x)
+{
+  Env& e = act_env();
+  if (x.ttag() == EXPR::INT || x.ttag() == EXPR::DBL) {
+    if (x.tag() == EXPR::APP) {
+      // embedded int/float operation, recursively generate unboxed value
+      Value *u = builtin_codegen(x);
+      if (x.ttag() == EXPR::INT)
+	return u;
+      else
+	return e.builder.CreateFPToSI(u, Type::Int32Ty);
+    } else if (x.tag() == EXPR::INT)
+      // integer constant, return "as is"
+      return SInt(x.ival());
+    else if (x.tag() == EXPR::DBL)
+      // double constant, return "as is", promoted to int
+      return SInt((int32_t)x.dval());
+    else if (x.ttag() == EXPR::INT) {
+      // int variable, needs unboxing
+      assert(x.tag() == EXPR::VAR);
+      Value *u = codegen(x);
+      Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
+      Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+      // collect the temporary, it's not needed any more
+      call("pure_freenew", u);
+      return v;
+    } else {
+      // double variable, needs unboxing and int conversion
+      assert(x.tag() == EXPR::VAR && x.ttag() == EXPR::DBL);
+      Value *u = codegen(x);
+      Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
+      Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+      v = e.builder.CreateFPToSI(v, Type::Int32Ty);
+      // collect the temporary, it's not needed any more
+      call("pure_freenew", u);
+      return v;
+    }
+  } else {
+    // typeless expression; we have to check the computed value at runtime
+    Value *u = codegen(x);
+    // check that it's actually an integer
+    // NOTE: we don't want to promote double values to int here
+    verify_tag(u, EXPR::INT);
+    // get the value
+    Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
+    Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+    // collect the temporary, it's not needed any more
+    call("pure_freenew", u);
+    return v;
+  }
+}
+
+Value *interpreter::get_double(expr x)
+{
+  Env& e = act_env();
+  if (x.ttag() == EXPR::INT || x.ttag() == EXPR::DBL) {
+    if (x.tag() == EXPR::APP) {
+      // embedded int/float operation, recursively generate unboxed value
+      Value *u = builtin_codegen(x);
+      if (x.ttag() == EXPR::INT)
+	return e.builder.CreateSIToFP(u, Type::DoubleTy);
+      else
+	return u;
+    } else if (x.tag() == EXPR::INT)
+      // integer constant, return "as is", promoted to double
+      return Dbl((double)x.ival());
+    else if (x.tag() == EXPR::DBL)
+      // double constant, return "as is"
+      return Dbl(x.dval());
+    else if (x.ttag() == EXPR::INT) {
+      // int variable, needs unboxing and double conversion
+      assert(x.tag() == EXPR::VAR);
+      Value *u = codegen(x);
+      Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
+      Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+      v = e.builder.CreateSIToFP(v, Type::DoubleTy);
+      // collect the temporary, it's not needed any more
+      call("pure_freenew", u);
+      return v;
+    } else {
+      // double variable, needs unboxing
+      assert(x.tag() == EXPR::VAR && x.ttag() == EXPR::DBL);
+      Value *u = codegen(x);
+      Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
+      Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+      // collect the temporary, it's not needed any more
+      call("pure_freenew", u);
+      return v;
+    }
+  } else {
+    // typeless expression; we have to check the computed value at runtime
+    Value *u = codegen(x);
+    // check that it's actually a double
+    // NOTE: we don't want to promote int values to double here
+    verify_tag(u, EXPR::DBL);
+    // get the value
+    Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
+    Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+    // collect the temporary, it's not needed any more
+    call("pure_freenew", u);
+    return v;
+  }
+}
+
+Value *interpreter::builtin_codegen(expr x)
+{
+  // handle special cases which should be inlined for efficiency: mixed
+  // arithmetic, comparisons, logical ops using unboxed integer and floating
+  // point values
+  Builder& b = act_builder();
+  expr f; uint32_t n = count_args(x, f);
+  assert((n == 1 || n == 2) && "error in type checker");
+  if (n == 1 && x.ttag() == EXPR::INT) {
+    // unary int operations
+    Value *u = get_int(x.xval2());
+    if (f.ftag() == symtab.neg_sym().f)
+      return b.CreateSub(Zero, u);
+    else if (f.ftag() == symtab.not_sym().f)
+      return b.CreateZExt
+	(b.CreateICmpEQ(Zero, u, "cmp"), Type::Int32Ty);
+    else if (f.ftag() == symtab.bitnot_sym().f)
+      return b.CreateXor(UInt(0xffffffff), u);
+    else {
+      assert(0 && "error in type checker");
+      return 0;
+    }
+  } else if (n == 1 && x.ttag() == EXPR::DBL) {
+    // unary double operations
+    Value *u = get_double(x.xval2());
+    if (f.ftag() == symtab.neg_sym().f)
+      return b.CreateSub(Dbl(0.0), u);
+    else {
+      assert(0 && "error in type checker");
+      return 0;
+    }
+  } else if (n == 2 && x.ttag() == EXPR::INT &&
+	     x.xval1().xval2().ttag() != EXPR::DBL &&
+	     x.xval2().ttag() != EXPR::DBL) {
+    // binary int operations
+    Value *u = get_int(x.xval1().xval2());
+    // these two need special treatment (short-circuit evaluation)
+    if (f.ftag() == symtab.or_sym().f) {
+      Env& e = act_env();
+      Value *condv = b.CreateICmpNE(u, Zero, "cond");
+      BasicBlock *iftruebb = b.GetInsertBlock();
+      BasicBlock *iffalsebb = new BasicBlock("iffalse");
+      BasicBlock *endbb = new BasicBlock("end");
+      b.CreateCondBr(condv, endbb, iffalsebb);
+      e.f->getBasicBlockList().push_back(iffalsebb);
+      b.SetInsertPoint(iffalsebb);
+      Value *v = get_int(x.xval2());
+#if DEBUG
+      if (u->getType() != v->getType()) {
+	llvm::cerr << "** operand mismatch!\n";
+	llvm::cerr << "operator:      " << symtab.sym(f.ftag()).s << endl;
+	llvm::cerr << "left operand:  "; u->dump();
+	llvm::cerr << "right operand: "; v->dump();
+	assert(0 && "operand mismatch");
+      }
+#endif
+      Value *condv2 = b.CreateICmpNE(v, Zero, "cond");
+      b.CreateBr(endbb);
+      iffalsebb = b.GetInsertBlock();
+      e.f->getBasicBlockList().push_back(endbb);
+      b.SetInsertPoint(endbb);
+      PHINode *phi = b.CreatePHI(Type::Int1Ty, "fi");
+      phi->addIncoming(condv, iftruebb);
+      phi->addIncoming(condv2, iffalsebb);
+      return b.CreateZExt(phi, Type::Int32Ty);
+    } else if (f.ftag() == symtab.and_sym().f) {
+      Env& e = act_env();
+      Value *condv = b.CreateICmpNE(u, Zero, "cond");
+      BasicBlock *iffalsebb = b.GetInsertBlock();
+      BasicBlock *iftruebb = new BasicBlock("iftrue");
+      BasicBlock *endbb = new BasicBlock("end");
+      b.CreateCondBr(condv, iftruebb, endbb);
+      e.f->getBasicBlockList().push_back(iftruebb);
+      b.SetInsertPoint(iftruebb);
+      Value *v = get_int(x.xval2());
+#if DEBUG
+      if (u->getType() != v->getType()) {
+	llvm::cerr << "** operand mismatch!\n";
+	llvm::cerr << "operator:      " << symtab.sym(f.ftag()).s << endl;
+	llvm::cerr << "left operand:  "; u->dump();
+	llvm::cerr << "right operand: "; v->dump();
+	assert(0 && "operand mismatch");
+      }
+#endif
+      Value *condv2 = b.CreateICmpNE(v, Zero, "cond");
+      b.CreateBr(endbb);
+      iftruebb = b.GetInsertBlock();
+      e.f->getBasicBlockList().push_back(endbb);
+      b.SetInsertPoint(endbb);
+      PHINode *phi = b.CreatePHI(Type::Int1Ty, "fi");
+      phi->addIncoming(condv, iffalsebb);
+      phi->addIncoming(condv2, iftruebb);
+      return b.CreateZExt(phi, Type::Int32Ty);
+    } else {
+      Value *v = get_int(x.xval2());
+#if DEBUG
+      if (u->getType() != v->getType()) {
+	llvm::cerr << "** operand mismatch!\n";
+	llvm::cerr << "operator:      " << symtab.sym(f.ftag()).s << endl;
+	llvm::cerr << "left operand:  "; u->dump();
+	llvm::cerr << "right operand: "; v->dump();
+	assert(0 && "operand mismatch");
+      }
+#endif
+      if (f.ftag() == symtab.bitor_sym().f)
+	return b.CreateOr(u, v);
+      else if (f.ftag() == symtab.bitand_sym().f)
+	return b.CreateAnd(u, v);
+      else if (f.ftag() == symtab.shl_sym().f) {
+	// result of shl is undefined if u>=#bits, return 0 in that case
+	BasicBlock *okbb = new BasicBlock("ok");
+	BasicBlock *zerobb = b.GetInsertBlock();
+	BasicBlock *endbb = new BasicBlock("end");
+	Value *cmp = b.CreateICmpULT(v, UInt(32));
+	b.CreateCondBr(cmp, okbb, endbb);
+	act_env().f->getBasicBlockList().push_back(okbb);
+	b.SetInsertPoint(okbb);
+	Value *ok = b.CreateShl(u, v);
+	b.CreateBr(endbb);
+	act_env().f->getBasicBlockList().push_back(endbb);
+	b.SetInsertPoint(endbb);
+	PHINode *phi = b.CreatePHI(Type::Int32Ty);
+	phi->addIncoming(ok, okbb);
+	phi->addIncoming(Zero, zerobb);
+	return phi;
+      } else if (f.ftag() == symtab.shr_sym().f)
+	return b.CreateAShr(u, v);
+      else if (f.ftag() == symtab.less_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpSLT(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.greater_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpSGT(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.lesseq_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpSLE(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.greatereq_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpSGE(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.equal_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpEQ(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.notequal_sym().f)
+	return b.CreateZExt
+	  (b.CreateICmpNE(u, v), Type::Int32Ty);
+      else if (f.ftag() == symtab.plus_sym().f)
+	return b.CreateAdd(u, v);
+      else if (f.ftag() == symtab.minus_sym().f)
+	return b.CreateSub(u, v);
+      else if (f.ftag() == symtab.mult_sym().f)
+	return b.CreateMul(u, v);
+      else if (f.ftag() == symtab.div_sym().f)
+	return b.CreateSDiv(u, v);
+      else if (f.ftag() == symtab.mod_sym().f)
+	return b.CreateSRem(u, v);
+      else {
+	assert(0 && "error in type checker");
+	return 0;
+      }
+    }
+  } else {
+    // binary int/double operations
+    Value *u = get_double(x.xval1().xval2()),
+      *v = get_double(x.xval2());
+#if DEBUG
+    if (u->getType() != v->getType()) {
+      llvm::cerr << "** operand mismatch!\n";
+      llvm::cerr << "operator:      " << symtab.sym(f.ftag()).s << endl;
+      llvm::cerr << "left operand:  "; u->dump();
+      llvm::cerr << "right operand: "; v->dump();
+      assert(0 && "operand mismatch");
+    }
+#endif
+    if (f.ftag() == symtab.less_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpOLT(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.greater_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpOGT(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.lesseq_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpOLE(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.greatereq_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpOGE(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.equal_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpOEQ(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.notequal_sym().f)
+      return b.CreateZExt
+	(b.CreateFCmpONE(u, v), Type::Int32Ty);
+    else if (f.ftag() == symtab.plus_sym().f)
+      return b.CreateAdd(u, v);
+    else if (f.ftag() == symtab.minus_sym().f)
+      return b.CreateSub(u, v);
+    else if (f.ftag() == symtab.mult_sym().f)
+      return b.CreateMul(u, v);
+    else if (f.ftag() == symtab.fdiv_sym().f)
+      return b.CreateFDiv(u, v);
+    else {
+      assert(0 && "error in type checker");
+      return 0;
+    }
+  }
+}
+
+Value *interpreter::external_funcall(int32_t tag, uint32_t n, expr x)
+{
+  // check for a saturated external function call
+  map<int32_t,ExternInfo>::const_iterator it = externals.find(tag);
+  if (it == externals.end()) return 0;
+  const ExternInfo& info = it->second;
+  if (info.argtypes.size() != n) return 0;
+  // bingo! saturated call
+  // collect arguments
+  size_t i = 0;
+  expr u, v;
+  vector<expr> args(n);
+  while (x.is_app(u, v)) {
+    args[n-++i] = v; x = u;
+  }
+  vector<Value*> argv(n);
+  if (n>0) {
+    for (i = 0; i < n; i++)
+      argv[i] = codegen(args[i]);
+    if (n == 1)
+      call("pure_new", argv[0]);
+    else {
+      vector<Value*> argv1 = argv;
+      argv1.push_back(NullExprPtr);
+      act_env().CreateCall(module->getFunction("pure_new_args"), argv1);
+    }
+  }
+  return act_env().CreateCall(info.f, argv);
+}
+
+Value *interpreter::funcall(Env *f, uint32_t n, expr x)
+{
+  // check for a saturated global function call
+  if (f->n == n) {
+    // bingo! saturated call
+    assert(f->m == 0);
+    vector<Value*> y(n);
+    vector<Value*> z;
+    // collect arguments
+    size_t i = 0;
+    expr u, v;
+    vector<expr> args(n);
+    while (x.is_app(u, v)) {
+      args[n-++i] = v; x = u;
+    }
+    for (i = 0; i < n; i++)
+      y[i] = codegen(args[i]);
+    // no environment here
+    return call(*f, y, z);
+  } else
+    return 0;
+}
+
+Value *interpreter::funcall(Env *f, Value *x)
+{
+  // same as above, but for a local anonymous closure which takes a single
+  // argument already codegen'ed
+  assert(f->n == 1);
+  assert(f->m == f->xtab.size());
+  vector<Value*> y(1);
+  vector<Value*> z(f->m);
+  // collect arguments
+  y[0] = x;
+  // collect the environment
+  list<VarInfo>::iterator info;
+  size_t i;
+  for (i = 0, info = f->xtab.begin(); info != f->xtab.end();
+       i++, info++)
+    z[i] = vref(info->vtag, info->idx-1, info->p);
+  return call(*f, y, z);
+}
+
+Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
+{
+  // check for a saturated local function call
+  Env *f;
+  int offs = idx-1;
+  if (idx == 0) {
+    // function in current environment ('with'-bound)
+    f = &act_env().fmap[tag];
+  } else {
+    // function in an outer environment, the de Bruijn index idx tells us
+    // where on the current environment stack it's at
+    EnvStack::iterator e = envstk.begin();
+    size_t i = idx;
+    for (; i > 0; e++, i--) assert(e != envstk.end());
+    // look up the function in the environment
+    f = &(*e)->fmap[tag];
+  }
+  if (f->n == n) {
+    // bingo! saturated call
+    assert(f->m == f->xtab.size());
+    vector<Value*> y(f->n);
+    vector<Value*> z(f->m);
+    // collect arguments
+    size_t i = 0;
+    expr u, v;
+    vector<expr> args(n);
+    while (x.is_app(u, v)) {
+      args[n-++i] = v; x = u;
+    }
+    for (i = 0; i < n; i++)
+      y[i] = codegen(args[i]);
+    // collect the environment
+    list<VarInfo>::iterator info;
+    for (i = 0, info = f->xtab.begin(); info != f->xtab.end(); i++, info++)
+      z[i] = vref(info->vtag, info->idx+offs, info->p);
+    return call(*f, y, z);
+  } else
+    return 0;
+}
+
+Value *interpreter::codegen(expr x)
+{
+  assert(!x.is_null());
+  switch (x.tag()) {
+  // local variable:
+  case EXPR::VAR:
+    return vref(x.vtag(), x.vidx(), x.vpath(), false);
+  // local function:
+  case EXPR::FVAR:
+    return fref(x.vtag(), x.vidx());
+  // constants:
+  case EXPR::INT:
+    return ibox(x.ival());
+  case EXPR::BIGINT:
+    return zbox(x.zval());
+  case EXPR::DBL:
+    return dbox(x.dval());
+  case EXPR::STR:
+    return sbox(x.sval());
+  case EXPR::PTR:
+    assert(0 && "not implemented");
+  // application:
+  case EXPR::APP:
+    if (x.ttag() != 0) {
+      // inlined unboxed builtin int/float operations
+      assert(x.ttag() == EXPR::INT || x.ttag() == EXPR::DBL);
+      if (x.ttag() == EXPR::INT)
+	return ibox(builtin_codegen(x));
+      else
+	return dbox(builtin_codegen(x));
+    } else {
+      /* Optimization of saturated applications. It is safe to emit a direct
+	 call for these if the head of the application is a symbol denoting
+	 either an external C function, a local function, or a global function
+	 which is called recursively (i.e., inside its own definition). Note
+	 that if a global symbol is applied outside its own definition, we
+	 *always* have to box it even if it is currently known to be a
+	 function, since the definition may change at any time in an
+	 interactive session. */
+      expr f; uint32_t n = count_args(x, f);
+      Value *v; Env *e;
+      if (f.tag() == EXPR::FVAR && (v = funcall(f.vtag(), f.vidx(), n, x)))
+	// local function call
+	return v;
+      else if (f.tag() > 0 && (v = external_funcall(f.tag(), n, x)))
+	// external function call
+	return v;
+      else if (f.tag() > 0 && (e = find_stacked(f.tag())) &&
+	       (v = funcall(e, n, x)))
+	// recursive call to a global function
+	return v;
+      else if (n == 2 && f.tag() == symtab.catch_sym().f) {
+	// catch an exception; create a little anonymous closure to be called
+	// through pure_catch()
+	expr h = x.xval1().xval2(), y = x.xval2();
+	Env& act = act_env();
+	assert(act.fmap.find(-x.hash()) != act.fmap.end());
+	Env& e = act.fmap[-x.hash()];
+	push("catch", &e);
+	fun_prolog("anonymous");
+	e.CreateRet(codegen(y));
+	fun_finish();
+	pop(&e);
+	Value *handler = codegen(h), *body = fbox(e);
+	vector<Value*> argv;
+	argv.push_back(handler);
+	argv.push_back(body);
+	argv.push_back(NullExprPtr);
+	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
+	return call("pure_catch", handler, body);
+      } else {
+	// ordinary function application
+	Value *u = codegen(x.xval1()), *v = codegen(x.xval2());
+	return apply(u, v);
+      }
+    }
+  // conditional:
+  case EXPR::COND:
+    return cond(x.xval1(), x.xval2(), x.xval3());
+  // anonymous closure:
+  case EXPR::LAMBDA: {
+    Env& act = act_env();
+    assert(act.fmap.find(-x.hash()) != act.fmap.end());
+    Env& e = act.fmap[-x.hash()];
+    push("lambda", &e);
+    fun("anonymous", x.pm(), true);
+    pop(&e);
+    return fbox(e);
+  }
+  // other nested environments:
+  case EXPR::CASE: {
+    // case expression: treated like an anonymous closure (see the lambda case
+    // above) which gets applied to the subject term to be matched
+    Env& act = act_env();
+    assert(act.fmap.find(-x.hash()) != act.fmap.end());
+    Env& e = act.fmap[-x.hash()];
+    push("case", &e);
+    fun("anonymous", x.pm(), true);
+    pop(&e);
+    return funcall(&e, codegen(x.xval()));
+  }
+  case EXPR::WHEN: {
+    // when expression: this is essentially a nested case expression
+    // x when y1 = z1; ...; yn = zn end ==>
+    // case z1 of y1 = ... case zn of yn = x end ... end ==>
+    // (\y1->...((\yn->x) zn)...) z1
+    // we do this translation here on the fly (cf. when_codegen() above)
+    return when_codegen(x.xval(), x.pm(),
+			x.rules()->begin(), x.rules()->end());
+  }
+  case EXPR::WITH: {
+    // collection of locally bound closures; this is similar to the 'case'
+    // expression, but has a nontrivial function environment around it inside
+    // of which the subject term is evaluated
+    env *fe = x.fenv();
+    env::const_iterator p;
+    Env& act = act_env();
+    // first create all function entry points, so that we properly handle
+    // mutually recursive definitions
+    for (p = fe->begin(); p != fe->end(); p++) {
+      int32_t ftag = p->first;
+      assert(act.fmap.find(ftag) != act.fmap.end());
+      Env& e = act.fmap[ftag];
+      push("with", &e);
+      act.fmap[ftag].f = fun_prolog(symtab.sym(ftag).s);
+      pop(&e);
+    }
+    for (p = fe->begin(); p != fe->end(); p++) {
+      int32_t ftag = p->first;
+      const env_info& info = p->second;
+      Env& e = act.fmap[ftag];
+      push("with", &e);
+      fun_body(info.m);
+      pop(&e);
+    }
+    Value *v = codegen(x.xval());
+    return v;
+  }
+  default: {
+    assert(x.tag() > 0);
+    // check for a parameterless global (or external) function call
+    Value *u; Env *e;
+    if ((u = external_funcall(x.tag(), 0, x)))
+      // external function call
+      return u;
+    else if ((e = find_stacked(x.tag())) && (u = funcall(e, 0, x)))
+      // recursive call of a global function
+      return u;
+    // check for an external with parameters
+    map<int32_t,ExternInfo>::const_iterator it = externals.find(x.tag());
+    if (it != externals.end()) {
+      const ExternInfo& info = it->second;
+      vector<Value*> env;
+      // build an fbox for the external
+      return call("pure_clos", false, false, x.tag(), info.f,
+		  info.argtypes.size(), env);
+    }
+    // check for an existing global variable
+    map<int32_t,GlobalVar>::iterator v = globalvars.find(x.tag());
+    if (v != globalvars.end()) {
+      Value *u = act_builder().CreateLoad(v->second.v);
+#if DEBUG>2
+      string msg = "codegen: global "+symtab.sym(x.tag()).s+" -> %p -> %p";
+      debug(msg.c_str(), v->second.v, u);
+#endif
+      return call(u);
+    }
+    // not bound yet, return a cbox
+    return call(cbox(x.tag()));
+  }
+  }
+}
+
+// Function boxes. These also take care of capturing the environment so that
+// it can be passed as extra parameters when the function actually gets
+// invoked. If thunked is true, a "thunk" (literal, unevaluated fbox) is
+// created.
+
+Value *interpreter::fbox(Env& f, bool thunked)
+{
+  assert(f.f);
+  // build extra parameters for the captured environment
+  assert(f.m == f.xtab.size());
+  vector<Value*> x(f.m);
+  list<VarInfo>::iterator info;
+  size_t i;
+  for (i = 0, info = f.xtab.begin(); info != f.xtab.end(); i++, info++)
+    x[i] = vref(info->vtag, info->idx-1, info->p);
+  // Check for a parameterless anonymous closure (presumably catch body),
+  // these calls *must* be deferred.
+  if (f.n == 0 && (!f.local || f.tag > 0))
+    // parameterless function, emit a direct call
+    return call(f, x);
+  else
+    // create a boxed closure
+    return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
+}
+
+// Constant boxes. These values are cached in global variables, so that only a
+// single instance of each symbol exists, and we can easily patch up the
+// definition if the symbol becomes a defined function later.
+
+Value *interpreter::cbox(int32_t tag)
+{
+  pure_expr *cv = pure_const(tag);
+  assert(JIT);
+  GlobalVar& v = globalvars[tag];
+  if (!v.v) {
+    v.v = new GlobalVariable
+      (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+       mkvarlabel(tag), module);
+    JIT->addGlobalMapping(v.v, &v.x);
+  }
+  if (v.x) pure_free(v.x); v.x = pure_new(cv);
+  return act_builder().CreateLoad(v.v);
+}
+
+// Execute a parameterless function.
+
+Value *interpreter::call(Value *x)
+{
+  return call("pure_call", x);
+}
+
+// Execute a function application.
+
+Value *interpreter::apply(Value *x, Value *y)
+{
+  call("pure_new_args", x, y, NullExprPtr);
+  return call("pure_apply", x, y);
+}
+
+Value *interpreter::apply1(Value *x, Value *y)
+{
+  // as above, but count an extra reference on the first arg;
+  // this is used in the default value construction code
+  call("pure_new_args", x, x, y, NullExprPtr);
+  return call("pure_apply", x, y);
+}
+
+// Conditionals.
+
+Value *interpreter::cond(expr x, expr y, expr z)
+{
+  Env& f = act_env();
+  assert(f.f!=0);
+  // emit the code for x
+  Value *iv = 0;
+  if (x.ttag() == EXPR::INT)
+    // optimize the case that x is an ::int (constant or application)
+    iv = get_int(x);
+  else if (x.ttag() != 0) {
+    // wrong type of constant; raise an exception
+    // XXXTODO: we might want to optionally invoke the debugger here
+    unwind(symtab.failed_cond_sym().f);
+    return NullExprPtr;
+  } else
+    // typeless expression, will be checked at runtime
+    iv = get_int(x);
+  // emit the condition (turn the previous result into a flag)
+  Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
+  // create the basic blocks for the branches
+  BasicBlock *thenbb = new BasicBlock("then");
+  BasicBlock *elsebb = new BasicBlock("else");
+  BasicBlock *endbb = new BasicBlock("end");
+  // create the branch instruction and emit the 'then' block
+  f.builder.CreateCondBr(condv, thenbb, elsebb);
+  f.f->getBasicBlockList().push_back(thenbb);
+  f.builder.SetInsertPoint(thenbb);
+  Value *thenv = codegen(y);
+  f.builder.CreateBr(endbb);
+  // current block might have changed, update thenbb for the phi
+  thenbb = f.builder.GetInsertBlock();
+  // emit the 'else' block
+  f.f->getBasicBlockList().push_back(elsebb);
+  f.builder.SetInsertPoint(elsebb);
+  Value *elsev = codegen(z);
+  f.builder.CreateBr(endbb);
+  // current block might have changed, update elsebb for the phi
+  elsebb = f.builder.GetInsertBlock();
+  // emit the 'end' block and the phi node
+  f.f->getBasicBlockList().push_back(endbb);
+  f.builder.SetInsertPoint(endbb);
+  PHINode *phi = f.builder.CreatePHI(ExprPtrTy, "fi");
+  phi->addIncoming(thenv, thenbb);
+  phi->addIncoming(elsev, elsebb);
+  return phi;
+}
+
+// Other value boxes. These just call primitives in the runtime which take
+// care of constructing these values.
+
+Value *interpreter::ibox(Value *i)
+{
+  return call("pure_int", i);
+}
+
+Value *interpreter::ibox(int32_t i)
+{
+  return call("pure_int", i);
+}
+
+Value *interpreter::zbox(const mpz_t& z)
+{
+  return call("pure_bigint", z);
+}
+
+Value *interpreter::dbox(Value *d)
+{
+  return call("pure_double", d);
+}
+
+Value *interpreter::dbox(double d)
+{
+  return call("pure_double", d);
+}
+
+Value *interpreter::sbox(const char *s)
+{
+  return call("pure_string_dup", s);
+}
+
+// Variable access.
+
+static uint32_t argno(uint32_t n, path &p)
+{
+  uint32_t m = p.len(), k = n-1;
+  size_t i;
+  for (i = 0; i < m && p[i] == 0; i++) {
+    assert(k>0); --k;
+  }
+  assert(i < m && p[i] == 1);
+  path q(m-++i);
+  for (size_t j = 0; i < m; i++, j++) q.set(j, p[i]);
+  p = q;
+  return k;
+}
+
+Value *interpreter::vref(int32_t tag, path p)
+{
+  // local arg reference
+  Env &e = act_env();
+  uint32_t k = 0;
+  if (e.b && e.n == 0) {
+    llvm::cerr << e.name << ": vref: " << symtab.sym(tag).s << ":";
+    for (size_t i = 0; i < p.len(); i++)
+      llvm::cerr << (unsigned)p[i];
+    llvm::cerr << endl;
+  }
+  if (e.b)
+    // pattern binding
+    assert(e.n==1);
+  else
+    k = argno(e.n, p);
+  Value *v = e.args[k];
+  size_t n = p.len();
+  for (size_t i = 0; i < n; i++)
+    v = e.CreateLoadGEP(v, Zero, UInt(p[i]+1), mklabel("x", i, p[i]+1));
+  return v;
+}
+
+Value *interpreter::vref(int32_t tag, uint32_t v)
+{
+  // environment proxy
+  Env &e = act_env();
+  return e.CreateLoadGEP(e.envs, UInt(v));
+}
+
+Value *interpreter::vref(int32_t tag, uint8_t idx, path p, bool ref)
+{
+  Value *v;
+  if (idx == 0)
+    // idx==0 => local reference
+    v = vref(tag, p);
+  else {
+    // idx>0 => non-local, return the local proxy
+#if DEBUG>2
+    llvm::cerr << act_env().name << ": looking for " << symtab.sym(tag).s
+	       << ":" << (unsigned)idx << endl;
+#endif
+    assert(act_env().xmap.find(xmap_key(tag, idx)) != act_env().xmap.end());
+    v = vref(tag, act_env().xmap[xmap_key(tag, idx)]);
+  }
+  if (ref)
+    return call("pure_new", v);
+  else
+    return v;
+}
+
+Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
+{
+  // local function reference; box the function as a value on the fly
+  assert(!envstk.empty());
+  if (idx == 0) {
+    // function in current environment ('with'-bound)
+    Env& f = act_env().fmap[tag];
+    return fbox(f, thunked);
+  }
+  // If we come here, the function is defined in an outer environment. Locate
+  // the function, the de Bruijn index idx tells us where on the current
+  // environment stack it's at.
+  EnvStack::iterator e = envstk.begin();
+  size_t i = idx;
+  for (; i > 0; e++, i--) assert(e != envstk.end());
+  // look up the function in the environment
+  Env& f = (*e)->fmap[tag];
+  assert(f.f);
+  // Now create the closure. This is essentially just like fbox(), but we are
+  // called inside a nested environment here, and hence the de Bruijn indices
+  // need to be translated accordingly.
+  assert(f.m == f.xtab.size());
+  vector<Value*> x(f.m);
+  list<VarInfo>::iterator info;
+  for (i = 0, info = f.xtab.begin(); info != f.xtab.end(); i++, info++)
+    x[i] = vref(info->vtag, info->idx+idx-1, info->p);
+  if (f.n == 0 && !thunked)
+    // parameterless function, emit a direct call
+    return call(f, x);
+  else
+    // create a boxed closure
+    return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
+}
+
+// Function calls.
+
+Value *interpreter::call(Env &f, vector<Value*>& args, vector<Value*>& env)
+{
+  Env& e = act_env();
+  // direct call of a function, with parameters
+  assert(f.f);
+  // initialize the environment parameter
+  size_t n = args.size(), m = env.size();
+  assert(f.local || m == 0);
+  for (size_t i = 0; i < m; i++)
+    e.builder.CreateStore(env[i], e.CreateGEP(e.argv, UInt(i)));
+  // pass the environment as the first parameter, if applicable
+  vector<Value*> x;
+  if (f.local && m > 0) {
+    if (m > e.l) e.l = m;
+    x.push_back(e.argv);
+  }
+  // count references to parameters
+  if (n == 1)
+    call("pure_new", args[0]);
+  else if (n > 0) {
+    vector<Value*> args1 = args;
+    args1.push_back(NullExprPtr);
+    e.CreateCall(module->getFunction("pure_new_args"), args1);
+  }
+  // pass the function parameters
+  x.insert(x.end(), args.begin(), args.end());
+  // create the call
+  return e.CreateCall(f.f, x);
+}
+
+Value *interpreter::call(string name, bool local, bool thunked, int32_t tag,
+			 Function *f, uint32_t argc,
+			 vector<Value*>& x)
+{
+  // call to create an fbox (closure) for the given function with the given
+  // number of parameters and the given extra arguments
+  Function *g = module->getFunction(name);
+  assert(g);
+  vector<Value*> args;
+  // local flag
+  args.push_back(Bool(local));
+  // thunked flag
+  args.push_back(Bool(thunked));
+  // tag
+  args.push_back(SInt(tag));
+  // argc
+  args.push_back(SInt(argc));
+  // function pointer
+  args.push_back(act_builder().CreateBitCast(f, VoidPtrTy, "fun"));
+  // captured environment (varargs)
+  args.push_back(SInt(x.size()));
+  args.insert(args.end(), x.begin(), x.end());
+  return act_env().CreateCall(g, args);
+}
+
+// Calls into the runtime system.
+
+Value *interpreter::call(string name, Value *x)
+{
+  Function *f = module->getFunction(name);
+  assert(f);
+  vector<Value*> args;
+  args.push_back(x);
+  return act_env().CreateCall(f, args);
+}
+
+Value *interpreter::call(string name, Value *x, Value *y)
+{
+  Function *f = module->getFunction(name);
+  assert(f);
+  vector<Value*> args;
+  args.push_back(x);
+  args.push_back(y);
+  return act_env().CreateCall(f, args);
+}
+
+Value *interpreter::call(string name, Value *x, Value *y, Value *z)
+{
+  Function *f = module->getFunction(name);
+  assert(f);
+  vector<Value*> args;
+  args.push_back(x);
+  args.push_back(y);
+  args.push_back(z);
+  return act_env().CreateCall(f, args);
+}
+
+Value *interpreter::call(string name, Value *x, Value *y, Value *z, Value *t)
+{
+  Function *f = module->getFunction(name);
+  assert(f);
+  vector<Value*> args;
+  args.push_back(x);
+  args.push_back(y);
+  args.push_back(z);
+  args.push_back(t);
+  return act_env().CreateCall(f, args);
+}
+
+Value *interpreter::call(string name, int32_t i)
+{
+  return call(name, SInt(i));
+}
+
+Value *interpreter::call(string name, double d)
+{
+  return call(name, Dbl(d));
+}
+
+Value *interpreter::call(string name, const char *s)
+{
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(s)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(s),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  return call(name, p);
+}
+
+Value *interpreter::call(string name, Value *x, const char *s)
+{
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(s)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(s),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  return call(name, x, p);
+}
+
+Value *interpreter::call(string name, const mpz_t& z)
+{
+  Value *sz, *ptr;
+  make_bigint(z, sz, ptr);
+  return call(name, sz, ptr);
+}
+
+Value *interpreter::call(string name, Value *x, const mpz_t& z)
+{
+  Value *sz, *ptr;
+  make_bigint(z, sz, ptr);
+  return call(name, x, sz, ptr);
+}
+
+// create a bigint (mpz_t) constant
+
+void interpreter::make_bigint(const mpz_t& z, Value*& sz, Value*& ptr)
+{
+  // first arg: signed int combining sign with number of limbs
+  /* NOTE: This may loose leading size bits on systems where GMP is compiled
+     to support mpz's with more than 0x7fffffff limbs, but this shouldn't
+     really be a problem for the forseeable future... ;-) */
+  sz = SInt((int32_t)z->_mp_size);
+  /* We're a bit lazy in that we only support 32 and 64 bit limbs here, but
+     that should probably work on most if not all systems where GMP is
+     available. */
+#ifdef _LONG_LONG_LIMB
+  // assume 64 bit limbs
+  assert(sizeof(mp_limb_t) == 8);
+  // second arg: array of unsigned long ints (least significant limb first)
+  size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
+  vector<Constant*> u(n);
+  for (size_t i = 0; i < n; i++) u[i] = UInt64(z->_mp_d[i]);
+  Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int64Ty, n), u);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int64Ty, n), true,
+     GlobalVariable::InternalLinkage, limbs, "", module);
+#else
+  // assume 32 bit limbs
+  assert(sizeof(mp_limb_t) == 4);
+  // second arg: array of unsigned ints (least significant limb first)
+  size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
+  vector<Constant*> u(n);
+  for (size_t i = 0; i < n; i++) u[i] = UInt(z->_mp_d[i]);
+  Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int32Ty, n), u);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int32Ty, n), true,
+     GlobalVariable::InternalLinkage, limbs, "", module);
+#endif
+  // "cast" the int array to a int*
+  ptr = e.CreateGEP(v, Zero, Zero);
+}
+
+// Debugger calls.
+
+Value *interpreter::debug(const char *format)
+{
+  Function *f = module->getFunction("pure_debug");
+  assert(f);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(format)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(format),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  vector<Value*> args;
+  args.push_back(SInt(e.tag));
+  args.push_back(p);
+  return e.CreateCall(f, args);
+}
+
+Value *interpreter::debug(const char *format, Value *x)
+{
+  Function *f = module->getFunction("pure_debug");
+  assert(f);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(format)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(format),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  vector<Value*> args;
+  args.push_back(SInt(e.tag));
+  args.push_back(p);
+  args.push_back(x);
+  return e.CreateCall(f, args);
+}
+
+Value *interpreter::debug(const char *format, Value *x, Value *y)
+{
+  Function *f = module->getFunction("pure_debug");
+  assert(f);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(format)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(format),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  vector<Value*> args;
+  args.push_back(SInt(e.tag));
+  args.push_back(p);
+  args.push_back(x);
+  args.push_back(y);
+  return e.CreateCall(f, args);
+}
+
+Value *interpreter::debug(const char *format, Value *x, Value *y, Value *z)
+{
+  Function *f = module->getFunction("pure_debug");
+  assert(f);
+  Env& e = act_env();
+  GlobalVariable *v = new GlobalVariable
+    (ArrayType::get(Type::Int8Ty, strlen(format)+1), true,
+     GlobalVariable::InternalLinkage, ConstantArray::get(format),
+     "", module);
+  // "cast" the char array to a char*
+  Value *p = e.CreateGEP(v, Zero, Zero);
+  vector<Value*> args;
+  args.push_back(SInt(e.tag));
+  args.push_back(p);
+  args.push_back(x);
+  args.push_back(y);
+  args.push_back(z);
+  return e.CreateCall(f, args);
+}
+
+void interpreter::unwind(int32_t tag)
+{
+  Function *f = module->getFunction("pure_throw");
+  assert(f);
+  vector<Value*> args;
+  if (tag > 0)
+    args.push_back(call("pure_new", cbox(tag)));
+  else
+    args.push_back(NullExprPtr);
+  Env& e = act_env();
+  CallInst *v = e.CreateCall(f, args);
+  v->setTailCall();
+  // add a ret instruction to terminate the current block
+  e.builder.CreateRet(NullExprPtr);
+}
+
+// Create a function.
+
+Function *interpreter::fun(string name, matcher *pm, bool nodefault)
+{
+  Function *f = fun_prolog(name);
+  fun_body(pm, nodefault);
+  return f;
+}
+
+Function *interpreter::fun_prolog(string name)
+{
+  Env& f = act_env();
+  if (f.f==0) {
+    // argument types
+    vector<const Type*> argt(f.n, ExprPtrTy);
+    assert(f.m == 0 || f.local);
+    if (f.m > 0) argt.insert(argt.begin(), ExprPtrPtrTy);
+    // function type
+    FunctionType *ft = FunctionType::get(ExprPtrTy, argt, false);
+    /* Mangle local function names so that they're easier to identify; as a
+       side-effect, this should also ensure that we always get the proper
+       names for external functions. */
+    if (f.local) {
+      EnvStack::iterator e = envstk.begin();
+      if (++e != envstk.end()) name = (*e)->name + "." + name;
+    }
+    f.name = name;
+    /* Linkage type and calling convention. For each Pure function (no matter
+       whether global or local) we create a C-callable function in LLVM
+       IR. (This is necessary also for local functions, since these might need
+       to be called from the runtime.) In the case of a global function, this
+       function is also externally visible. However, in order to enable tail
+       call elimination (on platforms where LLVM supports this), suitable
+       functions are internally implemented using the fast calling convention
+       (if enabled, which it is by default). In this case, the C-callable
+       function is just a stub calling the internal function. */
+    Function::LinkageTypes scope = Function::ExternalLinkage;
+    CallingConv::ID cc = CallingConv::C;
+    if (f.local ||
+	// anonymous functions and operators use internal linkage, too:
+	f.tag == 0 || symtab.sym(f.tag).prec < 10)
+      scope = Function::InternalLinkage;
+#if USE_FASTCC
+    /* Currently we only allow fastcc (and thus tail call elimination) if the
+       function takes no environment. This is because the passed environment
+       is allocated on the caller's stack, so we can't do a tail call in this
+       case. It would be possible to also optimize the case of a local
+       function with environment which just calls itself directly (passing
+       through the environment), but currently we don't keep track of such
+       situations and thus this optimization isn't implemented yet. */
+    if (!name.empty() && f.m == 0) cc = CallingConv::Fast;
+#endif
+    if (cc == CallingConv::Fast) {
+      // create the function
+      f.f = new Function(ft, Function::InternalLinkage,
+			 "$$fastcc."+name, module);
+      assert(f.f); f.f->setCallingConv(cc);
+      // create the C-callable stub
+      f.h = new Function(ft, scope, name, module); assert(f.h);
+    } else {
+      // no need for a separate stub
+      f.f = new Function(ft, scope, name, module); assert(f.f);
+      f.h = f.f;
+    }
+    /* Give names to the arguments, and provide direct access to these by
+       means of the env and args fields. */
+    Function::arg_iterator a = f.f->arg_begin();
+    if (f.m > 0) { a->setName("env"); f.envs = a++; }
+    for (size_t i = 0; a != f.f->arg_end(); ++a, ++i) {
+      a->setName(mklabel("arg", i));
+      f.args[i] = a;
+    }
+    if (f.h != f.f) {
+      /* Assign parameter names in the stub, too. */
+      size_t n = f.n+(f.m>0?1:0);
+      vector<Value*> myargs(n);
+      size_t i0 = 0; a = f.h->arg_begin();
+      if (f.m > 0) { a->setName("env"); myargs[i0++] = a++; }
+      for (size_t i = 0; a != f.h->arg_end(); ++a, ++i) {
+	a->setName(mklabel("arg", i));
+	myargs[i0+i] = a;
+      }
+      /* Create the body of the stub. This is just a call to the internal
+	 function, passing through all arguments including the environment. */
+      BasicBlock *bb = new BasicBlock("entry", f.h);
+      f.builder.SetInsertPoint(bb);
+      CallInst* v = f.builder.CreateCall(f.f, myargs.begin(), myargs.end());
+      v->setCallingConv(cc);
+      f.builder.CreateRet(v);
+      // validate the generated code, checking for consistency
+      verifyFunction(*f.h);
+      // optimize
+      if (FPM) FPM->run(*f.h);
+      // show output code, if requested
+      if (verbose&verbosity::dump) f.h->print(std::cout);
+    }
+  }
+#if DEBUG>1
+  llvm::cerr << "PROLOG FUNCTION " << f.name << endl;
+#endif
+  // create a new basic block to start insertion into
+  BasicBlock *bb = new BasicBlock("entry", f.f);
+  f.builder.SetInsertPoint(bb);
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "entry " << f.name;
+    debug(msg.str().c_str()); }
+#endif
+  // Allocate an array to be filled with environment values passed in
+  // parameterless function calls. NOTE: This needs to be patched up when
+  // finalizing the function body, as we don't know the needed size yet.
+  f.argv = f.builder.CreateAlloca(ExprPtrTy, /*UInt(f.l)*/0, "argv");
+  // return the function just created
+  return f.f;
+}
+
+void interpreter::fun_body(matcher *pm, bool nodefault)
+{
+  Env& f = act_env();
+  assert(f.f!=0);
+#if DEBUG>1
+  llvm::cerr << "BODY FUNCTION " << f.name << endl;
+#endif
+  BasicBlock *bodybb = new BasicBlock("body");
+  f.builder.CreateBr(bodybb);
+  f.f->getBasicBlockList().push_back(bodybb);
+  f.builder.SetInsertPoint(bodybb);
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "body " << f.name;
+    debug(msg.str().c_str()); }
+#endif
+  BasicBlock *failedbb = new BasicBlock("failed");
+  // emit the matching code
+  complex_match(pm, failedbb);
+  // emit code for a failed match
+  f.f->getBasicBlockList().push_back(failedbb);
+  f.builder.SetInsertPoint(failedbb);
+  if (nodefault) {
+    // failed match is fatal, throw an exception
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "failed " << f.name << ", exception";
+    debug(msg.str().c_str()); }
+#endif
+    unwind(symtab.failed_match_sym().f);
+  } else {
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "failed " << f.name << ", default value";
+    debug(msg.str().c_str()); }
+#endif
+    // failed match is non-fatal, instead we return a "thunk" (literal fbox)
+    // of ourself applied to our arguments as the result
+    vector<Value*> x(f.m);
+    for (size_t i = 0; i < f.m; i++) {
+      x[i] = f.CreateLoadGEP(f.envs, UInt(i));
+      assert(x[i]->getType() == ExprPtrTy);
+    }
+    Value *defaultv = call("pure_clos", f.local, true, f.tag, f.h, f.n, x);
+    for (size_t i = 0; i < f.n; ++i) {
+      Value *arg = f.args[i];
+      assert(arg->getType() == ExprPtrTy);
+      defaultv = apply1(defaultv, arg);
+    }
+    f.CreateRet(defaultv);
+  }
+  fun_finish();
+}
+
+void interpreter::fun_finish()
+{
+  Env& f = act_env();
+  assert(f.f!=0);
+  // Now that all locals have been processed, we need to patch up the alloca
+  // for the environment vector used as temporary storage in parameterless
+  // function calls.
+  BasicBlock::iterator ii(f.argv);
+  if (f.l == 0)
+    ReplaceInstWithValue(f.argv->getParent()->getInstList(), ii,
+			 NullExprPtrPtr);
+  else
+    ReplaceInstWithInst(f.argv->getParent()->getInstList(), ii,
+			new AllocaInst(ExprPtrTy, UInt(f.l), "argv"));
+  // validate the generated code, checking for consistency
+  verifyFunction(*f.f);
+  // optimize
+  if (FPM) FPM->run(*f.f);
+  // show output code, if requested
+  if (verbose&verbosity::dump) f.f->print(std::cout);
+#if DEBUG>1
+  llvm::cerr << "END BODY FUNCTION " << f.name << endl;
+#endif
+}
+
+// Helper function to emit special code.
+
+void interpreter::unwind_iffalse(Value *v)
+{
+  // throw an exception if v == false
+  Env& f = act_env();
+  assert(f.f!=0);
+  BasicBlock *errbb = new BasicBlock("err");
+  BasicBlock *okbb = new BasicBlock("ok");
+  f.builder.CreateCondBr(v, okbb, errbb);
+  f.f->getBasicBlockList().push_back(errbb);
+  f.builder.SetInsertPoint(errbb);
+  unwind(symtab.failed_cond_sym().f);
+  f.f->getBasicBlockList().push_back(okbb);
+  f.builder.SetInsertPoint(okbb);
+}
+
+void interpreter::unwind_iftrue(Value *v)
+{
+  // throw an exception if v == true
+  Env& f = act_env();
+  assert(f.f!=0);
+  BasicBlock *errbb = new BasicBlock("err");
+  BasicBlock *okbb = new BasicBlock("ok");
+  f.builder.CreateCondBr(v, errbb, okbb);
+  f.f->getBasicBlockList().push_back(errbb);
+  f.builder.SetInsertPoint(errbb);
+  unwind(symtab.failed_cond_sym().f);
+  f.f->getBasicBlockList().push_back(okbb);
+  f.builder.SetInsertPoint(okbb);
+}
+
+Value *interpreter::check_tag(Value *v, int32_t tag)
+{
+  // check that the given expression value has the given tag, return true if
+  // so and false otherwise
+  assert(v->getType() == ExprPtrTy);
+  Value *tagv = act_env().CreateLoadGEP(v, Zero, Zero, "tag");
+  return act_builder().CreateICmpEQ(tagv, SInt(tag));
+}
+
+void interpreter::verify_tag(Value *v, int32_t tag)
+{
+  // check that the given expression value has the given tag, throw an
+  // exception otherwise
+  return unwind_iffalse(check_tag(v, tag));
+}
+
+// Emit matching code.
+
+/* First the simplified pattern matching code for a matching automaton which
+   is a trie, i.e., which has only one transition in each non-final state.
+   Takes the value of the expression to be matched as argument and branches to
+   either the matched or the failed bb, depending on whether the match
+   suceeded or not (note that the code for the reduct must be handled by the
+   caller). This case is heavily used by the anonymous closures which handle
+   pattern-matching lambdas and singleton pattern bindings in 'when' clauses,
+   so it makes sense to optimize for it. */
+
+void interpreter::simple_match(Value *x, state*& s,
+			       BasicBlock *matchedbb, BasicBlock *failedbb)
+{
+  assert(x->getType() == ExprPtrTy && s->tr.size() == 1);
+  const trans& t = *s->tr.begin();
+  Env& f = act_env();
+  assert(f.f!=0);
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "simple match " << f.name;
+    debug(msg.str().c_str()); }
+#endif
+  // match the current symbol
+  switch (t.tag) {
+  case EXPR::VAR:
+    if (t.ttag == 0) // untyped variable => always match
+      f.builder.CreateBr(matchedbb);
+    else {
+      // typed variable, must match type tag against value
+      Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+      f.builder.CreateCondBr
+	(f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
+    }
+    s = t.st;
+    break;
+  case EXPR::INT:
+  case EXPR::DBL: {
+    // first check the tag
+    BasicBlock *okbb = new BasicBlock("ok");
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    f.builder.CreateCondBr
+      (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
+    // next check the values (we inline these for max performance)
+    f.f->getBasicBlockList().push_back(okbb);
+    f.builder.SetInsertPoint(okbb);
+    Value *cmpv;
+    if (t.tag == EXPR::INT) {
+      Value *pv = f.builder.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      Value *iv = f.CreateLoadGEP(pv, Zero, One, "intval");
+      cmpv = f.builder.CreateICmpEQ(iv, SInt(t.i), "cmp");
+    } else {
+      Value *pv = f.builder.CreateBitCast(x, DblExprPtrTy, "dblexpr");
+      Value *dv = f.CreateLoadGEP(pv, Zero, One, "dblval");
+      cmpv = f.builder.CreateFCmpOEQ(dv, Dbl(t.d), "cmp");
+    }
+    f.builder.CreateCondBr(cmpv, matchedbb, failedbb);
+    s = t.st;
+    break;
+  }
+  case EXPR::BIGINT:
+  case EXPR::STR: {
+    // first do a quick check on the tag so that we may avoid an expensive
+    // call if the tags don't match
+    BasicBlock *okbb = new BasicBlock("ok");
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    f.builder.CreateCondBr
+      (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
+    // next check the values (like above, but we have to call the runtime for
+    // these)
+    f.f->getBasicBlockList().push_back(okbb);
+    f.builder.SetInsertPoint(okbb);
+    Value *cmpv;
+    if (t.tag == EXPR::BIGINT)
+      cmpv = call("pure_cmp_bigint", x, t.z);
+    else
+      cmpv = call("pure_cmp_string", x, t.s);
+    cmpv = f.builder.CreateICmpEQ(cmpv, Zero, "cmp");
+    f.builder.CreateCondBr(cmpv, matchedbb, failedbb);
+    s = t.st;
+    break;
+  }
+  case EXPR::PTR:
+    assert(0 && "not implemented");
+    break;
+  case EXPR::APP: {
+    // first match the tag...
+    BasicBlock *ok1bb = new BasicBlock("arg1");
+    BasicBlock *ok2bb = new BasicBlock("arg2");
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    f.builder.CreateCondBr
+      (f.builder.CreateICmpEQ(tagv, SInt(t.tag)), ok1bb, failedbb);
+    s = t.st;
+    // next match the first subterm...
+    f.f->getBasicBlockList().push_back(ok1bb);
+    f.builder.SetInsertPoint(ok1bb);
+    Value *x1 = f.CreateLoadGEP(x, Zero, One, "x1");
+    simple_match(x1, s, ok2bb, failedbb);
+    // and finally the second subterm...
+    f.f->getBasicBlockList().push_back(ok2bb);
+    f.builder.SetInsertPoint(ok2bb);
+    Value *x2 = f.CreateLoadGEP(x, Zero, Two, "x2");
+    simple_match(x2, s, matchedbb, failedbb);
+    break;
+  }
+  default:
+    assert(t.tag > 0);
+    // just do a quick check on the tag
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    f.builder.CreateCondBr
+      (f.builder.CreateICmpEQ(tagv, SInt(t.tag)), matchedbb, failedbb);
+    s = t.st;
+    break;
+  }
+}
+
+/* Next the algorithm which generates the full-blown matching code for a
+   general matching automaton. This is a bit involved, as we have to recurse
+   into both the list of arguments to be matched and the tree structure of the
+   automaton (including the list of different guarded rules to be tried in
+   each final state of the automaton). The resulting code is a decision tree
+   for the automaton. At the leaves of the tree we either branch to the global
+   "failed" block which handles a failed match in the caller, or return the
+   value of a reduct of a matched rule. */
+
+/* The following is just the wrapper routine which decides whether to do a
+   complex or simple matcher and sets up the needed environment. */
+
+void interpreter::complex_match(matcher *pm, BasicBlock *failedbb)
+{
+  Env& f = act_env();
+  assert(f.f!=0);
+  // Check to see if this is just a trie for a single unguarded
+  // pattern-binding rule, then we can employ the simple matcher instead.
+  if (f.n == 1 && f.b && pm->r.size() == 1 && pm->r[0].qual.is_null()) {
+    Value *arg = f.args[0];
+    // emit the matching code
+    BasicBlock *matchedbb = new BasicBlock("matched");
+    state *start = pm->start;
+    simple_match(arg, start, matchedbb, failedbb);
+    // matched => emit code for the reduct, and return the result
+    f.f->getBasicBlockList().push_back(matchedbb);
+    f.builder.SetInsertPoint(matchedbb);
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "exit " << f.name << ", result: " << pm->r[0].rhs;
+    debug(msg.str().c_str()); }
+#endif
+    f.CreateRet(codegen(pm->r[0].rhs));
+  } else {
+    // build the initial stack of expressions to be matched
+    list<Value*>xs;
+    for (uint32_t i = 0; i < f.n; i++) xs.push_back(f.args[i]);
+    // emit the matching code
+    set<rulem> reduced;
+    if (xs.empty())
+      // nothing to match
+      try_rules(pm, pm->start, failedbb, reduced);
+    else
+      complex_match(pm, xs, pm->start, failedbb, reduced);
+    // It is often an error (although not strictly forbidden) if there are any
+    // rules left which will never be reduced, so warn about these.
+    for (rulem r = 0; r < pm->r.size(); r++)
+      if (reduced.find(r) == reduced.end()) {
+	const rule& rr = pm->r[r];
+	ostringstream msg;
+	msg << "warning: rule never reduced: " << rr << ";";
+	warning(msg.str());
+      }
+  }
+}
+
+// helper macros to set up for the next state
+
+#define next_state(t)					\
+  do {							\
+    state *s = t->st;					\
+    list<Value*> ys = xs; ys.pop_front();		\
+    if (ys.empty())					\
+      try_rules(pm, s, failedbb, reduced);		\
+    else						\
+      complex_match(pm, ys, s, failedbb, reduced);	\
+  } while (0)
+
+// same as above, but handles the case of an application where we recurse into
+// subterms
+
+#define next_state2(t)					\
+  do {							\
+    state *s = t->st;					\
+    list<Value*> ys = xs; ys.pop_front();		\
+    Value *x1 = f.CreateLoadGEP(x, Zero, One, "x1");	\
+    Value *x2 = f.CreateLoadGEP(x, Zero, Two, "x2");	\
+    ys.push_front(x2); ys.push_front(x1);		\
+    complex_match(pm, ys, s, failedbb, reduced);	\
+  } while (0)
+
+/* This is the core of the decision tree construction algorithm. It emits code
+   for matching a single expression starting from a given state, then recurses
+   to do the rest. The algorithm maintains an explicit stack of expression
+   values waiting to be processed (implemented as a list). Initially, this is
+   just the list of argument values of the closure, onto which we push new
+   subexpressions when matching applications and from which we pop expressions
+   which have been matched. */
+
+struct trans_info {
+  trans *t;
+  BasicBlock *bb;
+  trans_info(trans *_t, BasicBlock *_bb) : t(_t), bb(_bb) {}
+};
+
+struct trans_list_info {
+  trans *t;
+  BasicBlock *bb;
+  list<trans_info> tlist;
+  trans_list_info() : t(0), bb(0) {}
+};
+
+typedef map<int32_t,trans_list_info> trans_map;
+
+void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
+				BasicBlock *failedbb, set<rulem>& reduced)
+{
+  Env& f = act_env();
+  assert(!xs.empty());
+  Value* x = xs.front();
+  assert(x->getType() == ExprPtrTy);
+  // start a new block for this state (this is just for purposes of
+  // readability, we don't actually need this as a label to branch to)
+  BasicBlock *statebb = new BasicBlock(mklabel("state", s->s));
+  f.builder.CreateBr(statebb);
+  f.f->getBasicBlockList().push_back(statebb);
+  f.builder.SetInsertPoint(statebb);
+#if DEBUG>1
+  if (!f.name.empty()) { ostringstream msg;
+    msg << "complex match " << f.name << ", state " << s->s;
+    debug(msg.str().c_str()); }
+#endif
+  // blocks for retrying with default transitions after a failed match
+  BasicBlock *retrybb = new BasicBlock(mklabel("retry.state", s->s));
+  BasicBlock *defaultbb = new BasicBlock(mklabel("default.state", s->s));
+  // first check for a literal match
+  size_t i, n = s->tr.size(), m = 0;
+  transl::iterator t0 = s->tr.begin();
+  while (t0 != s->tr.end() && t0->tag == EXPR::VAR) t0++, m++;
+  if (t0 != s->tr.end()) {
+    assert(n > m);
+    // get the tag value
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    // set up the switch instruction branching over the different tags
+    SwitchInst *sw = f.builder.CreateSwitch(tagv, retrybb, n-m);
+    /* NOTE: For constant transitions there may be multiple transitions under
+       the same constant tag here. Therefore we must collect different
+       transitions for the same builtin type under the same target label, then
+       do a second pass on the actual constants for each type. To these ends,
+       instead of a simple list of branches we actually have to maintain a map
+       where each entry points to a list of transitions. */
+    trans_map tmap;
+    transl::iterator t;
+    for (t = t0, i = 0; t != s->tr.end(); t++, i++) {
+      // first create the block for this specific transition
+      BasicBlock *bb = new BasicBlock(mklabel("trans.state", s->s, t->st->s));
+      if (t->tag == EXPR::APP || t->tag > 0) {
+	// transition on a function symbol; in this case there's only a single
+	// transition, to which we simply assign the label just generated
+	assert(!tmap[t->tag].bb);
+	tmap[t->tag].bb = bb;
+	tmap[t->tag].t = &*t;
+	sw->addCase(UInt(t->tag), bb);
+      } else {
+	// transition on a constant, add it to the corresponding list
+	tmap[t->tag].tlist.push_back(trans_info(&*t, bb));
+	if (!tmap[t->tag].bb) {
+	  // no outer label has been generated yet, do it now and add the
+	  // target to the outer switch
+	  tmap[t->tag].bb =
+	    new BasicBlock(mklabel("begin.state", s->s, -t->tag));
+	  sw->addCase(UInt(t->tag), tmap[t->tag].bb);
+	}
+      }
+    }
+    // now generate code for all transitions
+    for (trans_map::iterator ti = tmap.begin(); ti != tmap.end(); ti++) {
+      int32_t tag = ti->first;
+      trans_list_info& info = ti->second;
+      f.f->getBasicBlockList().push_back(info.bb);
+      f.builder.SetInsertPoint(info.bb);
+      if (tag == EXPR::APP || tag > 0) {
+	// singleton transition on a function symbol
+	assert(info.bb && info.tlist.empty());
+	if (tag == EXPR::APP) {
+	  // recurse into subterms
+	  next_state2(info.t);
+	  f.builder.SetInsertPoint(statebb);
+	} else
+	  next_state(info.t);
+      } else {
+	// outer label for a list of constants of a given type; iterate over
+	// all alternatives to resolve these in turn
+	assert(tag < 0 && info.bb && !info.tlist.empty());
+	for (list<trans_info>::iterator l = info.tlist.begin();
+	     l != info.tlist.end(); l++) {
+	  list<trans_info>::iterator k = l; k++;
+	  BasicBlock *okbb = l->bb;
+	  BasicBlock *trynextbb =
+	    new BasicBlock(mklabel("next.state", s->s, -tag));
+	  switch (tag) {
+	  case EXPR::INT:
+	  case EXPR::DBL: {
+	    // we can inline these
+	    Value *cmpv;
+	    if (tag == EXPR::INT) {
+	      Value *pv = f.builder.CreateBitCast(x, IntExprPtrTy, "intexpr");
+	      Value *iv = f.CreateLoadGEP(pv, Zero, One, "intval");
+	      cmpv = f.builder.CreateICmpEQ(iv, SInt(l->t->i), "cmp");
+	    } else {
+	      Value *pv = f.builder.CreateBitCast(x, DblExprPtrTy, "dblexpr");
+	      Value *dv = f.CreateLoadGEP(pv, Zero, One, "dblval");
+	      cmpv = f.builder.CreateFCmpOEQ(dv, Dbl(l->t->d), "cmp");
+	    }
+	    f.builder.CreateCondBr(cmpv, okbb, trynextbb);
+	    f.f->getBasicBlockList().push_back(okbb);
+	    f.builder.SetInsertPoint(okbb);
+	    next_state(l->t);
+	    f.f->getBasicBlockList().push_back(trynextbb);
+	    f.builder.SetInsertPoint(trynextbb);
+	    if (k == info.tlist.end())
+	      f.builder.CreateBr(retrybb);
+	    break;
+	  }
+	  case EXPR::BIGINT:
+	  case EXPR::STR: {
+	    // call the runtime for these
+	    Value *cmpv;
+	    if (tag == EXPR::BIGINT)
+	      cmpv = call("pure_cmp_bigint", x, l->t->z);
+	    else
+	      cmpv = call("pure_cmp_string", x, l->t->s);
+	    cmpv = f.builder.CreateICmpEQ(cmpv, Zero, "cmp");
+	    f.builder.CreateCondBr(cmpv, okbb, trynextbb);
+	    f.f->getBasicBlockList().push_back(okbb);
+	    f.builder.SetInsertPoint(okbb);
+	    next_state(l->t);
+	    f.f->getBasicBlockList().push_back(trynextbb);
+	    f.builder.SetInsertPoint(trynextbb);
+	    if (k == info.tlist.end())
+	      f.builder.CreateBr(retrybb);
+	    break;
+	  }
+	  default:
+	    assert(0 && "not implemented");
+	    break;
+	  }
+	}
+      }
+    }
+  } else
+    f.builder.CreateBr(retrybb);
+  // retrybb => literal match failed, check for a typed variable match
+  f.f->getBasicBlockList().push_back(retrybb);
+  f.builder.SetInsertPoint(retrybb);
+  t0 = s->tr.begin();
+  transl::iterator t1 = t0;
+  if (t1->tag == EXPR::VAR && t1->ttag == 0) t1++;
+  if (t1 != s->tr.end() && t1->tag == EXPR::VAR) {
+    // get the tag value
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    // set up the switch instruction branching over the different type tags
+    SwitchInst *sw = f.builder.CreateSwitch(tagv, defaultbb);
+    vector<BasicBlock*> vtransbb;
+    transl::iterator t;
+    for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
+      vtransbb.push_back
+	(new BasicBlock(mklabel("trans.state", s->s, t->st->s)));
+      sw->addCase(UInt(t->ttag), vtransbb[i]);
+    }
+    // now handle the transitions on the different type tags
+    for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
+      f.f->getBasicBlockList().push_back(vtransbb[i]);
+      f.builder.SetInsertPoint(vtransbb[i]);
+      next_state(t);
+    }
+  } else
+    f.builder.CreateBr(defaultbb);
+  // defaultbb => both literal and type variable matches failed, check for the
+  // default transition
+  f.f->getBasicBlockList().push_back(defaultbb);
+  f.builder.SetInsertPoint(defaultbb);
+  if (t0->tag == EXPR::VAR && t0->ttag == 0)
+    next_state(t0);
+  else // nothing matched in this state, bail out
+    f.builder.CreateBr(failedbb);
+}
+
+/* Finally, the part of the algorithm which emits code for the rule list in a
+   final state. Here we have to consider each matched rule in turn, emit code
+   for the guard (if any) and execute the code for the first rule with a guard
+   returning true. */
+
+void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
+			    set<rulem>& reduced)
+{
+  Env& f = act_env();
+  assert(s->tr.empty()); // we're in a final state here
+  const rulev& rules = pm->r;
+  const ruleml& rl = s->r;
+  ruleml::const_iterator r = rl.begin();
+  assert(r != rl.end());
+  BasicBlock* rulebb = new BasicBlock(mklabel("rule.state", s->s, rl.front()));
+  f.builder.CreateBr(rulebb);
+  while (r != rl.end()) {
+    const rule& rr = rules[*r];
+    reduced.insert(*r);
+    f.f->getBasicBlockList().push_back(rulebb);
+    f.builder.SetInsertPoint(rulebb);
+#if DEBUG>1
+    if (!f.name.empty()) { ostringstream msg;
+      msg << "complex match " << f.name << ", trying rule #" << *r;
+      debug(msg.str().c_str()); }
+#endif
+    if (rr.qual.is_null()) {
+      // rule always matches, generate code for the reduct and bail out
+#if DEBUG>1
+      if (!f.name.empty()) { ostringstream msg;
+	msg << "exit " << f.name << ", result: " << rr.rhs;
+	debug(msg.str().c_str()); }
+#endif
+      f.CreateRet(codegen(rr.rhs));
+      break;
+    }
+    // check the guard
+    Value *iv = 0;
+    if (rr.qual.ttag() == EXPR::INT)
+      // optimize the case that the guard is an ::int (constant or application)
+      iv = get_int(rr.qual);
+    else if (rr.qual.ttag() != 0) {
+      // wrong type of constant; raise an exception
+      // XXXTODO: we might want to optionally invoke the debugger here
+      unwind(symtab.failed_cond_sym().f);
+#if DEBUG>1
+      if (!f.name.empty()) { ostringstream msg;
+	msg << "exit " << f.name << ", bad guard (exception)";
+	debug(msg.str().c_str()); }
+#endif
+      break;
+    } else
+      // typeless expression, will be checked at runtime
+      iv = get_int(rr.qual);
+    // emit the condition (turn the previous result into a flag)
+    Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
+    BasicBlock *okbb = new BasicBlock("ok");
+    // determine the next rule block ('failed' if none)
+    BasicBlock *nextbb;
+    if (++r != rl.end())
+      nextbb = new BasicBlock(mklabel("rule.state", s->s, *r));
+    else
+      nextbb = failedbb;
+    f.builder.CreateCondBr(condv, okbb, nextbb);
+    // ok => guard succeeded, return the reduct, otherwise we fall through
+    // to the next rule (if any), or bail out with failure
+    f.f->getBasicBlockList().push_back(okbb);
+    f.builder.SetInsertPoint(okbb);
+#if DEBUG>1
+    if (!f.name.empty()) { ostringstream msg;
+      msg << "exit " << f.name << ", result: " << rr.rhs;
+      debug(msg.str().c_str()); }
+#endif
+    f.CreateRet(codegen(rr.rhs));
+    rulebb = nextbb;
+  }
+}

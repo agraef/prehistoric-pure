@@ -1,0 +1,290 @@
+
+/* Pure primitives. These operations are implemented either directly by
+   machine instructions or by C functions provided in the runtime. */
+
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure programming language and system.
+
+   Pure is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* Throw an exception. */
+
+extern void pure_throw(expr*);
+throw x		= pure_throw x;
+
+/* Predicates to check for the built-in types. */
+
+intp x		= case x of _::int     = 1; _ = 0 end;
+bigintp x	= case x of _::bigint  = 1; _ = 0 end;
+doublep x	= case x of _::double  = 1; _ = 0 end;
+stringp x	= case x of _::string  = 1; _ = 0 end;
+pointerp x	= case x of _::pointer = 1; _ = 0 end;
+
+/* Predicates to check for proper lists and tuples. */
+
+listp []	= 1;
+listp (x:xs)	= listp xs;
+listp _		= 0 otherwise;
+
+tuplep ()	= 1;
+tuplep (x,xs)	= 1;
+tuplep _	= 0 otherwise;
+
+/* Conversions between the different numeric and pointer types. */
+
+extern expr* pure_intval(expr*), expr* pure_dblval(expr*),
+  expr* pure_bigintval(expr*), expr* pure_pointerval(expr*);
+
+int x::int		= x;
+int x::bigint		= pure_intval x;
+int x::double		= pure_intval x;
+int x::pointer		= pure_intval x;
+
+bigint x::int		= pure_bigintval x;
+bigint x::bigint	= x;
+bigint x::double	= pure_bigintval x;
+bigint x::pointer	= pure_bigintval x;
+
+double x::int		= pure_dblval x;
+double x::bigint	= pure_dblval x;
+double x::double	= x;
+
+pointer x::int		= pure_pointerval x;
+pointer x::bigint	= pure_pointerval x;
+pointer x::double	= pure_pointerval x;
+pointer x::string	= pure_pointerval x;
+pointer x::pointer	= x;
+
+/* Basic int and double arithmetic. The Pure compiler already knows how to
+   handle these, we just need to supply rules with the right type tags. */
+
+-x::int			= -x;
+~x::int			= ~x;
+not x::int		= not x;
+
+x::int<<y::int		= x<<y;
+x::int>>y::int		= x>>y;
+
+x::int+y::int		= x+y;
+x::int-y::int		= x-y;
+x::int|y::int		= x|y;
+x::int*y::int		= x*y;
+x::int/y::int		= x/y;
+x::int&y::int		= x&y;
+x::int div y::int	= x div y;
+x::int mod y::int	= x mod y;
+
+x::int<y::int		= x<y;
+x::int>y::int		= x>y;
+x::int<=y::int		= x<=y;
+x::int>=y::int		= x>=y;
+x::int==y::int		= x==y;
+x::int!=y::int		= x!=y;
+
+-x::double		= -x;
+
+x::double+y::double	= x+y;
+x::double-y::double	= x-y;
+x::double*y::double	= x*y;
+x::double/y::double	= x/y;
+
+x::double<y::double	= x<y;
+x::double>y::double	= x>y;
+x::double<=y::double	= x<=y;
+x::double>=y::double	= x>=y;
+x::double==y::double	= x==y;
+x::double!=y::double	= x!=y;
+
+// mixed operands
+
+x::int+y::double	= x+y;
+x::int-y::double	= x-y;
+x::int*y::double	= x*y;
+x::int/y::double	= x/y;
+
+x::int<y::double	= x<y;
+x::int>y::double	= x>y;
+x::int<=y::double	= x<=y;
+x::int>=y::double	= x>=y;
+x::int==y::double	= x==y;
+x::int!=y::double	= x!=y;
+
+x::double+y::int	= x+y;
+x::double-y::int	= x-y;
+x::double*y::int	= x*y;
+x::double/y::int	= x/y;
+
+x::double<y::int	= x<y;
+x::double>y::int	= x>y;
+x::double<=y::int	= x<=y;
+x::double>=y::int	= x>=y;
+x::double==y::int	= x==y;
+x::double!=y::int	= x!=y;
+
+/* Logical connectives. Please note that these will be short-circuited only as
+   explicit calls! But we still want them to work if they are applied
+   partially, so we add these rules here. */
+
+x::int&&y::int		= x&&y;
+x::int||y::int		= x||y;
+
+/* Bigint arithmetic. */
+
+extern expr* bigint_neg(void*);
+extern expr* bigint_not(void*);
+extern expr* bigint_add(void*, void*);
+extern expr* bigint_sub(void*, void*);
+extern expr* bigint_mul(void*, void*);
+extern expr* bigint_div(void*, void*);
+extern expr* bigint_mod(void*, void*);
+extern expr* bigint_shl(void*, int);
+extern expr* bigint_shr(void*, int);
+extern expr* bigint_and(void*, void*);
+extern expr* bigint_or(void*, void*);
+extern int bigint_cmp(void*, void*);
+
+-x::bigint		= bigint_neg x;
+~x::bigint		= bigint_not x;
+not x::bigint		= not int x;
+
+x::bigint<<y::int	= bigint_shl x y if y>=0;
+			= bigint_shr x (-y);
+x::bigint>>y::int	= bigint_shr x y if y>=0;
+			= bigint_shl x (-y);
+
+x::bigint+y::bigint	= bigint_add x y;
+x::bigint-y::bigint	= bigint_sub x y;
+x::bigint|y::bigint	= bigint_or x y;
+x::bigint*y::bigint	= bigint_mul x y;
+x::bigint/y::bigint	= double x / double y;
+x::bigint&y::bigint	= bigint_and x y;
+x::bigint div y::bigint	= bigint_div x y;
+x::bigint mod y::bigint	= bigint_mod x y;
+
+x::bigint<y::bigint	= bigint_cmp x y < 0;
+x::bigint>y::bigint	= bigint_cmp x y > 0;
+x::bigint<=y::bigint	= bigint_cmp x y <= 0;
+x::bigint>=y::bigint	= bigint_cmp x y >= 0;
+x::bigint==y::bigint	= bigint_cmp x y == 0;
+x::bigint!=y::bigint	= bigint_cmp x y != 0;
+
+// mixed int/bigint (promote int to bigint)
+
+x::int+y::bigint	= bigint x+y;
+x::int-y::bigint	= bigint x-y;
+x::int|y::bigint	= bigint x|y;
+x::int*y::bigint	= bigint x*y;
+x::int/y::bigint	= double x/y;
+x::int&y::bigint	= bigint x&y;
+x::int div y::bigint	= bigint x div y;
+x::int mod y::bigint	= bigint x mod y;
+
+x::int<y::bigint	= bigint x<y;
+x::int>y::bigint	= bigint x>y;
+x::int<=y::bigint	= bigint x<=y;
+x::int>=y::bigint	= bigint x>=y;
+x::int==y::bigint	= bigint x==y;
+x::int!=y::bigint	= bigint x!=y;
+
+x::bigint+y::int	= x+bigint y;
+x::bigint-y::int	= x-bigint y;
+x::bigint|y::int	= x|bigint y;
+x::bigint*y::int	= x*bigint y;
+x::bigint/y::int	= x/double y;
+x::bigint&y::int	= x&bigint y;
+x::bigint div y::int	= x div bigint y;
+x::bigint mod y::int	= x mod bigint y;
+
+x::bigint<y::int	= x<bigint y;
+x::bigint>y::int	= x>bigint y;
+x::bigint<=y::int	= x<=bigint y;
+x::bigint>=y::int	= x>=bigint y;
+x::bigint==y::int	= x==bigint y;
+x::bigint!=y::int	= x!=bigint y;
+
+// mixed double/bigint (promote bigint to double)
+
+x::bigint+y::double	= double x+y;
+x::bigint-y::double	= double x-y;
+x::bigint*y::double	= double x*y;
+x::bigint/y::double	= double x/y;
+
+x::bigint<y::double	= double x<y;
+x::bigint>y::double	= double x>y;
+x::bigint<=y::double	= double x<=y;
+x::bigint>=y::double	= double x>=y;
+x::bigint==y::double	= double x==y;
+x::bigint!=y::double	= double x!=y;
+
+x::double+y::bigint	= x+double y;
+x::double-y::bigint	= x-double y;
+x::double*y::bigint	= x*double y;
+x::double/y::bigint	= x/double y;
+
+x::double<y::bigint	= x<double y;
+x::double>y::bigint	= x>double y;
+x::double<=y::bigint	= x<=double y;
+x::double>=y::bigint	= x>=double y;
+x::double==y::bigint	= x==double y;
+x::double!=y::bigint	= x!=double y;
+
+extern expr* bigint_pow(void*, int);
+
+pow x::bigint y::int	= bigint_pow x y if y>=0;
+pow x::int y::int	= bigint_pow (bigint x) y if y>=0;
+pow x::bigint y::bigint	= bigint_pow x (int y) if int y>=0;
+
+/* Pointer arithmetic. We do this using bigints, so that the code is portable
+   to 64 bit systems. */
+
+null x::pointer		= bigint x==0;
+
+x::pointer-y::pointer	= bigint x-bigint y;
+x::pointer+y::int	= pointer (bigint x+y);
+x::pointer+y::bigint	= pointer (bigint x+y);
+
+x::pointer<y::pointer	= bigint x <  bigint y;
+x::pointer>y::pointer	= bigint x >  bigint y;
+x::pointer<=y::pointer	= bigint x <= bigint y;
+x::pointer>=y::pointer	= bigint x >= bigint y;
+x::pointer==y::pointer	= bigint x == bigint y;
+x::pointer!=y::pointer	= bigint x != bigint y;
+
+/* Direct memory accesses. Use with care ... or else! */
+
+extern int pointer_get_byte(void *ptr);
+extern int pointer_get_int(void *ptr);
+extern double pointer_get_double(void *ptr);
+extern char *pointer_get_string(void *ptr);
+extern void *pointer_get_pointer(void *ptr);
+
+get_byte x::pointer = pointer_get_byte x;
+get_int x::pointer = pointer_get_int x;
+get_double x::pointer = pointer_get_double x;
+get_string x::pointer = pointer_get_string x;
+get_pointer x::pointer = pointer_get_pointer x;
+
+extern void pointer_put_byte(void *ptr, int x);
+extern void pointer_put_int(void *ptr, int x);
+extern void pointer_put_double(void *ptr, double x);
+extern void pointer_put_string(void *ptr, char *x);
+extern void pointer_put_pointer(void *ptr, void *x);
+
+put_byte x::pointer y::int = pointer_put_byte x;
+put_int x::pointer y::int = pointer_put_int x;
+put_double x::pointer y::double = pointer_put_double x;
+put_string x::pointer y::string = pointer_put_string x;
+put_pointer x::pointer y::string = pointer_put_pointer x;
+put_pointer x::pointer y::pointer = pointer_put_pointer x;
