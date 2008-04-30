@@ -21,7 +21,7 @@
 
 /* Throw an exception. */
 
-extern void pure_throw(expr*);
+extern void pure_throw(expr*); // IMPURE!
 throw x		= pure_throw x;
 
 /* Predicates to check for the built-in types. */
@@ -276,11 +276,11 @@ get_double x::pointer = pointer_get_double x;
 get_string x::pointer = pointer_get_string x;
 get_pointer x::pointer = pointer_get_pointer x;
 
-extern void pointer_put_byte(void *ptr, int x);
-extern void pointer_put_int(void *ptr, int x);
-extern void pointer_put_double(void *ptr, double x);
-extern void pointer_put_string(void *ptr, char *x);
-extern void pointer_put_pointer(void *ptr, void *x);
+extern void pointer_put_byte(void *ptr, int x); // IMPURE!
+extern void pointer_put_int(void *ptr, int x); // IMPURE!
+extern void pointer_put_double(void *ptr, double x); // IMPURE!
+extern void pointer_put_string(void *ptr, char *x); // IMPURE!
+extern void pointer_put_pointer(void *ptr, void *x); // IMPURE!
 
 put_byte x::pointer y::int = pointer_put_byte x;
 put_int x::pointer y::int = pointer_put_int x;
