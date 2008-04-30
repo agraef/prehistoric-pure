@@ -1,13 +1,16 @@
 /* The PURE parser.  -*- C++ -*- */
 
 // Tell bison that we want a C++ parser.
+/* NOTE: We require at least bison 2.1a here, since the C++ parser skeleton
+   changed several times, and the newer versions are not compatible with bison
+   2.1 and earlier. :( */
 %skeleton "lalr1.cc"
+%require "2.1a"
 %defines
 
 %{
 #include <iostream>
 #include <string>
-#include "interpreter.hh"
 #include "expr.hh"
 #include "printer.hh"
 #include "util.hh"
@@ -23,6 +26,8 @@
   { error(yylloc, e.what()); x = new expr(interp.symtab.void_sym().f); }
 
 using namespace std;
+
+class interpreter;
 %}
 
 // The parsing context.
@@ -57,6 +62,8 @@ struct rule_info {
   expr l;
   env e;
 };
+typedef pair<expr,expr> comp_clause;
+typedef list<comp_clause> comp_clause_list;
 %}
 
 %union
@@ -78,6 +85,10 @@ struct rule_info {
   fix_t   fix;
   sym_info *info;
 };
+
+%{
+#include "interpreter.hh"
+%}
 
 %token		NULLARY	"nullary"
 %token <fix>	FIX	"fixity"

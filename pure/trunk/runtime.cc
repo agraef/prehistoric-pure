@@ -675,7 +675,9 @@ pure_expr *pure_intval(pure_expr *x)
   case EXPR::INT:	return x;
   case EXPR::BIGINT:	return pure_int(mpz_get_ui(x->data.z));
   case EXPR::DBL:	return pure_int((int32_t)x->data.d);
-  case EXPR::PTR:	return pure_int((uint32_t)x->data.p);
+    // Must cast to 64 bit here first, since on 64 bit systems g++ gives an
+    // error when directly casting a 64 bit pointer to a 32 bit integer.
+  case EXPR::PTR:	return pure_int((uint32_t)(uint64_t)x->data.p);
   default:		return 0;
   }
 }
@@ -724,13 +726,14 @@ static pure_expr *pointer_to_bigint(void *p)
 #else
   // 4 byte limbs.
   if (sizeof(void*) == 4) {
-    // 4 byte pointers.
-    limb_t u[1] = { (uint32_t)p };
+    // 4 byte pointers. Note that we still cast to 64 bit first, since
+    // otherwise the code will give an error on 64 bit systems.
+    limb_t u[1] = { (uint32_t)(uint64_t)p };
     return pure_bigint(1, u);
   } else {
     // 8 byte pointers, put least significant word in the first limb.
     assert(sizeof(void*) == 8);
-    limb_t u[2] = { (uint32_t)p, (uint32_t)(((uint64_t)p)>>32) };
+    limb_t u[2] = { (uint32_t)(uint64_t)p, (uint32_t)(((uint64_t)p)>>32) };
     return pure_bigint(2, u);
   }
 #endif

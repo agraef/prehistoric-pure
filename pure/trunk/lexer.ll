@@ -12,6 +12,16 @@
 #include "parser.hh"
 #include "util.hh"
 
+/* Work around an incompatibility in flex (at least versions 2.5.31 through
+   2.5.33): it generates code that does not conform to C89.  See Debian bug
+   333231 <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.  */
+# undef yywrap
+# define yywrap() 1
+
+/* By default yylex returns int, we use token_type.  Unfortunately yyterminate
+   by default returns 0, which is not of token_type.  */
+#define yyterminate() return yy::parser::token_type(0)
+
 using namespace std;
 
 static void my_readline(const char *prompt, char *buf, int &result, int max_size);
@@ -19,7 +29,7 @@ static void my_readline(const char *prompt, char *buf, int &result, int max_size
 #define YY_INPUT(buf,result,max_size)					\
   if (interpreter::g_interp->source_s) {				\
     size_t l = strlen(interpreter::g_interp->source_s);			\
-    if (l > max_size) l = max_size;					\
+    if (l > (size_t)max_size) l = (size_t)max_size;			\
     memcpy(buf, interpreter::g_interp->source_s, l);			\
     interpreter::g_interp->source_s += result = l;			\
   } else if ( interpreter::g_interactive &&				\
@@ -39,17 +49,19 @@ static void my_readline(const char *prompt, char *buf, int &result, int max_size
     }									\
   }
 
-static int optoken[10][5] = {
-  {NA0, LT0, RT0, PR0, PO0},
-  {NA1, LT1, RT1, PR1, PO1},
-  {NA2, LT2, RT2, PR2, PO2},
-  {NA3, LT3, RT3, PR3, PO3},
-  {NA4, LT4, RT4, PR4, PO4},
-  {NA5, LT5, RT5, PR5, PO5},
-  {NA6, LT6, RT6, PR6, PO6},
-  {NA7, LT7, RT7, PR7, PO7},
-  {NA8, LT8, RT8, PR8, PO8},
-  {NA9, LT9, RT9, PR9, PO9},
+typedef yy::parser::token token;
+
+static yy::parser::token_type optoken[10][5] = {
+  {token::NA0, token::LT0, token::RT0, token::PR0, token::PO0},
+  {token::NA1, token::LT1, token::RT1, token::PR1, token::PO1},
+  {token::NA2, token::LT2, token::RT2, token::PR2, token::PO2},
+  {token::NA3, token::LT3, token::RT3, token::PR3, token::PO3},
+  {token::NA4, token::LT4, token::RT4, token::PR4, token::PO4},
+  {token::NA5, token::LT5, token::RT5, token::PR5, token::PO5},
+  {token::NA6, token::LT6, token::RT6, token::PR6, token::PO6},
+  {token::NA7, token::LT7, token::RT7, token::PR7, token::PO7},
+  {token::NA8, token::LT8, token::RT8, token::PR8, token::PO8},
+  {token::NA9, token::LT9, token::RT9, token::PR9, token::PO9},
 };
 
 struct argl {
@@ -119,11 +131,11 @@ float [0-9]+{exp}|[0-9]+\.{exp}|[0-9]*\.[0-9]+{exp}?
 str   ([^\"\\\n]|\\(.|\n))*
 blank [ \t]
 
-inttag  ::{blank}*int/[^a-zA-Z_0-9]
-binttag ::{blank}*bigint/[^a-zA-Z_0-9]
-dbltag  ::{blank}*double/[^a-zA-Z_0-9]
-strtag  ::{blank}*string/[^a-zA-Z_0-9]
-ptrtag  ::{blank}*pointer/[^a-zA-Z_0-9]
+inttag  ::{blank}*int
+binttag ::{blank}*bigint
+dbltag  ::{blank}*double
+strtag  ::{blank}*string
+ptrtag  ::{blank}*pointer
 
 %x comment xdecl xdecl_comment
 
@@ -149,17 +161,17 @@ ptrtag  ::{blank}*pointer/[^a-zA-Z_0-9]
 <comment>[\n]+          yylloc->lines(yyleng); yylloc->step();
 <comment>"*"+"/"        yylloc->step(); BEGIN(INITIAL);
 
-<xdecl>{id}	yylval->sval = new string(yytext); return ID;
-<xdecl>[()*,=]	return yytext[0];
+<xdecl>{id}	yylval->sval = new string(yytext); return token::ID;
+<xdecl>[()*,=]	return yy::parser::token_type(yytext[0]);
 <xdecl>"//".*	yylloc->step();
 <xdecl>"/*"	BEGIN(xdecl_comment);
-<xdecl>;	BEGIN(INITIAL); return yytext[0];
+<xdecl>;	BEGIN(INITIAL); return yy::parser::token_type(yytext[0]);
 <xdecl>{blank}+	yylloc->step();
 <xdecl>[\n]+	yylloc->lines(yyleng); yylloc->step();
 <xdecl>.	{
   string msg = "invalid character '"+string(yytext)+"'";
   interp.error(*yylloc, msg);
-  BEGIN(INITIAL); return ERRTOK;
+  BEGIN(INITIAL); return token::ERRTOK;
 }
 
      
@@ -586,54 +598,54 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
     long n = mpz_get_si(*z);
     free(z);
     yylval->ival = n;
-    return INT;
+    return token::INT;
   } else {
     yylval->zval = z;
-    return BIGINT;
+    return token::BIGINT;
   }
 }
-{float}    yylval->dval = my_strtod(yytext, NULL); return(DBL);
+{float}    yylval->dval = my_strtod(yytext, NULL); return(token::DBL);
 \"{str}\"   {
   char *msg;
   yytext[yyleng-1] = 0;
   yylval->csval = parsestr(yytext+1, msg);
   yytext[yyleng-1] = '"';
   if (msg) interp.error(*yylloc, msg);
-  return STR;
+  return token::STR;
 }
 \"{str}      {
   char *msg;
   interp.error(*yylloc, "unterminated string constant");
   yylval->csval = parsestr(yytext+1, msg);
-  return STR;
+  return token::STR;
 }
-{inttag}   yylval->ival = EXPR::INT; return TAG;
-{binttag}  yylval->ival = EXPR::BIGINT; return TAG;
-{dbltag}   yylval->ival = EXPR::DBL; return TAG;
-{strtag}   yylval->ival = EXPR::STR; return TAG;
-{ptrtag}   yylval->ival = EXPR::PTR; return TAG;
-extern     BEGIN(xdecl); return EXTERN;
-infix      yylval->fix = infix; return FIX;
-infixl     yylval->fix = infixl; return FIX;
-infixr     yylval->fix = infixr; return FIX;
-prefix     yylval->fix = prefix; return FIX;
-postfix    yylval->fix = postfix; return FIX;
-nullary    return NULLARY;
-let        return LET;
-case	   return CASE;
-of	   return OF;
-end	   return END;
-if	   return IF;
-then	   return THEN;
-else	   return ELSE;
-otherwise  return OTHERWISE;
-when	   return WHEN;
-with	   return WITH;
-using	   return USING;
+{inttag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::INT; return token::TAG;
+{binttag}/[^a-zA-Z_0-9]  yylval->ival = EXPR::BIGINT; return token::TAG;
+{dbltag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::DBL; return token::TAG;
+{strtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::STR; return token::TAG;
+{ptrtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::PTR; return token::TAG;
+extern     BEGIN(xdecl); return token::EXTERN;
+infix      yylval->fix = infix; return token::FIX;
+infixl     yylval->fix = infixl; return token::FIX;
+infixr     yylval->fix = infixr; return token::FIX;
+prefix     yylval->fix = prefix; return token::FIX;
+postfix    yylval->fix = postfix; return token::FIX;
+nullary    return token::NULLARY;
+let        return token::LET;
+case	   return token::CASE;
+of	   return token::OF;
+end	   return token::END;
+if	   return token::IF;
+then	   return token::THEN;
+else	   return token::ELSE;
+otherwise  return token::OTHERWISE;
+when	   return token::WHEN;
+with	   return token::WITH;
+using	   return token::USING;
 {id}       {
   if (interp.declare_op) {
     yylval->sval = new string(yytext);
-    return ID;
+    return token::ID;
   }
   symbol* sym = interp.symtab.lookup(yytext);
   if (sym && sym->prec >= 0 && sym->prec < 10) {
@@ -641,22 +653,22 @@ using	   return USING;
     return optoken[sym->prec][sym->fix];
   } else {
     yylval->sval = new string(yytext);
-    return ID;
+    return token::ID;
   }
 }
-[=;()\[\]\\] return yytext[0];
-"->"       return MAPSTO;
+[=;()\[\]\\] return yy::parser::token_type(yytext[0]);
+"->"       return token::MAPSTO;
 [[:punct:]]+  {
   if (yytext[0] == '/' && yytext[1] == '*') REJECT; // comment starter
   while (yyleng > 1 && yytext[yyleng-1] == ';') yyless(yyleng-1);
   if (interp.declare_op) {
     yylval->sval = new string(yytext);
-    return ID;
+    return token::ID;
   }
   symbol* sym = interp.symtab.lookup(yytext);
   while (!sym && yyleng > 1) {
     if (yyleng == 2 && yytext[0] == '-' && yytext[1] == '>')
-      return MAPSTO;
+      return token::MAPSTO;
     yyless(yyleng-1);
     sym = interp.symtab.lookup(yytext);
   }
@@ -666,7 +678,7 @@ using	   return USING;
       return optoken[sym->prec][sym->fix];
     } else {
       yylval->sval = new string(yytext);
-      return ID;
+      return token::ID;
     }
   } else
     REJECT;
@@ -674,7 +686,7 @@ using	   return USING;
 .          {
   string msg = "invalid character '"+string(yytext)+"'";
   interp.error(*yylloc, msg);
-  return ERRTOK;
+  return token::ERRTOK;
 }
 
 %%

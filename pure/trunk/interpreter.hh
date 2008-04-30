@@ -35,17 +35,13 @@ using namespace std;
 
 class interpreter;
 
-// Forward declarations.
-union YYSTYPE;
-namespace yy
-{
-  class location;
-  class parser;
-}
+#include "parser.hh"
 
 // Announce to Flex the prototype we want for lexing function, ...
 #define YY_DECL \
-  int yylex (YYSTYPE* yylval, yy::location* yylloc, interpreter& interp)
+  yy::parser::token_type						\
+  yylex (yy::parser::semantic_type* yylval,				\
+	 yy::parser::location_type* yylloc, interpreter& interp)
 // ... and declare it for the parser's sake.
 YY_DECL;
 
