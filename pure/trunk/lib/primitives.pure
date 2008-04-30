@@ -282,9 +282,9 @@ extern void pointer_put_double(void *ptr, double x); // IMPURE!
 extern void pointer_put_string(void *ptr, char *x); // IMPURE!
 extern void pointer_put_pointer(void *ptr, void *x); // IMPURE!
 
-put_byte x::pointer y::int = pointer_put_byte x;
-put_int x::pointer y::int = pointer_put_int x;
-put_double x::pointer y::double = pointer_put_double x;
-put_string x::pointer y::string = pointer_put_string x;
-put_pointer x::pointer y::string = pointer_put_pointer x;
-put_pointer x::pointer y::pointer = pointer_put_pointer x;
+put_byte x::pointer y::int = pointer_put_byte x y;
+put_int x::pointer y::int = pointer_put_int x y;
+put_double x::pointer y::double = pointer_put_double x y;
+put_string x::pointer y::string = pointer_put_string x y;
+put_pointer x::pointer y::string = pointer_put_pointer x y;
+put_pointer x::pointer y::pointer = pointer_put_pointer x y;
