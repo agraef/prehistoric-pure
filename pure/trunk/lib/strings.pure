@@ -26,7 +26,7 @@
    case you will not always get a result expression.) */
 
 extern expr* str(expr*);
-extern expr* eval(char*);
+extern expr* eval(char*); // IMPURE!
 
 /* Convert between Unicode character codes and single character strings. */
 
