@@ -1,3 +1,15 @@
+2008-04-30  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc: Fix a compilation error (STL bug:
+	http://gcc.gnu.org/bugzilla/show_bug.cgi?id=11729) as well as some
+	bogus warnings with Apple gcc 4.0.1. Reported by Ryan Schmidt.
+
+	* Makefile (make depend): Get rid of bogus LLVM dependencies.
+	Reported by Ryan Schmidt.
+
+	* lexer.ll, parser.yy: Fixes for compatibility with newer flex and
+	bison versions. Reported by Eddie Rucker.
+
 2008-04-28  Albert Graef  <Dr.Graef@t-online.de>
 
 	* examples/symbolic.pure: Add symbolic evaluation example. This is
