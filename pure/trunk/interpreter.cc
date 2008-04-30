@@ -1321,7 +1321,7 @@ expr *interpreter::mkwhen_expr(expr *x, rulel *r)
   if (r->size() > 0x100)
     throw err("error in expression (too many nested closures)");
   uint8_t idx = 0;
-  for (rulel::const_reverse_iterator it = r->rbegin();
+  for (rulel::reverse_iterator it = r->rbegin();
        it != r->rend(); ++it, ++idx) {
     env vars;
     expr v = bind(vars, it->lhs), w = it->rhs;
@@ -1402,9 +1402,9 @@ expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
 #define Dbl(d)		ConstantFP::get(Type::DoubleTy, APFloat(d))
 #define Bool(i)		ConstantInt::get(Type::Int1Ty, i)
 #define UInt(i)		ConstantInt::get(Type::Int32Ty, i)
-#define SInt(i)		ConstantInt::get(Type::Int32Ty, i, true)
+#define SInt(i)		ConstantInt::get(Type::Int32Ty, (uint64_t)i, true)
 #define UInt64(i)	ConstantInt::get(Type::Int64Ty, i)
-#define SInt64(i)	ConstantInt::get(Type::Int64Ty, i, true)
+#define SInt64(i)	ConstantInt::get(Type::Int64Ty, (uint64_t)i, true)
 #define False		Bool(0)
 #define True		Bool(1)
 #define Zero		UInt(0)
