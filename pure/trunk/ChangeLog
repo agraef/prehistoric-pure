@@ -1,3 +1,11 @@
+2008-05-01  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Makefile: g++ shouldn't be hardcoded, use $(CXX) instead.
+	Reported by Ryan Schmidt.
+
+	* runtime.cc (pure_sys_vars): More OSX compatibility fixes.
+	Reported by Ryan Schmidt.
+
 2008-04-30  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc: Fix a compilation error (STL bug:
