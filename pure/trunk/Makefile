@@ -92,10 +92,10 @@ logs check
 all: pure
 
 pure: $(OBJECT)
-	g++ -o $@ -rdynamic $(OBJECT) $(LIBS)
+	$(CXX) -o $@ -rdynamic $(OBJECT) $(LIBS)
 
 pure.o: pure.cc
-	g++ $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
 
 lexer.cc: lexer.ll
 	flex -o lexer.cc $<
