@@ -755,6 +755,7 @@ void my_readline(const char *prompt, char *buf, int &result, int max_size)
 
 void interpreter::print_defs(ostream& os, const Env& e)
 {
+  if (e.h && e.h != e.f) e.h->print(os);
   e.f->print(os);
   map<int32_t,Env>::const_iterator f;
   for (f = e.fmap.begin(); f != e.fmap.end(); f++)
