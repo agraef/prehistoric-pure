@@ -1398,11 +1398,13 @@ void pure_sys_vars(void)
   interp.defn("GLOB_NOSORT",	pure_int(GLOB_NOSORT));
   interp.defn("GLOB_NOCHECK",	pure_int(GLOB_NOCHECK));
   interp.defn("GLOB_NOESCAPE",	pure_int(GLOB_NOESCAPE));
+#ifndef __APPLE__
   interp.defn("GLOB_PERIOD",	pure_int(GLOB_PERIOD));
+  interp.defn("GLOB_ONLYDIR",	pure_int(GLOB_ONLYDIR));
+#endif
   interp.defn("GLOB_BRACE",	pure_int(GLOB_BRACE));
   interp.defn("GLOB_NOMAGIC",	pure_int(GLOB_NOMAGIC));
   interp.defn("GLOB_TILDE",	pure_int(GLOB_TILDE));
-  interp.defn("GLOB_ONLYDIR",	pure_int(GLOB_ONLYDIR));
   // regex stuff
   interp.defn("REG_SIZE",	pure_int(sizeof(regex_t))); // not in POSIX
   interp.defn("REG_EXTENDED",	pure_int(REG_EXTENDED));
