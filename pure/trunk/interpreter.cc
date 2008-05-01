@@ -134,10 +134,12 @@ interpreter::interpreter()
     ExprTy = cast<StructType>(StructTy.get());
     module->addTypeName("struct.expr", ExprTy);
   }
-  // other variants
+  // Other variants. Note that on 64 bit systems we have to add a dummy field
+  // so that the following value field is aligned properly.
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
+    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
     elts.push_back(Type::Int32Ty);
     IntExprTy = StructType::get(elts);
     module->addTypeName("struct.intexpr", IntExprTy);
@@ -145,6 +147,7 @@ interpreter::interpreter()
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
+    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
     elts.push_back(Type::DoubleTy);
     DblExprTy = StructType::get(elts);
     module->addTypeName("struct.dblexpr", DblExprTy);
@@ -152,6 +155,7 @@ interpreter::interpreter()
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
+    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
     elts.push_back(PointerType::get(Type::Int8Ty, 0));
     StrExprTy = StructType::get(elts);
     module->addTypeName("struct.strexpr", StrExprTy);
@@ -159,6 +163,7 @@ interpreter::interpreter()
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
+    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
     elts.push_back(VoidPtrTy);
     PtrExprTy = StructType::get(elts);
     module->addTypeName("struct.ptrexpr", PtrExprTy);
@@ -1410,6 +1415,7 @@ expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
 #define Zero		UInt(0)
 #define One		UInt(1)
 #define Two		UInt(2)
+#define ValFldIndex	(sizeof(void*)==8?Two:One)
 #define NullExprPtr	ConstantPointerNull::get(ExprPtrTy)
 #define NullExprPtrPtr	ConstantPointerNull::get(ExprPtrPtrTy)
 
@@ -2244,7 +2250,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateICmpNE(iv, Zero);
     } else if (argt[i] == Type::Int8Ty) {
@@ -2256,7 +2262,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateTrunc(iv, Type::Int8Ty);
     } else if (argt[i] == Type::Int32Ty) {
@@ -2268,7 +2274,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = iv;
     } else if (argt[i] == Type::Int64Ty) {
@@ -2280,7 +2286,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateSExt(iv, Type::Int64Ty);
     } else if (argt[i] == Type::DoubleTy) {
@@ -2292,7 +2298,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, DblExprPtrTy, "dblexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
       unboxed[i] = dv;
     } else if (argt[i] == PointerType::get(Type::Int8Ty, 0)) {
@@ -2314,7 +2320,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
       unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
     } else if (argt[i] == PointerType::get(Type::DoubleTy, 0)) {
@@ -2326,7 +2332,7 @@ Function *interpreter::declare_extern(string name, string restype,
       f->getBasicBlockList().push_back(okbb);
       b.SetInsertPoint(okbb);
       Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
       unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
     } else if (argt[i] == ExprPtrTy) {
@@ -2353,7 +2359,7 @@ Function *interpreter::declare_extern(string name, string restype,
       b.SetInsertPoint(ptrbb);
       // The following will work with both pointer and string expressions.
       Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
-      idx[1] = One;
+      idx[1] = ValFldIndex;
       Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
       b.CreateBr(okbb);
       f->getBasicBlockList().push_back(mpzbb);
@@ -2670,7 +2676,7 @@ Value *interpreter::get_int(expr x)
       assert(x.tag() == EXPR::VAR);
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
-      Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+      Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "intval");
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
       return v;
@@ -2679,7 +2685,7 @@ Value *interpreter::get_int(expr x)
       assert(x.tag() == EXPR::VAR && x.ttag() == EXPR::DBL);
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
-      Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+      Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "dblval");
       v = e.builder.CreateFPToSI(v, Type::Int32Ty);
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
@@ -2693,7 +2699,7 @@ Value *interpreter::get_int(expr x)
     verify_tag(u, EXPR::INT);
     // get the value
     Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
-    Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+    Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "intval");
     // collect the temporary, it's not needed any more
     call("pure_freenew", u);
     return v;
@@ -2722,7 +2728,7 @@ Value *interpreter::get_double(expr x)
       assert(x.tag() == EXPR::VAR);
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
-      Value *v = e.CreateLoadGEP(p, Zero, One, "intval");
+      Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "intval");
       v = e.builder.CreateSIToFP(v, Type::DoubleTy);
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
@@ -2732,7 +2738,7 @@ Value *interpreter::get_double(expr x)
       assert(x.tag() == EXPR::VAR && x.ttag() == EXPR::DBL);
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
-      Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+      Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "dblval");
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
       return v;
@@ -2745,7 +2751,7 @@ Value *interpreter::get_double(expr x)
     verify_tag(u, EXPR::DBL);
     // get the value
     Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
-    Value *v = e.CreateLoadGEP(p, Zero, One, "dblval");
+    Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "dblval");
     // collect the temporary, it's not needed any more
     call("pure_freenew", u);
     return v;
@@ -4067,11 +4073,11 @@ void interpreter::simple_match(Value *x, state*& s,
     Value *cmpv;
     if (t.tag == EXPR::INT) {
       Value *pv = f.builder.CreateBitCast(x, IntExprPtrTy, "intexpr");
-      Value *iv = f.CreateLoadGEP(pv, Zero, One, "intval");
+      Value *iv = f.CreateLoadGEP(pv, Zero, ValFldIndex, "intval");
       cmpv = f.builder.CreateICmpEQ(iv, SInt(t.i), "cmp");
     } else {
       Value *pv = f.builder.CreateBitCast(x, DblExprPtrTy, "dblexpr");
-      Value *dv = f.CreateLoadGEP(pv, Zero, One, "dblval");
+      Value *dv = f.CreateLoadGEP(pv, Zero, ValFldIndex, "dblval");
       cmpv = f.builder.CreateFCmpOEQ(dv, Dbl(t.d), "cmp");
     }
     f.builder.CreateCondBr(cmpv, matchedbb, failedbb);
@@ -4331,11 +4337,11 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	    Value *cmpv;
 	    if (tag == EXPR::INT) {
 	      Value *pv = f.builder.CreateBitCast(x, IntExprPtrTy, "intexpr");
-	      Value *iv = f.CreateLoadGEP(pv, Zero, One, "intval");
+	      Value *iv = f.CreateLoadGEP(pv, Zero, ValFldIndex, "intval");
 	      cmpv = f.builder.CreateICmpEQ(iv, SInt(l->t->i), "cmp");
 	    } else {
 	      Value *pv = f.builder.CreateBitCast(x, DblExprPtrTy, "dblexpr");
-	      Value *dv = f.CreateLoadGEP(pv, Zero, One, "dblval");
+	      Value *dv = f.CreateLoadGEP(pv, Zero, ValFldIndex, "dblval");
 	      cmpv = f.builder.CreateFCmpOEQ(dv, Dbl(l->t->d), "cmp");
 	    }
 	    f.builder.CreateCondBr(cmpv, okbb, trynextbb);
