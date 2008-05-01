@@ -708,7 +708,7 @@ void interpreter::define(rule *r)
     throw err(msg.str());
   }
   if ((verbose&verbosity::defs) != 0)
-    cout << "let " << r->lhs << " = " << res << ";\n";
+    cout << "let " << r->lhs << " = " << r->rhs << ";\n";
   delete r;
   pure_freenew(res);
   if (interactive && stats)
