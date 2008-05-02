@@ -1059,6 +1059,42 @@ pure_expr *eval(const char *s)
 }
 
 extern "C"
+bool same(const pure_expr *x, const pure_expr *y)
+{
+  char test;
+  if (x == y)
+    return 1;
+  else if (x->tag >= 0 && y->tag >= 0)
+    if (x->data.clos && y->data.clos)
+      return x->tag == y->tag && x->data.clos->fp == y->data.clos->fp;
+    else
+      return x->tag == y->tag && x->data.clos == y->data.clos;
+  else if (x->tag != y->tag)
+    return 0;
+  else {
+    switch (x->tag) {
+    case EXPR::APP: {
+      checkstk(test);
+      return same(x->data.x[0], y->data.x[0]) &&
+	same(x->data.x[1], y->data.x[1]);
+    }
+    case EXPR::INT:
+      return x->data.i == y->data.i;
+    case EXPR::BIGINT:
+      return mpz_cmp(x->data.z, y->data.z) == 0;
+    case EXPR::DBL:
+      return x->data.d == y->data.d;
+    case EXPR::STR:
+      return strcmp(x->data.s, y->data.s) == 0;
+    case EXPR::PTR:
+      return x->data.p == y->data.p;
+    default:
+      return 1;
+    }
+  }
+}
+
+extern "C"
 int32_t pointer_get_byte(void *ptr)
 {
   uint8_t *p = (uint8_t*)ptr;

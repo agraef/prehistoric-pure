@@ -24,6 +24,12 @@
 extern void pure_throw(expr*); // IMPURE!
 throw x		= pure_throw x;
 
+/* Syntactic equality. */
+
+extern bool same(expr* x, expr* y);
+x === y		= same x y;
+x !== y		= not same x y;
+
 /* Predicates to check for the built-in types. */
 
 intp x		= case x of _::int     = 1; _ = 0 end;
