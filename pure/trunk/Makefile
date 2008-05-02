@@ -168,16 +168,16 @@ level=7
 
 logs: $(logs)
 
-check: pure $(logs)
+check: pure
 	@ echo Running tests.
 	@ (export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
-	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) $$f | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
+	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
 
 test/prelude.log: lib/prelude.pure
 	PURELIB=./lib ./pure -n -v$(level) $< > $@
 
 %.log: %.pure
-	PURELIB=./lib ./pure -v$(level) $< > $@
+	PURELIB=./lib ./pure -v$(level) < $< > $@
 
 # DO NOT DELETE
 

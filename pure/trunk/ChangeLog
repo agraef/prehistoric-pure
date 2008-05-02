@@ -1,5 +1,11 @@
 2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
 
+	* Makefile: Overhaul of regression tests so that results of
+	expressions are recorded. Also, 'make check' doesn't depend on the
+	log files any more, so that the logs can be stored in svn. You can
+	now use the explicit goal 'make logs' to regenerate the logs for
+	changed test files.
+
 	* runtime.cc (same): Added a syntactic equality test. Requested by
 	Eddie Rucker.
 
