@@ -63,14 +63,16 @@ private:
 
 /* Data structures used in code generation. */
 
+struct Env;
+
 struct GlobalVar {
   // global variable
   llvm::GlobalVariable* v;
   pure_expr *x;
-  GlobalVar() { v = 0; x = 0; }
+  Env *e;
+  GlobalVar() { v = 0; x = 0; e = 0; }
+  void clear();
 };
-
-struct Env;
 
 struct VarInfo {
   // info about captured variable
@@ -85,7 +87,6 @@ struct VarInfo {
 //#define Builder llvm::LLVMBuilder
 #define Builder llvm::LLVMFoldingBuilder
 
-struct Env;
 typedef list<Env*> EnvStack;
 typedef pair<int32_t,uint8_t> xmap_key;
 
@@ -126,6 +127,8 @@ struct Env {
   Builder builder;
   // parent environment (if any)
   Env *parent;
+  // reference counter (for dodefn)
+  uint32_t refc;
   // convenience functions for invoking CreateGEP() and CreateLoad()
   llvm::Value *CreateGEP
   (llvm::Value *x, llvm::Value *i, const char* name = "")
@@ -158,11 +161,11 @@ struct Env {
   // default constructor
   Env()
     : tag(0), n(0), m(0), l(0), f(0), h(0), fp(0), args(0), envs(0), argv(0),
-      b(false), local(false), parent(0) {}
+      b(false), local(false), parent(0), refc(0) {}
   // environment for an anonymous closure with given body x
   Env(int32_t _tag, uint32_t _n, expr x, bool _b, bool _local = false)
     : tag(_tag), n(_n), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), b(_b), local(_local), parent(0)
+      argv(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
@@ -176,7 +179,7 @@ struct Env {
   // environment for a named closure with given definition info
   Env(int32_t _tag, const env_info& info, bool _b, bool _local = false)
     : tag(_tag), n(info.argc), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), b(_b), local(_local), parent(0)
+      argv(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
