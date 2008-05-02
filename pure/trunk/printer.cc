@@ -606,6 +606,11 @@ ostream& operator << (ostream& os, const pure_paren& p)
 
 ostream& operator << (ostream& os, const pure_expr *x)
 {
+  char test;
+  if (interpreter::stackmax > 0 &&
+      interpreter::stackdir*(&test - interpreter::baseptr) >=
+      interpreter::stackmax)
+    throw err("stack overflow in printer");
   char buf[64];
   assert(x);
   //os << "{" << x->refc << "}";

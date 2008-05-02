@@ -1040,8 +1040,12 @@ pure_expr *str(const pure_expr *x)
 {
   assert(x);
   ostringstream os;
-  os << x;
-  return pure_string_dup(os.str().c_str());
+  try {
+    os << x;
+    return pure_string_dup(os.str().c_str());
+  } catch (err &e) {
+    return 0;
+  }
 }
 
 extern "C"
