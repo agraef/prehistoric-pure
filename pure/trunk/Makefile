@@ -72,7 +72,7 @@ matcher.cc matcher.hh parser.yy printer.cc printer.hh pure.cc \
 runtime.cc runtime.h symtable.cc symtable.hh util.cc util.hh
 EXTRA_SOURCE = lexer.cc parser.cc parser.hh location.hh position.hh stack.hh
 OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
-LIBS = $(LLVM_LIBS) -lreadline -lgmp
+ALL_LIBS = $(LLVM_LIBS) -lreadline -lgmp $(LIBS)
 
 examples = $(wildcard examples/*.pure)
 lib = $(wildcard lib/*.pure)
@@ -92,7 +92,7 @@ logs check
 all: pure
 
 pure: $(OBJECT)
-	$(CXX) -o $@ -rdynamic $(OBJECT) $(LIBS)
+	$(CXX) -o $@ $(LDFLAGS) -rdynamic $(OBJECT) $(ALL_LIBS)
 
 pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
