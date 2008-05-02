@@ -44,13 +44,17 @@ time since certain default paths are hardcoded into the interpreter (but can
 be changed at runtime by setting corresponding environment variables, see the
 manpage for details).
 
-You can (and should) also run 'make check' to verify that your Pure
-interpreter works correctly. This can be done without installing the software.
-In fact, there's no need to install the interpreter if you just want to take
-it for a test drive, you can simply run it from the source directory. Just
-make sure that you set the PURELIB environment variable to the lib directory
-in the sources which holds the prelude and the other library scripts. The
-following command,
+There are a number of other variables you can set on the 'make' command line
+if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
+have to add special libraries (LIBS) like libiconv on OSX.
+
+After your build is done, you can (and should) also run 'make check' to verify
+that your Pure interpreter works correctly. This can be done without
+installing the software. In fact, there's no need to install the interpreter
+if you just want to take it for a test drive, you can simply run it from the
+source directory. Just make sure that you set the PURELIB environment variable
+to the lib directory in the sources which holds the prelude and the other
+library scripts. The following command,
 
 	PURELIB=./lib ./pure
 
