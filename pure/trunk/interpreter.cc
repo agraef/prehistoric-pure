@@ -721,6 +721,7 @@ void interpreter::clearsym(int32_t f)
   // patch up the global variable table to replace it with a cbox.
   map<int32_t,GlobalVar>::iterator v = globalvars.find(f);
   if (v != globalvars.end()) {
+    v->second.clear();
     pure_expr *cv = pure_const(f);
     if (v->second.x) pure_free(v->second.x);
     v->second.x = pure_new(cv);
@@ -1480,7 +1481,8 @@ void interpreter::defn(int32_t tag, pure_expr *x)
     v.v = new GlobalVariable
       (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
     JIT->addGlobalMapping(v.v, &v.x);
-  }
+  } else
+    v.clear();
   if (v.x) pure_free(v.x); v.x = pure_new(x);
   environ[tag] = env_info(&v.x, temp);
   restore_globals(g);
@@ -1498,6 +1500,15 @@ ostream &operator<< (ostream& os, const ExternInfo& info)
     os << interp.type_name(info.argtypes[i]);
   }
   return os << ")";
+}
+
+void GlobalVar::clear()
+{
+  if (e) {
+    assert(e->refc > 0);
+    if (--e->refc == 0) delete e;
+    e = 0;
+  }
 }
 
 Env& Env::operator= (const Env& e)
@@ -1524,17 +1535,28 @@ void Env::clear()
   interpreter& interp = *interpreter::g_interp;
   if (local) {
     // purge local functions
-    f->dropAllReferences(); if (h != f) h->dropAllReferences();
-    fmap.clear();
-    interp.JIT->freeMachineCodeForFunction(f);
+#if DEBUG>2
+    llvm::cerr << "clearing local '" << name << "'\n";
+#endif
     if (h != f) interp.JIT->freeMachineCodeForFunction(h);
+    interp.JIT->freeMachineCodeForFunction(f);
+    f->dropAllReferences(); if (h != f) h->dropAllReferences();
     fp = 0;
+    fmap.clear();
     to_be_deleted.push_back(f); if (h != f) to_be_deleted.push_back(h);
   } else {
-    // only delete the body, this keeps existing references intact
-    f->deleteBody();
-    interp.JIT->freeMachineCodeForFunction(f);
-    if (h != f) interp.JIT->freeMachineCodeForFunction(h);
+#if DEBUG>2
+    llvm::cerr << "clearing global '" << name << "'\n";
+#endif
+    // The code of anonymous globals (doeval, dodefn) is taken care of
+    // elsewhere, we must not collect that here.
+    if (!name.empty()) {
+      // named global, get rid of the machine code
+      if (h != f) interp.JIT->freeMachineCodeForFunction(h);
+      interp.JIT->freeMachineCodeForFunction(f);
+      // only delete the body, this keeps existing references intact
+      f->deleteBody();
+    }
     fp = 0;
     // delete all nested environments and reinitialize other body-related data
     fmap.clear(); xmap.clear(); xtab.clear(); prop.clear(); m = 0; argv = 0;
@@ -2454,7 +2476,8 @@ Function *interpreter::declare_extern(string name, string restype,
       (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
        mkvarlabel(sym.f), module);
     JIT->addGlobalMapping(v.v, &v.x);
-  }
+  } else
+    v.clear();
   if (v.x) pure_free(v.x); v.x = pure_new(cv);
   Value *defaultv = b.CreateLoad(v.v);
   vector<Value*> myargs(2);
@@ -2522,6 +2545,7 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   pure_expr *res = pure_invoke(f.fp, e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
+  JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
   // NOTE: Result (if any) is to be freed by the caller.
   return res;
@@ -2536,7 +2560,12 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   }
   // Create an anonymous function to call in order to evaluate the rhs
   // expression, match against the lhs and bind variables in lhs accordingly.
-  Env f(0, 0, rhs, false);
+  /* NOTE: Unlike doeval(), we must create a semi-permanent environment here
+     whose child environments persist for the entire lifetime of the variables
+     bound in this definition, since some of those bindings may refer to
+     closures (executable code) that might still be called some time. */
+  Env *fptr = new Env(0, 0, rhs, false);
+  Env &f = *fptr;
   push("dodefn", &f);
   fun_prolog("");
 #if DEBUG>1
@@ -2573,9 +2602,16 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
       v.v = new GlobalVariable
 	(ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
       JIT->addGlobalMapping(v.v, &v.x);
-    }
+    } else
+      v.clear();
+    v.e = fptr; f.refc++;
     if (v.x) call("pure_free", f.builder.CreateLoad(v.v));
     call("pure_new", x);
+#if DEBUG>2
+    ostringstream msg;
+    msg << "dodef: " << sym.s << " := %p";
+    debug(msg.str().c_str(), x);
+#endif
     f.builder.CreateStore(x, v.v);
   }
   // return the matchee to indicate success
@@ -2594,6 +2630,7 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   pure_expr *res = pure_invoke(f.fp, e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
+  JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
   if (!res) {
     // We caught an exception, clean up the mess.
@@ -2601,6 +2638,7 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
       int32_t tag = it->first;
       GlobalVar& v = globalvars[tag];
       if (!v.x) {
+	v.clear();
 	JIT->updateGlobalMapping(v.v, 0);
 	v.v->eraseFromParent();
 	globalvars.erase(tag);
@@ -3288,7 +3326,8 @@ Value *interpreter::cbox(int32_t tag)
       (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
        mkvarlabel(tag), module);
     JIT->addGlobalMapping(v.v, &v.x);
-  }
+  } else
+    v.clear();
   if (v.x) pure_free(v.x); v.x = pure_new(cv);
   return act_builder().CreateLoad(v.v);
 }
