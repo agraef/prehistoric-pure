@@ -1,5 +1,9 @@
 2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
 
+	* Makefile: Add $(LDFLAGS) and $(LIBS) to the link line, so that
+	the user can easily add his own linker options and local
+	libraries.
+
 	* lib/strings.pure: Add missing range check in string indexing
 	operation. Reported by Eddie Rucker.
 
