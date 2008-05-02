@@ -1,5 +1,11 @@
 2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/strings.pure: Add missing range check in string indexing
+	operation. Reported by Eddie Rucker.
+
+	* printer.cc (operator <<): Handle stack overflow while printing
+	an expression.
+
 	* interpreter.cc (dodefn): Fix a tricky bug causing the executable
 	code of closures bound to variables to be freed when it was still
 	needed. Reported by Chris Double.
