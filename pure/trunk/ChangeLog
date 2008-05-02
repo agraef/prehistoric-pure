@@ -1,5 +1,8 @@
 2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (same): Added a syntactic equality test. Requested by
+	Eddie Rucker.
+
 	* Makefile: Add $(LDFLAGS) and $(LIBS) to the link line, so that
 	the user can easily add his own linker options and local
 	libraries.

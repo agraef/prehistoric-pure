@@ -252,6 +252,10 @@ pure_expr *string_ord(const char *c);
 pure_expr *str(const pure_expr *x);
 pure_expr *eval(const char *s);
 
+/* Check whether two objects are the "same" (syntactically). */
+
+bool same(const pure_expr *x, const pure_expr *y);
+
 /* Direct memory accesses. */
 
 int32_t pointer_get_byte(void *ptr);
