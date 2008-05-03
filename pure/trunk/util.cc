@@ -433,6 +433,14 @@ char *default_encoding()
 #endif /* HAVE_LANGINFO_CODESET */
 }
 
+#ifdef __APPLE__
+#define myiconv(ic, inbuf, inbytes, outbuf, outbytes) \
+  iconv(ic, (const char**)inbuf, inbytes, outbuf, outbytes)
+#else
+#define myiconv(ic, inbuf, inbytes, outbuf, outbytes) \
+  iconv(ic, inbuf, inbytes, outbuf, outbytes)
+#endif
+
 #define CHUNKSZ 128
 
 char *
@@ -455,7 +463,7 @@ toutf8(const char *s, const char *codeset)
     char *inbuf = (char*)s, *outbuf = t; // const char* -> char*. Ugh.
     size_t inbytes = l, outbytes = l;
 
-    while (iconv(ic, &inbuf, &inbytes, &outbuf, &outbytes) ==
+    while (myiconv(ic, &inbuf, &inbytes, &outbuf, &outbytes) ==
 	   (size_t)-1)
       if (errno == E2BIG) {
 	/* try to enlarge the output buffer */
@@ -508,7 +516,7 @@ fromutf8(const char *s, char *codeset)
     char *inbuf = (char*)s, *outbuf = t; // const char* -> char*. Ugh.
     size_t inbytes = l, outbytes = l;
 
-    while (iconv(ic, &inbuf, &inbytes, &outbuf, &outbytes) ==
+    while (myiconv(ic, &inbuf, &inbytes, &outbuf, &outbytes) ==
 	   (size_t)-1)
       if (errno == E2BIG) {
 	/* try to enlarge the output buffer */
@@ -532,7 +540,7 @@ fromutf8(const char *s, char *codeset)
     /* here we might have to deal with a stateful encoding, so make sure that
        we emit the closing shift sequence */
 
-    while (iconv(ic, NULL, NULL, &outbuf, &outbytes) ==
+    while (myiconv(ic, NULL, NULL, &outbuf, &outbytes) ==
 	   (size_t)-1)
       if (errno == E2BIG) {
 	/* try to enlarge the output buffer */
@@ -580,7 +588,7 @@ ictowcs(wchar_t *t, char *s)
     char *inbuf = s; wchar_t *outbuf = t;
     size_t inbytes = l, outbytes = l*sizeof(wchar_t);
 
-    if (iconv(myic[1], &inbuf, &inbytes, (char**)&outbuf, &outbytes) ==
+    if (myiconv(myic[1], &inbuf, &inbytes, (char**)&outbuf, &outbytes) ==
 	(size_t)-1)
       return NULL;
     /* terminate the output string */
