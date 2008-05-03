@@ -1,3 +1,12 @@
+2008-05-04  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/primitives.pure: Added operations to recognize function
+	applications and extract the function and argument parts,
+	implemented in runtime.cc. Note that these operations can't be
+	defined in Pure because of the "head is function" rule which means
+	that in a pattern of the form f x, f is always a literal function
+	symbol and not a variable.
+
 2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
 
 	* README: Moved installation instructions to a separate INSTALL
