@@ -989,6 +989,33 @@ There's no symbolic debugger yet. So
 .B system
 standard library module) should be your friend. ;-)
 .PP
+Please note that parentheses are really only used to group expressions and are
+\fInot\fP part of the tuple syntax; tuples are in fact not really part of the
+Pure language at all, but are implemented in the prelude. As you can see
+there, the pairing operator `,' used to construct tuples is
+(right-)associative. We call these the ``poor man's tuples'' since they are
+always flat and thus there are no nested tuples (if you need this then you
+should use lists instead). This also implies than an expression like
+[(1,2),(3,4)] is in fact exactly the same as [1,2,3,4]. If you want to denote
+a list of tuples, you must use the syntax (1,2):(3,4):[] instead; this is also
+the notation used when the interpreter prints such objects.
+.PP
+The ``head = function'' rule means that the head symbol f of an application f
+x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
+binding, or pattern-matching lambda expression, is always interpreted as a
+literal function symbol (not a variable). This implies that you cannot bind
+the ``function'' component of a function application to a variable, and thus
+you cannot directly define a generic function which operates on arbitrary
+function applications. As a remedy, the prelude provides three operations to
+handle such objects:
+.BR applp ,
+a predicate which checks whether a given expression is a function application,
+and
+.B fun
+and
+.BR arg ,
+which determine the function and argument parts of such an expression.
+.PP
 If possible, you should always decorate numeric variables on the left-hand
 sides of function definitions with the appropriate type tags, like
 .B ::int
@@ -997,6 +1024,20 @@ or
 This often helps the compiler to generate better code and makes your programs
 run faster.
 .PP
+Talking about the built-in integer types, please note that
+.B int
+(the machine integers) and
+.B bigint
+(the GMP ``big'' integers) are really different kinds of objects, and thus if
+you want to define a function operating on both kinds of integers, you'll also
+have to provide equations for both. This also applies to equations matching
+against constant values of these types; in particular, a small integer
+constant like `0' only matches machine integers, not bigints. Unfortunately,
+Pure currently doesn't provide any special notation for ``small bigints'', so
+that there's no way to match a bigint against a small integer constant on the
+left-hand side of an equation; instead you have to use explicit comparisons,
+using guarded equations.
+.PP
 The interpreter always takes your
 .B extern
 declarations of C routines at face value. It will not go and read any C header
@@ -1004,15 +1045,14 @@ files to determine whether you actually declared the function correctly! So
 you have to be careful to give the proper declarations, otherwise your program
 will probably segfault calling the function.
 .PP
-Talking about the C interface, you also have to be careful when passing
-generic pointer values to external C routines, since currently there is no
-type checking for these; any pointer type other than char* and expr* is
-effectively treated as void*. This considerably simplifies lowlevel
-programming and interfacing to C libraries, but also makes it very easy to
-have your program segfault all over the place! Therefore it is highly
-recommended that you wrap your lowlevel code in Pure routines and data
-structures which do all the checks necessary to ensure that only the right
-kind of data is passed to C routines.
+You also have to be careful when passing generic pointer values to external C
+routines, since currently there is no type checking for these; any pointer
+type other than char* and expr* is effectively treated as void*. This
+considerably simplifies lowlevel programming and interfacing to C libraries,
+but also makes it very easy to have your program segfault all over the place! 
+Therefore it is highly recommended that you wrap your lowlevel code in Pure
+routines and data structures which do all the checks necessary to ensure that
+only the right kind of data is passed to C routines.
 .PP
 Pure programs may need a considerable amount of stack space to handle
 recursive function calls, and the interpreter itself also takes its toll. So
@@ -1025,8 +1065,8 @@ checks and raises a Pure exception if the current stack size exceeds the given
 limit. The value of
 .B PURE_STACK
 should be the maximum stack size in kilobytes. Please note that this is only
-an advisory limit but does \fInot\fP change the program's physical stack size.
-Your operating system should supply you with a command such as
+an advisory limit which does \fInot\fP change the program's physical stack
+size. Your operating system should supply you with a command such as
 .BR ulimit (1)
 to set the real process stack size. Also note that this feature isn't 100%
 foolproof yet, since for performance reasons the stack will be checked only on
