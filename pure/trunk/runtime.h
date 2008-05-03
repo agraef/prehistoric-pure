@@ -256,6 +256,16 @@ pure_expr *eval(const char *s);
 
 bool same(const pure_expr *x, const pure_expr *y);
 
+/* Check whether an object is a function application, and return the function
+   and the argument of an application. Note that these operations can't be
+   defined in Pure because of the "head is function" rule which means that in
+   a pattern of the form f x, f is always a literal function symbol and not a
+   variable. */
+
+bool applp(const pure_expr *x);
+pure_expr *fun(const pure_expr *x);
+pure_expr *arg(const pure_expr *x);
+
 /* Direct memory accesses. */
 
 int32_t pointer_get_byte(void *ptr);

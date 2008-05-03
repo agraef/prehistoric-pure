@@ -1095,6 +1095,30 @@ bool same(const pure_expr *x, const pure_expr *y)
 }
 
 extern "C"
+bool applp(const pure_expr *x)
+{
+  return (x->tag == EXPR::APP);
+}
+
+extern "C"
+pure_expr *fun(const pure_expr *x)
+{
+  if (x->tag == EXPR::APP)
+    return x->data.x[0];
+  else
+    return 0;
+}
+
+extern "C"
+pure_expr *arg(const pure_expr *x)
+{
+  if (x->tag == EXPR::APP)
+    return x->data.x[1];
+  else
+    return 0;
+}
+
+extern "C"
 int32_t pointer_get_byte(void *ptr)
 {
   uint8_t *p = (uint8_t*)ptr;
