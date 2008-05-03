@@ -604,6 +604,13 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
     return token::BIGINT;
   }
 }
+{int}G     {
+  mpz_t *z = (mpz_t*)malloc(sizeof(mpz_t));
+  mpz_init(*z);
+  mpz_set_str(*z, yytext, 0);
+  yylval->zval = z;
+  return token::BIGINT;
+}
 {float}    yylval->dval = my_strtod(yytext, NULL); return(token::DBL);
 \"{str}\"   {
   char *msg;
