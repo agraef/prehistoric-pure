@@ -1,5 +1,8 @@
 2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
 
+	* test/test4.pure: Disable tail call checks, as they may fail on
+	some platforms. Reported by Ryan Schmidt.
+
 	* test/test1.pure: Corrected fact3 example, added test cases.
 	Reported by Libor Spacek.
 
