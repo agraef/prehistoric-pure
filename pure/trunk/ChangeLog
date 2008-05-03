@@ -1,6 +1,13 @@
 2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
 
-	* test/test4.pure: Disable tail call checks, as they may fail on
+	* interpreter.cc (declare_extern): Fixed a bug in the generated
+	wrapper code for external calls, which caused function arguments
+	to be garbage-collected prematurely, when they were still needed
+	to create the default value, in the case of external calls
+	returning a null expression pointer to indicate failure. Reported
+	by Eddie Rucker.
+
+	* test/test4.pure: Disabled tail call checks, as they may fail on
 	some platforms. Reported by Ryan Schmidt.
 
 	* test/test1.pure: Corrected fact3 example, added test cases.
