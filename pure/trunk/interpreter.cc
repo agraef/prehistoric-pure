@@ -2405,19 +2405,8 @@ Function *interpreter::declare_extern(string name, string restype,
   }
   // call the function
   Value* u = b.CreateCall(g, unboxed.begin(), unboxed.end());
-  // free temporaries and arguments
+  // free temporaries
   if (temps) b.CreateCall(module->getFunction("pure_free_cstrings"));
-  if (n == 1)
-    b.CreateCall(module->getFunction("pure_free"), args[0]);
-  else if (n > 0) {
-    vector<Value*> freeargs(n+2);
-    freeargs[0] = NullExprPtr;
-    for (size_t i = 0; i < n; i++)
-      freeargs[i+1] = args[i];
-    freeargs[n+1] = NullExprPtr;
-    b.CreateCall(module->getFunction("pure_free_args"),
-		 freeargs.begin(), freeargs.end());
-  }
   // box the result
   if (type == Type::VoidTy)
     u = b.CreateCall(module->getFunction("pure_const"),
@@ -2456,6 +2445,18 @@ Function *interpreter::declare_extern(string name, string restype,
     u = b.CreateCall(module->getFunction("pure_pointer"), u);
   else
     assert(0 && "invalid C type");
+  // free arguments (we do that here so that the arguments don't get freed
+  // before we know that we don't need them anymore)
+  if (n > 0) {
+    vector<Value*> freeargs(n+2);
+    freeargs[0] = u;
+    for (size_t i = 0; i < n; i++)
+      freeargs[i+1] = args[i];
+    freeargs[n+1] = NullExprPtr;
+    b.CreateCall(module->getFunction("pure_free_args"),
+		 freeargs.begin(), freeargs.end());
+    b.CreateCall(module->getFunction("pure_unref"), u);
+  }
   b.CreateRet(u);
   // The call failed. Provide a default value.
   f->getBasicBlockList().push_back(failedbb);
