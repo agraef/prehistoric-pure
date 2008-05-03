@@ -1,5 +1,13 @@
 2008-05-04  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll, printer.cc: Add an explicit notation for big
+	integers. Any integer immediately followed by the uppercase letter
+	"G" (as in "biG" or "GMP") will now always be interpreted as a
+	bigint constant, even if it fits into a machine integer. This
+	notation is also used when printing bigint constants. This change
+	was necessary to make it possible to write rules matching against
+	"small bigint" constants.
+
 	* lib/primitives.pure: Added operations to recognize function
 	applications and extract the function and argument parts,
 	implemented in runtime.cc. Note that these operations can't be
