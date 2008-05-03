@@ -28,7 +28,7 @@ count n		= ct n with
 count 100;
 // If proper tail calls are supported, this should work, too, no matter what
 // your stack size is.
-count 10000000;
+//count 10000000;
 
 // Tail recursion in a global function.
 
@@ -37,8 +37,9 @@ count2 n::int	= n if n<=0;
 
 // This should always work.
 count2 100;
-// Again, this should work as well, no matter what your stack size is.
-count2 10000000;
+// Again, this should work if proper tail calls are supported, no matter what
+// your stack size is.
+//count2 10000000;
 
 // Trivial tail-recursive local function which passes an environment to
 // another local function. Note that the callee can never be tail-called in

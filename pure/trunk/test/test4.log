@@ -64,8 +64,6 @@ count n/*0:1*/ = ct/*0*/ n/*0:1*/ with ct n/*0:1*/::int = n/*0:1*/ if n/*0:1*/<=
 }
 count 100;
 0
-count 10000000;
-0
 count2 n/*0:1*/::int = n/*0:1*/ if n/*0:1*/<=0;
 count2 n/*0:1*/::int = count2 (n/*0:1*/-1);
 {
@@ -76,8 +74,6 @@ count2 n/*0:1*/::int = count2 (n/*0:1*/-1);
   state 1: #0 #1
 }
 count2 100;
-0
-count2 10000000;
 0
 test x/*0:1*/::int = t/*0*/ x/*0:1*/ with t n/*0:1*/::int = t/*1*/ (-n/*0:1*/) if n/*0:1*/<0; t n/*0:1*/::int = u/*0*/ (n/*0:1*/+2) with u _/*0:1*/ = n/*1:1*/+1 {
   rule #0: u _ = n+1
