@@ -23,57 +23,14 @@ GPL V3 or later. See the accompanying COPYING file for details.
 
 INSTALLATION
 
-The usual 'make && make install' should do the trick. (No 'configure' step
-necessary.) This requires GNU make and g++. For other setups, you'll probably
-have to fiddle with the Makefile and the sources. The sources should be pretty
-portable, but the Makefile really needs GNU make right now.
-
-You'll also need LLVM (version 2.2 has been tested) for the compiler backend;
-install it before compiling Pure. Instructions for installing LLVM can be
-found at the LLVM website (http://llvm.org).
-
-By default, the program is installed under /usr/local/bin, with the library
-files going into /usr/local/lib/pure. The installation directory can be
-changed by editing the definition of the 'prefix' variable in the Makefile, or
-by specifying the desired value on the 'make' command line, e.g.:
-
-	make all install prefix=/usr
-
-Note that you should specify this option *both* at compile and installation
-time since certain default paths are hardcoded into the interpreter (but can
-be changed at runtime by setting corresponding environment variables, see the
-manpage for details).
-
-There are a number of other variables you can set on the 'make' command line
-if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
-have to add special libraries (LIBS) like libiconv on OSX.
-
-After your build is done, you can (and should) also run 'make check' to verify
-that your Pure interpreter works correctly. This can be done without
-installing the software. In fact, there's no need to install the interpreter
-if you just want to take it for a test drive, you can simply run it from the
-source directory. Just make sure that you set the PURELIB environment variable
-to the lib directory in the sources which holds the prelude and the other
-library scripts. The following command,
-
-	PURELIB=./lib ./pure
-
-will run the Pure interpreter with that setting in Bourne-compatible shells.
-
-For the release version, you should build the interpreter as follows:
-
-	make build=release
-
-This disables all runtime checks and debugging information in the interpreter.
-(Don't worry, your Pure programs will still be executed "safely" and shouldn't
-segfault unless you run out of memory or there's a bug in the interpreter.) 
-The 'release' build gives you *much* faster execution times (factor of 2
-compared to the default flags on my Linux system running gcc 4.1, YMMV). It
-also takes a *long* time to compile runtime.cc, but it's really worth the
-wait, so please be patient. ;-)
-
-Please also have a look at the Makefile for details on the build and
-installation process and other available targets and options.
+Please see the INSTALL file for detailed instructions. On most Unix-like
+systems, the usual 'make && sudo make install' should do the trick. (No
+'configure' step necessary.) This requires GNU make and g++. For other setups,
+you'll probably have to fiddle with the Makefile and the sources. The sources
+should be pretty portable, but the Makefile really needs GNU make right now.
+You'll also need LLVM for the compiler backend (version 2.2 has been tested).
+For your convenience, instructions for installing LLVM are also included in
+the INSTALL file.
 
 USING PURE
 
@@ -107,5 +64,5 @@ Dept. of Computer Music
 Johannes Gutenberg University of Mainz
 Germany
 
-<Dr.Graef@t-online.de>
+<Dr.Graef at t-online.de>
 http://pure-lang.sf.net
