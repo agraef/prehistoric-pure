@@ -38,7 +38,10 @@ doublep x	= case x of _::double  = 1; _ = 0 end;
 stringp x	= case x of _::string  = 1; _ = 0 end;
 pointerp x	= case x of _::pointer = 1; _ = 0 end;
 
-/* Predicates to check for proper lists and tuples. */
+/* Predicates to check for function applications and proper lists and
+   tuples. */
+
+extern bool applp(expr*);
 
 listp []	= 1;
 listp (x:xs)	= listp xs;
@@ -47,6 +50,10 @@ listp _		= 0 otherwise;
 tuplep ()	= 1;
 tuplep (x,xs)	= 1;
 tuplep _	= 0 otherwise;
+
+/* Operations to return the function and the argument in an application. */
+
+extern expr* fun(expr*), expr* arg(expr*);
 
 /* Conversions between the different numeric and pointer types. */
 
