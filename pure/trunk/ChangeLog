@@ -1,5 +1,8 @@
 2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
 
+	* README: Moved installation instructions to a separate INSTALL
+	file, added Eddie Rucker's detailed instructions there.
+
 	* util.cc (myiconv): Apple's iconv takes const char** as 2nd
 	parameter. #ifdef that case. Reported by Ryan Schmidt.
 

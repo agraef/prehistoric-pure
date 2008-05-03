@@ -80,7 +80,7 @@ tests = $(wildcard test/*.pure)
 logs = test/prelude.log $(tests:.pure=.log)
 distlogs = $(wildcard test/*.log)
 
-DISTFILES = COPYING ChangeLog NEWS README TODO Makefile \
+DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO Makefile \
 $(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.1 pure.xml pure.vim \
 $(examples) $(lib) $(tests) $(distlogs)
 
