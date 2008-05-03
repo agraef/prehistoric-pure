@@ -240,16 +240,19 @@ the prelude: `[]' and `()' are the empty list and tuple, `:' produces list
 syntactic sugar for list values in brackets, such as [x,y,z], which is exactly
 the same as x:y:z:[]. Moreover, the prelude also provides an infix `..' 
 operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0. Pure's
-tuples are a bit unusual, however, in that they abide by the mathematical
-rules: They are constructed by just ``paring'' things using the `,' operator,
-for which the empty tuple acts as a neutral element (i.e., (),x is just x, as
-is x,()). The pairing operator is associative, which implies that tuples are
-completely flat (i.e., x,(y,z) is just x,y,z, as is (x,y),z). This means that
-there are no nested tuples (tuples of tuples), if you need such constructs
-then you should use lists instead. Also note that the parentheses are
-\fInot\fP part of the tuple syntax in Pure, although you \fIcan\fP use
-parentheses, just as with any other expression, for the usual purpose of
-grouping expressions and overriding default precedences and associativity.
+tuples are a bit unusual, however: They are constructed by just ``paring''
+things using the `,' operator, for which the empty tuple acts as a neutral
+element (i.e., (),x is just x, as is x,()). The pairing operator is
+associative, which implies that tuples are completely flat (i.e., x,(y,z) is
+just x,y,z, as is (x,y),z). This means that there are no nested tuples (tuples
+of tuples), if you need such constructs then you should use lists
+instead. Also note that the parentheses are \fInot\fP part of the tuple syntax
+in Pure, although you \fIcan\fP use parentheses, just as with any other
+expression, for the usual purpose of grouping expressions and overriding
+default precedences and associativity. This means that a list of tuples will
+be printed (and must also be entered) using the ``canonical'' representation
+(x1,y1):(x2,y2):...:[] rather than [(x1,y1),(x2,y2),...] (which denotes just
+[x1,y1,x2,y2,...]).
 .TP
 .B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
