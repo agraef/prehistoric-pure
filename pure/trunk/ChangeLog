@@ -1,3 +1,8 @@
+2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
+
+	* test/test1.pure: Corrected fact3 example, added test cases.
+	Reported by Libor Spacek.
+
 2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
 
 	* Makefile: Overhaul of regression tests so that results of

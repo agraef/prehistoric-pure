@@ -14,7 +14,7 @@ square 5;
 fact1 n = n*fact1 (n-1) if n>0;
         = 1 otherwise;
 
-let x = fact1 10;
+let x = fact1 10; x;
 
 // Factorial, using case.
 
@@ -27,7 +27,7 @@ fact2 n = case n of
 
 fact3 n = case n of
             0 = 1;
-            n = n*fact3 (n-1) if n>1;
+            n = n*fact3 (n-1) if n>0;
           end;
 
 // Factorial, with if-then-else.
@@ -38,11 +38,18 @@ fact4 n = if n>0 then n*fact4 (n-1) else 1;
 
 fact5 = \n -> if n>0 then n*fact5 (n-1) else 1;
 
+fact2 10;
+fact3 10;
+fact4 10;
+fact5 10;
+
 // Factorial, using bigints.
 
 fact n::int    = fact (bigint n);
 fact n::bigint = n*fact (n-1) if n>0;
                = 1 otherwise;
+
+fact 50;
 
 // Fibonacci function, naive O(fib n) implementation.
 
