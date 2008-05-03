@@ -735,7 +735,6 @@ void interpreter::clearsym(int32_t f)
     f->dropAllReferences();
     if (h != f) h->eraseFromParent();
     f->eraseFromParent();
-    reset();
   }
 }
 
@@ -2493,28 +2492,6 @@ Function *interpreter::declare_extern(string name, string restype,
   if (verbose&verbosity::dump) f->print(std::cout);
   externals[sym.f] = ExternInfo(sym.f, type, argt, f);
   return f;
-}
-
-void interpreter::reset()
-{
-  /* XXXFIXME: Compile a trivial function to reprime the JIT. Apparently this
-     is needed to convince the JIT to pick up changes after clearing a
-     function definition. Don't ask, I don't understand it either. :( Maybe
-     it's a subtle bug somewhere in the code generator, but I found no other
-     way to work around it. If anyone knows why this is needed, or has a
-     better way to do it, please let me know. */
-  expr x(EXPR::INT, 0);
-  Env e(0, 0, x, false);
-  push("reset", &e);
-  fun_prolog("");
-  e.CreateRet(codegen(x));
-  fun_finish();
-  pop(&e);
-  e.fp = JIT->getPointerToFunction(e.f);
-  assert(e.fp);
-  pure_expr *y = 0, *res = pure_invoke(e.fp, y);
-  assert(res); pure_freenew(res);
-  e.f->eraseFromParent();
 }
 
 pure_expr *interpreter::doeval(expr x, pure_expr*& e)
