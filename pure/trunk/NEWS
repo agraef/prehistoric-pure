@@ -1,4 +1,21 @@
 
+** Pure 0.2 2008-05-04
+
+On the heels of Pure 0.1 comes the first bugfix release which addresses a
+couple of bugs, misfeatures and Mac OSX compatibility issues, please refer to
+the ChangeLog for details. I also added a more detailed INSTALL guide (thanks
+are due to Eddie Rucker who wrote most of the new material in this guide) and
+updated the manpage with a few minor corrections and some remarks about issues
+raised on the Pure mailing list.
+
+Please note that there are still some issues with Pure on 64 bit systems (as
+well as on Ubuntu running on PowerPC) which are still on my TODO list, these
+will hopefully be fixed in the next release.
+
+Thanks to all who sent in bug reports and patches, in particular: Chris
+Double, Tim Haynes, Eddie Rucker, Ryan Schmidt and Libor Spacek. (I hope I
+didn't forget anyone.)
+
 ** Pure 0.1 2008-04-29
 
 The much-awaited initial release. ;-) The interpreter is already fully

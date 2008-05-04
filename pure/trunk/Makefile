@@ -9,7 +9,7 @@
 # installation time, you can also specify a DESTDIR path if you want to
 # install into a staging directory, e.g.: 'make install DESTDIR=$PWD/BUILD'.
 
-version = 0.1
+version = 0.2
 dist = pure-$(version)
 
 prefix = /usr/local
@@ -85,7 +85,7 @@ $(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.1 pure.xml pure.vim \
 $(examples) $(lib) $(tests) $(distlogs)
 
 .PHONY: all html dvi ps pdf clean realclean depend install uninstall dist \
-logs check
+distcheck cleanlogs logs check
 
 # compilation
 
@@ -160,6 +160,11 @@ mkdir $(dist)/test
 	for x in $(DISTFILES); do ln -sf $$PWD/$$x $(dist)/$$x; done
 	rm -f $(dist).tar.gz
 	tar cfzh $(dist).tar.gz $(dist)
+	rm -rf $(dist)
+
+distcheck: dist
+	tar xfz $(dist).tar.gz
+	cd $(dist) && make && make check && make install DESTDIR=./BUILD
 	rm -rf $(dist)
 
 # test logs, make check
