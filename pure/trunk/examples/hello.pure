@@ -55,8 +55,6 @@ let x, y = square x, square (x+2); x; y;
 fact1 n = n*fact1 (n-1) if n>0;
         = 1 otherwise;
 
-let x = fact1 10;
-
 // This is essentially the same, but uses a 'case' expression.
 
 fact2 n = case n of
