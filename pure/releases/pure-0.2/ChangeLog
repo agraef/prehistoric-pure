@@ -1,0 +1,127 @@
+2008-05-04  Albert Graef  <Dr.Graef@t-online.de>
+
+	* 0.2 release.
+
+	* lexer.ll, printer.cc: Add an explicit notation for big
+	integers. Any integer immediately followed by the uppercase letter
+	"G" (as in "biG" or "GMP") will now always be interpreted as a
+	bigint constant, even if it fits into a machine integer. This
+	notation is also used when printing bigint constants. This change
+	was necessary to make it possible to write rules matching against
+	"small bigint" constants.
+
+	* lib/primitives.pure: Added operations to recognize function
+	applications and extract the function and argument parts,
+	implemented in runtime.cc. Note that these operations can't be
+	defined in Pure because of the "head is function" rule which means
+	that in a pattern of the form f x, f is always a literal function
+	symbol and not a variable.
+
+2008-05-03  Albert Graef  <Dr.Graef@t-online.de>
+
+	* README: Moved installation instructions to a separate INSTALL
+	file, added Eddie Rucker's detailed instructions there.
+
+	* util.cc (myiconv): Apple's iconv takes const char** as 2nd
+	parameter. #ifdef that case. Reported by Ryan Schmidt.
+
+	* interpreter.cc (declare_extern): Fixed a bug in the generated
+	wrapper code for external calls, which caused function arguments
+	to be garbage-collected prematurely, when they were still needed
+	to create the default value, in the case of external calls
+	returning a null expression pointer to indicate failure. Reported
+	by Eddie Rucker.
+
+	* test/test4.pure: Disabled tail call checks, as they may fail on
+	some platforms. Reported by Ryan Schmidt.
+
+	* test/test1.pure: Corrected fact3 example, added test cases.
+	Reported by Libor Spacek.
+
+2008-05-02  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Makefile: Overhaul of regression tests so that results of
+	expressions are recorded. Also, 'make check' doesn't depend on the
+	log files any more, so that the logs can be stored in svn. You can
+	now use the explicit goal 'make logs' to regenerate the logs for
+	changed test files.
+
+	* runtime.cc (same): Added a syntactic equality test. Requested by
+	Eddie Rucker.
+
+	* Makefile: Add $(LDFLAGS) and $(LIBS) to the link line, so that
+	the user can easily add his own linker options and local
+	libraries.
+
+	* lib/strings.pure: Add missing range check in string indexing
+	operation. Reported by Eddie Rucker.
+
+	* printer.cc (operator <<): Handle stack overflow while printing
+	an expression.
+
+	* interpreter.cc (dodefn): Fix a tricky bug causing the executable
+	code of closures bound to variables to be freed when it was still
+	needed. Reported by Chris Double.
+
+2008-05-01  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc: Proper alignment of value fields in expression
+	struct on 64 bit systems. Reported by Tim Haynes.
+
+	* Makefile: g++ shouldn't be hardcoded, use $(CXX) instead.
+	Reported by Ryan Schmidt.
+
+	* runtime.cc (pure_sys_vars): More OSX compatibility fixes.
+	Reported by Ryan Schmidt.
+
+2008-04-30  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc: Fix a compilation error (STL bug:
+	http://gcc.gnu.org/bugzilla/show_bug.cgi?id=11729) as well as some
+	bogus warnings with Apple gcc 4.0.1. Reported by Ryan Schmidt.
+
+	* Makefile (make depend): Get rid of bogus LLVM dependencies.
+	Reported by Ryan Schmidt.
+
+	* lexer.ll, parser.yy: Fixes for compatibility with newer flex and
+	bison versions. Reported by Eddie Rucker.
+
+2008-04-29  Albert Graef  <Dr.Graef@t-online.de>
+
+	* 0.1 release.
+
+2008-04-28  Albert Graef  <Dr.Graef@t-online.de>
+
+	* examples/symbolic.pure: Add symbolic evaluation example. This is
+	just a straightforward port of some Q examples.
+
+	* runtime.cc: Add support for advisory stack checks.
+
+	* matcher.cc: Bugfixes.
+
+2008-04-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/string.pure: Added split and join functions.
+
+	* pure.1, examples/hello.pure: Overhaul n queens example, added
+	quicksort and binary search tree examples.
+
+	* lib/prelude.pure: Added void and curry/uncurry combinators, do,
+	zipdo.
+
+	* interpreter.cc, pure.cc, runtime.cc: Make SIGINT generate a
+	useful exception value.
+
+	* pure.cc: Add completion for global function and variable
+	symbols.
+
+2008-04-22  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Got a working interpreter, at last. There's still lots of stuff
+	to do (see the TODO file), but the interpreter should now be
+	usable as it is.
+
+2008-03-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* ChangeLog started
+

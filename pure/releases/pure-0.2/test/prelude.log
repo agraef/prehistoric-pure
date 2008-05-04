@@ -1,0 +1,650 @@
+throw x/*0:1*/ = pure_throw x/*0:1*/;
+x/*0:01*/===y/*0:1*/ = same x/*0:01*/ y/*0:1*/;
+x/*0:01*/!==y/*0:1*/ = not same x/*0:01*/ y/*0:1*/;
+intp x/*0:1*/ = case x/*0:1*/ of _/*0:*/::int = 1; _/*0:*/ = 0 {
+  rule #0: _::int = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<var>::int state 2
+  state 1: #1
+  state 2: #0 #1
+} end;
+bigintp x/*0:1*/ = case x/*0:1*/ of _/*0:*/::bigint = 1; _/*0:*/ = 0 {
+  rule #0: _::bigint = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<var>::bigint state 2
+  state 1: #1
+  state 2: #0 #1
+} end;
+doublep x/*0:1*/ = case x/*0:1*/ of _/*0:*/::double = 1; _/*0:*/ = 0 {
+  rule #0: _::double = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<var>::double state 2
+  state 1: #1
+  state 2: #0 #1
+} end;
+stringp x/*0:1*/ = case x/*0:1*/ of _/*0:*/::string = 1; _/*0:*/ = 0 {
+  rule #0: _::string = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<var>::string state 2
+  state 1: #1
+  state 2: #0 #1
+} end;
+pointerp x/*0:1*/ = case x/*0:1*/ of _/*0:*/ = 1; _/*0:*/ = 0 {
+  rule #0: _ = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<var> state 2
+  state 1: #1
+  state 2: #0 #1
+} end;
+listp [] = 1;
+listp (x/*0:101*/:xs/*0:11*/) = listp xs/*0:11*/;
+listp _/*0:1*/ = 0;
+tuplep () = 1;
+tuplep (x/*0:101*/,xs/*0:11*/) = 1;
+tuplep _/*0:1*/ = 0;
+int x/*0:1*/::int = x/*0:1*/;
+int x/*0:1*/::bigint = pure_intval x/*0:1*/;
+int x/*0:1*/::double = pure_intval x/*0:1*/;
+int x/*0:1*/ = pure_intval x/*0:1*/;
+bigint x/*0:1*/::int = pure_bigintval x/*0:1*/;
+bigint x/*0:1*/::bigint = x/*0:1*/;
+bigint x/*0:1*/::double = pure_bigintval x/*0:1*/;
+bigint x/*0:1*/ = pure_bigintval x/*0:1*/;
+double x/*0:1*/::int = pure_dblval x/*0:1*/;
+double x/*0:1*/::bigint = pure_dblval x/*0:1*/;
+double x/*0:1*/::double = x/*0:1*/;
+pointer x/*0:1*/::int = pure_pointerval x/*0:1*/;
+pointer x/*0:1*/::bigint = pure_pointerval x/*0:1*/;
+pointer x/*0:1*/::double = pure_pointerval x/*0:1*/;
+pointer x/*0:1*/::string = pure_pointerval x/*0:1*/;
+pointer x/*0:1*/ = x/*0:1*/;
+-x/*0:1*/::int = -x/*0:1*/;
+~x/*0:1*/::int = ~x/*0:1*/;
+not x/*0:1*/::int = not x/*0:1*/;
+x/*0:01*/::int<<y/*0:1*/::int = x/*0:01*/<<y/*0:1*/;
+x/*0:01*/::int>>y/*0:1*/::int = x/*0:01*/>>y/*0:1*/;
+x/*0:01*/::int+y/*0:1*/::int = x/*0:01*/+y/*0:1*/;
+x/*0:01*/::int-y/*0:1*/::int = x/*0:01*/-y/*0:1*/;
+x/*0:01*/::int|y/*0:1*/::int = x/*0:01*/|y/*0:1*/;
+x/*0:01*/::int*y/*0:1*/::int = x/*0:01*/*y/*0:1*/;
+x/*0:01*/::int/y/*0:1*/::int = x/*0:01*//y/*0:1*/;
+x/*0:01*/::int&y/*0:1*/::int = x/*0:01*/&y/*0:1*/;
+x/*0:01*/::int div y/*0:1*/::int = x/*0:01*/ div y/*0:1*/;
+x/*0:01*/::int mod y/*0:1*/::int = x/*0:01*/ mod y/*0:1*/;
+x/*0:01*/::int<y/*0:1*/::int = x/*0:01*/<y/*0:1*/;
+x/*0:01*/::int>y/*0:1*/::int = x/*0:01*/>y/*0:1*/;
+x/*0:01*/::int<=y/*0:1*/::int = x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::int>=y/*0:1*/::int = x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::int==y/*0:1*/::int = x/*0:01*/==y/*0:1*/;
+x/*0:01*/::int!=y/*0:1*/::int = x/*0:01*/!=y/*0:1*/;
+-x/*0:1*/::double = -x/*0:1*/;
+x/*0:01*/::double+y/*0:1*/::double = x/*0:01*/+y/*0:1*/;
+x/*0:01*/::double-y/*0:1*/::double = x/*0:01*/-y/*0:1*/;
+x/*0:01*/::double*y/*0:1*/::double = x/*0:01*/*y/*0:1*/;
+x/*0:01*/::double/y/*0:1*/::double = x/*0:01*//y/*0:1*/;
+x/*0:01*/::double<y/*0:1*/::double = x/*0:01*/<y/*0:1*/;
+x/*0:01*/::double>y/*0:1*/::double = x/*0:01*/>y/*0:1*/;
+x/*0:01*/::double<=y/*0:1*/::double = x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::double>=y/*0:1*/::double = x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::double==y/*0:1*/::double = x/*0:01*/==y/*0:1*/;
+x/*0:01*/::double!=y/*0:1*/::double = x/*0:01*/!=y/*0:1*/;
+x/*0:01*/::int+y/*0:1*/::double = x/*0:01*/+y/*0:1*/;
+x/*0:01*/::int-y/*0:1*/::double = x/*0:01*/-y/*0:1*/;
+x/*0:01*/::int*y/*0:1*/::double = x/*0:01*/*y/*0:1*/;
+x/*0:01*/::int/y/*0:1*/::double = x/*0:01*//y/*0:1*/;
+x/*0:01*/::int<y/*0:1*/::double = x/*0:01*/<y/*0:1*/;
+x/*0:01*/::int>y/*0:1*/::double = x/*0:01*/>y/*0:1*/;
+x/*0:01*/::int<=y/*0:1*/::double = x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::int>=y/*0:1*/::double = x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::int==y/*0:1*/::double = x/*0:01*/==y/*0:1*/;
+x/*0:01*/::int!=y/*0:1*/::double = x/*0:01*/!=y/*0:1*/;
+x/*0:01*/::double+y/*0:1*/::int = x/*0:01*/+y/*0:1*/;
+x/*0:01*/::double-y/*0:1*/::int = x/*0:01*/-y/*0:1*/;
+x/*0:01*/::double*y/*0:1*/::int = x/*0:01*/*y/*0:1*/;
+x/*0:01*/::double/y/*0:1*/::int = x/*0:01*//y/*0:1*/;
+x/*0:01*/::double<y/*0:1*/::int = x/*0:01*/<y/*0:1*/;
+x/*0:01*/::double>y/*0:1*/::int = x/*0:01*/>y/*0:1*/;
+x/*0:01*/::double<=y/*0:1*/::int = x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::double>=y/*0:1*/::int = x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::double==y/*0:1*/::int = x/*0:01*/==y/*0:1*/;
+x/*0:01*/::double!=y/*0:1*/::int = x/*0:01*/!=y/*0:1*/;
+x/*0:01*/::int&&y/*0:1*/::int = x/*0:01*/&&y/*0:1*/;
+x/*0:01*/::int||y/*0:1*/::int = x/*0:01*/||y/*0:1*/;
+-x/*0:1*/::bigint = bigint_neg x/*0:1*/;
+~x/*0:1*/::bigint = bigint_not x/*0:1*/;
+not x/*0:1*/::bigint = not int x/*0:1*/;
+x/*0:01*/::bigint<<y/*0:1*/::int = bigint_shl x/*0:01*/ y/*0:1*/ if y/*0:1*/>=0;
+x/*0:01*/::bigint<<y/*0:1*/::int = bigint_shr x/*0:01*/ (-y/*0:1*/);
+x/*0:01*/::bigint>>y/*0:1*/::int = bigint_shr x/*0:01*/ y/*0:1*/ if y/*0:1*/>=0;
+x/*0:01*/::bigint>>y/*0:1*/::int = bigint_shl x/*0:01*/ (-y/*0:1*/);
+x/*0:01*/::bigint+y/*0:1*/::bigint = bigint_add x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint-y/*0:1*/::bigint = bigint_sub x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint|y/*0:1*/::bigint = bigint_or x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint*y/*0:1*/::bigint = bigint_mul x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint/y/*0:1*/::bigint = double x/*0:01*//double y/*0:1*/;
+x/*0:01*/::bigint&y/*0:1*/::bigint = bigint_and x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint div y/*0:1*/::bigint = bigint_div x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint mod y/*0:1*/::bigint = bigint_mod x/*0:01*/ y/*0:1*/;
+x/*0:01*/::bigint<y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/<0;
+x/*0:01*/::bigint>y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/>0;
+x/*0:01*/::bigint<=y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/<=0;
+x/*0:01*/::bigint>=y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/>=0;
+x/*0:01*/::bigint==y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/==0;
+x/*0:01*/::bigint!=y/*0:1*/::bigint = bigint_cmp x/*0:01*/ y/*0:1*/!=0;
+x/*0:01*/::int+y/*0:1*/::bigint = bigint x/*0:01*/+y/*0:1*/;
+x/*0:01*/::int-y/*0:1*/::bigint = bigint x/*0:01*/-y/*0:1*/;
+x/*0:01*/::int|y/*0:1*/::bigint = bigint x/*0:01*/|y/*0:1*/;
+x/*0:01*/::int*y/*0:1*/::bigint = bigint x/*0:01*/*y/*0:1*/;
+x/*0:01*/::int/y/*0:1*/::bigint = double x/*0:01*//y/*0:1*/;
+x/*0:01*/::int&y/*0:1*/::bigint = bigint x/*0:01*/&y/*0:1*/;
+x/*0:01*/::int div y/*0:1*/::bigint = bigint x/*0:01*/ div y/*0:1*/;
+x/*0:01*/::int mod y/*0:1*/::bigint = bigint x/*0:01*/ mod y/*0:1*/;
+x/*0:01*/::int<y/*0:1*/::bigint = bigint x/*0:01*/<y/*0:1*/;
+x/*0:01*/::int>y/*0:1*/::bigint = bigint x/*0:01*/>y/*0:1*/;
+x/*0:01*/::int<=y/*0:1*/::bigint = bigint x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::int>=y/*0:1*/::bigint = bigint x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::int==y/*0:1*/::bigint = bigint x/*0:01*/==y/*0:1*/;
+x/*0:01*/::int!=y/*0:1*/::bigint = bigint x/*0:01*/!=y/*0:1*/;
+x/*0:01*/::bigint+y/*0:1*/::int = x/*0:01*/+bigint y/*0:1*/;
+x/*0:01*/::bigint-y/*0:1*/::int = x/*0:01*/-bigint y/*0:1*/;
+x/*0:01*/::bigint|y/*0:1*/::int = x/*0:01*/|bigint y/*0:1*/;
+x/*0:01*/::bigint*y/*0:1*/::int = x/*0:01*/*bigint y/*0:1*/;
+x/*0:01*/::bigint/y/*0:1*/::int = x/*0:01*//double y/*0:1*/;
+x/*0:01*/::bigint&y/*0:1*/::int = x/*0:01*/&bigint y/*0:1*/;
+x/*0:01*/::bigint div y/*0:1*/::int = x/*0:01*/ div bigint y/*0:1*/;
+x/*0:01*/::bigint mod y/*0:1*/::int = x/*0:01*/ mod bigint y/*0:1*/;
+x/*0:01*/::bigint<y/*0:1*/::int = x/*0:01*/<bigint y/*0:1*/;
+x/*0:01*/::bigint>y/*0:1*/::int = x/*0:01*/>bigint y/*0:1*/;
+x/*0:01*/::bigint<=y/*0:1*/::int = x/*0:01*/<=bigint y/*0:1*/;
+x/*0:01*/::bigint>=y/*0:1*/::int = x/*0:01*/>=bigint y/*0:1*/;
+x/*0:01*/::bigint==y/*0:1*/::int = x/*0:01*/==bigint y/*0:1*/;
+x/*0:01*/::bigint!=y/*0:1*/::int = x/*0:01*/!=bigint y/*0:1*/;
+x/*0:01*/::bigint+y/*0:1*/::double = double x/*0:01*/+y/*0:1*/;
+x/*0:01*/::bigint-y/*0:1*/::double = double x/*0:01*/-y/*0:1*/;
+x/*0:01*/::bigint*y/*0:1*/::double = double x/*0:01*/*y/*0:1*/;
+x/*0:01*/::bigint/y/*0:1*/::double = double x/*0:01*//y/*0:1*/;
+x/*0:01*/::bigint<y/*0:1*/::double = double x/*0:01*/<y/*0:1*/;
+x/*0:01*/::bigint>y/*0:1*/::double = double x/*0:01*/>y/*0:1*/;
+x/*0:01*/::bigint<=y/*0:1*/::double = double x/*0:01*/<=y/*0:1*/;
+x/*0:01*/::bigint>=y/*0:1*/::double = double x/*0:01*/>=y/*0:1*/;
+x/*0:01*/::bigint==y/*0:1*/::double = double x/*0:01*/==y/*0:1*/;
+x/*0:01*/::bigint!=y/*0:1*/::double = double x/*0:01*/!=y/*0:1*/;
+x/*0:01*/::double+y/*0:1*/::bigint = x/*0:01*/+double y/*0:1*/;
+x/*0:01*/::double-y/*0:1*/::bigint = x/*0:01*/-double y/*0:1*/;
+x/*0:01*/::double*y/*0:1*/::bigint = x/*0:01*/*double y/*0:1*/;
+x/*0:01*/::double/y/*0:1*/::bigint = x/*0:01*//double y/*0:1*/;
+x/*0:01*/::double<y/*0:1*/::bigint = x/*0:01*/<double y/*0:1*/;
+x/*0:01*/::double>y/*0:1*/::bigint = x/*0:01*/>double y/*0:1*/;
+x/*0:01*/::double<=y/*0:1*/::bigint = x/*0:01*/<=double y/*0:1*/;
+x/*0:01*/::double>=y/*0:1*/::bigint = x/*0:01*/>=double y/*0:1*/;
+x/*0:01*/::double==y/*0:1*/::bigint = x/*0:01*/==double y/*0:1*/;
+x/*0:01*/::double!=y/*0:1*/::bigint = x/*0:01*/!=double y/*0:1*/;
+pow x/*0:01*/::bigint y/*0:1*/::int = bigint_pow x/*0:01*/ y/*0:1*/ if y/*0:1*/>=0;
+pow x/*0:01*/::int y/*0:1*/::int = bigint_pow (bigint x/*0:01*/) y/*0:1*/ if y/*0:1*/>=0;
+pow x/*0:01*/::bigint y/*0:1*/::bigint = bigint_pow x/*0:01*/ (int y/*0:1*/) if int y/*0:1*/>=0;
+null x/*0:1*/ = bigint x/*0:1*/==0;
+x/*0:01*/-y/*0:1*/ = bigint x/*0:01*/-bigint y/*0:1*/;
+x/*0:01*/+y/*0:1*/::int = pointer (bigint x/*0:01*/+y/*0:1*/);
+x/*0:01*/+y/*0:1*/::bigint = pointer (bigint x/*0:01*/+y/*0:1*/);
+x/*0:01*/<y/*0:1*/ = bigint x/*0:01*/<bigint y/*0:1*/;
+x/*0:01*/>y/*0:1*/ = bigint x/*0:01*/>bigint y/*0:1*/;
+x/*0:01*/<=y/*0:1*/ = bigint x/*0:01*/<=bigint y/*0:1*/;
+x/*0:01*/>=y/*0:1*/ = bigint x/*0:01*/>=bigint y/*0:1*/;
+x/*0:01*/==y/*0:1*/ = bigint x/*0:01*/==bigint y/*0:1*/;
+x/*0:01*/!=y/*0:1*/ = bigint x/*0:01*/!=bigint y/*0:1*/;
+get_byte x/*0:1*/ = pointer_get_byte x/*0:1*/;
+get_int x/*0:1*/ = pointer_get_int x/*0:1*/;
+get_double x/*0:1*/ = pointer_get_double x/*0:1*/;
+get_string x/*0:1*/ = pointer_get_string x/*0:1*/;
+get_pointer x/*0:1*/ = pointer_get_pointer x/*0:1*/;
+put_byte x/*0:01*/ y/*0:1*/::int = pointer_put_byte x/*0:01*/ y/*0:1*/;
+put_int x/*0:01*/ y/*0:1*/::int = pointer_put_int x/*0:01*/ y/*0:1*/;
+put_double x/*0:01*/ y/*0:1*/::double = pointer_put_double x/*0:01*/ y/*0:1*/;
+put_string x/*0:01*/ y/*0:1*/::string = pointer_put_string x/*0:01*/ y/*0:1*/;
+put_pointer x/*0:01*/ y/*0:1*/::string = pointer_put_pointer x/*0:01*/ y/*0:1*/;
+put_pointer x/*0:01*/ y/*0:1*/ = pointer_put_pointer x/*0:01*/ y/*0:1*/;
+chr n/*0:1*/::int = string_chr n/*0:1*/ if n/*0:1*/>0;
+ord s/*0:1*/::string = string_ord s/*0:1*/ if #s/*0:1*/==1;
+string s/*0:1*/ = pure_string s/*0:1*/;
+cstring s/*0:1*/ = pure_cstring s/*0:1*/;
+string_dup s/*0:1*/ = pure_string_dup s/*0:1*/;
+cstring_dup s/*0:1*/ = pure_cstring_dup s/*0:1*/;
+byte_string s/*0:1*/::string = pure_byte_string s/*0:1*/;
+byte_cstring s/*0:1*/::string = pure_byte_cstring s/*0:1*/;
+c/*0:01*/::string+n/*0:1*/::int = chr (ord c/*0:01*/+n/*0:1*/) if #c/*0:01*/==1;
+c/*0:01*/::string-n/*0:1*/::int = chr (ord c/*0:01*/-n/*0:1*/) if #c/*0:01*/==1&&ord c/*0:01*/>=n/*0:1*/;
+c/*0:01*/::string-d/*0:1*/::string = ord c/*0:01*/-ord d/*0:1*/ if #c/*0:01*/==1&&#d/*0:1*/==1;
+null s/*0:1*/::string = string_null s/*0:1*/;
+#s/*0:1*/::string = string_size s/*0:1*/;
+s/*0:01*/::string!n/*0:1*/::int = string_char_at s/*0:01*/ n/*0:1*/ if n/*0:1*/>=0&&n/*0:1*/<#s/*0:01*/;
+s/*0:01*/::string+t/*0:1*/::string = string_concat s/*0:01*/ t/*0:1*/;
+chars s/*0:1*/::string = string_chars s/*0:1*/;
+x/*0:01*/::string<y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/<0;
+x/*0:01*/::string>y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/>0;
+x/*0:01*/::string<=y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/<=0;
+x/*0:01*/::string>=y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/>=0;
+x/*0:01*/::string==y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/==0;
+x/*0:01*/::string!=y/*0:1*/::string = strcmp x/*0:01*/ y/*0:1*/!=0;
+substr s/*0:001*/::string pos/*0:01*/::int size/*0:1*/::int = string_substr s/*0:001*/ (max/*0*/ 0 pos/*0:01*/) (max/*0*/ 0 size/*0:1*/) with max x/*0:01*/ y/*0:1*/ = if x/*0:01*/>=y/*0:1*/ then x/*0:01*/ else y/*0:1*/ {
+  rule #0: max x y = if x>=y then x else y
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+} end;
+index s/*0:01*/::string u/*0:1*/::string = string_index s/*0:01*/ u/*0:1*/;
+strcat xs/*0:1*/ = string_concat_list xs/*0:1*/ if listp xs/*0:1*/&&all stringp xs/*0:1*/;
+join delim/*0:01*/::string [] = "";
+join delim/*0:01*/::string (x/*0:101*/::string:xs/*0:11*/) = x/*0:101*/+strcat (catmap (\x/*0:*/ -> [delim/*1:01*/+x/*0:*/] {
+  rule #0: x = [delim+x]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) xs/*0:11*/) if listp xs/*0:11*/&&all stringp xs/*0:11*/;
+split delim/*0:01*/::string s/*0:1*/::string = if null s/*1:1*/ then [] else split1/*0*/ delim/*1:01*/ s/*1:1*/ with split1 delim/*0:01*/ s/*0:1*/ = case index s/*0:1*/ delim/*0:01*/ of n/*0:*/ = take n/*0:*/ s/*1:1*/:split1/*2*/ delim/*1:01*/ (drop (n/*0:*/+m/*2:*/) s/*1:1*/) if n/*0:*/>=0; n/*0:*/ = [s/*1:1*/] {
+  rule #0: n = take n s:split1 delim (drop (n+m) s) if n>=0
+  rule #1: n = [s]
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+} end {
+  rule #0: split1 delim s = case index s delim of n = take n s:split1 delim (drop (n+m) s) if n>=0; n = [s] end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+} end when m/*0:*/ = #delim/*0:01*/ {
+  rule #0: m = #delim
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end if not null delim/*0:01*/;
+reverse s/*0:1*/::string = strcat (reverse (chars s/*0:1*/));
+cat (s/*0:101*/::string:xs/*0:11*/) = cat (chars s/*0:101*/:xs/*0:11*/);
+all p/*0:01*/ s/*0:1*/::string = all p/*0:01*/ (chars s/*0:1*/);
+any p/*0:01*/ s/*0:1*/::string = any p/*0:01*/ (chars s/*0:1*/);
+do f/*0:01*/ s/*0:1*/::string = do f/*0:01*/ (chars s/*0:1*/);
+drop n/*0:01*/ s/*0:1*/::string = substr s/*0:1*/ n/*0:01*/ (#s/*0:1*/-n/*0:01*/);
+dropwhile p/*0:01*/ s/*0:1*/::string = strcat (dropwhile p/*0:01*/ (chars s/*0:1*/));
+filter p/*0:01*/ s/*0:1*/::string = strcat (filter p/*0:01*/ (chars s/*0:1*/));
+foldl f/*0:001*/ a/*0:01*/ s/*0:1*/::string = foldl f/*0:001*/ a/*0:01*/ (chars s/*0:1*/);
+foldl1 f/*0:01*/ s/*0:1*/::string = foldl1 f/*0:01*/ (chars s/*0:1*/);
+foldr f/*0:001*/ a/*0:01*/ s/*0:1*/::string = foldr f/*0:001*/ a/*0:01*/ (chars s/*0:1*/);
+foldr1 f/*0:01*/ s/*0:1*/::string = foldr1 f/*0:01*/ (chars s/*0:1*/);
+head s/*0:1*/::string = s/*0:1*/!0 if not null s/*0:1*/;
+init s/*0:1*/::string = substr s/*0:1*/ 0 (#s/*0:1*/-1) if not null s/*0:1*/;
+last s/*0:1*/::string = s/*0:1*/!(#s/*0:1*/-1) if not null s/*0:1*/;
+map f/*0:01*/ s/*0:1*/::string = map f/*0:01*/ (chars s/*0:1*/);
+scanl f/*0:001*/ a/*0:01*/ s/*0:1*/::string = scanl f/*0:001*/ a/*0:01*/ (chars s/*0:1*/);
+scanl1 f/*0:01*/ s/*0:1*/::string = scanl1 f/*0:01*/ (chars s/*0:1*/);
+scanr f/*0:001*/ a/*0:01*/ s/*0:1*/::string = scanr f/*0:001*/ a/*0:01*/ (chars s/*0:1*/);
+scanr1 f/*0:01*/ s/*0:1*/::string = scanr1 f/*0:01*/ (chars s/*0:1*/);
+take n/*0:01*/ s/*0:1*/::string = substr s/*0:1*/ 0 n/*0:01*/;
+takewhile p/*0:01*/ s/*0:1*/::string = strcat (takewhile p/*0:01*/ (chars s/*0:1*/));
+tail s/*0:1*/::string = substr s/*0:1*/ 1 (#s/*0:1*/-1) if not null s/*0:1*/;
+zip s/*0:01*/::string t/*0:1*/::string = zip (chars s/*0:01*/) (chars t/*0:1*/);
+zip3 s/*0:001*/::string t/*0:01*/::string u/*0:1*/::string = zip3 (chars s/*0:001*/) (chars t/*0:01*/) (chars u/*0:1*/);
+zipwith f/*0:001*/ s/*0:01*/::string t/*0:1*/::string = zipwith f/*0:001*/ (chars s/*0:01*/) (chars t/*0:1*/);
+zipwith3 f/*0:0001*/ s/*0:001*/::string t/*0:01*/::string u/*0:1*/::string = zipwith3 f/*0:0001*/ (chars s/*0:001*/) (chars t/*0:01*/) (chars u/*0:1*/);
+dowith f/*0:001*/ s/*0:01*/::string t/*0:1*/::string = dowith f/*0:001*/ (chars s/*0:01*/) (chars t/*0:1*/);
+dowith3 f/*0:0001*/ s/*0:001*/::string t/*0:01*/::string u/*0:1*/::string = dowith3 f/*0:0001*/ (chars s/*0:001*/) (chars t/*0:01*/) (chars u/*0:1*/);
+f/*0:01*/$x/*0:1*/ = f/*0:01*/ x/*0:1*/;
+(f/*0:001*/.g/*0:01*/) x/*0:1*/ = f/*0:001*/ (g/*0:01*/ x/*0:1*/);
+void _/*0:1*/ = ();
+id x/*0:1*/ = x/*0:1*/;
+const x/*0:01*/ y/*0:1*/ = x/*0:01*/;
+flip f/*0:001*/ x/*0:01*/ y/*0:1*/ = f/*0:001*/ y/*0:1*/ x/*0:01*/;
+curry f/*0:001*/ x/*0:01*/ y/*0:1*/ = f/*0:001*/ (x/*0:01*/,y/*0:1*/);
+curry3 f/*0:0001*/ x/*0:001*/ y/*0:01*/ z/*0:1*/ = f/*0:0001*/ (x/*0:001*/,y/*0:01*/,z/*0:1*/);
+uncurry f/*0:01*/ (x/*0:101*/,y/*0:11*/) = f/*0:01*/ x/*0:101*/ y/*0:11*/;
+uncurry3 f/*0:01*/ (x/*0:101*/,y/*0:1101*/,z/*0:111*/) = f/*0:01*/ x/*0:101*/ y/*0:1101*/ z/*0:111*/;
+x/*0:01*/,() = x/*0:01*/;
+(),y/*0:1*/ = y/*0:1*/;
+(x/*0:0101*/,y/*0:011*/),z/*0:1*/ = x/*0:0101*/,y/*0:011*/,z/*0:1*/;
+()==() = 1;
+(x/*0:0101*/,xs/*0:011*/)==() = 0;
+()==(x/*0:101*/,xs/*0:11*/) = 0;
+(x/*0:0101*/,xs/*0:011*/)==(y/*0:101*/,ys/*0:11*/) = x/*0:0101*/==y/*0:101*/&&xs/*0:011*/==ys/*0:11*/;
+()!=() = 0;
+(x/*0:0101*/,xs/*0:011*/)!=() = 1;
+()!=(x/*0:101*/,xs/*0:11*/) = 1;
+(x/*0:0101*/,xs/*0:011*/)!=(y/*0:101*/,ys/*0:11*/) = x/*0:0101*/!=y/*0:101*/||xs/*0:011*/!=ys/*0:11*/;
+null () = 1;
+null (x/*0:101*/,xs/*0:11*/) = 0;
+#() = 0;
+#(x/*0:101*/,y/*0:1101*/,xs/*0:111*/) = 1+#(y/*0:1101*/,xs/*0:111*/);
+#(x/*0:101*/,y/*0:11*/) = 2;
+(x/*0:0101*/,xs/*0:011*/)!0 = x/*0:0101*/;
+(x/*0:0101*/,y/*0:01101*/,xs/*0:0111*/)!n/*0:1*/::int = (y/*0:01101*/,xs/*0:0111*/)!(n/*0:1*/-1) if n/*0:1*/>0;
+(x/*0:0101*/,y/*0:011*/)!1 = y/*0:011*/;
+[]==[] = 1;
+x/*0:0101*/:xs/*0:011*/==[] = 0;
+[]==x/*0:101*/:xs/*0:11*/ = 0;
+x/*0:0101*/:xs/*0:011*/==y/*0:101*/:ys/*0:11*/ = x/*0:0101*/==y/*0:101*/&&xs/*0:011*/==ys/*0:11*/;
+[]!=[] = 0;
+x/*0:0101*/:xs/*0:011*/!=[] = 1;
+[]!=x/*0:101*/:xs/*0:11*/ = 1;
+x/*0:0101*/:xs/*0:011*/!=y/*0:101*/:ys/*0:11*/ = x/*0:0101*/!=y/*0:101*/||xs/*0:011*/!=ys/*0:11*/;
+null [] = 1;
+null (x/*0:101*/:xs/*0:11*/) = 0;
+#[] = 0;
+#(x/*0:101*/:xs/*0:11*/) = 1+#xs/*0:11*/;
+(x/*0:0101*/:xs/*0:011*/)!0 = x/*0:0101*/;
+(x/*0:0101*/:xs/*0:011*/)!n/*0:1*/::int = xs/*0:011*/!(n/*0:1*/-1) if n/*0:1*/>0;
+[]+ys/*0:1*/ = ys/*0:1*/;
+(x/*0:0101*/:xs/*0:011*/)+ys/*0:1*/ = x/*0:0101*/:xs/*0:011*/+ys/*0:1*/;
+list () = [];
+list (x/*0:101*/,y/*0:1101*/,xs/*0:111*/) = x/*0:101*/:list (y/*0:1101*/,xs/*0:111*/);
+list (x/*0:101*/,y/*0:11*/) = [x/*0:101*/,y/*0:11*/];
+tuple [] = ();
+tuple [x/*0:101*/] = x/*0:101*/;
+tuple (x/*0:101*/:y/*0:1101*/:xs/*0:111*/) = x/*0:101*/,tuple (y/*0:1101*/:xs/*0:111*/);
+xs/*0:01*/![] = [];
+xs/*0:01*/!(n/*0:101*/::int:ns/*0:11*/) = slice/*0*/ xs/*1:01*/ (n/*1:101*/:ns/*1:11*/) with slice xs/*0:01*/ [] = []; slice xs/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = xs/*0:01*/!n/*0:101*/:slice/*1*/ xs/*0:01*/ ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; slice xs/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = xs/*0:01*/!ns/*0:11*/ {
+  rule #0: slice xs [] = []
+  rule #1: slice xs (n::int:ns) = xs!n:slice xs ns if n>=0&&n<m
+  rule #2: slice xs (n::int:ns) = xs!ns
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	[] state 2
+	<app> state 3
+  state 2: #0
+  state 3: #1 #2
+	<app> state 4
+  state 4: #1 #2
+	: state 5
+  state 5: #1 #2
+	<var>::int state 6
+  state 6: #1 #2
+	<var> state 7
+  state 7: #1 #2
+} end when m/*0:*/::int = #xs/*0:01*/ {
+  rule #0: m::int = #xs
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end;
+n1/*0:0101*/,n2/*0:011*/..m/*0:1*/ = while (\i/*0:*/ -> s/*1:*/*i/*0:*/<=s/*1:*/*m/*3:1*/ {
+  rule #0: i = s*i<=s*m
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) (\x/*0:*/ -> x/*0:*/+k/*2:*/ {
+  rule #0: x = x+k
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) n1/*2:0101*/ when k/*0:*/ = n2/*0:011*/-n1/*0:0101*/; s/*0:*/ = if k/*0:*/>0 then 1 else -1 {
+  rule #0: s = if k>0 then 1 else -1
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: k = n2-n1
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end if n1/*0:0101*/!=n2/*0:011*/;
+n/*0:01*/..m/*0:1*/ = while (\i/*0:*/ -> i/*0:*/<=m/*1:1*/ {
+  rule #0: i = i<=m
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) (\x/*0:*/ -> x/*0:*/+1 {
+  rule #0: x = x+1
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) n/*0:01*/;
+all p/*0:01*/ [] = 1;
+all p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = p/*0:01*/ x/*0:101*/&&all p/*0:01*/ xs/*0:11*/;
+any p/*0:01*/ [] = 0;
+any p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = p/*0:01*/ x/*0:101*/||any p/*0:01*/ xs/*0:11*/;
+do f/*0:01*/ [] = ();
+do f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = do f/*1:01*/ xs/*1:11*/ when _/*0:*/ = f/*0:01*/ x/*0:101*/ {
+  rule #0: _ = f x
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+drop n/*0:01*/ [] = [];
+drop n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = drop (n/*0:01*/-1) xs/*0:11*/ if n/*0:01*/>0;
+drop n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:xs/*0:11*/;
+dropwhile p/*0:01*/ [] = [];
+dropwhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = dropwhile p/*0:01*/ xs/*0:11*/ if p/*0:01*/ x/*0:101*/;
+dropwhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:xs/*0:11*/;
+filter p/*0:01*/ [] = [];
+filter p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:filter p/*0:01*/ xs/*0:11*/ if p/*0:01*/ x/*0:101*/;
+filter p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = filter p/*0:01*/ xs/*0:11*/;
+foldl f/*0:001*/ a/*0:01*/ [] = a/*0:01*/;
+foldl f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = foldl f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/;
+foldl1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = foldl f/*0:01*/ x/*0:101*/ xs/*0:11*/;
+foldr f/*0:001*/ a/*0:01*/ [] = a/*0:01*/;
+foldr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:001*/ x/*0:101*/ (foldr f/*0:001*/ a/*0:01*/ xs/*0:11*/);
+foldr1 f/*0:01*/ [x/*0:101*/] = x/*0:101*/;
+foldr1 f/*0:01*/ (x/*0:101*/:y/*0:1101*/:xs/*0:111*/) = f/*0:01*/ x/*0:101*/ (foldr1 f/*0:01*/ (y/*0:1101*/:xs/*0:111*/));
+head (x/*0:101*/:xs/*0:11*/) = x/*0:101*/;
+init [x/*0:101*/] = [];
+init (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:init xs/*0:11*/;
+last [x/*0:101*/] = x/*0:101*/;
+last (x/*0:101*/:xs/*0:11*/) = last xs/*0:11*/;
+map f/*0:01*/ [] = [];
+map f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:01*/ x/*0:101*/:map f/*0:01*/ xs/*0:11*/;
+scanl f/*0:001*/ a/*0:01*/ [] = [a/*0:01*/];
+scanl f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = a/*0:01*/:scanl f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/;
+scanl1 f/*0:01*/ [] = [];
+scanl1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = scanl f/*0:01*/ x/*0:101*/ xs/*0:11*/;
+scanr f/*0:001*/ a/*0:01*/ [] = [a/*0:01*/];
+scanr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:001*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = scanr f/*0:001*/ a/*0:01*/ xs/*0:11*/; y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
+  rule #0: y:_ = ys
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	: state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: ys = scanr f a xs
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+scanr1 f/*0:01*/ [] = [];
+scanr1 f/*0:01*/ [x/*0:101*/] = [x/*0:101*/];
+scanr1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:01*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = scanr1 f/*0:01*/ xs/*0:11*/; y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
+  rule #0: y:_ = ys
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	: state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: ys = scanr1 f xs
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+tail (x/*0:101*/:xs/*0:11*/) = xs/*0:11*/;
+take n/*0:01*/ [] = [];
+take n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:take (n/*0:01*/-1) xs/*0:11*/ if n/*0:01*/>0;
+take n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [];
+takewhile p/*0:01*/ [] = [];
+takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:takewhile p/*0:01*/ xs/*0:11*/ if p/*0:01*/ x/*0:101*/;
+takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [];
+cat [] = [];
+cat (xs/*0:101*/:xss/*0:11*/) = accum/*0*/ (reverse xs/*0:101*/) xss/*0:11*/ with accum xs/*0:01*/ [] = reverse xs/*0:01*/; accum xs/*0:01*/ ([]:yss/*0:11*/) = accum/*1*/ xs/*0:01*/ yss/*0:11*/; accum xs/*0:01*/ ((y/*0:10101*/:ys/*0:1011*/):yss/*0:11*/) = accum/*1*/ (y/*0:10101*/:xs/*0:01*/) (ys/*0:1011*/:yss/*0:11*/); accum xs/*0:01*/ yss/*0:1*/ = reverse xs/*0:01*/+cat yss/*0:1*/ {
+  rule #0: accum xs [] = reverse xs
+  rule #1: accum xs ([]:yss) = accum xs yss
+  rule #2: accum xs ((y:ys):yss) = accum (y:xs) (ys:yss)
+  rule #3: accum xs yss = reverse xs+cat yss
+  state 0: #0 #1 #2 #3
+	<var> state 1
+  state 1: #0 #1 #2 #3
+	<var> state 2
+	[] state 3
+	<app> state 4
+  state 2: #3
+  state 3: #0 #3
+  state 4: #1 #2 #3
+	<var> state 5
+	<app> state 7
+  state 5: #3
+	<var> state 6
+  state 6: #3
+  state 7: #1 #2 #3
+	<var> state 8
+	: state 11
+  state 8: #3
+	<var> state 9
+  state 9: #3
+	<var> state 10
+  state 10: #3
+  state 11: #1 #2 #3
+	<var> state 12
+	[] state 14
+	<app> state 16
+  state 12: #3
+	<var> state 13
+  state 13: #3
+  state 14: #1 #3
+	<var> state 15
+  state 15: #1 #3
+  state 16: #2 #3
+	<var> state 17
+	<app> state 20
+  state 17: #3
+	<var> state 18
+  state 18: #3
+	<var> state 19
+  state 19: #3
+  state 20: #2 #3
+	<var> state 21
+	: state 25
+  state 21: #3
+	<var> state 22
+  state 22: #3
+	<var> state 23
+  state 23: #3
+	<var> state 24
+  state 24: #3
+  state 25: #2 #3
+	<var> state 26
+  state 26: #2 #3
+	<var> state 27
+  state 27: #2 #3
+	<var> state 28
+  state 28: #2 #3
+} end if listp xs/*0:101*/;
+catmap f/*0:01*/ xs/*0:1*/ = cat (map f/*0:01*/ xs/*0:1*/);
+reverse xs/*0:1*/ = foldl (flip (:)) [] xs/*0:1*/ if listp xs/*0:1*/;
+repeat n/*0:01*/ x/*0:1*/ = [] if n/*0:01*/<=0;
+repeat n/*0:01*/ x/*0:1*/ = x/*0:1*/:repeat (n/*0:01*/-1) x/*0:1*/;
+cycle n/*0:01*/ [] = [];
+cycle n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
+cycle n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = mkcycle/*0*/ n/*2:01*/ xs/*1:*/ with mkcycle n/*0:01*/ xs/*0:1*/ = take n/*0:01*/ xs/*0:1*/ if n/*0:01*/<=m/*1:*/; mkcycle n/*0:01*/ xs/*0:1*/ = xs/*0:1*/+mkcycle/*1*/ (n/*0:01*/-m/*1:*/) xs/*0:1*/ {
+  rule #0: mkcycle n xs = take n xs if n<=m
+  rule #1: mkcycle n xs = xs+mkcycle (n-m) xs
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
+} end when xs/*0:*/ = x/*0:101*/:xs/*0:11*/; m/*0:*/ = #xs/*0:*/ {
+  rule #0: m = #xs
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: xs = x:xs
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+while p/*0:001*/ f/*0:01*/ a/*0:1*/ = a/*0:1*/:while p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) if p/*0:001*/ a/*0:1*/;
+while p/*0:001*/ f/*0:01*/ a/*0:1*/ = [];
+until p/*0:001*/ f/*0:01*/ a/*0:1*/ = [] if p/*0:001*/ a/*0:1*/;
+until p/*0:001*/ f/*0:01*/ a/*0:1*/ = a/*0:1*/:until p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/);
+zip (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = (x/*0:0101*/,y/*0:101*/):zip xs/*0:011*/ ys/*0:11*/;
+zip _/*0:01*/ _/*0:1*/ = [];
+zip3 (x/*0:00101*/:xs/*0:0011*/) (y/*0:0101*/:ys/*0:011*/) (z/*0:101*/:zs/*0:11*/) = (x/*0:00101*/,y/*0:0101*/,z/*0:101*/):zip3 xs/*0:0011*/ ys/*0:011*/ zs/*0:11*/;
+zip3 _/*0:001*/ _/*0:01*/ _/*0:1*/ = [];
+zipwith f/*0:001*/ (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = f/*0:001*/ x/*0:0101*/ y/*0:101*/:zipwith f/*0:001*/ xs/*0:011*/ ys/*0:11*/;
+zipwith f/*0:001*/ _/*0:01*/ _/*0:1*/ = [];
+zipwith3 f/*0:0001*/ (x/*0:00101*/:xs/*0:0011*/) (y/*0:0101*/:ys/*0:011*/) (z/*0:101*/:zs/*0:11*/) = f/*0:0001*/ x/*0:00101*/ y/*0:0101*/ z/*0:101*/:zipwith3 f/*0:0001*/ xs/*0:0011*/ ys/*0:011*/ zs/*0:11*/;
+zipwith3 f/*0:0001*/ _/*0:001*/ _/*0:01*/ _/*0:1*/ = [];
+dowith f/*0:001*/ (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = dowith f/*1:001*/ xs/*1:011*/ ys/*1:11*/ when _/*0:*/ = f/*0:001*/ x/*0:0101*/ y/*0:101*/ {
+  rule #0: _ = f x y
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+dowith f/*0:001*/ _/*0:01*/ _/*0:1*/ = ();
+dowith3 f/*0:0001*/ (x/*0:00101*/:xs/*0:0011*/) (y/*0:0101*/:ys/*0:011*/) (z/*0:101*/:zs/*0:11*/) = dowith3 f/*1:0001*/ xs/*1:0011*/ ys/*1:011*/ zs/*1:11*/ when _/*0:*/ = f/*0:0001*/ x/*0:00101*/ y/*0:0101*/ z/*0:101*/ {
+  rule #0: _ = f x y z
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+dowith3 f/*0:0001*/ _/*0:001*/ _/*0:01*/ _/*0:1*/ = ();
+unzip ((x/*0:10101*/,y/*0:1011*/):us/*0:11*/) = x/*1:10101*/:xs/*0:01*/,y/*1:1011*/:ys/*0:1*/ when xs/*0:01*/,ys/*0:1*/ = unzip us/*0:11*/ {
+  rule #0: xs,ys = unzip us
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end;
+unzip [] = [],[];
+unzip3 ((x/*0:10101*/,y/*0:101101*/,z/*0:10111*/):us/*0:11*/) = x/*1:10101*/:xs/*0:01*/,y/*1:101101*/:ys/*0:101*/,z/*1:10111*/:zs/*0:11*/ when xs/*0:01*/,ys/*0:101*/,zs/*0:11*/ = unzip3 us/*0:11*/ {
+  rule #0: xs,ys,zs = unzip3 us
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<app> state 5
+  state 5: #0
+	<app> state 6
+  state 6: #0
+	, state 7
+  state 7: #0
+	<var> state 8
+  state 8: #0
+	<var> state 9
+  state 9: #0
+} end;
+unzip3 [] = [],[],[];
