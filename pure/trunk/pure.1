@@ -187,17 +187,25 @@ you might expect, zero denotes ``false'' and any non-zero value ``true'').
 .PP
 Expressions consist of the following elements:
 .TP
-.B Constants: \fR4711, 1.2e-3, \(dqHello,\ world!\en\(dq
+.B Constants: \fR4711, 4711G, 1.2e-3, \(dqHello,\ world!\en\(dq
 The usual C'ish notations for integers (decimal, hexadecimal, octal), floating
-point values and double-quoted strings are all provided. Actually, in Pure
-character escapes have a more flexible syntax borrowed from the author's Q
-language, which provides notations to specify any Unicode character. In
-particular, the notation
+point values and double-quoted strings are all provided, although the Pure
+syntax differs in some minor ways, as discussed in the following. First, there
+is a special notation for denoting bigints. Note that an integer constant that
+is too large to fit into a machine integer will be interpreted as a bigint
+automatically. Moreover, an integer literal immediately followed by the
+uppercase letter ``G'' (mnemonic: ``biG'' or ``GMP'' integer) will always be
+interpreted as a bigint constant, even if it fits into a machine integer. This
+``big G'' notation is also used when printing bigint constants. Second,
+character escapes in Pure strings have a more flexible syntax borrowed from
+the author's Q language, which provides notations to specify any Unicode
+character. In particular, the notation
 .BR \e\fIn\fP ,
-where \fIn\fP is an integer written in decimal, hexadecimal or octal notation,
-denotes the Unicode character (code point) #\fIn\fP. Since these escapes may
-consist of a varying number of digits, parentheses may be used for
-disambiguation purposes; thus, e.g.
+where \fIn\fP is an integer literal written in decimal (no prefix),
+hexadecimal (`0x' prefix) or octal (`0' prefix) notation, denotes the Unicode
+character (code point) #\fIn\fP. Since these escapes may consist of a varying
+number of digits, parentheses may be used for disambiguation purposes; thus,
+e.g.
 .B \(dq\e(123)4\(dq
 denotes character #123 followed by the character `4'. The usual C-like escapes
 for special non-printable characters such as
@@ -208,6 +216,8 @@ form
 where \fIname\fP is any of the XML single character entity names specified in
 the ``XML Entity definitions for Characters'', see
 .IR http://www.w3.org/TR/xml-entity-names/ .
+Thus, e.g., \(dq\e&copy;\(dq denotes the copyright character (code point
+0x000A9).
 .TP
 .B Function and variable symbols: \fRfoo, foo_bar, BAR, bar2
 These consist of the usual sequence of ASCII letters (including the
@@ -983,39 +993,48 @@ below existing ones:
 > \fBunderride\fP
 .fi
 .SH CAVEATS AND NOTES
+.B Debugging.
 There's no symbolic debugger yet. So
 .BR printf (3)
 (available in the
 .B system
 standard library module) should be your friend. ;-)
 .PP
+.B Tuples and parentheses.
 Please note that parentheses are really only used to group expressions and are
 \fInot\fP part of the tuple syntax; tuples are in fact not really part of the
 Pure language at all, but are implemented in the prelude. As you can see
 there, the pairing operator `,' used to construct tuples is
 (right-)associative. We call these the ``poor man's tuples'' since they are
 always flat and thus there are no nested tuples (if you need this then you
-should use lists instead). This also implies than an expression like
+should use lists instead). This also implies that an expression like
 [(1,2),(3,4)] is in fact exactly the same as [1,2,3,4]. If you want to denote
 a list of tuples, you must use the syntax (1,2):(3,4):[] instead; this is also
 the notation used when the interpreter prints such objects.
 .PP
+.B Manipulating function applications.
 The ``head = function'' rule means that the head symbol f of an application f
 x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
 binding, or pattern-matching lambda expression, is always interpreted as a
-literal function symbol (not a variable). This implies that you cannot bind
-the ``function'' component of a function application to a variable, and thus
-you cannot directly define a generic function which operates on arbitrary
-function applications. As a remedy, the prelude provides three operations to
-handle such objects:
+literal function symbol (not a variable). This implies that you cannot match
+the ``function'' component of an application against a variable, and thus you
+cannot directly define a generic function which operates on arbitrary function
+applications. As a remedy, the prelude provides three operations to handle
+such objects:
 .BR applp ,
 a predicate which checks whether a given expression is a function application,
 and
 .B fun
 and
 .BR arg ,
-which determine the function and argument parts of such an expression.
+which determine the function and argument parts of such an expression,
+respectively. (This may seem a little awkward, but as a matter of fact the
+``head = function'' rule is quite convenient since it covers the common cases
+without forcing the programmer to declare ``constructor'' symbols (except
+nullary symbols). Also note that in standard term rewriting you do not have
+rules parameterizing over the head symbol of a function application either.)
 .PP
+.B Numeric types.
 If possible, you should always decorate numeric variables on the left-hand
 sides of function definitions with the appropriate type tags, like
 .B ::int
@@ -1024,7 +1043,7 @@ or
 This often helps the compiler to generate better code and makes your programs
 run faster.
 .PP
-Talking about the built-in integer types, please note that
+Talking about the built-in types, please note that
 .B int
 (the machine integers) and
 .B bigint
@@ -1032,12 +1051,10 @@ Talking about the built-in integer types, please note that
 you want to define a function operating on both kinds of integers, you'll also
 have to provide equations for both. This also applies to equations matching
 against constant values of these types; in particular, a small integer
-constant like `0' only matches machine integers, not bigints. Unfortunately,
-Pure currently doesn't provide any special notation for ``small bigints'', so
-that there's no way to match a bigint against a small integer constant on the
-left-hand side of an equation; instead you have to use explicit comparisons,
-using guarded equations.
+constant like `0' only matches machine integers, not bigints; for the latter
+you'll have to use the ``big G'' notation `0G'.
 .PP
+.B External C functions.
 The interpreter always takes your
 .B extern
 declarations of C routines at face value. It will not go and read any C header
@@ -1054,6 +1071,7 @@ Therefore it is highly recommended that you wrap your lowlevel code in Pure
 routines and data structures which do all the checks necessary to ensure that
 only the right kind of data is passed to C routines.
 .PP
+.B Stack size and tail recursion.
 Pure programs may need a considerable amount of stack space to handle
 recursive function calls, and the interpreter itself also takes its toll. So
 you may have to configure your system accordingly (8 MB of stack space is
