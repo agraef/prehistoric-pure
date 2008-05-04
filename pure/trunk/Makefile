@@ -94,7 +94,7 @@ all: pure
 pure: $(OBJECT)
 	$(CXX) -o $@ $(LDFLAGS) -rdynamic $(OBJECT) $(ALL_LIBS)
 
-pure.o: pure.cc Makefile
+pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
 
 lexer.cc: lexer.ll

@@ -1,9 +1,5 @@
 2008-05-04  Albert Graef  <Dr.Graef@t-online.de>
 
-	* Makefile (pure.o): Add missing dependency of pure.o on Makefile,
-	so that the main module gets recompiled when bumping the version
-	number.
-
 	* 0.2 release.
 
 	* lexer.ll, printer.cc: Add an explicit notation for big
