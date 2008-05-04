@@ -15,7 +15,7 @@ dist = pure-$(version)
 prefix = /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib/pure
-mandir = $(prefix)/share/man/man1
+mandir = $(prefix)/man/man1
 
 DESTDIR=
 
