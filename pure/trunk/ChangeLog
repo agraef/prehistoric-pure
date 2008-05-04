@@ -1,5 +1,7 @@
 2008-05-04  Albert Graef  <Dr.Graef@t-online.de>
 
+	* 0.2 release.
+
 	* lexer.ll, printer.cc: Add an explicit notation for big
 	integers. Any integer immediately followed by the uppercase letter
 	"G" (as in "biG" or "GMP") will now always be interpreted as a
@@ -83,6 +85,10 @@
 
 	* lexer.ll, parser.yy: Fixes for compatibility with newer flex and
 	bison versions. Reported by Eddie Rucker.
+
+2008-04-29  Albert Graef  <Dr.Graef@t-online.de>
+
+	* 0.1 release.
 
 2008-04-28  Albert Graef  <Dr.Graef@t-online.de>
 
