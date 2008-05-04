@@ -1,0 +1,174 @@
+
+INSTALLING PURE (AND LLVM)
+========== ==== ==== =====
+
+These instructions (by courtesy of Eddie Rucker, thanks Eddie!) explain how to
+compile and install LLVM (which is the compiler backend required by Pure) and
+the Pure interpreter itself. More information about installing LLVM and the
+required LLVM source packages can be found at http://llvm.org.
+
+
+BASIC INSTALLATION
+===== ============
+
+The basic installation process is as follows. Note that steps 1-3 are only
+required once. Steps 2-3 can be avoided if binary LLVM packages are available
+for your system. Additional instructions for compiling Pure from SVN sources
+can be found in the INSTALLING FROM SVN SOURCES section below. Moreover, you
+can refer to the OTHER COMPILATION OPTIONS section at the end of the file for
+details about various options available when building and installing Pure.
+
+STEP 1. Make sure you have all the necessary dependencies installed (-dev
+denotes corresponding development packages):
+
+- GNU make, GNU C++ and the corresponding libraries;
+
+- flex and bison (these are only required when compiling the Pure SVN sources,
+  see the INSTALLING FROM SVN SOURCES section below);
+
+- libgmp, -dev;
+
+- libreadline, -dev;
+
+- libltdl, -dev;
+
+- subversion (only needed to fetch the SVN sources, see below).
+
+E.g., the required packages for Ubuntu are: make, g++, g++ 4.0 multilib, flex,
+bison, libgmp3c2, libgmp3-dev, readline5-dev, libltdl3, libldtl3-dev,
+subversion.
+
+STEP 2. Get and unpack the LLVM 2.2 sources at:
+http://llvm.org/releases/download.html#2.2
+
+STEP 3. Configure, build and install LLVM as follows:
+
+$ cd llvm-2.2
+$ ./configure
+$ make
+$ sudo make install
+
+STEP 4. Get and unpack the Pure sources at: http://pure-lang.sf.net/
+
+The latest release tarballs can always be found on the SourceForge project
+page. See "Downloads" on the Pure website for a quick link to the download
+section.
+
+STEP 5. Build and install the release version of Pure as follows:
+
+$ cd pure-x.y
+$ make build=release
+$ sudo make install
+
+Here, x.y denotes the current Pure version number (0.1 at the time of this
+writing). If you want to install the debugging-enabled version, run just
+'make' instead of 'make build=release'.
+
+To check that Pure is working correctly on your computer, also run:
+
+$ make check
+
+STEP 6. The Pure interpreter should be ready to go now. (On some systems you
+might first have to run ldconfig to update the dynamic linker cache.)
+
+Run Pure interactively as:
+
+$ pure
+Pure 0.1 Copyright (c) 2008 by Albert Graef
+This program is free software distributed under the GNU Public License
+(GPL V3 or later). Please see the COPYING file for details.
+Loaded prelude from /usr/local/lib/pure/prelude.pure.
+
+Check that it works:
+
+> 6*7;
+42
+
+Read the online documentation (this invokes the Pure manual page):
+
+> help
+
+Exit the interpreter (you can also just type the end-of-file character at the
+beginning of a line, i.e., Ctrl-D on Unix):
+
+> quit
+
+
+INSTALLING FROM SVN SOURCES
+========== ==== === =======
+
+The latest development version of Pure is available in its subversion (SVN)
+source code repository. You can browse the repository at:
+
+http://pure-lang.svn.sourceforge.net/viewvc/pure-lang/
+
+(See the pure/trunk subdirectory for the latest sources.)
+
+Note that if you're going with the development sources, you'll also need
+fairly recent versions of the flex and bison utilities (flex 2.5.31 and bison
+2.3 should be ok).
+
+To compile from the development sources, replace steps 4 and 5 above with:
+
+STEP 4': Fetch the SVN sources.
+
+$ svn co http://pure-lang.svn.sourceforge.net/svnroot/pure-lang pure-lang
+
+STEP 5': Build and install the debugging-enabled version (of course you can
+also build the release version, as described in step 5 above):
+
+$ cd pure-lang/pure/trunk
+$ make
+$ sudo make install
+
+
+OTHER COMPILATION OPTIONS
+===== =========== =======
+
+By default, the pure program is installed under /usr/local/bin, with the
+library files going into /usr/local/lib/pure. The installation directory can
+be changed by editing the definition of the 'prefix' variable in the Makefile,
+or by specifying the desired value on the 'make' command line, e.g.:
+
+$ make all install prefix=/usr
+
+Note that you should specify this option *both* at compile and installation
+time since certain default paths are hardcoded into the interpreter (but can
+be changed at runtime by setting corresponding environment variables, see the
+manpage for details).
+
+There are a number of other variables you can set on the 'make' command line
+if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
+have to add platform-specific libraries (LIBS) like libiconv on OSX.
+
+After your build is done, you can (and should) also run 'make check' to verify
+that your Pure interpreter works correctly. This can be done without
+installing the software. In fact, there's no need to install the interpreter
+if you just want to take it for a test drive, you can simply run it from the
+source directory. Just make sure that you set the PURELIB environment variable
+to the lib directory in the sources which holds the prelude and the other
+library scripts. The following command,
+
+$ PURELIB=./lib ./pure
+
+will run the Pure interpreter with that setting in Bourne-compatible shells.
+
+For the release version, you should build the interpreter as follows:
+
+$ make build=release
+
+This disables all runtime checks and debugging information in the interpreter.
+(Don't worry, your Pure programs will still be executed "safely" and shouldn't
+segfault unless you run out of memory or there's a bug in the interpreter.) 
+The 'release' build gives you *much* faster execution times (factor of 2
+compared to the default flags on my Linux system running gcc 4.1, YMMV). It
+also takes a *long* time to compile runtime.cc, but it's really worth the
+wait, so please be patient. ;-)
+
+Please also have a look at the Makefile for details on the build and
+installation process and other available targets and options.
+
+
+May 2008
+Albert Graef <Dr.Graef at t-online.de>
+Eddie Rucker <erucker at bmc.edu>
