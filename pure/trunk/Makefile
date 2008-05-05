@@ -17,7 +17,21 @@ bindir = $(prefix)/bin
 libdir = $(prefix)/lib/pure
 mandir = $(prefix)/man/man1
 
+# Staging directory for 'make install'. If you use this, make sure that this
+# ends in a slash.
+
 DESTDIR=
+
+# Linker flags. Adjust these as necessary for your system.
+
+# LDFLAGS is for additional linker options, LIBS for additional libraries that
+# might be needed (e.g., -liconv on OSX). Note that the -rdynamic flag is
+# required when using gcc with the ELF linker (e.g., Linux on x86) to enable
+# the dlopening of the program executable. On OSX this option isn't needed
+# (pass LDFLAGS="" to 'make' instead).
+
+LDFLAGS=-rdynamic
+LIBS=
 
 # Compilation flags. We provide three different build profiles:
 
@@ -35,8 +49,6 @@ DESTDIR=
 # installation or any other targets except 'all'.)
 
 build=default
-
-# No need to edit below this line. Unless you really have to. :) ############
 
 LLVM_FLAGS = `llvm-config --cppflags`
 LLVM_LIBS = `llvm-config --ldflags --libs core jit native`
@@ -67,6 +79,8 @@ endif
 endif
 endif
 
+# No need to edit below this line. Unless you really have to. :) ############
+
 SOURCE = expr.cc expr.hh funcall.h interpreter.cc interpreter.hh lexer.ll \
 matcher.cc matcher.hh parser.yy printer.cc printer.hh pure.cc \
 runtime.cc runtime.h symtable.cc symtable.hh util.cc util.hh
@@ -92,7 +106,7 @@ dist distcheck cleanlogs logs check
 all: pure
 
 pure: $(OBJECT)
-	$(CXX) -o $@ $(LDFLAGS) -rdynamic $(OBJECT) $(ALL_LIBS)
+	$(CXX) -o $@ $(LDFLAGS) $(OBJECT) $(ALL_LIBS)
 
 pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
