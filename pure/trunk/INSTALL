@@ -11,13 +11,13 @@ describes the tweaks necessary to make Pure compile and run on various
 platforms.
 
 Pure is known to work on Linux and Mac OSX, but should compile (with the usual
-amount of tweaking) on all UNIX/POSIX-based platforms. Version 4.x of the GNU
-C++ compiler is known to work (it should be available almost everywhere),
-earlier versions probably need some work. Other ANSI/ISO compatible C/C++
-compilers will probably work as well after you fiddled with the compilation
-options, but this has not been tested. Also note that the Makefile pretty much
-requires GNU make right now, so you should make sure that you have that
-installed before trying to compile Pure.
+amount of tweaking) on all UNIX/POSIX-based platforms. We recommend using
+version 4.x of the GNU C++ compiler; it should be available almost everywhere.
+Other ANSI/ISO compatible C/C++ compilers will probably work as well (after
+some fiddling with the compilation options and the sources maybe), but this
+has not been tested. Also note that the Makefile pretty much requires GNU make
+right now, so you should make sure that you have that installed before trying
+to compile Pure.
 
 
 BASIC INSTALLATION
@@ -72,7 +72,7 @@ $ cd pure-x.y
 $ make build=release
 $ sudo make install
 
-Here, x.y denotes the current Pure version number (0.1 at the time of this
+Here, x.y denotes the current Pure version number (0.2 at the time of this
 writing). If you want to install the debugging-enabled version, run just
 'make' instead of 'make build=release'.
 
@@ -225,6 +225,16 @@ non-void function" a couple of times in interpreter.cc. These are due to a bug
 in older gcc versions (see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558),
 but they are harmless and can be ignored. These warnings should also go away
 once Apple upgrades its SDK to a newer gcc version.
+
+MS WINDOWS
+-- -------
+
+Nobody has reported a successful port to this platform yet, but it should be
+rather straightforward (albeit arduous) to do this with either Cygwin
+(http://www.cygwin.com/) or Mingw (http://www.mingw.org/), once you have all
+the necessary dependencies and the Windows version of LLVM (available at
+http://llvm.org) installed. So *you* can still be the hero who first got Pure
+up and running on Windows; if you do, please let us know! :)
 
 
 May 2008
