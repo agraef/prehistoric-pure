@@ -15,7 +15,7 @@ dist = pure-$(version)
 prefix = /usr/local
 bindir = $(prefix)/bin
 libdir = $(prefix)/lib/pure
-mandir = $(prefix)/man/man1
+mandir = $(prefix)/share/man/man1
 
 # Staging directory for 'make install'. If you use this, make sure that this
 # ends in a slash.
