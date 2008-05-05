@@ -1,5 +1,10 @@
 2008-05-05  Albert Graef  <Dr.Graef@t-online.de>
 
+	* Makefile: Remove -s flag so that the pure executable is
+	installed without stripping the symbols which are needed to
+	properly resolve runtime externals on OSX. Reported by Ryan
+	Schmidt and others.
+
 	* matcher.cc (merge_ctrans): Fixed broken mpz_cmp() test causing
 	transitions on different (instead of equal) bigint constants to be
 	merged. Reported by Libor Spacek.

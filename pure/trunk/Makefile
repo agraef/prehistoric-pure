@@ -84,8 +84,8 @@ DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO Makefile \
 $(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.1 pure.xml pure.vim \
 $(examples) $(lib) $(tests) $(distlogs)
 
-.PHONY: all html dvi ps pdf clean realclean depend install uninstall dist \
-distcheck cleanlogs logs check
+.PHONY: all html dvi ps pdf clean realclean depend install uninstall strip \
+dist distcheck cleanlogs logs check
 
 # compilation
 
@@ -140,11 +140,19 @@ realclean: clean
 depend: $(SOURCE) $(EXTRA_SOURCE)
 	makedepend -Y $(SOURCE) $(EXTRA_SOURCE) 2> /dev/null
 
+# Strip symbols from the executable. You might want to run this on Linux
+# systems before installation to get a smaller executable. *Never* do this on
+# OSX though, as the symbols are needed to properly resolve the runtime
+# externals which are linked into the executable.
+
+strip: pure
+	strip pure
+
 # installation
 
 install: pure $(lib)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) $(DESTDIR)$(mandir)
-	install -s pure $(DESTDIR)$(bindir)/pure
+	install pure $(DESTDIR)$(bindir)/pure
 	install -m 644 $(lib) $(DESTDIR)$(libdir)
 	install -m 644 pure.1 $(DESTDIR)$(mandir)/pure.1
 
