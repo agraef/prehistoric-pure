@@ -95,7 +95,7 @@ state *matcher::match(state *st, expr x)
       case EXPR::INT:
 	return (x.ival() == t->i)?t->st:0;
       case EXPR::BIGINT:
-	return (mpz_cmp(x.zval(), t->z))?t->st:0;
+	return (mpz_cmp(x.zval(), t->z) == 0)?t->st:0;
       case EXPR::DBL:
 	return (x.dval() == t->d)?t->st:0;
       case EXPR::STR:
@@ -377,7 +377,7 @@ void matcher::merge_ctrans(transl& tr, const mpz_t& x, state *st)
   transl::iterator t;
   // look for a matching transition
   for (t = tr.begin(); t != tr.end(); t++) {
-    if (t->tag == EXPR::BIGINT && mpz_cmp(t->z, x)) {
+    if (t->tag == EXPR::BIGINT && mpz_cmp(t->z, x) == 0) {
       merge_state(t->st, st);
       return;
     } else if (t->tag > 0 || t->tag < EXPR::BIGINT)
