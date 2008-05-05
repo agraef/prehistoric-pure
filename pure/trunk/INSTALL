@@ -5,7 +5,19 @@ INSTALLING PURE (AND LLVM)
 These instructions (by courtesy of Eddie Rucker, thanks Eddie!) explain how to
 compile and install LLVM (which is the compiler backend required by Pure) and
 the Pure interpreter itself. More information about installing LLVM and the
-required LLVM source packages can be found at http://llvm.org.
+required LLVM source packages can be found at http://llvm.org. Please also
+have a look at the SYSTEM-SPECIFIC NOTES section at the end of this file which
+describes the tweaks necessary to make Pure compile and run on various
+platforms.
+
+Pure is known to work on Linux and Mac OSX, but should compile (with the usual
+amount of tweaking) on all UNIX/POSIX-based platforms. Version 4.x of the GNU
+C++ compiler is known to work (it should be available almost everywhere),
+earlier versions probably need some work. Other ANSI/ISO compatible C/C++
+compilers will probably work as well after you fiddled with the compilation
+options, but this has not been tested. Also note that the Makefile pretty much
+requires GNU make right now, so you should make sure that you have that
+installed before trying to compile Pure.
 
 
 BASIC INSTALLATION
@@ -15,8 +27,8 @@ The basic installation process is as follows. Note that steps 1-3 are only
 required once. Steps 2-3 can be avoided if binary LLVM packages are available
 for your system. Additional instructions for compiling Pure from SVN sources
 can be found in the INSTALLING FROM SVN SOURCES section below. Moreover, you
-can refer to the OTHER COMPILATION OPTIONS section at the end of the file for
-details about various options available when building and installing Pure.
+can refer to the OTHER COMPILATION OPTIONS section below for details about
+various options available when building and installing Pure.
 
 STEP 1. Make sure you have all the necessary dependencies installed (-dev
 denotes corresponding development packages):
@@ -167,6 +179,52 @@ wait, so please be patient. ;-)
 
 Please also have a look at the Makefile for details on the build and
 installation process and other available targets and options.
+
+
+SYSTEM-SPECIFIC NOTES
+=============== =====
+
+ALL PLATFORMS
+--- ---------
+
+Compiling the release version (make build=release) with gcc with all warnings
+turned on (which is the default) will give you the warning "dereferencing
+type-punned pointer will break strict-aliasing rules" at some point in
+util.cc. This is harmless and can be ignored.
+
+64 BIT SYSTEMS
+-- --- -------
+
+Please note that at the time of this writing only the release build of Pure
+(make build=release) appears to work on (some) 64 bit systems. We're working
+on these issues right now, so please stay tuned.
+
+LINUX
+-----
+
+Linux is the primary development platform for this software, and the sources
+should build out of the box on all recent Linux distributions. (Some
+unresolved issues have been reported with Ubuntu on PowerPC, though, see the
+mailing list for details and updates on this.)
+
+MAC OSX
+--- ---
+
+Pure is known to work on this platform, and a port by Ryan Schmidt exists in
+the MacPorts collection at http://www.macports.org/. If you compile Pure from
+the original sources yourself, you should remove the -rdynamic option from the
+link line (it's not needed on OSX) and add the -liconv flag instead. To these
+ends, build Pure with the following make command (add the build=release option
+for the release build):
+
+$ make LDFLAGS="" LIBS="-liconv"
+
+Also note that with at least some current versions of the Apple gcc compiler
+(4.0.1 and similar) you'll get the (bogus) warning "control reaches end of
+non-void function" a couple of times in interpreter.cc. These are due to a bug
+in older gcc versions (see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558),
+but they are harmless and can be ignored. These warnings should also go away
+once Apple upgrades its SDK to a newer gcc version.
 
 
 May 2008
