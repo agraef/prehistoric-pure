@@ -218,7 +218,7 @@ static ostream& printx(ostream& os, const expr& x, bool pat)
       my_formatd(buf, "%0.15g", d);
     // make sure that the output conforms to Pure syntax
     os << buf;
-    if (strchr("0123456789", buf[0]) &&
+    if (strchr("0123456789", buf[buf[0]=='-'?1:0]) &&
 	!strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E'))
       os << ".0";
     return os;
@@ -637,7 +637,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
       my_formatd(buf, "%0.15g", d);
     // make sure that the output conforms to Pure syntax
     os << buf;
-    if (strchr("0123456789", buf[0]) &&
+    if (strchr("0123456789", buf[buf[0]=='-'?1:0]) &&
 	!strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E'))
       os << ".0";
     return os;
