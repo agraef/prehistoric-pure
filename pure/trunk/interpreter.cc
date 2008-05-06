@@ -2181,6 +2181,12 @@ Function *interpreter::declare_extern(string name, string restype,
   const FunctionType *gt = g?g->getFunctionType():0;
   // Check whether we already have an external declaration for this symbol.
   map<int32_t,ExternInfo>::const_iterator it = externals.find(sym.f);
+  // Handle the case that the C function was imported through a dll *after*
+  // the definition of a Pure function of the same name. In this case the C
+  // function won't be accessible in the Pure program at all.
+  if (it == externals.end() && g && !g->isDeclaration())
+    throw err("symbol '"+name+
+	      "' is already defined as a Pure function or variable");
   if (it == externals.end() && g) {
     // Cross-check with a builtin declaration.
     assert(g->isDeclaration() && gt);
@@ -2248,7 +2254,7 @@ Function *interpreter::declare_extern(string name, string restype,
   vector<const Type*> argt2(n, ExprPtrTy);
   FunctionType *ft2 = FunctionType::get(ExprPtrTy, argt2, false);
   Function *f = new Function(ft2, Function::InternalLinkage,
-			     "$$pure."+asname, module);
+			     "$$wrap."+asname, module);
   vector<Value*> args(n), unboxed(n);
   Function::arg_iterator a = f->arg_begin();
   for (size_t i = 0; a != f->arg_end(); ++a, ++i) {
@@ -3820,23 +3826,32 @@ Function *interpreter::fun_prolog(string name)
     /* Mangle local function names so that they're easier to identify; as a
        side-effect, this should also ensure that we always get the proper
        names for external functions. */
+    bool have_c_func = false;
     if (f.local) {
       EnvStack::iterator e = envstk.begin();
       if (++e != envstk.end()) name = (*e)->name + "." + name;
-    }
+    } else
+      /* Check that we do not accidentally override a C function of the same
+	 name. */
+      have_c_func = sys::DynamicLibrary::SearchForAddressOfSymbol(name);
     f.name = name;
     /* Linkage type and calling convention. For each Pure function (no matter
        whether global or local) we create a C-callable function in LLVM
        IR. (This is necessary also for local functions, since these might need
        to be called from the runtime.) In the case of a global function, this
-       function is also externally visible. However, in order to enable tail
-       call elimination (on platforms where LLVM supports this), suitable
-       functions are internally implemented using the fast calling convention
-       (if enabled, which it is by default). In this case, the C-callable
-       function is just a stub calling the internal function. */
+       function is also externally visible, *unless* there's already a
+       callable C function of that name (in which case we also mangle the name
+       to prevent name collisions). However, in order to enable tail call
+       elimination (on platforms where LLVM supports this), suitable functions
+       are internally implemented using the fast calling convention (if
+       enabled, which it is by default). In this case, the C-callable function
+       is just a stub calling the internal function. */
     Function::LinkageTypes scope = Function::ExternalLinkage;
     CallingConv::ID cc = CallingConv::C;
     if (f.local ||
+	// global Pure functions use internal linkage if they would shadow a C
+	// function:
+	have_c_func ||
 	// anonymous functions and operators use internal linkage, too:
 	f.tag == 0 || symtab.sym(f.tag).prec < 10)
       scope = Function::InternalLinkage;
@@ -3850,16 +3865,20 @@ Function *interpreter::fun_prolog(string name)
        situations and thus this optimization isn't implemented yet. */
     if (!name.empty() && f.m == 0) cc = CallingConv::Fast;
 #endif
+    /* Mangle the name of the C-callable wrapper if it would shadow another C
+       function. */
+    string pure_name = name;
+    if (have_c_func) pure_name = "$$pure."+name;
     if (cc == CallingConv::Fast) {
       // create the function
       f.f = new Function(ft, Function::InternalLinkage,
 			 "$$fastcc."+name, module);
       assert(f.f); f.f->setCallingConv(cc);
       // create the C-callable stub
-      f.h = new Function(ft, scope, name, module); assert(f.h);
+      f.h = new Function(ft, scope, pure_name, module); assert(f.h);
     } else {
       // no need for a separate stub
-      f.f = new Function(ft, scope, name, module); assert(f.f);
+      f.f = new Function(ft, scope, pure_name, module); assert(f.f);
       f.h = f.f;
     }
     /* Give names to the arguments, and provide direct access to these by
