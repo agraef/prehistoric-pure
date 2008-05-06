@@ -283,6 +283,19 @@ pow x::double y::bigint	= c_pow x (double y);
 pow x::int y::double	= c_pow (double x) y if x>=0 || int y==y;
 pow x::bigint y::double	= c_pow (double x) y if x>=0 || int y==y;
 
+/* The ^ operator. Works like pow, but always promotes its operands to double
+   and returns a double result. */
+
+x::double^y::double	= c_pow x y if x>=0 || int y==y;
+x::int^y::int		= c_pow (double x) (double y);
+x::bigint^y::bigint	= c_pow (double x) (double y);
+x::int^y::bigint	= c_pow (double x) (double y);
+x::bigint^y::int	= c_pow (double x) (double y);
+x::double^y::int	= c_pow x (double y);
+x::double^y::bigint	= c_pow x (double y);
+x::int^y::double	= c_pow (double x) y if x>=0 || int y==y;
+x::bigint^y::double	= c_pow (double x) y if x>=0 || int y==y;
+
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
    to 64 bit systems. */
 

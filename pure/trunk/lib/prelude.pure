@@ -47,7 +47,7 @@ infixl 5   << >> ;		// bit shifts
 infixl 6   + - | ;		// addition, bitwise or
 infixl 7   * / div mod & ;	// multiplication, bitwise and
 prefix 7   ~ ;			// bitwise not
-infixr 8   ^ ;			// exponentiation (undefined for now)
+infixr 8   ^ ;			// exponentiation
 prefix 8   # ;			// size operator
 infixl 9   ! ;			// indexing
 infixr 9   . ;			// function composition
