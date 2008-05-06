@@ -1,5 +1,9 @@
 2008-05-06  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc, lib/primitives.pure: Added predicates funp, lambdap,
+	varp checking for named and anonymous closures and unbound global
+	variables, respectively. Requested by Libor Spacek.
+
 	* interpreter.cc (declare_extern, fun_prolog): Handle some obscure
 	cases of name collisions between Pure and C functions.
 

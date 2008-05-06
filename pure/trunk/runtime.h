@@ -256,6 +256,13 @@ pure_expr *eval(const char *s);
 
 bool same(const pure_expr *x, const pure_expr *y);
 
+/* Check whether an object is a named function (closure), an anonymous
+   function (lambda), or a global variable, respectively. */
+
+bool funp(const pure_expr *x);
+bool lambdap(const pure_expr *x);
+bool varp(const pure_expr *x);
+
 /* Check whether an object is a function application, and return the function
    and the argument of an application. Note that these operations can't be
    defined in Pure because of the "head is function" rule which means that in
