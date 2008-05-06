@@ -254,11 +254,34 @@ x::double>=y::bigint	= x>=double y;
 x::double==y::bigint	= x==double y;
 x::double!=y::bigint	= x!=double y;
 
-extern expr* bigint_pow(void*, int);
+/* The sqrt function. Integer arguments get promoted to double and the result
+   is always a double. The argument must be nonnegative. */
 
-pow x::bigint y::int	= bigint_pow x y if y>=0;
+extern double sqrt(double) = c_sqrt;
+
+sqrt x::int		= c_sqrt (double x) if x>=0;
+sqrt x::bigint		= c_sqrt (double x) if x>=0;
+sqrt x::double		= c_sqrt x if x>=0;
+
+/* The pow function. Returns a bigint for integer arguments, double if one of
+   the arguments is double (in the latter case, x may be negative only if y is
+   integer). */
+
+extern expr* bigint_pow(void*, int), double pow(double, double) = c_pow;
+
 pow x::int y::int	= bigint_pow (bigint x) y if y>=0;
 pow x::bigint y::bigint	= bigint_pow x (int y) if int y>=0;
+pow x::double y::double	= c_pow x y if x>=0 || int y==y;
+
+// mixed int/bigint
+pow x::int y::bigint	= bigint_pow (bigint x) (int y) if y>=0;
+pow x::bigint y::int	= bigint_pow x y if y>=0;
+
+// mixed double/int/bigint
+pow x::double y::int	= c_pow x (double y);
+pow x::double y::bigint	= c_pow x (double y);
+pow x::int y::double	= c_pow (double x) y if x>=0 || int y==y;
+pow x::bigint y::double	= c_pow (double x) y if x>=0 || int y==y;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
    to 64 bit systems. */

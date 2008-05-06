@@ -1,5 +1,9 @@
 2008-05-06  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/primitives.pure: Made the pow function work with all
+	combinations of integer and double arguments. Added the sqrt
+	function.
+
 	* runtime.cc, lib/primitives.pure: Added predicates funp, lambdap,
 	varp checking for named and anonymous closures and unbound global
 	variables, respectively. Requested by Libor Spacek.
