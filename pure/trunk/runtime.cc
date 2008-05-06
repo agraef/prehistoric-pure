@@ -1095,6 +1095,24 @@ bool same(const pure_expr *x, const pure_expr *y)
 }
 
 extern "C"
+bool funp(const pure_expr *x)
+{
+  return (x->tag > 0 && x->data.clos);
+}
+
+extern "C"
+bool lambdap(const pure_expr *x)
+{
+  return (x->tag == 0 && x->data.clos);
+}
+
+extern "C"
+bool varp(const pure_expr *x)
+{
+  return (x->tag > 0 && !x->data.clos);
+}
+
+extern "C"
 bool applp(const pure_expr *x)
 {
   return (x->tag == EXPR::APP);

@@ -38,10 +38,11 @@ doublep x	= case x of _::double  = 1; _ = 0 end;
 stringp x	= case x of _::string  = 1; _ = 0 end;
 pointerp x	= case x of _::pointer = 1; _ = 0 end;
 
-/* Predicates to check for function applications and proper lists and
-   tuples. */
+/* Predicates to check for function objects, global (unbound) variables,
+   function applications and proper lists and tuples. */
 
-extern bool applp(expr*);
+extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*),
+  bool applp(expr*);
 
 listp []	= 1;
 listp (x:xs)	= listp xs;
