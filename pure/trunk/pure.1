@@ -193,13 +193,12 @@ point values and double-quoted strings are all provided, although the Pure
 syntax differs in some minor ways, as discussed in the following. First, there
 is a special notation for denoting bigints. Note that an integer constant that
 is too large to fit into a machine integer will be interpreted as a bigint
-automatically. Moreover, an integer literal immediately followed by the
-uppercase letter ``G'' (mnemonic: ``biG'' or ``GMP'' integer) will always be
-interpreted as a bigint constant, even if it fits into a machine integer. This
-``big G'' notation is also used when printing bigint constants. Second,
-character escapes in Pure strings have a more flexible syntax borrowed from
-the author's Q language, which provides notations to specify any Unicode
-character. In particular, the notation
+automatically. Moreover, as in Python an integer literal immediately followed
+by the uppercase letter ``L'' will always be interpreted as a bigint constant,
+even if it fits into a machine integer. This notation is also used when
+printing bigint constants. Second, character escapes in Pure strings have a
+more flexible syntax borrowed from the author's Q language, which provides
+notations to specify any Unicode character. In particular, the notation
 .BR \e\fIn\fP ,
 where \fIn\fP is an integer literal written in decimal (no prefix),
 hexadecimal (`0x' prefix) or octal (`0' prefix) notation, denotes the Unicode
@@ -1052,7 +1051,7 @@ you want to define a function operating on both kinds of integers, you'll also
 have to provide equations for both. This also applies to equations matching
 against constant values of these types; in particular, a small integer
 constant like `0' only matches machine integers, not bigints; for the latter
-you'll have to use the ``big G'' notation `0G'.
+you'll have to use the ``big L'' notation `0L'.
 .PP
 .B External C functions.
 The interpreter always takes your

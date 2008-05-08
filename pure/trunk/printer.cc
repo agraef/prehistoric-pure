@@ -202,7 +202,7 @@ static ostream& printx(ostream& os, const expr& x, bool pat)
     return os << x.ival();
   case EXPR::BIGINT: {
     char *s = mpz_get_str(NULL, 10, x.zval());
-    os << s << "G"; free(s);
+    os << s << "L"; free(s);
     return os;
   }
   case EXPR::DBL: {
@@ -439,7 +439,7 @@ ostream& operator << (ostream& os, const trans& tr)
     return os << " state " << tr.st->s << endl;
   case EXPR::BIGINT: {
     char *s = mpz_get_str(NULL, 10, tr.z);
-    os << "\t" << s << "G";
+    os << "\t" << s << "L";
     print_ttag(os, tr.ttag);
     os << " state " << tr.st->s << endl;
     free(s);
@@ -621,7 +621,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
     return os << x->data.i;
   case EXPR::BIGINT: {
     char *s = mpz_get_str(NULL, 10, x->data.z);
-    os << s << "G"; free(s);
+    os << s << "L"; free(s);
     return os;
   }
   case EXPR::DBL: {
