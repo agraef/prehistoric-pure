@@ -1,3 +1,10 @@
+2008-05-09  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lexer.ll, printer.cc, etc.: Change the "G" suffix to denote
+	bigints to "L" ("G" can too easily be mistaken for a digit; also,
+	Python uses the same "L" notation for bigints). Reported by Eddie
+	Rucker.
+
 2008-05-06  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/primitives.pure: Made the pow function work with all
