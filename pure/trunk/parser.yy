@@ -235,7 +235,8 @@ typedef list<comp_clause> comp_clause_list;
   comp_clauses comp_clause_list args qual rules rulel rule pat_rules pat_rulel
   simple_rules simple_rulel simple_rule ids names name
   optalias opt_ctypes ctypes ctype
-%destructor { free($$); } BIGINT STR
+%destructor { mpz_clear(*$$); free($$); } BIGINT
+%destructor { free($$); } STR
 %printer { debug_stream() << *$$; } ID name optalias ctype expr cond simple app
   prim op args qual rule pat_rules pat_rulel simple_rules simple_rulel
   simple_rule
@@ -490,7 +491,7 @@ prim
 			    $$ = interp.mksym_expr($1);
 			  } }
 | INT			{ $$ = new expr(EXPR::INT, $1); }
-| BIGINT		{ $$ = new expr(EXPR::BIGINT, *$1); delete $1; }
+| BIGINT		{ $$ = new expr(EXPR::BIGINT, *$1); free($1); }
 | DBL			{ $$ = new expr(EXPR::DBL, $1); }
 | STR			{ $$ = new expr(EXPR::STR, $1); }
 | '[' expr ']'		{ $$ = interp.mklist_expr($2); }
