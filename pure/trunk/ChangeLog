@@ -1,3 +1,9 @@
+2008-05-10  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (uminop): Handle the value -0x80000000 at the
+	border of the int range, so that it is correctly treated as a
+	machine int.
+
 2008-05-09  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lexer.ll, printer.cc, etc.: Change the "G" suffix to denote
