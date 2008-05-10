@@ -55,17 +55,17 @@ let x, y = square x, square (x+2); x; y;
 fact1 n = n*fact1 (n-1) if n>0;
         = 1 otherwise;
 
-// This is essentially the same, but uses a 'case' expression.
-
-fact2 n = case n of
-            n = n*fact2 (n-1) if n>0;
-              = 1 otherwise;
-          end;
-
 // Using pattern matching (note the constant pattern on the lhs of eqn. #1).
 
-fact3 0 = 1;
-fact3 n = n*fact3 (n-1) if n>0;
+fact2 0 = 1;
+fact2 n = n*fact2 (n-1) if n>0;
+
+// This is essentially the same, but uses a 'case' expression.
+
+fact3 n = case n of
+            0 = 1;
+            n = n*fact3 (n-1) if n>0;
+          end;
 
 // Using 'if-then-else'.
 
