@@ -594,9 +594,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   mpz_t *z = (mpz_t*)malloc(sizeof(mpz_t));
   mpz_init(*z);
   mpz_set_str(*z, yytext, 0);
-  if (mpz_fits_slong_p(*z)) {
-    long n = mpz_get_si(*z);
-    free(z);
+  if (mpz_fits_sint_p(*z)) {
+    int n = mpz_get_si(*z);
+    mpz_clear(*z); free(z);
     yylval->ival = n;
     return token::INT;
   } else {
