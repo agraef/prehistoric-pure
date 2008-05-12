@@ -1,3 +1,7 @@
+2008-05-12  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Makefile: Redirect warning and error messages to the logfile.
+
 2008-05-10  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (uminop): Handle the value -0x80000000 at the

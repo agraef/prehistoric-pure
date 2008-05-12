@@ -111,8 +111,14 @@ struct Env {
   map<xmap_key,uint32_t > xmap;
   // info about captured variables
   list<VarInfo> xtab;
-  // local function environments
-  map<int32_t,Env> fmap;
+  // local function environments; note that there's actually a separate child
+  // environment for each rule of the parent function (this gets initialized
+  // to a single empty environment)
+  vector< map<int32_t,Env> > fmap;
+  // the current fmap index; this gets updated each time a new rule is added
+  size_t fmap_idx;
+  // convenience function to access the current fmap
+  map<int32_t,Env>& act_fmap() { return fmap[fmap_idx]; }
   // propagation links for environment variables (pointers to call sites)
   // e in prop means that there's a call with de Bruijn index prop[e] at e
   map<Env*,uint8_t> prop;
@@ -161,11 +167,11 @@ struct Env {
   // default constructor
   Env()
     : tag(0), n(0), m(0), l(0), f(0), h(0), fp(0), args(0), envs(0), argv(0),
-      b(false), local(false), parent(0), refc(0) {}
+      fmap(1), fmap_idx(0), b(false), local(false), parent(0), refc(0) {}
   // environment for an anonymous closure with given body x
   Env(int32_t _tag, uint32_t _n, expr x, bool _b, bool _local = false)
     : tag(_tag), n(_n), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), b(_b), local(_local), parent(0), refc(0)
+      argv(0), fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
@@ -179,7 +185,7 @@ struct Env {
   // environment for a named closure with given definition info
   Env(int32_t _tag, const env_info& info, bool _b, bool _local = false)
     : tag(_tag), n(info.argc), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), b(_b), local(_local), parent(0), refc(0)
+      argv(0), fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);

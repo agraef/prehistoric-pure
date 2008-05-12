@@ -764,9 +764,12 @@ void my_readline(const char *prompt, char *buf, int &result, int max_size)
 
 void interpreter::print_defs(ostream& os, const Env& e)
 {
+  if (!e.f) return; // not used, probably a shadowed rule
   if (e.h && e.h != e.f) e.h->print(os);
   e.f->print(os);
-  map<int32_t,Env>::const_iterator f;
-  for (f = e.fmap.begin(); f != e.fmap.end(); f++)
-    print_defs(os, f->second);
+  for (size_t i = 0, n = e.fmap.size(); i < n; i++) {
+    map<int32_t,Env>::const_iterator f;
+    for (f = e.fmap[i].begin(); f != e.fmap[i].end(); f++)
+      print_defs(os, f->second);
+  }
 }
