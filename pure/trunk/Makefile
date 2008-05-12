@@ -197,14 +197,14 @@ logs: $(logs)
 
 check: pure
 	@ echo Running tests.
-	@ (export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
-	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
+	@ (export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure 2>&1 | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
+	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f 2>&1 | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
 
 test/prelude.log: lib/prelude.pure
-	PURELIB=./lib ./pure -n -v$(level) $< > $@
+	PURELIB=./lib ./pure -n -v$(level) $< > $@ 2>&1
 
 %.log: %.pure
-	PURELIB=./lib ./pure -v$(level) < $< > $@
+	PURELIB=./lib ./pure -v$(level) < $< > $@ 2>&1
 
 # DO NOT DELETE
 
