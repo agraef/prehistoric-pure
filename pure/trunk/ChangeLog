@@ -1,5 +1,12 @@
 2008-05-12  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc: Fix a severe bug in the environment handling
+	code of the code generator, which could cause segfaults in the
+	code generator, or wrong code to be generated in some cases. To
+	resolve this issue, the code generator now properly keeps separate
+	environments for each rule of a function definition. Reported by
+	John Lunney.
+
 	* Makefile: Redirect warning and error messages to the logfile.
 
 2008-05-10  Albert Graef  <Dr.Graef@t-online.de>
