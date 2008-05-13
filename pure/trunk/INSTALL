@@ -57,8 +57,11 @@ STEP 3. Configure, build and install LLVM as follows:
 
 $ cd llvm-2.2
 $ ./configure
-$ make
+$ make ENABLE_OPTIMIZED=1
 $ sudo make install
+
+(To do a debug build of LLVM, leave away the 'ENABLE_OPTIMIZED=1' parameter.
+Note, however, that this will considerably slow down the Pure compiler.)
 
 STEP 4. Get and unpack the Pure sources at: http://pure-lang.sf.net/
 
