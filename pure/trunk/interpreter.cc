@@ -204,7 +204,8 @@ interpreter::interpreter()
   declare_extern((void*)pure_apply,
 		 "pure_apply",      "expr*",  2, "expr*", "expr*");
   declare_extern((void*)pure_cmp_bigint,
-		 "pure_cmp_bigint", "int",    3, "expr*", "int", "long*");
+		 "pure_cmp_bigint", "int",    3, "expr*", "int",
+		 sizeof(mp_limb_t)==8?"long*":"int*");
   declare_extern((void*)pure_cmp_string,
 		 "pure_cmp_string", "int",    2, "expr*", "char*");
 
