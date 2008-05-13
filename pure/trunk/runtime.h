@@ -156,13 +156,13 @@ void pure_unref(pure_expr *x);
 
 void pure_new_args(pure_expr *x, ...);
 
-/* Collect call data. This is used to free arguments end environment when
+/* Collect call data. This is used to free arguments and environment when
    returning from a function. The first argument is the return value. If not
    null, an extra reference is temporarily counted on this expression so that
    it doesn't get freed if the return value happens to be a (subterm of an)
    argument or environment expression. (It's the caller's duty to call
-   pure_unref later.) The remaining parameters is the list of expression
-   pointers to be collected, terminated with a null pointer. */
+   pure_unref later.) The remaining parameters are the expression pointers to
+   be collected, terminated with a null pointer. */
 
 void pure_free_args(pure_expr *x, ...);
 
