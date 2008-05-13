@@ -714,27 +714,25 @@ pure_expr *pure_pointerval(pure_expr *x)
   case EXPR::STR:	return pure_pointer(x->data.s);
   case EXPR::INT:	return pure_pointer((void*)x->data.i);
   case EXPR::BIGINT:
-#ifdef _LONG_LONG_LIMB
-    return pure_pointer((void*)x->data.z->_mp_d[0]);
-#else
-    if (sizeof(void*) == 4)
+    if (sizeof(mp_limb_t) == 8)
+      return pure_pointer((void*)x->data.z->_mp_d[0]);
+    else if (sizeof(void*) == 4)
       return pure_pointer((void*)mpz_get_ui(x->data.z));
     else {
       uint64_t u = x->data.z->_mp_d[0]+(((uint64_t)x->data.z->_mp_d[1])<<32);
       return pure_pointer((void*)u);
     }
-#endif
   default:		return 0;
   }
 }
 
 static pure_expr *pointer_to_bigint(void *p)
 {
-#ifdef _LONG_LONG_LIMB
-  // In this case the pointer value ought to fit into a single limb.
-  limb_t u[1] = { (uint64_t)p };
-  return pure_bigint(1, u);
-#else
+  if (sizeof(mp_limb_t) == 8) {
+    // In this case the pointer value ought to fit into a single limb.
+    limb_t u[1] = { (uint64_t)p };
+    return pure_bigint(1, u);
+  }
   // 4 byte limbs.
   if (sizeof(void*) == 4) {
     // 4 byte pointers. Note that we still cast to 64 bit first, since
@@ -747,7 +745,6 @@ static pure_expr *pointer_to_bigint(void *p)
     limb_t u[2] = { (uint32_t)(uint64_t)p, (uint32_t)(((uint64_t)p)>>32) };
     return pure_bigint(2, u);
   }
-#endif
 }
 
 extern "C"
