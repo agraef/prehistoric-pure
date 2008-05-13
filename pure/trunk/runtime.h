@@ -12,11 +12,7 @@ extern "C" {
 #endif
 
 /* Our "limb" type. Used to pass bigint constants to the runtime. */
-#ifdef _LONG_LONG_LIMB // try to match what GMP uses
-typedef uint64_t limb_t;
-#else
-typedef uint32_t limb_t;
-#endif
+typedef mp_limb_t limb_t;
 
 /* Closure data. This is a bit on the heavy side, so expressions which need
    it (i.e., functions) refer to this extra data via an allocated pointer. */

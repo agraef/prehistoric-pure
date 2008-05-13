@@ -191,7 +191,8 @@ interpreter::interpreter()
   declare_extern((void*)pure_int,
 		 "pure_int",        "expr*",  1, "int");
   declare_extern((void*)pure_bigint,
-		 "pure_bigint",     "expr*",  2, "int", "int*");
+		 "pure_bigint",     "expr*",  2, "int",
+		 sizeof(mp_limb_t)==8?"long*":"int*");
   declare_extern((void*)pure_double,
 		 "pure_double",     "expr*",  1, "double");
   declare_extern((void*)pure_string_dup,
@@ -203,7 +204,7 @@ interpreter::interpreter()
   declare_extern((void*)pure_apply,
 		 "pure_apply",      "expr*",  2, "expr*", "expr*");
   declare_extern((void*)pure_cmp_bigint,
-		 "pure_cmp_bigint", "int",    3, "expr*", "int", "int*");
+		 "pure_cmp_bigint", "int",    3, "expr*", "int", "long*");
   declare_extern((void*)pure_cmp_string,
 		 "pure_cmp_string", "int",    2, "expr*", "char*");
 
@@ -2066,12 +2067,16 @@ const Type *interpreter::named_type(string name)
     return Type::Int8Ty;
   else if (name == "int")
     return Type::Int32Ty;
+  else if (name == "long")
+    return Type::Int64Ty;
   else if (name == "double")
     return Type::DoubleTy;
   else if (name == "char*")
     return PointerType::get(Type::Int8Ty, 0);
   else if (name == "int*")
     return PointerType::get(Type::Int32Ty, 0);
+  else if (name == "long*")
+    return PointerType::get(Type::Int64Ty, 0);
   else if (name == "double*")
     return PointerType::get(Type::DoubleTy, 0);
   else if (name == "expr*")
@@ -2097,12 +2102,16 @@ const char *interpreter::type_name(const Type *type)
     return "char";
   else if (type == Type::Int32Ty)
     return "int";
+  else if (type == Type::Int64Ty)
+    return "long";
   else if (type == Type::DoubleTy)
     return "double";
   else if (type == PointerType::get(Type::Int8Ty, 0))
     return "char*";
   else if (type == PointerType::get(Type::Int32Ty, 0))
     return "int*";
+  else if (type == PointerType::get(Type::Int64Ty, 0))
+    return "long*";
   else if (type == PointerType::get(Type::DoubleTy, 0))
     return "double*";
   else if (type == ExprPtrTy)
@@ -3698,31 +3707,30 @@ void interpreter::make_bigint(const mpz_t& z, Value*& sz, Value*& ptr)
   /* We're a bit lazy in that we only support 32 and 64 bit limbs here, but
      that should probably work on most if not all systems where GMP is
      available. */
-#ifdef _LONG_LONG_LIMB
-  // assume 64 bit limbs
-  assert(sizeof(mp_limb_t) == 8);
-  // second arg: array of unsigned long ints (least significant limb first)
-  size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
-  vector<Constant*> u(n);
-  for (size_t i = 0; i < n; i++) u[i] = UInt64(z->_mp_d[i]);
-  Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int64Ty, n), u);
   Env& e = act_env();
-  GlobalVariable *v = new GlobalVariable
-    (ArrayType::get(Type::Int64Ty, n), true,
-     GlobalVariable::InternalLinkage, limbs, "", module);
-#else
-  // assume 32 bit limbs
-  assert(sizeof(mp_limb_t) == 4);
-  // second arg: array of unsigned ints (least significant limb first)
-  size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
-  vector<Constant*> u(n);
-  for (size_t i = 0; i < n; i++) u[i] = UInt(z->_mp_d[i]);
-  Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int32Ty, n), u);
-  Env& e = act_env();
-  GlobalVariable *v = new GlobalVariable
-    (ArrayType::get(Type::Int32Ty, n), true,
-     GlobalVariable::InternalLinkage, limbs, "", module);
-#endif
+  GlobalVariable *v;
+  if (sizeof(mp_limb_t) == 8) {
+    // 64 bit limbs
+    // second arg: array of unsigned long ints (least significant limb first)
+    size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
+    vector<Constant*> u(n);
+    for (size_t i = 0; i < n; i++) u[i] = UInt64(z->_mp_d[i]);
+    Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int64Ty, n), u);
+    v = new GlobalVariable
+      (ArrayType::get(Type::Int64Ty, n), true,
+       GlobalVariable::InternalLinkage, limbs, "", module);
+  } else {
+    // assume 32 bit limbs
+    assert(sizeof(mp_limb_t) == 4);
+    // second arg: array of unsigned ints (least significant limb first)
+    size_t n = (size_t)(z->_mp_size>=0 ? z->_mp_size : -z->_mp_size);
+    vector<Constant*> u(n);
+    for (size_t i = 0; i < n; i++) u[i] = UInt(z->_mp_d[i]);
+    Constant *limbs = ConstantArray::get(ArrayType::get(Type::Int32Ty, n), u);
+    v = new GlobalVariable
+      (ArrayType::get(Type::Int32Ty, n), true,
+       GlobalVariable::InternalLinkage, limbs, "", module);
+  }
   // "cast" the int array to a int*
   ptr = e.CreateGEP(v, Zero, Zero);
 }
