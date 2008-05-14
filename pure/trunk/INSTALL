@@ -184,9 +184,9 @@ $ make build=release
 This disables all runtime checks and debugging information in the interpreter
 and also uses a higher level of optimization. The 'release' build will usually
 give you faster execution times, but the differences aren't really that big
-anymore (5% compared to the default flags on my Linux system running gcc 4.1,
-YMMV), so you are encouraged to use the 'default' build unless performance is
-really critical.
+anymore (5-10% compared to the default flags on my Linux system running gcc
+4.1, YMMV), so you are encouraged to use the 'default' build unless
+performance is really critical.
 
 You can also do a 'debug' build as follows:
 
