@@ -33,27 +33,37 @@ DESTDIR=
 LDFLAGS=-rdynamic
 LIBS=
 
-# Compilation flags. We provide three different build profiles:
+# Compilation flags. We currently provide the following build profiles:
 
 # 'default' compiles with extra runtime checks and debugging information.
-# 'debug'   adds more debugging output (useful to debug the interpreter).
 # 'release' optimizes for execution speed (release version).
+# 'debug'   like 'default', but without any optimizations.
+# 'debug2'  extensive debugging output, useful to debug the interpreter.
 
-# The 'default' build compiles with a moderate optimization level and runtime
-# checks as well as debugging information, and should be ok for most
-# installations, unless you really need/want the best performance in which
-# case the release build should be used. The latter gives me a 5% speedup on
-# my single-cpu AMD system running Linux and gcc 4.1, YMMV. The 'debug' build
-# adds a lot of extra debugging output both in the interpreter and the
-# generated code, and is really only useful for maintainers debugging the
+# The 'default' build should be suitable for most purposes. As of Pure 0.3,
+# this build now also does basic optimizations and so isn't much slower than
+# the 'release' build any more. In contrast to 'release', this build also
+# provides diagnostics useful for maintainers if anything is wrong with the
 # interpreter.
 
-# Note that both the 'default' and the 'release' build take quite a while to
-# compile (especially runtime.cc), so please be patient. ;-)
+# The 'release' build disables all runtime checks and debugging information
+# and compiles with additional optimizations which makes programs go a little
+# faster (some 5% on a single-cpu AMD system running Linux and gcc 4.1, YMMV);
+# use this if performance is critical.
+
+# The 'debug' build is like 'default' but without any optimizations; it builds
+# faster than 'default', but runs *much* slower, and isn't recommended for
+# anything but debugging the interpreter. The 'debug2' build generates massive
+# amounts of additional debugging messages, and is really only to be used by
+# maintainers debugging the interpreter.
 
 # To build with a given profile, just say 'make build=<profile>', e.g.: 'make
 # build=release'. (This option only has to be specified at build time, not for
-# installation or any other targets except 'all'.)
+# installation or any other targets except 'all'.) Just 'make' builds with the
+# default flags.
+
+# Note that both the 'default' and the 'release' build may take quite a while
+# to compile (especially runtime.cc), so please be patient. ;-)
 
 build=default
 
@@ -67,21 +77,26 @@ ifeq ($(build),default)
 CXXFLAGS = -g -O -Wall $(LLVM_FLAGS)
 CFLAGS = -g -O -Wall
 else
-ifeq ($(build),debug)
-CXXFLAGS = -g -Wall -DDEBUG=2 $(LLVM_FLAGS)
-CFLAGS = -g -Wall -DDEBUG=2
-else
 ifeq ($(build),release)
 CXXFLAGS = -O3 -DNDEBUG -Wall $(LLVM_FLAGS)
 CFLAGS = -O3 -DNDEBUG -Wall
+else
+ifeq ($(build),debug)
+CXXFLAGS = -g -Wall $(LLVM_FLAGS)
+CFLAGS = -g -Wall
+else
+ifeq ($(build),debug2)
+CXXFLAGS = -g -Wall -DDEBUG=2 $(LLVM_FLAGS)
+CFLAGS = -g -Wall -DDEBUG=2
 else
 CXXFLAGS = -g -O -Wall $(LLVM_FLAGS)
 CFLAGS = -g -O -Wall
 .PHONY: warn
 warn: all
 	@echo "WARNING: Invalid build profile '$(build)'."
-	@echo "WARNING: Must be one of 'default', 'debug' and 'release'."
+	@echo "WARNING: Must be one of 'default', 'release', 'debug' and 'debug2'."
 	@echo "WARNING: Assuming 'default' profile."
+endif
 endif
 endif
 endif
