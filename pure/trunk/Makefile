@@ -48,8 +48,8 @@ LIBS=
 
 # The 'release' build disables all runtime checks and debugging information
 # and compiles with additional optimizations which makes programs go a little
-# faster (some 5% on a single-cpu AMD system running Linux and gcc 4.1, YMMV);
-# use this if performance is critical.
+# faster (some 5-10% on a single-cpu AMD system running Linux and gcc 4.1,
+# YMMV); use this if performance is critical.
 
 # The 'debug' build is like 'default' but without any optimizations; it builds
 # faster than 'default', but runs *much* slower, and isn't recommended for
