@@ -1,3 +1,19 @@
+2008-05-14  Albert Graef  <Dr.Graef@t-online.de>
+
+	* funcall.h: Reduce maximum number of function parameters to
+	64. This seems to be large enough for most purposes, and speeds up
+	compilation with -Ox by a factor of around 10.
+
+	* Makefile: Overhaul of build options. In particular, the
+	'default' build now includes basic optimization (-O) which makes
+	the interpreter almost as fast as with the 'release' build, and
+	produces a working interpreter also on 64 bit systems. (The
+	'debug' build is still broken there, but see the SYSTEM NOTES
+	section in the INSTALL file for a workaround.)
+
+	* interpreter.cc, runtime.cc: 64 bit compatibility fixes in bigint
+	handling.
+
 2008-05-12  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc: Fix a severe bug in the environment handling
