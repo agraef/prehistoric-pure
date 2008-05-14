@@ -2,22 +2,23 @@
 INSTALLING PURE (AND LLVM)
 ========== ==== ==== =====
 
-These instructions (by courtesy of Eddie Rucker, thanks Eddie!) explain how to
-compile and install LLVM (which is the compiler backend required by Pure) and
-the Pure interpreter itself. More information about installing LLVM and the
-required LLVM source packages can be found at http://llvm.org. Please also
-have a look at the SYSTEM-SPECIFIC NOTES section at the end of this file which
+These instructions (mostly by courtesy of Eddie Rucker, thanks Eddie!) explain
+how to compile and install LLVM (which is the compiler backend required by
+Pure) and the Pure interpreter itself. More information about installing LLVM
+and the required LLVM source packages can be found at http://llvm.org. Please
+also have a look at the SYSTEM NOTES section at the end of this file which
 describes the tweaks necessary to make Pure compile and run on various
 platforms.
 
 Pure is known to work on Linux and Mac OSX, but should compile (with the usual
 amount of tweaking) on all UNIX/POSIX-based platforms. We recommend using
-version 4.x of the GNU C++ compiler; it should be available almost everywhere.
-Other ANSI/ISO compatible C/C++ compilers will probably work as well (after
-some fiddling with the compilation options and the sources maybe), but this
-has not been tested. Also note that the Makefile pretty much requires GNU make
-right now, so you should make sure that you have that installed before trying
-to compile Pure.
+version 4.x of the GNU C++ compiler; it should be available almost everywhere
+(in fact, since you'll need LLVM anyway, you can also use the gcc frontend
+available for LLVM). Other ANSI/ISO compatible C/C++ compilers will probably
+work as well (after some fiddling with the compilation options and the sources
+maybe), but this has not been tested. Also note that the Makefile pretty much
+requires GNU make right now, so you should make sure that you have that
+installed before trying to compile Pure.
 
 
 BASIC INSTALLATION
@@ -76,8 +77,8 @@ $ cd pure-x.y
 $ make
 $ sudo make install
 
-Please note that compiling Pure takes a while (especially runtime.cc), so
-please have some patience.
+Note that compiling Pure with optimizations enabled (this is the default) may
+take quite a while, so please have some patience.
 
 After the build is complete, you can check that Pure is working correctly on
 your computer, as follows:
@@ -129,6 +130,9 @@ STEP 4': Fetch the SVN sources.
 
 $ svn co http://pure-lang.svn.sourceforge.net/svnroot/pure-lang pure-lang
 
+This step needs to be done only once; once you've checked out your working
+copy, you can update it to the latest revision by running 'svn up'.
+
 STEP 5': Build and install Pure:
 
 $ cd pure-lang/pure/trunk
@@ -151,10 +155,6 @@ time since certain default paths are hardcoded into the interpreter (but can
 be changed at runtime by setting corresponding environment variables, see the
 manpage for details).
 
-There are a number of other variables you can set on the 'make' command line
-if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
-have to add platform-specific libraries (LIBS) like libiconv on OSX.
-
 After your build is done, you can (and should) also run 'make check' to verify
 that your Pure interpreter works correctly. This can be done without
 installing the software. In fact, there's no need to install the interpreter
@@ -167,31 +167,47 @@ $ PURELIB=./lib ./pure
 
 will run the Pure interpreter with that setting in Bourne-compatible shells.
 
-As of Pure 0.3, the standard build now also includes basic optimization (-O).
-This build should be ok for most purposes, and has the advantage that it does
-additional runtime checks which may give more useful diagnostics if there is
-anything wrong with the interpreter.
+There are a number of other variables you can set on the 'make' command line
+if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
+have to add platform-specific libraries (LIBS). Please see the Makefile for
+additional information on these.
 
-However, you can also build a "release" version of the interpreter, as
-follows:
+As of Pure 0.3, the 'default' build now also includes basic optimizations
+(-O). This build should be ok for most purposes, and has the advantage that it
+does additional runtime checks which provide diagnostics useful for
+maintainers if anything is wrong with the interpreter.
+
+However, you can also build a "release" version of the interpreter as follows:
 
 $ make build=release
 
 This disables all runtime checks and debugging information in the interpreter
-and also uses a higher level of optimization. (Don't worry, your Pure programs
-will still be executed "safely" and shouldn't segfault unless you run out of
-memory or stack space, or there's a bug in the interpreter.) The 'release'
-build will usually give you faster execution times, but the differences aren't
-really that big anymore (5% compared to the default flags on my Linux system
-running gcc 4.1, YMMV), so you are encouraged to use the default build unless
-performance is really critical.
+and also uses a higher level of optimization. The 'release' build will usually
+give you faster execution times, but the differences aren't really that big
+anymore (5% compared to the default flags on my Linux system running gcc 4.1,
+YMMV), so you are encouraged to use the 'default' build unless performance is
+really critical.
 
-Please also have a look at the Makefile for details on the build and
-installation process and other available targets and options.
+You can also do a 'debug' build as follows:
+
+$ make build=debug
+
+This is like the standard build, but disables all optimizations, so
+compilation is faster but the compiled interpreter is *much* slower (a factor
+of about 2 on my Linux box). Hence this build is only recommended for
+debugging purposes.
+
+More details on the build and installation process and other available targets
+and options can be found in the Makefile.
 
 
-SYSTEM-SPECIFIC NOTES
-=============== =====
+SYSTEM NOTES
+====== =====
+
+Pure is known to work on recent Linux and Mac OSX versions, but there are a
+few system-specific quirks which are discussed below. (Please also see the
+CAVEATS AND NOTES section of the manual page for information on other known
+limitations of the current implementation.)
 
 ALL PLATFORMS
 --- ---------
@@ -211,37 +227,36 @@ in case of a stack overflow.
 64 BIT SYSTEMS
 -- --- -------
 
-In general, 64 bit systems are supported by Pure. However, if you use your own
-custom set of build flags with gcc, make sure that you have at least -O
-enabled when compiling runtime.cc. There's a bug (seen at least on some 64 bit
-Linux versions) which causes wrong code to be executed by the Pure interpreter
-if you don't do this. The default and release builds should work fine. 32 bit
-builds also seem to be unaffected.
-
-We haven't been able to pin this one down yet, so if you have to use custom
-build options and run into this bug (easily verified because most of the tests
-run by 'make check' will fail), then for the time being please use the
-workaround described above. Also please watch the mailing list for updates on
-this issue.
+64 bit systems are supported by Pure. Alas, for unknown reasons the 'debug'
+build currently does *not* work on (some?) 64 bit systems using gcc. This has
+been seen on various different 64 bit Linux versions, YMMV. You can tell that
+you're bitten by this bug if, after running 'make debug' (or using similar,
+custom compilation flags), 'make check' fails on most tests. Fortunately, it
+seems that you can easily work around this by making sure that you have at
+least -O enabled when compiling runtime.cc. Also please note that the
+'default' and 'release' builds should work fine. 32 bit builds also seem to be
+unaffected.
 
 LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
-should build out of the box on all recent Linux distributions. Please see
-above for unresolved issues on 64 bit Linux systems and how to work around
-them. Also, some issues have been reported with Ubuntu (32 bit) on PowerPC,
-see the mailing list for details and updates on this.
+should build out of the box on all recent Linux distributions. However, note
+the issues on 64 bit Linux systems described above. Also, it has been reported
+that the interpreter does *not* work under Ubuntu (32 bit) on PowerPC right
+now; I can't do much about this myself since I cannot reproduce this on my x86
+and i64 Linux systems. Any input which could help to resolve these issues is
+much appreciated.
 
 MAC OSX
 --- ---
 
-Pure is known to work on this platform, and a port by Ryan Schmidt exists in
-the MacPorts collection at http://www.macports.org/. If you compile Pure from
-the original sources yourself, you should remove the -rdynamic option from the
-link line (it's not needed on OSX) and add the -liconv flag instead. To these
-ends, build Pure with the following make command (add the build=release option
-for the release build):
+A port by Ryan Schmidt exists in the MacPorts collection at
+http://www.macports.org/. If you compile Pure from the original sources
+yourself, you should remove the -rdynamic option from the link line (it's not
+needed on OSX) and add the -liconv flag instead. To these ends, build Pure
+with the following make command (add the build=release option for the release
+build):
 
 $ make LDFLAGS="" LIBS="-liconv"
 
@@ -258,9 +273,9 @@ MS WINDOWS
 Nobody has reported a successful port to this platform yet, but it should be
 rather straightforward (albeit arduous) to do this with either Cygwin
 (http://www.cygwin.com/) or Mingw (http://www.mingw.org/), once you have all
-the necessary dependencies and the Windows version of LLVM (available at
-http://llvm.org) installed. So *you* can still be the hero who first got Pure
-up and running on Windows; if you do, please let us know! :)
+the necessary dependencies and a suitable version of LLVM installed. So *you*
+can still be the hero who first got Pure up and running on Windows; if you do,
+please let us know! :)
 
 
 May 2008
