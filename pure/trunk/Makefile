@@ -39,10 +39,17 @@ LIBS=
 # 'debug'   adds more debugging output (useful to debug the interpreter).
 # 'release' optimizes for execution speed (release version).
 
-# The latter disables all runtime checks and debugging information and gives
-# you *much* faster execution times (factor of 2 compared to the default flags
-# on my Linux system running gcc 4.1, YMMV). It also takes a *long* time to
-# compile runtime.cc, so be patient. ;-)
+# The 'default' build compiles with a moderate optimization level and runtime
+# checks as well as debugging information, and should be ok for most
+# installations, unless you really need/want the best performance in which
+# case the release build should be used. The latter gives me a 5% speedup on
+# my single-cpu AMD system running Linux and gcc 4.1, YMMV. The 'debug' build
+# adds a lot of extra debugging output both in the interpreter and the
+# generated code, and is really only useful for maintainers debugging the
+# interpreter.
+
+# Note that both the 'default' and the 'release' build take quite a while to
+# compile (especially runtime.cc), so please be patient. ;-)
 
 # To build with a given profile, just say 'make build=<profile>', e.g.: 'make
 # build=release'. (This option only has to be specified at build time, not for
@@ -57,8 +64,8 @@ LLVM_LIBS = `llvm-config --ldflags --libs core jit native`
 # with the options if you're using a different compiler.
 
 ifeq ($(build),default)
-CXXFLAGS = -g -Wall $(LLVM_FLAGS)
-CFLAGS = -g -Wall
+CXXFLAGS = -g -O -Wall $(LLVM_FLAGS)
+CFLAGS = -g -O -Wall
 else
 ifeq ($(build),debug)
 CXXFLAGS = -g -Wall -DDEBUG=2 $(LLVM_FLAGS)
@@ -68,8 +75,8 @@ ifeq ($(build),release)
 CXXFLAGS = -O3 -DNDEBUG -Wall $(LLVM_FLAGS)
 CFLAGS = -O3 -DNDEBUG -Wall
 else
-CXXFLAGS = -g -Wall $(LLVM_FLAGS)
-CFLAGS = -g -Wall
+CXXFLAGS = -g -O -Wall $(LLVM_FLAGS)
+CFLAGS = -g -O -Wall
 .PHONY: warn
 warn: all
 	@echo "WARNING: Invalid build profile '$(build)'."

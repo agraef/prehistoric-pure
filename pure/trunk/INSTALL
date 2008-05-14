@@ -69,27 +69,27 @@ The latest release tarballs can always be found on the SourceForge project
 page. See "Downloads" on the Pure website for a quick link to the download
 section.
 
-STEP 5. Build and install the release version of Pure as follows:
+STEP 5. Build and install Pure as follows (x.y denotes the current Pure
+version number, 0.3 at the time of this writing):
 
 $ cd pure-x.y
-$ make build=release
+$ make
 $ sudo make install
 
-Here, x.y denotes the current Pure version number (0.2 at the time of this
-writing). If you want to install the debugging-enabled version, run just
-'make' instead of 'make build=release'.
+Please note that compiling Pure takes a while (especially runtime.cc), so
+please have some patience.
 
-To check that Pure is working correctly on your computer, also run:
+After the build is complete, you can check that Pure is working correctly on
+your computer, as follows:
 
 $ make check
 
-STEP 6. The Pure interpreter should be ready to go now. (On some systems you
-might first have to run ldconfig to update the dynamic linker cache.)
+STEP 6. The Pure interpreter should be ready to go now.
 
 Run Pure interactively as:
 
 $ pure
-Pure 0.1 Copyright (c) 2008 by Albert Graef
+Pure 0.3 Copyright (c) 2008 by Albert Graef
 This program is free software distributed under the GNU Public License
 (GPL V3 or later). Please see the COPYING file for details.
 Loaded prelude from /usr/local/lib/pure/prelude.pure.
@@ -129,8 +129,7 @@ STEP 4': Fetch the SVN sources.
 
 $ svn co http://pure-lang.svn.sourceforge.net/svnroot/pure-lang pure-lang
 
-STEP 5': Build and install the debugging-enabled version (of course you can
-also build the release version, as described in step 5 above):
+STEP 5': Build and install Pure:
 
 $ cd pure-lang/pure/trunk
 $ make
@@ -168,17 +167,24 @@ $ PURELIB=./lib ./pure
 
 will run the Pure interpreter with that setting in Bourne-compatible shells.
 
-For the release version, you should build the interpreter as follows:
+As of Pure 0.3, the standard build now also includes basic optimization (-O).
+This build should be ok for most purposes, and has the advantage that it does
+additional runtime checks which may give more useful diagnostics if there is
+anything wrong with the interpreter.
+
+However, you can also build a "release" version of the interpreter, as
+follows:
 
 $ make build=release
 
-This disables all runtime checks and debugging information in the interpreter.
-(Don't worry, your Pure programs will still be executed "safely" and shouldn't
-segfault unless you run out of memory or there's a bug in the interpreter.) 
-The 'release' build gives you *much* faster execution times (factor of 2
-compared to the default flags on my Linux system running gcc 4.1, YMMV). It
-also takes a *long* time to compile runtime.cc, but it's really worth the
-wait, so please be patient. ;-)
+This disables all runtime checks and debugging information in the interpreter
+and also uses a higher level of optimization. (Don't worry, your Pure programs
+will still be executed "safely" and shouldn't segfault unless you run out of
+memory or stack space, or there's a bug in the interpreter.) The 'release'
+build will usually give you faster execution times, but the differences aren't
+really that big anymore (5% compared to the default flags on my Linux system
+running gcc 4.1, YMMV), so you are encouraged to use the default build unless
+performance is really critical.
 
 Please also have a look at the Makefile for details on the build and
 installation process and other available targets and options.
@@ -190,25 +196,42 @@ SYSTEM-SPECIFIC NOTES
 ALL PLATFORMS
 --- ---------
 
-Compiling the release version (make build=release) with gcc with all warnings
+Compiling the release version (make build=release) using gcc with all warnings
 turned on (which is the default) will give you the warning "dereferencing
 type-punned pointer will break strict-aliasing rules" at some point in
 util.cc. This is harmless and can be ignored.
 
+If your Pure program runs out of stack space, the interpreter will segfault.
+This is *not* a bug, it happens because runtime stack checks are disabled by
+default for performance reasons. You can enable stack checks by setting the
+PURE_STACK environment variable accordingly; see the pure(1) manual page for
+details. The interpreter will then generate orderly "stack fault" exceptions
+in case of a stack overflow.
+
 64 BIT SYSTEMS
 -- --- -------
 
-Please note that at the time of this writing only the release build of Pure
-(make build=release) appears to work on (some) 64 bit systems. We're working
-on these issues right now, so please stay tuned.
+In general, 64 bit systems are supported by Pure. However, if you use your own
+custom set of build flags with gcc, make sure that you have at least -O
+enabled when compiling runtime.cc. There's a bug (seen at least on some 64 bit
+Linux versions) which causes wrong code to be executed by the Pure interpreter
+if you don't do this. The default and release builds should work fine. 32 bit
+builds also seem to be unaffected.
+
+We haven't been able to pin this one down yet, so if you have to use custom
+build options and run into this bug (easily verified because most of the tests
+run by 'make check' will fail), then for the time being please use the
+workaround described above. Also please watch the mailing list for updates on
+this issue.
 
 LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
-should build out of the box on all recent Linux distributions. (Some
-unresolved issues have been reported with Ubuntu on PowerPC, though, see the
-mailing list for details and updates on this.)
+should build out of the box on all recent Linux distributions. Please see
+above for unresolved issues on 64 bit Linux systems and how to work around
+them. Also, some issues have been reported with Ubuntu (32 bit) on PowerPC,
+see the mailing list for details and updates on this.
 
 MAC OSX
 --- ---
