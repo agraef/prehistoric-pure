@@ -1,3 +1,8 @@
+2008-05-16  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.h: Fix compilation problems when header gets included
+	from C.
+
 2008-05-14  Albert Graef  <Dr.Graef@t-online.de>
 
 	* funcall.h: Reduce maximum number of function parameters to
