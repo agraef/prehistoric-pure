@@ -23,7 +23,8 @@
 	separate environments for each rule of a function
 	definition. Reported by John Lunney.
 
-	* Makefile: Redirect warning and error messages to the logfile.
+	* Makefile: Redirect warning and error messages from regression
+	tests to the logfile.
 
 2008-05-10  Albert Graef  <Dr.Graef@t-online.de>
 
