@@ -22,21 +22,37 @@
 // Debug expression allocations.
 #if DEBUG>2
 set<pure_expr*> mem_allocations;
-#define MEMDEBUG_NEW(x)  mem_allocations.insert(x);		\
+#if DEBUG>9
+#define MEMDEBUG_NEW(x)  mem_allocations.insert(x);	\
   cerr << "NEW:  " << (void*)x << ": " << x << endl;
-#define MEMDEBUG_FREE(x) mem_allocations.erase(x);		\
+#define MEMDEBUG_FREE(x) mem_allocations.erase(x);	\
   cerr << "FREE: " << (void*)x << ": " << x << endl;
+#else
+#define MEMDEBUG_NEW(x)  mem_allocations.insert(x);
+#define MEMDEBUG_FREE(x) mem_allocations.erase(x);
+#endif
 #define MEMDEBUG_INIT mem_allocations.clear();
-#define MEMDEBUG_SUMMARY cerr << "SUMMARY:\n";			\
-  for (set<pure_expr*>::iterator x = mem_allocations.begin();	\
-       x != mem_allocations.end(); x++)				\
-    cerr << (void*)(*x) << ": " << (*x) << endl;		\
-  mem_allocations.clear();
+#define MEMDEBUG_SUMMARY(ret) mem_mark(ret);				\
+  if (!mem_allocations.empty()) { cerr << "POSSIBLE LEAKS:\n";		\
+    for (set<pure_expr*>::iterator x = mem_allocations.begin();		\
+	 x != mem_allocations.end(); x++)				\
+      cerr << (void*)(*x) << " (refc = " << (*x)->refc << "): "		\
+	   << (*x) << endl;						\
+    mem_allocations.clear();						\
+  }
+static void mem_mark(pure_expr *x)
+{
+  mem_allocations.erase(x);
+  if (x->tag == EXPR::APP) {
+    mem_mark(x->data.x[0]);
+    mem_mark(x->data.x[1]);
+  }
+}
 #else
 #define MEMDEBUG_NEW(x)
 #define MEMDEBUG_FREE(x)
 #define MEMDEBUG_INIT
-#define MEMDEBUG_SUMMARY
+#define MEMDEBUG_SUMMARY(ret)
 #endif
 
 // Expression pointers are allocated in larger chunks for better performance.
@@ -115,30 +131,25 @@ static void pure_free_clos(pure_expr *x)
   delete x->data.clos;
 }
 
+#if 1
+
+/* This is implemented (mostly) non-recursively to prevent stack overflows,
+   using the xp field to form a stack on the fly. */
+
 static inline
 void pure_free_internal(pure_expr *x)
 {
   assert(x && "pure_free: null expression");
   assert(x->refc > 0 && "pure_free: unreferenced expression");
   assert(!x->xp && "pure_free: corrupt expression data");
-  // Implemented (mostly) non-recursively to prevent stack overflows, using
-  // the xp field to form a stack on the fly.
-  pure_expr *xp;
+  pure_expr *xp = 0, *y;
  loop:
-#if DEBUG>2
-  if (x->tag >= 0 && x->data.clos)
-    cerr << "pure_free: " << (x->data.clos->local?"local":"global")
-	 << " closure " << x << " (" << (void*)x << "), refc = "
-	 << x->refc << endl;
-#endif
   if (--x->refc == 0) {
     switch (x->tag) {
     case EXPR::APP:
-      xp = x->data.x[0];
-      assert(!xp->xp);
-      xp->xp = x->data.x[1];
-      free_expr(x);
-      x = xp;
+      y = x->data.x[0];
+      assert(!x->xp);
+      x->xp = xp; xp = x; x = y;
       goto loop;
     case EXPR::INT:
     case EXPR::DBL:
@@ -158,16 +169,53 @@ void pure_free_internal(pure_expr *x)
       if (x->data.clos) pure_free_clos(x);
       break;
     }
-    xp = x->xp; x->xp = 0;
-    free_expr(x);
-  } else {
-    xp = x->xp; x->xp = 0;
   }
+  while (xp && x == xp->data.x[1]) {
+    if (x->refc == 0) free_expr(x);
+    x = xp; xp = x->xp;
+  }
+  if (x->refc == 0) free_expr(x);
   if (xp) {
-    x = xp;
+    x = xp->data.x[1];
     goto loop;
   }
 }
+
+#else
+
+/* This version is only included here for reference and debugging purposes,
+   normal builds should use the non-recursive version above. */
+
+static
+void pure_free_internal(pure_expr *x)
+{
+  if (--x->refc == 0) {
+    switch (x->tag) {
+    case EXPR::APP:
+      pure_free_internal(x->data.x[0]);
+      pure_free_internal(x->data.x[1]);
+      break;
+    case EXPR::INT:
+    case EXPR::DBL:
+      break;
+    case EXPR::BIGINT:
+      mpz_clear(x->data.z);
+      break;
+    case EXPR::STR:
+      free(x->data.s);
+      break;
+    case EXPR::PTR:
+      break;
+    default:
+      assert(x->tag >= 0);
+      if (x->data.clos) pure_free_clos(x);
+      break;
+    }
+    free_expr(x);
+  }
+}
+
+#endif
 
 static void inline
 pure_unref_internal(pure_expr *x)
@@ -594,13 +642,13 @@ pure_expr *pure_invoke(void *f, pure_expr*& e)
       if (tmps != e) pure_freenew(tmps);
       tmps = next;
     }
-    MEMDEBUG_SUMMARY
+    MEMDEBUG_SUMMARY(e)
     return 0;
   } else {
     pure_expr *res = fp();
     // normal return
     interp.estk.pop_front();
-    MEMDEBUG_SUMMARY
+    MEMDEBUG_SUMMARY(res)
 #if DEBUG>1
     pure_expr *tmps = interp.tmps;
     while (tmps) {
