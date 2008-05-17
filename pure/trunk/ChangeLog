@@ -1,3 +1,26 @@
+2008-05-17  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc, runtime.h: Reorganize pure_expr data structure
+	so that the data fields are *always* aligned on 8 byte boundaries.
+	This should now also work on 32 bit architectures where doubles
+	are aligned on 8 byte boundaries, such as Linux on 32 bit PPC.
+	Reported by Tim Haynes.
+
+	* interpreter.cc: Fixed some case labels in switch instructions
+	which should be signed rather than unsigned values. Also made
+	void* a pointer to a dummy struct in LLVM IR, so that it can be
+	distinguished from all other pointer types, and added support for
+	short (16 bit) and long (64 bit) integer types (as well as the
+	corresponding pointer types) in the C interface.
+
+	Please note that the typename 'long' *always* denotes signed 64
+	bit integers in Pure's extern declarations, even if the C 'long'
+	type is actually 32 bit (as it usually is even on most 64 bit
+	systems).
+
+	FIXME: At present 'long' is still converted to/from Pure (32 bit)
+	ints only, marshalling from/to Pure bigints is not supported yet.
+
 2008-05-16  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.h: Fix compilation problems when header gets included

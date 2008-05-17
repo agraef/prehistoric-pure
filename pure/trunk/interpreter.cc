@@ -89,11 +89,17 @@ interpreter::interpreter()
   // systems which do not allow the program to dlopen itself.
   JIT->InstallLazyFunctionCreator(resolve_external);
 
-  // Generic pointer type. LLVM doesn't like void*, so we use short* instead.
-  // (This is a bit of a kludge. We'd rather use char*, but we need to keep
-  // char* and void* apart, and short* isn't used for anything else here.)
+  // Generic pointer type. LLVM doesn't like void*, so we use a pointer to a
+  // dummy struct instead. (This is a bit of a kludge. We'd rather use char*,
+  // as suggested in the LLVM documentation, but we need to keep char* and
+  // void* apart.)
+  {
+    std::vector<const Type*> elts;
+    VoidPtrTy = PointerType::get(StructType::get(elts), 0);
+  }
 
-  VoidPtrTy = PointerType::get(Type::Int16Ty, 0);
+  // Char pointer type.
+  CharPtrTy = PointerType::get(Type::Int8Ty, 0);
 
   // Create the expr struct type.
 
@@ -101,11 +107,12 @@ interpreter::interpreter()
      structure as defined by the runtime. In order to perform certain
      operations like built-in arithmetic, conditionals and expression matching
      in an efficient manner, we need to know about the layout of the relevant
-     fields in memory. The runtime will add additional variants and fields of
+     fields in memory. The runtime may add additional variants and fields of
      its own. The declarations below correspond to the following C struct:
 
      struct expr {
        int32_t tag; // see expr.hh, determines the variant
+       uint32_t refc; // reference counter
        union {
          struct { // application
 	   struct expr *x, *y;
@@ -127,6 +134,7 @@ interpreter::interpreter()
     PATypeHolder StructTy = OpaqueType::get();
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
+    elts.push_back(Type::Int32Ty);
     elts.push_back(PointerType::get(StructTy, 0));
     elts.push_back(PointerType::get(StructTy, 0));
     ExprTy = StructType::get(elts);
@@ -134,12 +142,10 @@ interpreter::interpreter()
     ExprTy = cast<StructType>(StructTy.get());
     module->addTypeName("struct.expr", ExprTy);
   }
-  // Other variants. Note that on 64 bit systems we have to add a dummy field
-  // so that the following value field is aligned properly.
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
-    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
+    elts.push_back(Type::Int32Ty);
     elts.push_back(Type::Int32Ty);
     IntExprTy = StructType::get(elts);
     module->addTypeName("struct.intexpr", IntExprTy);
@@ -147,7 +153,7 @@ interpreter::interpreter()
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
-    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
+    elts.push_back(Type::Int32Ty);
     elts.push_back(Type::DoubleTy);
     DblExprTy = StructType::get(elts);
     module->addTypeName("struct.dblexpr", DblExprTy);
@@ -155,15 +161,15 @@ interpreter::interpreter()
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
-    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
-    elts.push_back(PointerType::get(Type::Int8Ty, 0));
+    elts.push_back(Type::Int32Ty);
+    elts.push_back(CharPtrTy);
     StrExprTy = StructType::get(elts);
     module->addTypeName("struct.strexpr", StrExprTy);
   }
   {
     std::vector<const Type*> elts;
     elts.push_back(Type::Int32Ty);
-    if (sizeof(void*)==8) elts.push_back(Type::Int32Ty); // dummy
+    elts.push_back(Type::Int32Ty);
     elts.push_back(VoidPtrTy);
     PtrExprTy = StructType::get(elts);
     module->addTypeName("struct.ptrexpr", PtrExprTy);
@@ -1456,7 +1462,11 @@ expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
 #define Zero		UInt(0)
 #define One		UInt(1)
 #define Two		UInt(2)
-#define ValFldIndex	(sizeof(void*)==8?Two:One)
+#define Three		UInt(3)
+#define RefcFldIndex	One
+#define ValFldIndex	Two
+#define ValFld2Index	Three
+#define SubFldIndex(i)	UInt(i+2)
 #define NullExprPtr	ConstantPointerNull::get(ExprPtrTy)
 #define NullExprPtrPtr	ConstantPointerNull::get(ExprPtrPtrTy)
 
@@ -2066,6 +2076,8 @@ const Type *interpreter::named_type(string name)
     return Type::Int1Ty;
   else if (name == "char")
     return Type::Int8Ty;
+  else if (name == "short")
+    return Type::Int16Ty;
   else if (name == "int")
     return Type::Int32Ty;
   else if (name == "long")
@@ -2073,7 +2085,9 @@ const Type *interpreter::named_type(string name)
   else if (name == "double")
     return Type::DoubleTy;
   else if (name == "char*")
-    return PointerType::get(Type::Int8Ty, 0);
+    return CharPtrTy;
+  else if (name == "short*")
+    return PointerType::get(Type::Int16Ty, 0);
   else if (name == "int*")
     return PointerType::get(Type::Int32Ty, 0);
   else if (name == "long*")
@@ -2101,14 +2115,18 @@ const char *interpreter::type_name(const Type *type)
     return "bool";
   else if (type == Type::Int8Ty)
     return "char";
+  else if (type == Type::Int16Ty)
+    return "short";
   else if (type == Type::Int32Ty)
     return "int";
   else if (type == Type::Int64Ty)
     return "long";
   else if (type == Type::DoubleTy)
     return "double";
-  else if (type == PointerType::get(Type::Int8Ty, 0))
+  else if (type == CharPtrTy)
     return "char*";
+  else if (type == PointerType::get(Type::Int16Ty, 0))
+    return "short*";
   else if (type == PointerType::get(Type::Int32Ty, 0))
     return "int*";
   else if (type == PointerType::get(Type::Int64Ty, 0))
@@ -2222,7 +2240,7 @@ Function *interpreter::declare_extern(string name, string restype,
 	// In Pure, we allow void* to be passed for a char*, to bypass the
 	// automatic marshalling from Pure to C strings. Oh well.
 	ok = gt->getParamType(i)==argt[i] ||
-	  gt->getParamType(i)==PointerType::get(Type::Int8Ty, 0) &&
+	  gt->getParamType(i)==CharPtrTy &&
 	  argt[i] == VoidPtrTy;
       }
       if (!ok) {
@@ -2317,6 +2335,18 @@ Function *interpreter::declare_extern(string name, string restype,
       idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateTrunc(iv, Type::Int8Ty);
+    } else if (argt[i] == Type::Int16Ty) {
+      BasicBlock *okbb = new BasicBlock("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
+      idx[1] = ValFldIndex;
+      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      unboxed[i] = b.CreateTrunc(iv, Type::Int16Ty);
     } else if (argt[i] == Type::Int32Ty) {
       BasicBlock *okbb = new BasicBlock("ok");
       Value *idx[2] = { Zero, Zero };
@@ -2353,7 +2383,7 @@ Function *interpreter::declare_extern(string name, string restype,
       idx[1] = ValFldIndex;
       Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
       unboxed[i] = dv;
-    } else if (argt[i] == PointerType::get(Type::Int8Ty, 0)) {
+    } else if (argt[i] == CharPtrTy) {
       BasicBlock *okbb = new BasicBlock("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
@@ -2363,19 +2393,10 @@ Function *interpreter::declare_extern(string name, string restype,
       b.SetInsertPoint(okbb);
       Value *sv = b.CreateCall(module->getFunction("pure_get_cstring"), x);
       unboxed[i] = sv; temps = true;
-    } else if (argt[i] == PointerType::get(Type::Int32Ty, 0)) {
-      BasicBlock *okbb = new BasicBlock("ok");
-      Value *idx[2] = { Zero, Zero };
-      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
-      b.CreateCondBr
-	(b.CreateICmpEQ(tagv, SInt(EXPR::PTR), "cmp"), okbb, failedbb);
-      f->getBasicBlockList().push_back(okbb);
-      b.SetInsertPoint(okbb);
-      Value *pv = b.CreateBitCast(x, PtrExprPtrTy, "ptrexpr");
-      idx[1] = ValFldIndex;
-      Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
-      unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
-    } else if (argt[i] == PointerType::get(Type::DoubleTy, 0)) {
+    } else if (argt[i] == PointerType::get(Type::Int16Ty, 0) ||
+	       argt[i] == PointerType::get(Type::Int32Ty, 0) ||
+	       argt[i] == PointerType::get(Type::Int64Ty, 0) ||
+	       argt[i] == PointerType::get(Type::DoubleTy, 0)) {
       BasicBlock *okbb = new BasicBlock("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
@@ -2425,12 +2446,12 @@ Function *interpreter::declare_extern(string name, string restype,
       phi->addIncoming(ptrv, ptrbb);
       phi->addIncoming(mpzv, mpzbb);
       unboxed[i] = phi;
-      if (gt->getParamType(i)==PointerType::get(Type::Int8Ty, 0))
+      if (gt->getParamType(i)==CharPtrTy)
 	// An external builtin already has this parameter declared as char*.
 	// We allow void* to be passed anyway, so just cast it to char* to
 	// make the LLVM typechecker happy.
 	unboxed[i] = b.CreateBitCast
-	  (unboxed[i], PointerType::get(Type::Int8Ty, 0));
+	  (unboxed[i], CharPtrTy);
     } else
       assert(0 && "invalid C type");
   }
@@ -2449,6 +2470,9 @@ Function *interpreter::declare_extern(string name, string restype,
     // char treated as an unsigned integer here
     u = b.CreateCall(module->getFunction("pure_int"),
 		     b.CreateZExt(u, Type::Int32Ty));
+  else if (type == Type::Int16Ty)
+    u = b.CreateCall(module->getFunction("pure_int"),
+		     b.CreateSExt(u, Type::Int32Ty));
   else if (type == Type::Int32Ty)
     u = b.CreateCall(module->getFunction("pure_int"), u);
   else if (type == Type::Int64Ty)
@@ -2456,12 +2480,12 @@ Function *interpreter::declare_extern(string name, string restype,
 		     b.CreateTrunc(u, Type::Int32Ty));
   else if (type == Type::DoubleTy)
     u = b.CreateCall(module->getFunction("pure_double"), u);
-  else if (type == PointerType::get(Type::Int8Ty, 0))
+  else if (type == CharPtrTy)
     u = b.CreateCall(module->getFunction("pure_cstring_dup"), u);
-  else if (type == PointerType::get(Type::Int32Ty, 0))
-    u = b.CreateCall(module->getFunction("pure_pointer"),
-		     b.CreateBitCast(u, VoidPtrTy));
-  else if (type == PointerType::get(Type::DoubleTy, 0))
+  else if (type == PointerType::get(Type::Int16Ty, 0) ||
+	   type == PointerType::get(Type::Int32Ty, 0) ||
+	   type == PointerType::get(Type::Int64Ty, 0) ||
+	   type == PointerType::get(Type::DoubleTy, 0))
     u = b.CreateCall(module->getFunction("pure_pointer"),
 		     b.CreateBitCast(u, VoidPtrTy));
   else if (type == ExprPtrTy) {
@@ -2603,7 +2627,7 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
     path& p = *info.p;
     size_t n = p.len();
     for (size_t i = 0; i < n; i++)
-      x = f.CreateLoadGEP(x, Zero, UInt(p[i]+1), mklabel("x", i, p[i]+1));
+      x = f.CreateLoadGEP(x, Zero, SubFldIndex(p[i]), mklabel("x", i, p[i]+1));
     // store the value in a global variable of the same name
     const symbol& sym = symtab.sym(tag);
     GlobalVar& v = globalvars[tag];
@@ -3481,7 +3505,7 @@ Value *interpreter::vref(int32_t tag, path p)
   Value *v = e.args[k];
   size_t n = p.len();
   for (size_t i = 0; i < n; i++)
-    v = e.CreateLoadGEP(v, Zero, UInt(p[i]+1), mklabel("x", i, p[i]+1));
+    v = e.CreateLoadGEP(v, Zero, SubFldIndex(p[i]), mklabel("x", i, p[i]+1));
   return v;
 }
 
@@ -4180,12 +4204,12 @@ void interpreter::simple_match(Value *x, state*& s,
     // next match the first subterm...
     f.f->getBasicBlockList().push_back(ok1bb);
     f.builder.SetInsertPoint(ok1bb);
-    Value *x1 = f.CreateLoadGEP(x, Zero, One, "x1");
+    Value *x1 = f.CreateLoadGEP(x, Zero, ValFldIndex, "x1");
     simple_match(x1, s, ok2bb, failedbb);
     // and finally the second subterm...
     f.f->getBasicBlockList().push_back(ok2bb);
     f.builder.SetInsertPoint(ok2bb);
-    Value *x2 = f.CreateLoadGEP(x, Zero, Two, "x2");
+    Value *x2 = f.CreateLoadGEP(x, Zero, ValFld2Index, "x2");
     simple_match(x2, s, matchedbb, failedbb);
     break;
   }
@@ -4258,27 +4282,27 @@ void interpreter::complex_match(matcher *pm, BasicBlock *failedbb)
 
 // helper macros to set up for the next state
 
-#define next_state(t)					\
-  do {							\
-    state *s = t->st;					\
-    list<Value*> ys = xs; ys.pop_front();		\
-    if (ys.empty())					\
-      try_rules(pm, s, failedbb, reduced);		\
-    else						\
-      complex_match(pm, ys, s, failedbb, reduced);	\
+#define next_state(t)						\
+  do {								\
+    state *s = t->st;						\
+    list<Value*> ys = xs; ys.pop_front();			\
+    if (ys.empty())						\
+      try_rules(pm, s, failedbb, reduced);			\
+    else							\
+      complex_match(pm, ys, s, failedbb, reduced);		\
   } while (0)
 
 // same as above, but handles the case of an application where we recurse into
 // subterms
 
-#define next_state2(t)					\
-  do {							\
-    state *s = t->st;					\
-    list<Value*> ys = xs; ys.pop_front();		\
-    Value *x1 = f.CreateLoadGEP(x, Zero, One, "x1");	\
-    Value *x2 = f.CreateLoadGEP(x, Zero, Two, "x2");	\
-    ys.push_front(x2); ys.push_front(x1);		\
-    complex_match(pm, ys, s, failedbb, reduced);	\
+#define next_state2(t)						\
+  do {								\
+    state *s = t->st;						\
+    list<Value*> ys = xs; ys.pop_front();			\
+    Value *x1 = f.CreateLoadGEP(x, Zero, ValFldIndex, "x1");	\
+    Value *x2 = f.CreateLoadGEP(x, Zero, ValFld2Index, "x2");	\
+    ys.push_front(x2); ys.push_front(x1);			\
+    complex_match(pm, ys, s, failedbb, reduced);		\
   } while (0)
 
 /* This is the core of the decision tree construction algorithm. It emits code
@@ -4352,7 +4376,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	assert(!tmap[t->tag].bb);
 	tmap[t->tag].bb = bb;
 	tmap[t->tag].t = &*t;
-	sw->addCase(UInt(t->tag), bb);
+	sw->addCase(SInt(t->tag), bb);
       } else {
 	// transition on a constant, add it to the corresponding list
 	tmap[t->tag].tlist.push_back(trans_info(&*t, bb));
@@ -4361,7 +4385,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	  // target to the outer switch
 	  tmap[t->tag].bb =
 	    new BasicBlock(mklabel("begin.state", s->s, -t->tag));
-	  sw->addCase(UInt(t->tag), tmap[t->tag].bb);
+	  sw->addCase(SInt(t->tag), tmap[t->tag].bb);
 	}
       }
     }
@@ -4458,7 +4482,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
       vtransbb.push_back
 	(new BasicBlock(mklabel("trans.state", s->s, t->st->s)));
-      sw->addCase(UInt(t->ttag), vtransbb[i]);
+      sw->addCase(SInt(t->ttag), vtransbb[i]);
     }
     // now handle the transitions on the different type tags
     for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
