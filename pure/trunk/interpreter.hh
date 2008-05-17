@@ -388,7 +388,7 @@ public:
   llvm::StructType  *ExprTy, *IntExprTy, *DblExprTy, *StrExprTy, *PtrExprTy;
   llvm::PointerType *ExprPtrTy, *ExprPtrPtrTy;
   llvm::PointerType *IntExprPtrTy, *DblExprPtrTy, *StrExprPtrTy, *PtrExprPtrTy;
-  llvm::PointerType *VoidPtrTy;
+  llvm::PointerType *VoidPtrTy, *CharPtrTy;
   const llvm::Type *named_type(string name);
   const char *type_name(const llvm::Type *type);
   map<int32_t,GlobalVar> globalvars;

@@ -32,6 +32,7 @@ typedef struct _pure_expr {
   /* Public fields, these *must* be layed out exactly as indicated.
      The JIT depends on it! */
   int32_t tag; // type tag or symbol, see expr.hh for possible values
+  uint32_t refc;		// reference counter
   union {
     struct _pure_expr *x[2];	// application arguments (EXPR::APP)
     int32_t i;			// integer (EXPR::INT)
@@ -42,7 +43,6 @@ typedef struct _pure_expr {
     pure_closure *clos;		// closure (0 if none)
   } data;
   /* Internal fields (DO NOT TOUCH). The JIT doesn't care about these. */
-  uint32_t refc;		// reference counter
   struct _pure_expr *xp;	// freelist pointer
 } pure_expr;
 
