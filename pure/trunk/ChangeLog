@@ -1,5 +1,7 @@
 2008-05-17  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc (define): Fixed error messages.
+	
 	* interpreter.cc, runtime.h: Reorganize pure_expr data structure
 	so that the data fields are *always* aligned on 8 byte boundaries.
 	This should now also work on 32 bit architectures where doubles
