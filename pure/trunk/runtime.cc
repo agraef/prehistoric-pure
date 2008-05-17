@@ -21,6 +21,7 @@
 
 // Debug expression allocations.
 #if DEBUG>2
+int mem_level = 0;
 set<pure_expr*> mem_allocations;
 #if DEBUG>9
 #define MEMDEBUG_NEW(x)  mem_allocations.insert(x);	\
@@ -31,15 +32,15 @@ set<pure_expr*> mem_allocations;
 #define MEMDEBUG_NEW(x)  mem_allocations.insert(x);
 #define MEMDEBUG_FREE(x) mem_allocations.erase(x);
 #endif
-#define MEMDEBUG_INIT mem_allocations.clear();
-#define MEMDEBUG_SUMMARY(ret) mem_mark(ret);				\
+#define MEMDEBUG_INIT if (mem_level++==0) mem_allocations.clear();
+#define MEMDEBUG_SUMMARY(ret) if (--mem_level==0) { mem_mark(ret);	\
   if (!mem_allocations.empty()) { cerr << "POSSIBLE LEAKS:\n";		\
     for (set<pure_expr*>::iterator x = mem_allocations.begin();		\
 	 x != mem_allocations.end(); x++)				\
       cerr << (void*)(*x) << " (refc = " << (*x)->refc << "): "		\
 	   << (*x) << endl;						\
     mem_allocations.clear();						\
-  }
+  } }
 static void mem_mark(pure_expr *x)
 {
   mem_allocations.erase(x);
