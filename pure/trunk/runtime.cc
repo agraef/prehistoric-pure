@@ -453,8 +453,10 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     }
     // collect arguments
     f = x;
-    for (size_t j = 1; f->tag == EXPR::APP; j++, f = f->data.x[0])
-      argv[i+n-j] = pure_new_internal(f->data.x[1]);
+    for (size_t j = 1; f->tag == EXPR::APP; j++, f = f->data.x[0]) {
+      assert(f->data.x[1]->refc > 0);
+      argv[i+n-j] = f->data.x[1]; f->data.x[1]->refc++;
+    }
     i += n; argv[i++] = y;
     assert(i == k);
     pure_free_internal(x);
