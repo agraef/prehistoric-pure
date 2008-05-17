@@ -744,14 +744,20 @@ void interpreter::exec(expr *x)
 void interpreter::define(rule *r)
 {
   last = expr();
-  pure_expr *res = defn(r->lhs, r->rhs);
-  if (!res) {
-    ostringstream msg;
-    msg << "failed match: " << r->lhs << " = " << r->rhs;
-    throw err(msg.str());
-  }
+  pure_expr *e, *res = defn(r->lhs, r->rhs, e);
   if ((verbose&verbosity::defs) != 0)
     cout << "let " << r->lhs << " = " << r->rhs << ";\n";
+  if (!res) {
+    ostringstream msg;
+    if (e) {
+      msg << "unhandled exception '" << e << "' while evaluating '"
+	  << "let " << r->lhs << " = " << r->rhs << "'";
+      pure_freenew(e);
+    } else
+      msg << "failed match while evaluating '"
+	  << "let " << r->lhs << " = " << r->rhs << "'";
+    throw err(msg.str());
+  }
   delete r;
   pure_freenew(res);
   if (interactive && stats)
