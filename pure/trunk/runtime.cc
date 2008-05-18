@@ -682,8 +682,18 @@ extern "C"
 void pure_new_args(pure_expr *x, ...)
 {
   va_list ap;
+  interpreter& interp = *interpreter::g_interp;
+  size_t cap = interp.sstk.capacity(), sz = interp.sstk.size();
+  if (cap < sz+MAXARGS) {
+    if (sz == 0)
+      cap = 0x10000; // 64K
+    else
+      cap = cap << 1;
+    interp.sstk.reserve(cap);
+  }
   va_start(ap, x);
   while (x) {
+    interp.sstk.push_back(x);
     if (x->refc > 0)
       x->refc++;
     else
@@ -697,6 +707,8 @@ extern "C"
 void pure_free_args(pure_expr *x, ...)
 {
   va_list ap;
+  interpreter& interp = *interpreter::g_interp;
+  size_t count = 0;
   va_start(ap, x);
   if (x) x->refc++;
   while (1) {
@@ -706,8 +718,12 @@ void pure_free_args(pure_expr *x, ...)
       x->refc--;
     else
       pure_free_internal(x);
+    count++;
   };
   va_end(ap);
+  size_t sz = interp.sstk.size();
+  assert(sz >= count);
+  interp.sstk.resize(sz-count);
 }
 
 extern "C"
