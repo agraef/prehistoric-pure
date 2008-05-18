@@ -19,31 +19,36 @@
       >= interpreter::stackmax)						\
     pure_throw(stack_exception())
 
-// Debug expression allocations.
+// Debug expression allocations. Warns about expression memory leaks.
+// NOTE: Bookkeeping starts and ends at each toplevel pure_invoke call.
+// Enabling this code will make the interpreter *much* slower.
 #if DEBUG>2
-int mem_level = 0;
-set<pure_expr*> mem_allocations;
-#if DEBUG>9
-#define MEMDEBUG_NEW(x)  mem_allocations.insert(x);	\
+#if DEBUG>9 // enable this to print each and every expression (de)allocation
+#define MEMDEBUG_NEW(x)  interpreter::g_interp->mem_allocations.insert(x); \
   cerr << "NEW:  " << (void*)x << ": " << x << endl;
-#define MEMDEBUG_FREE(x) mem_allocations.erase(x);	\
+#define MEMDEBUG_FREE(x) interpreter::g_interp->mem_allocations.erase(x); \
   cerr << "FREE: " << (void*)x << ": " << x << endl;
 #else
-#define MEMDEBUG_NEW(x)  mem_allocations.insert(x);
-#define MEMDEBUG_FREE(x) mem_allocations.erase(x);
+#define MEMDEBUG_NEW(x)  interpreter::g_interp->mem_allocations.insert(x);
+#define MEMDEBUG_FREE(x) interpreter::g_interp->mem_allocations.erase(x);
 #endif
-#define MEMDEBUG_INIT if (mem_level++==0) mem_allocations.clear();
-#define MEMDEBUG_SUMMARY(ret) if (--mem_level==0) { mem_mark(ret);	\
-  if (!mem_allocations.empty()) { cerr << "POSSIBLE LEAKS:\n";		\
-    for (set<pure_expr*>::iterator x = mem_allocations.begin();		\
-	 x != mem_allocations.end(); x++)				\
-      cerr << (void*)(*x) << " (refc = " << (*x)->refc << "): "		\
-	   << (*x) << endl;						\
-    mem_allocations.clear();						\
-  } }
+#define MEMDEBUG_INIT if (interpreter::g_interp->estk.empty())	\
+    interpreter::g_interp->mem_allocations.clear();
+#define MEMDEBUG_SUMMARY(ret) if (interpreter::g_interp->estk.empty()) {\
+    mem_mark(ret);							\
+    if (!interpreter::g_interp->mem_allocations.empty()) {		\
+      cerr << "** WARNING: leaked expressions:\n";			\
+      for (set<pure_expr*>::iterator x =				\
+	     interpreter::g_interp->mem_allocations.begin();		\
+	   x != interpreter::g_interp->mem_allocations.end(); x++)	\
+	cerr << (void*)(*x) << " (refc = " << (*x)->refc << "): "	\
+	     << (*x) << endl;						\
+      interpreter::g_interp->mem_allocations.clear();			\
+    }									\
+  }
 static void mem_mark(pure_expr *x)
 {
-  mem_allocations.erase(x);
+  interpreter::g_interp->mem_allocations.erase(x);
   if (x->tag == EXPR::APP) {
     mem_mark(x->data.x[0]);
     mem_mark(x->data.x[1]);

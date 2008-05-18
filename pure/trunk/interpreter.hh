@@ -394,6 +394,9 @@ public:
   map<int32_t,GlobalVar> globalvars;
   map<int32_t,Env> globalfuns;
   list<pure_exception> estk;
+#if DEBUG
+  set<pure_expr*> mem_allocations;
+#endif
   map<int32_t,ExternInfo> externals;
   llvm::Function *declare_extern(void *fp, string name, string restype,
 				 int n, ...);
