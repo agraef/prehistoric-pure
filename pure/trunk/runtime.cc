@@ -683,9 +683,16 @@ void pure_new_args(pure_expr *x, ...)
 {
   va_list ap;
   interpreter& interp = *interpreter::g_interp;
+  pure_expr**& sstk = interp.sstk;
+  size_t cap = interp.sstk_cap, sz = interp.sstk_sz;
+  if (cap < sz+MAXARGS) {
+    cap = cap << 1;
+    sstk = (pure_expr**)realloc(sstk, cap*sizeof(pure_expr*));
+    interp.sstk_cap = cap;
+  }
   va_start(ap, x);
   while (x) {
-    interp.sstk.push(x);
+    sstk[sz++] = x;
     if (x->refc > 0)
       x->refc++;
     else
@@ -693,13 +700,14 @@ void pure_new_args(pure_expr *x, ...)
     x = va_arg(ap, pure_expr*);
   };
   va_end(ap);
+  interp.sstk_sz = sz;
 }
 
 extern "C"
 void pure_free_args(pure_expr *x, ...)
 {
   va_list ap;
-  interpreter& interp = *interpreter::g_interp;
+  size_t count = 0;
   va_start(ap, x);
   if (x) x->refc++;
   while (1) {
@@ -709,9 +717,11 @@ void pure_free_args(pure_expr *x, ...)
       x->refc--;
     else
       pure_free_internal(x);
-    interp.sstk.pop();
+    count++;
   };
   va_end(ap);
+  assert(interpreter::g_interp->sstk_sz >= count);
+  interpreter::g_interp->sstk_sz -= count;
 }
 
 extern "C"
