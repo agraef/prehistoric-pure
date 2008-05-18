@@ -1677,14 +1677,7 @@ ReturnInst *Env::CreateRet(Value *v)
   // We must garbage-collect args and environment here, immediately before the
   // call (if any), or the return instruction otherwise.
   vector<Value*> myargs;
-  if (pi != ret && n == 1 && m == 0)
-    new CallInst(interp.module->getFunction("pure_free"),
-		 args[0], "", pi);
-  else if (pi != ret && n == 0 && m == 1) {
-    Value *v = new GetElementPtrInst(envs, Zero, "", pi);
-    new CallInst(interp.module->getFunction("pure_free"),
-		 new LoadInst(v, "", pi), "", pi);
-  } else if (n+m != 0) {
+  if (n+m != 0) {
     if (pi == ret)
       myargs.push_back(v);
     else
@@ -3060,13 +3053,9 @@ Value *interpreter::external_funcall(int32_t tag, uint32_t n, expr x)
   if (n>0) {
     for (i = 0; i < n; i++)
       argv[i] = codegen(args[i]);
-    if (n == 1)
-      call("pure_new", argv[0]);
-    else {
-      vector<Value*> argv1 = argv;
-      argv1.push_back(NullExprPtr);
-      act_env().CreateCall(module->getFunction("pure_new_args"), argv1);
-    }
+    vector<Value*> argv1 = argv;
+    argv1.push_back(NullExprPtr);
+    act_env().CreateCall(module->getFunction("pure_new_args"), argv1);
   }
   return act_env().CreateCall(info.f, argv);
 }
@@ -3585,7 +3574,7 @@ Value *interpreter::call(Env &f, vector<Value*>& args, vector<Value*>& env)
   // direct call of a function, with parameters
   assert(f.f);
   // initialize the environment parameter
-  size_t n = args.size(), m = env.size();
+  size_t m = env.size();
   assert(f.local || m == 0);
   for (size_t i = 0; i < m; i++)
     e.builder.CreateStore(env[i], e.CreateGEP(e.argv, UInt(i)));
@@ -3596,13 +3585,9 @@ Value *interpreter::call(Env &f, vector<Value*>& args, vector<Value*>& env)
     x.push_back(e.argv);
   }
   // count references to parameters
-  if (n == 1)
-    call("pure_new", args[0]);
-  else if (n > 0) {
-    vector<Value*> args1 = args;
-    args1.push_back(NullExprPtr);
-    e.CreateCall(module->getFunction("pure_new_args"), args1);
-  }
+  vector<Value*> args1 = args;
+  args1.push_back(NullExprPtr);
+  e.CreateCall(module->getFunction("pure_new_args"), args1);
   // pass the function parameters
   x.insert(x.end(), args.begin(), args.end());
   // create the call
