@@ -12,6 +12,7 @@
 #include <llvm/Support/LLVMBuilder.h>
 
 #include <time.h>
+#include <stack>
 #include <set>
 #include <string>
 #include "expr.hh"
@@ -394,7 +395,7 @@ public:
   map<int32_t,GlobalVar> globalvars;
   map<int32_t,Env> globalfuns;
   list<pure_exception> estk;
-  vector<pure_expr*> sstk;
+  stack<pure_expr*> sstk;
 #if DEBUG
   set<pure_expr*> mem_allocations;
 #endif
