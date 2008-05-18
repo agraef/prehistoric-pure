@@ -62,6 +62,9 @@ interpreter::interpreter()
     stackdir = c_stack_dir();
   }
 
+  sstk_sz = 0; sstk_cap = 0x10000; // 64K
+  sstk = (pure_expr**)malloc(sstk_cap*sizeof(pure_expr*));
+
   // Initialize the JIT.
 
   using namespace llvm;
