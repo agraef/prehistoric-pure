@@ -110,7 +110,7 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y);
 
 /* Exception handling stuff. */
 
-typedef struct { jmp_buf jmp; pure_expr* e; } pure_exception;
+typedef struct { jmp_buf jmp; pure_expr* e; size_t sz; } pure_exception;
 
 /* Throw the given expression (which may also be null) as an exception. */
 
@@ -155,20 +155,33 @@ void pure_freenew(pure_expr *x);
 void pure_ref(pure_expr *x);
 void pure_unref(pure_expr *x);
 
-/* Count references on a given collection of arguments in preparation for a
-   function call. Terminate the list of arguments with a null pointer. */
+/* Manage arguments of a function call. pure_new_args counts references on a
+   given collection of arguments in preparation for a function call, while
+   pure_free_args collects the arguments of a function call. In both cases the
+   arguments follow the given parameter count n. For pure_free_args, the first
+   expression argument is the return value; if not null, an extra reference is
+   temporarily counted on this expression so that it doesn't get freed if the
+   return value happens to be a (subterm of an) argument or environment
+   expression. (It's the caller's duty to call pure_unref later.) These
+   functions are only to be used for internal calls (apply, catch, etc.); for
+   calls which are to be visible on the shadow stack see pure_push_args and
+   pure_pop_args below. */
 
-void pure_new_args(pure_expr *x, ...);
+void pure_new_args(uint32_t n, ...);
+void pure_free_args(pure_expr *x, uint32_t n, ...);
 
-/* Collect call data. This is used to free arguments and environment when
-   returning from a function. The first argument is the return value. If not
-   null, an extra reference is temporarily counted on this expression so that
-   it doesn't get freed if the return value happens to be a (subterm of an)
-   argument or environment expression. (It's the caller's duty to call
-   pure_unref later.) The remaining parameters are the expression pointers to
-   be collected, terminated with a null pointer. */
+/* The following are like pure_new_args and pure_free_args above, but also
+   maintain an internal shadow stack, for the purpose of cleaning up function
+   arguments when an exception is thrown, and to provide data needed by the
+   symbolic debugger. pure_pop_tail_args is to be called instead of
+   pure_pop_args in case of a (potential) tail call, since in this case the
+   new stack frame of the tail-called function is already on the stack and
+   thus the previous stack frame is to be popped instead of the current
+   one. */
 
-void pure_free_args(pure_expr *x, ...);
+void pure_push_args(uint32_t n, ...);
+void pure_pop_args(pure_expr *x, uint32_t n, ...);
+void pure_pop_tail_args(pure_expr *x, uint32_t n, ...);
 
 /* Debugging support. Preliminary. */
 
