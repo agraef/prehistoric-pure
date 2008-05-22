@@ -183,6 +183,12 @@ void pure_push_args(uint32_t n, ...);
 void pure_pop_args(pure_expr *x, uint32_t n, ...);
 void pure_pop_tail_args(pure_expr *x, uint32_t n, ...);
 
+/* Optimize the special case of a single argument to be pushed/popped. */
+
+void pure_push_arg(pure_expr *x);
+void pure_pop_arg(pure_expr *x);
+void pure_pop_tail_arg(pure_expr *x);
+
 /* Debugging support. Preliminary. */
 
 void pure_debug(int32_t tag, const char *format, ...);

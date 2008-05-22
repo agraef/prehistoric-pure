@@ -253,6 +253,13 @@ interpreter::interpreter()
   declare_extern((void*)pure_pop_tail_args,
 		 "pure_pop_tail_args", "void", -2, "expr*", "int");
 
+  declare_extern((void*)pure_push_arg,
+		 "pure_push_arg",  "void",    1, "expr*");
+  declare_extern((void*)pure_pop_arg,
+		 "pure_pop_arg",   "void",    1, "expr*");
+  declare_extern((void*)pure_pop_tail_arg,
+		 "pure_pop_tail_arg", "void", 1, "expr*");
+
   declare_extern((void*)pure_debug,
 		 "pure_debug",      "void",  -2, "int", "char*");
 }
@@ -1678,6 +1685,7 @@ ReturnInst *Env::CreateRet(Value *v)
   ReturnInst *ret = builder.CreateRet(v);
   Instruction *pi = ret;
   Function *free_fun = interp.module->getFunction("pure_pop_args");
+  Function *free1_fun = interp.module->getFunction("pure_pop_arg");
   if (isa<CallInst>(v)) {
     CallInst* c = cast<CallInst>(v);
     // Check whether the call is actually subject to tail call elimination (as
@@ -1691,8 +1699,12 @@ ReturnInst *Env::CreateRet(Value *v)
       if (isa<CallInst>(it)) {
 	CallInst* c1 = cast<CallInst>(it);
 	if (c1->getCalledFunction() ==
-	    interp.module->getFunction("pure_push_args"))
+	    interp.module->getFunction("pure_push_args") ||
+	    c1->getCalledFunction() ==
+	    interp.module->getFunction("pure_push_arg")) {
 	  free_fun = interp.module->getFunction("pure_pop_tail_args");
+	  free1_fun = interp.module->getFunction("pure_pop_tail_arg");
+	}
       }
     }
     pi = c;
@@ -1700,7 +1712,12 @@ ReturnInst *Env::CreateRet(Value *v)
   // We must garbage-collect args and environment here, immediately before the
   // call (if any), or the return instruction otherwise.
   vector<Value*> myargs;
-  if (n+m != 0) {
+  if (pi != ret && n == 1 && m == 0)
+    new CallInst(free1_fun, args[0], "", pi);
+  else if (pi != ret && n == 0 && m == 1) {
+    Value *v = new GetElementPtrInst(envs, Zero, "", pi);
+    new CallInst(free1_fun, new LoadInst(v, "", pi), "", pi);
+  } else if (n+m != 0) {
     if (pi == ret)
       myargs.push_back(v);
     else
@@ -3075,10 +3092,14 @@ Value *interpreter::external_funcall(int32_t tag, uint32_t n, expr x)
   if (n>0) {
     for (i = 0; i < n; i++)
       argv[i] = codegen(args[i]);
-    vector<Value*> argv1;
-    argv1.push_back(UInt(n));
-    argv1.insert(argv1.end(), argv.begin(), argv.end());
-    act_env().CreateCall(module->getFunction("pure_push_args"), argv1);
+    if (n == 1)
+      act_env().CreateCall(module->getFunction("pure_push_arg"), argv);
+    else {
+      vector<Value*> argv1;
+      argv1.push_back(UInt(n));
+      argv1.insert(argv1.end(), argv.begin(), argv.end());
+      act_env().CreateCall(module->getFunction("pure_push_args"), argv1);
+    }
   }
   return act_env().CreateCall(info.f, argv);
 }
@@ -3360,10 +3381,14 @@ Value *interpreter::fbox(Env& f, bool thunked)
     return fcall(f, x);
   else {
     // create a boxed closure
-    vector<Value*> newargs;
-    newargs.push_back(UInt(f.m));
-    newargs.insert(newargs.end(), x.begin(), x.end());
-    act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    if (f.m == 1)
+      act_env().CreateCall(module->getFunction("pure_new"), x);
+    else {
+      vector<Value*> newargs;
+      newargs.push_back(UInt(f.m));
+      newargs.insert(newargs.end(), x.begin(), x.end());
+      act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    }
     return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
   }
 }
@@ -3578,10 +3603,14 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
     return fcall(f, x);
   else {
     // create a boxed closure
-    vector<Value*> newargs;
-    newargs.push_back(UInt(f.m));
-    newargs.insert(newargs.end(), x.begin(), x.end());
-    act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    if (f.m == 1)
+      act_env().CreateCall(module->getFunction("pure_new"), x);
+    else {
+      vector<Value*> newargs;
+      newargs.push_back(UInt(f.m));
+      newargs.insert(newargs.end(), x.begin(), x.end());
+      act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    }
     return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
   }
 }
@@ -3605,7 +3634,11 @@ Value *interpreter::fcall(Env &f, vector<Value*>& args, vector<Value*>& env)
     x.push_back(e.argv);
   }
   // count references to parameters
-  if (n+m > 0) {
+  if (n == 1 && m == 0)
+    e.CreateCall(module->getFunction("pure_push_arg"), args);
+  else if (n == 0 && m == 1)
+    e.CreateCall(module->getFunction("pure_push_arg"), env);
+  else if (n+m > 0) {
     vector<Value*> args1;
     args1.push_back(UInt(n+m));
     args1.insert(args1.end(), args.begin(), args.end());
@@ -4039,10 +4072,14 @@ void interpreter::fun_body(matcher *pm, bool nodefault)
       x[i] = f.CreateLoadGEP(f.envs, UInt(i));
       assert(x[i]->getType() == ExprPtrTy);
     }
-    vector<Value*> newargs;
-    newargs.push_back(UInt(f.m));
-    newargs.insert(newargs.end(), x.begin(), x.end());
-    act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    if (f.m == 1)
+      act_env().CreateCall(module->getFunction("pure_new"), x);
+    else {
+      vector<Value*> newargs;
+      newargs.push_back(UInt(f.m));
+      newargs.insert(newargs.end(), x.begin(), x.end());
+      act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
+    }
     Value *defaultv = call("pure_clos", f.local, true, f.tag, f.h, f.n, x);
     for (size_t i = 0; i < f.n; ++i) {
       Value *arg = f.args[i];
