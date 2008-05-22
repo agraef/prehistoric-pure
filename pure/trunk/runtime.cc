@@ -1027,6 +1027,66 @@ void pure_pop_tail_args(pure_expr *x, uint32_t n, ...)
 }
 
 extern "C"
+void pure_push_arg(pure_expr *x)
+{
+  interpreter& interp = *interpreter::g_interp;
+  size_t sz = interp.sstk_sz;
+  resize_sstk(interp.sstk, interp.sstk_cap, sz, 2);
+  pure_expr** sstk = interp.sstk;
+  sstk[sz++] = 0; sstk[sz++] = x;
+  if (x->refc > 0)
+    x->refc++;
+  else
+    pure_new_internal(x);
+#if SSTK_DEBUG>1
+  cerr << "++ stack: (sz = " << sz << ")\n";
+  for (size_t i = 0; i < sz; i++) {
+    pure_expr *x = sstk[i];
+    if (i == interp.sstk_sz) cerr << "** pushed:\n";
+    if (x)
+      cerr << i << ": " << (void*)x << ": " << x << endl;
+    else
+      cerr << i << ": " << "** frame **\n";
+  }
+#endif
+  interp.sstk_sz = sz;
+}
+
+extern "C"
+void pure_pop_arg(pure_expr *x)
+{
+#if SSTK_DEBUG
+  pure_pop_args(0, 1, x);
+#else
+  interpreter& interp = *interpreter::g_interp;
+  interp.sstk_sz -= 2;
+  if (x->refc > 1)
+    x->refc--;
+  else
+    pure_free_internal(x);
+#endif
+}
+
+extern "C"
+void pure_pop_tail_arg(pure_expr *x)
+{
+#if SSTK_DEBUG
+  pure_pop_tail_args(0, 1, x);
+#else
+  interpreter& interp = *interpreter::g_interp;
+  pure_expr **sstk = interp.sstk;
+  size_t lastsz = interp.sstk_sz, oldsz = lastsz;
+  while (lastsz > 0 && sstk[--lastsz]) ;
+  memmove(sstk+lastsz-2, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
+  interp.sstk_sz -= 2;
+  if (x->refc > 1)
+    x->refc--;
+  else
+    pure_free_internal(x);
+#endif
+}
+
+extern "C"
 void pure_debug(int32_t tag, const char *format, ...)
 {
   cout << "break at ";

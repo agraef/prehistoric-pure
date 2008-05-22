@@ -4,8 +4,8 @@
 	handling. Fixed the shadow stack and memory debugging code. Both
 	function arguments and environment are now visible on the shadow
 	stack, and all remaining memory leaks have been fixed. Note that,
-	compared to previous revisions, the shadow stack slows down the
-	interpreter a little bit and it also needs some additional memory.
+	compared to previous revisions, the shadow stack slows down
+	compiled code by some 10% and it needs some additional memory.
 	OTOH, it also provides additional data that will be needed in the
 	planned symbolic debugger, and it seems to be the most efficient
 	way to handle dangling expression pointers after an exception
