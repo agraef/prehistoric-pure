@@ -52,6 +52,9 @@ static void mem_mark(pure_expr *x)
   if (x->tag == EXPR::APP) {
     mem_mark(x->data.x[0]);
     mem_mark(x->data.x[1]);
+  } else if (x->tag >= 0 && x->data.clos) {
+    for (size_t i = 0; i < x->data.clos->m; i++)
+      mem_mark(x->data.clos->env[i]);
   }
 }
 #else
