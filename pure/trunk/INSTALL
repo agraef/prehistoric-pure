@@ -204,10 +204,10 @@ and options can be found in the Makefile.
 SYSTEM NOTES
 ====== =====
 
-Pure is known to work on recent Linux and Mac OSX versions, but there are a
-few system-specific quirks which are discussed below. (Please also see the
-CAVEATS AND NOTES section of the manual page for information on other known
-limitations of the current implementation.)
+Pure is known to work on recent Linux and Mac OSX versions under x86, x86-64
+and ppc, but there are a few system-specific quirks which are discussed below.
+(Please also see the CAVEATS AND NOTES section of the manual page for
+information on other known limitations of the current implementation.)
 
 ALL PLATFORMS
 --- ---------
@@ -227,26 +227,22 @@ in case of a stack overflow.
 64 BIT SYSTEMS
 -- --- -------
 
-64 bit systems are supported by Pure. Alas, for unknown reasons the 'debug'
-build currently does *not* work on (some?) 64 bit systems using gcc. This has
-been seen on various different 64 bit Linux versions, YMMV. You can tell that
-you're bitten by this bug if, after running 'make debug' (or using similar,
-custom compilation flags), 'make check' fails on most tests. Fortunately, it
-seems that you can easily work around this by making sure that you have at
-least -O enabled when compiling runtime.cc. Also please note that the
-'default' and 'release' builds should work fine. 32 bit builds also seem to be
-unaffected.
+64 bit systems are fully supported by Pure. Alas, for unknown reasons the
+'debug' build currently does *not* work on (some?) 64 bit systems using
+gcc. This has been seen on various different 64 bit Linux versions, YMMV. You
+can tell that you're bitten by this bug if, after running 'make debug' (or
+using similar, custom compilation flags), 'make check' fails on most tests.
+Fortunately, it seems that you can easily work around this by making sure that
+you have at least -O enabled when compiling runtime.cc. Also please note that
+the 'default' and 'release' builds should work fine. 32 bit builds also seem
+to be unaffected.
 
 LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
 should build out of the box on all recent Linux distributions. However, note
-the issues on 64 bit Linux systems described above. Also, it has been reported
-that the interpreter does *not* work under Ubuntu (32 bit) on PowerPC right
-now; I can't do much about this myself since I cannot reproduce this on my x86
-and i64 Linux systems. Any input which could help to resolve these issues is
-much appreciated.
+the issues on 64 bit Linux systems described above.
 
 MAC OSX
 --- ---
