@@ -658,7 +658,6 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       pure_expr *e = interp.estk.front().e;
       interp.estk.pop_front();
       // collect garbage
-      pure_new_internal(x);
       pure_expr *tmps = interp.tmps;
       while (tmps) {
 	pure_expr *next = tmps->xp;
