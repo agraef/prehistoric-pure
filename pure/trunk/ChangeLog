@@ -1,9 +1,9 @@
-2008-05-21  Albert Graef  <Dr.Graef@t-online.de>
+2008-05-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc, runtime.cc: Major overhaul of expression memory
 	handling. Fixed the shadow stack and memory debugging code. Both
 	function arguments and environment are now visible on the shadow
-	stack, and most remaining memory leaks have been fixed. Note that,
+	stack, and all remaining memory leaks have been fixed. Note that,
 	compared to previous revisions, the shadow stack slows down the
 	interpreter a little bit and it also needs some additional memory.
 	OTOH, it also provides additional data that will be needed in the
