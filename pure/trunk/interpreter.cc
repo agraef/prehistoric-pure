@@ -478,8 +478,8 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
     int32_t f = it->first;
     const symbol& sym = symtab.sym(f);
-    env::const_iterator jt = environ.find(f);
-    if (jt != environ.end() && jt->second.t == env_info::fun) {
+    env::const_iterator jt = globenv.find(f);
+    if (jt != globenv.end() && jt->second.t == env_info::fun) {
       restore_globals(g);
       throw err("symbol '"+sym.s+"' is already defined as a function");
     } else if (externals.find(f) != externals.end()) {
@@ -495,7 +495,7 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
     int32_t f = it->first;
     pure_expr **x = &globalvars[f].x;
     assert(*x);
-    environ[f] = env_info(x, temp);
+    globenv[f] = env_info(x, temp);
   }
   restore_globals(g);
   return res;
@@ -505,8 +505,8 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
 
 void interpreter::mark_dirty(int32_t f)
 {
-  env::iterator e = environ.find(f);
-  if (e != environ.end()) {
+  env::iterator e = globenv.find(f);
+  if (e != globenv.end()) {
     // mark this closure for recompilation
     env_info& info = e->second;
     if (info.m) {
@@ -555,8 +555,8 @@ void interpreter::compile()
     // there are some fundefs in the global environment waiting to be
     // recompiled, do it now
     for (funset::const_iterator f = dirty.begin(); f != dirty.end(); f++) {
-      env::iterator e = environ.find(*f);
-      if (e != environ.end()) {
+      env::iterator e = globenv.find(*f);
+      if (e != globenv.end()) {
 	int32_t ftag = e->first;
 	env_info& info = e->second;
 	info.m = new matcher(*info.rules, info.argc+1);
@@ -572,8 +572,8 @@ void interpreter::compile()
       }
     }
     for (funset::const_iterator f = dirty.begin(); f != dirty.end(); f++) {
-      env::iterator e = environ.find(*f);
-      if (e != environ.end()) {
+      env::iterator e = globenv.find(*f);
+      if (e != globenv.end()) {
 	int32_t ftag = e->first;
 	env_info& info = e->second;
 	// regenerate LLVM code (body)
@@ -806,19 +806,19 @@ void interpreter::clearsym(int32_t f)
 void interpreter::clear(int32_t f)
 {
   if (f > 0) {
-    env::iterator it = environ.find(f);
-    if (it != environ.end()) {
-      environ.erase(it);
+    env::iterator it = globenv.find(f);
+    if (it != globenv.end()) {
+      globenv.erase(it);
       clearsym(f);
     }
   } else if (f == 0 && temp > 0) {
     // purge all temporary functions and variables
-    for (env::iterator it = environ.begin(); it != environ.end(); ) {
+    for (env::iterator it = globenv.begin(); it != globenv.end(); ) {
       env::iterator jt = it; ++it;
       int32_t f = jt->first;
       env_info& info = jt->second;
       if (info.temp >= temp) {
-	environ.erase(jt);
+	globenv.erase(jt);
 	clearsym(f);
       } else if (info.t == env_info::fun) {
 	// purge temporary rules for non-temporary functions
@@ -1539,8 +1539,8 @@ void interpreter::defn(int32_t tag, pure_expr *x)
   globals g;
   save_globals(g);
   symbol& sym = symtab.sym(tag);
-  env::const_iterator jt = environ.find(tag);
-  if (jt != environ.end() && jt->second.t == env_info::fun) {
+  env::const_iterator jt = globenv.find(tag);
+  if (jt != globenv.end() && jt->second.t == env_info::fun) {
     restore_globals(g);
     throw err("symbol '"+sym.s+"' is already defined as a function");
   } else if (externals.find(tag) != externals.end()) {
@@ -1555,7 +1555,7 @@ void interpreter::defn(int32_t tag, pure_expr *x)
     JIT->addGlobalMapping(v.v, &v.x);
   }
   if (v.x) pure_free(v.x); v.x = pure_new(x);
-  environ[tag] = env_info(&v.x, temp);
+  globenv[tag] = env_info(&v.x, temp);
   restore_globals(g);
 }
 
@@ -2240,7 +2240,7 @@ Function *interpreter::declare_extern(string name, string restype,
   // for this symbol. This is an error (unless it's already declared as an
   // external, too).
   symbol& sym = symtab.sym(asname);
-  if (environ.find(sym.f) != environ.end() &&
+  if (globenv.find(sym.f) != globenv.end() &&
       externals.find(sym.f) == externals.end())
     throw err("symbol '"+name+
 	      "' is already defined as a Pure function or variable");

@@ -301,8 +301,8 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   {
     size_t maxsize = 0, nfuns = 0, nvars = 0, nrules = 0;
     list<env_sym> l; set<int32_t> syms;
-    for (env::const_iterator it = interp.environ.begin();
-	 it != interp.environ.end(); ++it) {
+    for (env::const_iterator it = interp.globenv.begin();
+	 it != interp.globenv.end(); ++it) {
       int32_t f = it->first;
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
@@ -355,7 +355,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	    }
 	  }
 	  if (!matches) continue;
-	  l.push_back(env_sym(sym, interp.environ.end(), it));
+	  l.push_back(env_sym(sym, interp.globenv.end(), it));
 	  if (sym.s.size() > maxsize) maxsize = sym.s.size();
 	}
       }
@@ -372,7 +372,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       map<int32_t,Env>::iterator fenv = interp.globalfuns.find(ftag);
       const env::const_iterator jt = it->it;
       const extmap::const_iterator xt = it->xt;
-      if (jt == interp.environ.end()) {
+      if (jt == interp.globenv.end()) {
 	assert(xt != interp.externals.end());
 	const ExternInfo& info = xt->second;
 	sout << "extern " << info << ";";
