@@ -228,7 +228,7 @@ end;
    converted values. An exception of the form 'scanf_error ret', where ret is
    the tuple of successfully converted values (which may be less than the
    number of requested input items), is thrown if eof was met or another error
-   occured while still reading. The handling of other abnormal conditions
+   occurred while still reading. The handling of other abnormal conditions
    (e.g., error in format string) is analogous to printf et al. Also note that
    our implementation here doesn't accept any of the length modifiers used by
    the C routines. Floating point values will *always* be read in double
