@@ -1503,6 +1503,7 @@ pure_expr *eval(const char *s)
   assert(s);
   interpreter& interp = *interpreter::g_interp;
   pure_expr *res = interp.runstr(string(s)+";");
+  interp.result = 0;
   if (res) pure_unref_internal(res);
   return res;
 }
