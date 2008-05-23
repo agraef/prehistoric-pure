@@ -18,7 +18,6 @@
 
 /* some utf-8 helpers pilfered from the Q source ***************************/
 
-#ifndef _WIN32
 #if !defined(_WIN32) && !defined(HAVE_LANGINFO_CODESET)
 
 /* simplistic emulation of nl_langinfo(CODESET) on POSIX systems which don't
@@ -613,8 +612,6 @@ static wchar_t towchar(unsigned long c)
        encoding anyway. */
     return (wchar_t)c;
 }
-#endif
-
 #endif
 
 unsigned long u8strchar(const char *s, size_t n)
