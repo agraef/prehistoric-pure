@@ -787,7 +787,6 @@ void interpreter::clearsym(int32_t f)
   // patch up the global variable table to replace it with a cbox.
   map<int32_t,GlobalVar>::iterator v = globalvars.find(f);
   if (v != globalvars.end()) {
-    v->second.clear();
     pure_expr *cv = pure_const(f);
     if (v->second.x) pure_free(v->second.x);
     v->second.x = pure_new(cv);
@@ -1554,8 +1553,7 @@ void interpreter::defn(int32_t tag, pure_expr *x)
     v.v = new GlobalVariable
       (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
     JIT->addGlobalMapping(v.v, &v.x);
-  } else
-    v.clear();
+  }
   if (v.x) pure_free(v.x); v.x = pure_new(x);
   environ[tag] = env_info(&v.x, temp);
   restore_globals(g);
@@ -1573,15 +1571,6 @@ ostream &operator<< (ostream& os, const ExternInfo& info)
     os << interp.type_name(info.argtypes[i]);
   }
   return os << ")";
-}
-
-void GlobalVar::clear()
-{
-  if (e) {
-    assert(e->refc > 0);
-    if (--e->refc == 0) delete e;
-    e = 0;
-  }
 }
 
 Env& Env::operator= (const Env& e)
@@ -2569,8 +2558,7 @@ Function *interpreter::declare_extern(string name, string restype,
       (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
        mkvarlabel(sym.f), module);
     JIT->addGlobalMapping(v.v, &v.x);
-  } else
-    v.clear();
+  }
   if (v.x) pure_free(v.x); v.x = pure_new(cv);
   Value *defaultv = b.CreateLoad(v.v);
   vector<Value*> myargs(2);
@@ -2597,7 +2585,13 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   }
   // Create an anonymous function to call in order to evaluate the target
   // expression.
-  Env f(0, 0, x, false);
+  /* NOTE: The environment is allocated dynamically, so that its child
+     environments survive for the entire lifetime of any embedded closures,
+     which might still be called at a later time. XXXFIXME: This leaks memory
+     right now. How do we keep track of environments that might still be
+     needed? */
+  Env *fptr = new Env(0, 0, x, false);
+  Env &f = *fptr;
   push("doeval", &f);
   fun_prolog("");
 #if DEBUG>1
@@ -2618,6 +2612,8 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
+  // If there are no child envs, we can get rid of the environment now.
+  if (f.fmap[0].empty()) delete fptr;
   // NOTE: Result (if any) is to be freed by the caller.
   return res;
 }
@@ -2631,10 +2627,6 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   }
   // Create an anonymous function to call in order to evaluate the rhs
   // expression, match against the lhs and bind variables in lhs accordingly.
-  /* NOTE: Unlike doeval(), we must create a semi-permanent environment here
-     whose child environments persist for the entire lifetime of the variables
-     bound in this definition, since some of those bindings may refer to
-     closures (executable code) that might still be called some time. */
   Env *fptr = new Env(0, 0, rhs, false);
   Env &f = *fptr;
   push("dodefn", &f);
@@ -2673,9 +2665,7 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
       v.v = new GlobalVariable
 	(ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
       JIT->addGlobalMapping(v.v, &v.x);
-    } else
-      v.clear();
-    v.e = fptr; f.refc++;
+    }
     if (v.x) call("pure_free", f.builder.CreateLoad(v.v));
     call("pure_new", x);
 #if DEBUG>2
@@ -2703,13 +2693,14 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
+  // If there are no child envs, we can get rid of the environment now.
+  if (f.fmap[0].empty()) delete fptr;
   if (!res) {
     // We caught an exception, clean up the mess.
     for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
       int32_t tag = it->first;
       GlobalVar& v = globalvars[tag];
       if (!v.x) {
-	v.clear();
 	JIT->updateGlobalMapping(v.v, 0);
 	v.v->eraseFromParent();
 	globalvars.erase(tag);
@@ -3407,8 +3398,7 @@ Value *interpreter::cbox(int32_t tag)
       (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
        mkvarlabel(tag), module);
     JIT->addGlobalMapping(v.v, &v.x);
-  } else
-    v.clear();
+  }
   if (v.x) pure_free(v.x); v.x = pure_new(cv);
   return act_builder().CreateLoad(v.v);
 }

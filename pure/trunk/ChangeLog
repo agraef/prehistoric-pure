@@ -1,3 +1,21 @@
+2008-05-23  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc: If there are any child environments, doeval and
+	dodefn both create semi-permanent environments now, so that the
+	child environments and the corresponding LLVM IR survive for the
+	entire lifetime of any embedded closures, which might still be
+	called at a later time. This fixes the segfaults occurring when a
+	closure gets called after its associated environment was purged. A
+	partial fix for some situations (as reported earlier by Chris
+	Double) was already in the 0.2 release, but this didn't deal with
+	all cases, such as closures constructed in a call to the eval
+	function, as reported by Eddie Rucker.
+
+	TODO: The current solution leaks memory, as the doeval/dodefn
+	environments aren't reclaimed any more. This still needs to be
+	fixed, by counting references on the global ancestor environments
+	of each closure constructed in doeval and dodefn.
+
 2008-05-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc, runtime.cc: Major overhaul of expression memory

@@ -69,9 +69,7 @@ struct GlobalVar {
   // global variable
   llvm::GlobalVariable* v;
   pure_expr *x;
-  Env *e;
-  GlobalVar() { v = 0; x = 0; e = 0; }
-  void clear();
+  GlobalVar() { v = 0; x = 0; }
 };
 
 struct VarInfo {
@@ -133,7 +131,7 @@ struct Env {
   Builder builder;
   // parent environment (if any)
   Env *parent;
-  // reference counter (for dodefn)
+  // reference counter (currently unused)
   uint32_t refc;
   // convenience functions for invoking CreateGEP() and CreateLoad()
   llvm::Value *CreateGEP
