@@ -9,7 +9,7 @@
 # installation time, you can also specify a DESTDIR path if you want to
 # install into a staging directory, e.g.: 'make install DESTDIR=$PWD/BUILD'.
 
-version = 0.2
+version = 0.3
 dist = pure-$(version)
 
 prefix = /usr/local
