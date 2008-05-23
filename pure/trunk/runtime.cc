@@ -5,6 +5,7 @@
 #include "util.hh"
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <malloc.h>
 #include <stdarg.h>
 #include <iostream>
 #include <sstream>
