@@ -1,7 +1,8 @@
 2008-05-23  Albert Graef  <Dr.Graef@t-online.de>
 
-	* runtime.cc (eval): Fix premature freeing of eval result.
-	Reported by Eddie Rucker.
+	* runtime.cc: Fix premature freeing of eval result, and a minor
+	memory allocation glitch in the catch function. Reported by Eddie
+	Rucker.
 
 	* Makefile: Bump version number.
 

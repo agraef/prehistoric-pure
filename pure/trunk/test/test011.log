@@ -1,0 +1,2072 @@
+pure_sys_vars;
+errno = pure_errno;
+set_errno val/*0:1*/::int = pure_set_errno val/*0:1*/;
+fgets f/*0:1*/ = read_a_line/*1*/ f/*1:1*/ buf/*0:*/ "" when buf/*0:*/ = malloc 1024 {
+  rule #0: buf = malloc 1024
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with read_a_line f/*0:001*/ buf/*0:01*/ t/*0:1*/ = check/*1*/ s/*0:*/ when s/*0:*/ = c_fgets buf/*0:01*/ 1024 f/*0:001*/ {
+  rule #0: s = c_fgets buf 1024 f
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with check s/*0:1*/::string = return/*1*/ (t/*1:1*/+s/*0:1*/) if done/*1*/ s/*0:1*/; check s/*0:1*/::string = read_a_line/*2*/ f/*1:001*/ buf/*1:01*/ (t/*1:1*/+s/*0:1*/); check s/*0:1*/ = return/*1*/ s/*0:1*/ if null t/*1:1*/; check s/*0:1*/ = return/*1*/ t/*1:1*/ {
+  rule #0: check s::string = return (t+s) if done s
+  rule #1: check s::string = read_a_line f buf (t+s)
+  rule #2: check s = return s if null t
+  rule #3: check s = return t
+  state 0: #0 #1 #2 #3
+	<var> state 1
+	<var>::string state 2
+  state 1: #2 #3
+  state 2: #0 #1 #2 #3
+}; return x/*0:1*/ = x/*1:1*/ when _/*0:*/ = free buf/*1:01*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: return x = x when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}; done s/*0:1*/::string = feof f/*1:001*/||ferror f/*1:001*/||not null s/*0:1*/&&last s/*0:1*/=="\n" {
+  rule #0: done s::string = feof f||ferror f||not null s&&last s=="\n"
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+} end {
+  rule #0: read_a_line f buf t = check s when s = c_fgets buf 1024 f end with check s::string = return (t+s) if done s; check s::string = read_a_line f buf (t+s); check s = return s if null t; check s = return t; return x = x when _ = free buf end; done s::string = feof f||ferror f||not null s&&last s=="\n" end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+} end;
+gets = if null s/*0:*/ then s/*0:*/ else if last s/*0:*/=="\n" then init s/*0:*/ else s/*0:*/ when s/*0:*/ = fgets stdin {
+  rule #0: s = fgets stdin
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+fget f/*0:1*/ = read_a_file/*1*/ f/*1:1*/ buf/*0:*/ "" when buf/*0:*/ = malloc 65536 {
+  rule #0: buf = malloc 65536
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with read_a_file f/*0:001*/ buf/*0:01*/ t/*0:1*/ = check/*1*/ s/*0:*/ when s/*0:*/ = c_fgets buf/*0:01*/ 65536 f/*0:001*/ {
+  rule #0: s = c_fgets buf 65536 f
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with check s/*0:1*/::string = return/*1*/ (t/*1:1*/+s/*0:1*/) if feof f/*1:001*/||ferror f/*1:001*/; check s/*0:1*/::string = read_a_file/*2*/ f/*1:001*/ buf/*1:01*/ (t/*1:1*/+s/*0:1*/); check s/*0:1*/ = return/*1*/ s/*0:1*/ if null t/*1:1*/; check s/*0:1*/ = return/*1*/ t/*1:1*/ {
+  rule #0: check s::string = return (t+s) if feof f||ferror f
+  rule #1: check s::string = read_a_file f buf (t+s)
+  rule #2: check s = return s if null t
+  rule #3: check s = return t
+  state 0: #0 #1 #2 #3
+	<var> state 1
+	<var>::string state 2
+  state 1: #2 #3
+  state 2: #0 #1 #2 #3
+}; return x/*0:1*/ = x/*1:1*/ when _/*0:*/ = free buf/*1:01*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: return x = x when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: read_a_file f buf t = check s when s = c_fgets buf 65536 f end with check s::string = return (t+s) if feof f||ferror f; check s::string = read_a_file f buf (t+s); check s = return s if null t; check s = return t; return x = x when _ = free buf end end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+} end;
+printf format/*0:01*/::string args/*0:1*/ = fprintf stdout format/*0:01*/ args/*0:1*/;
+fprintf fp/*0:001*/ format/*0:01*/::string args/*0:1*/ = count/*0:01*/ when args/*0:*/ = if tuplep args/*0:1*/ then list args/*0:1*/ else [args/*0:1*/]; count/*0:01*/,_/*0:1*/ = catch error_handler/*1*/ (foldl (do_fprintf/*2*/ fp/*2:001*/) (0,args/*1:*/)$printf_split_format format/*2:01*/) {
+  rule #0: count,_ = catch error_handler (foldl (do_fprintf fp) (0,args)$printf_split_format format)
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: args = if tuplep args then list args else [args]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with error_handler (printf_error res/*0:11*/::int) = res/*0:11*/,[]; error_handler x/*0:1*/ = throw x/*0:1*/ {
+  rule #0: error_handler (printf_error res::int) = res,[]
+  rule #1: error_handler x = throw x
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	printf_error state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+	<var>::int state 7
+  state 6: #1
+  state 7: #0 #1
+}; do_fprintf fp/*0:001*/ (count/*0:0101*/,arg/*0:01101*/:args/*0:0111*/) (printf_format_spec t/*0:101*/ s/*0:11*/) = count/*0:*/,args/*2:0111*/ when res/*0:*/ = case t/*0:101*/,arg/*0:01101*/ of "d",x/*0:1*/::int = pure_fprintf_int fp/*1:001*/ s/*1:11*/ x/*0:1*/; "d",x/*0:1*/::bigint = pure_fprintf_int fp/*1:001*/ s/*1:11*/ (int x/*0:1*/); "g",x/*0:1*/::double = pure_fprintf_double fp/*1:001*/ s/*1:11*/ x/*0:1*/; "s",x/*0:1*/::string = pure_fprintf_string fp/*1:001*/ s/*1:11*/ x/*0:1*/; "p",x/*0:1*/::string = pure_fprintf_pointer fp/*1:001*/ s/*1:11*/ x/*0:1*/; "p",x/*0:1*/ = pure_fprintf_pointer fp/*1:001*/ s/*1:11*/ x/*0:1*/; _/*0:*/ = throw (printf_value_error s/*1:11*/ arg/*1:01101*/) {
+  rule #0: "d",x::int = pure_fprintf_int fp s x
+  rule #1: "d",x::bigint = pure_fprintf_int fp s (int x)
+  rule #2: "g",x::double = pure_fprintf_double fp s x
+  rule #3: "s",x::string = pure_fprintf_string fp s x
+  rule #4: "p",x::string = pure_fprintf_pointer fp s x
+  rule #5: "p",x = pure_fprintf_pointer fp s x
+  rule #6: _ = throw (printf_value_error s arg)
+  state 0: #0 #1 #2 #3 #4 #5 #6
+	<var> state 1
+	<app> state 2
+  state 1: #6
+  state 2: #0 #1 #2 #3 #4 #5 #6
+	<var> state 3
+	<app> state 5
+  state 3: #6
+	<var> state 4
+  state 4: #6
+  state 5: #0 #1 #2 #3 #4 #5 #6
+	<var> state 6
+	, state 9
+  state 6: #6
+	<var> state 7
+  state 7: #6
+	<var> state 8
+  state 8: #6
+  state 9: #0 #1 #2 #3 #4 #5 #6
+	<var> state 10
+	"d"::string state 12
+	"g"::string state 16
+	"s"::string state 19
+	"p"::string state 22
+  state 10: #6
+	<var> state 11
+  state 11: #6
+  state 12: #0 #1 #6
+	<var> state 13
+	<var>::int state 14
+	<var>::bigint state 15
+  state 13: #6
+  state 14: #0 #6
+  state 15: #1 #6
+  state 16: #2 #6
+	<var> state 17
+	<var>::double state 18
+  state 17: #6
+  state 18: #2 #6
+  state 19: #3 #6
+	<var> state 20
+	<var>::string state 21
+  state 20: #6
+  state 21: #3 #6
+  state 22: #4 #5 #6
+	<var> state 23
+	<var>::string state 24
+	<var> state 25
+  state 23: #6
+  state 24: #4 #6
+  state 25: #5 #6
+} end; count/*0:*/ = if res/*0:*/>=0 then count/*1:0101*/+res/*0:*/ else throw printf_error res/*0:*/ {
+  rule #0: count = if res>=0 then count+res else throw printf_error res
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = case t,arg of "d",x::int = pure_fprintf_int fp s x; "d",x::bigint = pure_fprintf_int fp s (int x); "g",x::double = pure_fprintf_double fp s x; "s",x::string = pure_fprintf_string fp s x; "p",x::string = pure_fprintf_pointer fp s x; "p",x = pure_fprintf_pointer fp s x; _ = throw (printf_value_error s arg) end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_fprintf fp/*0:001*/ (count/*0:0101*/,args/*0:011*/) (printf_format_str s/*0:11*/) = count/*0:*/,args/*2:011*/ when res/*0:*/ = pure_fprintf fp/*0:001*/ s/*0:11*/; count/*0:*/ = if res/*0:*/>=0 then count/*1:0101*/+res/*0:*/ else throw printf_error res/*0:*/ {
+  rule #0: count = if res>=0 then count+res else throw printf_error res
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = pure_fprintf fp s
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_fprintf fp/*0:001*/ (count/*0:0101*/,_/*0:011*/) _/*0:1*/ = throw printf_arg_error {
+  rule #0: do_fprintf fp (count,arg:args) (printf_format_spec t s) = count,args when res = case t,arg of "d",x::int = pure_fprintf_int fp s x; "d",x::bigint = pure_fprintf_int fp s (int x); "g",x::double = pure_fprintf_double fp s x; "s",x::string = pure_fprintf_string fp s x; "p",x::string = pure_fprintf_pointer fp s x; "p",x = pure_fprintf_pointer fp s x; _ = throw (printf_value_error s arg) end; count = if res>=0 then count+res else throw printf_error res end
+  rule #1: do_fprintf fp (count,args) (printf_format_str s) = count,args when res = pure_fprintf fp s; count = if res>=0 then count+res else throw printf_error res end
+  rule #2: do_fprintf fp (count,_) _ = throw printf_arg_error
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	<app> state 2
+  state 2: #0 #1 #2
+	<app> state 3
+  state 3: #0 #1 #2
+	, state 4
+  state 4: #0 #1 #2
+	<var> state 5
+  state 5: #0 #1 #2
+	<var> state 6
+	<app> state 13
+  state 6: #1 #2
+	<var> state 7
+	<app> state 8
+  state 7: #2
+  state 8: #1 #2
+	<var> state 9
+	printf_format_str state 11
+  state 9: #2
+	<var> state 10
+  state 10: #2
+  state 11: #1 #2
+	<var> state 12
+  state 12: #1 #2
+  state 13: #0 #1 #2
+	<var> state 14
+	<app> state 22
+  state 14: #1 #2
+	<var> state 15
+  state 15: #1 #2
+	<var> state 16
+	<app> state 17
+  state 16: #2
+  state 17: #1 #2
+	<var> state 18
+	printf_format_str state 20
+  state 18: #2
+	<var> state 19
+  state 19: #2
+  state 20: #1 #2
+	<var> state 21
+  state 21: #1 #2
+  state 22: #0 #1 #2
+	<var> state 23
+	: state 32
+  state 23: #1 #2
+	<var> state 24
+  state 24: #1 #2
+	<var> state 25
+  state 25: #1 #2
+	<var> state 26
+	<app> state 27
+  state 26: #2
+  state 27: #1 #2
+	<var> state 28
+	printf_format_str state 30
+  state 28: #2
+	<var> state 29
+  state 29: #2
+  state 30: #1 #2
+	<var> state 31
+  state 31: #1 #2
+  state 32: #0 #1 #2
+	<var> state 33
+  state 33: #0 #1 #2
+	<var> state 34
+  state 34: #0 #1 #2
+	<var> state 35
+	<app> state 36
+  state 35: #2
+  state 36: #0 #1 #2
+	<var> state 37
+	<app> state 39
+	printf_format_str state 46
+  state 37: #2
+	<var> state 38
+  state 38: #2
+  state 39: #0 #2
+	<var> state 40
+	printf_format_spec state 43
+  state 40: #2
+	<var> state 41
+  state 41: #2
+	<var> state 42
+  state 42: #2
+  state 43: #0 #2
+	<var> state 44
+  state 44: #0 #2
+	<var> state 45
+  state 45: #0 #2
+  state 46: #1 #2
+	<var> state 47
+  state 47: #1 #2
+} end;
+printf_split_format format/*0:1*/ = regexg analyze/*0*/ "(%[-#0 ]?[0-9]*([.][0-9]*)?[diouxXeEfgGsp])|(%)|([^%]|%%)+" REG_EXTENDED format/*0:1*/ 0 with analyze info/*0:1*/ = if p/*1:01*/>=0 then printf_format_spec (format_type/*4*/ (last u/*2:1*/)) u/*2:1*/ else if q/*0:01*/>=0 then throw (printf_format_error q/*0:01*/) else printf_format_str u/*2:1*/ when _/*0:01*/,u/*0:1*/ = reg 0 info/*0:1*/; p/*0:01*/,_/*0:1*/ = reg 1 info/*1:1*/; q/*0:01*/,_/*0:1*/ = reg 3 info/*2:1*/ {
+  rule #0: q,_ = reg 3 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: p,_ = reg 1 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: _,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end {
+  rule #0: analyze info = if p>=0 then printf_format_spec (format_type (last u)) u else if q>=0 then throw (printf_format_error q) else printf_format_str u when _,u = reg 0 info; p,_ = reg 1 info; q,_ = reg 3 info end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}; format_type x/*0:1*/ = if index "diouxX" x/*0:1*/>=0 then "d" else if index "eEfgG" x/*0:1*/>=0 then "g" else x/*0:1*/ {
+  rule #0: format_type x = if index "diouxX" x>=0 then "d" else if index "eEfgG" x>=0 then "g" else x
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+sprintf format/*0:01*/::string args/*0:1*/ = s/*0:01*/ when args/*0:*/ = if tuplep args/*0:1*/ then list args/*0:1*/ else [args/*0:1*/]; s/*0:01*/,_/*0:1*/ = catch error_handler/*1*/ (foldl do_sprintf/*2*/ ("",args/*1:*/)$printf_split_format format/*2:01*/) {
+  rule #0: s,_ = catch error_handler (foldl do_sprintf ("",args)$printf_split_format format)
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: args = if tuplep args then list args else [args]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with error_handler (printf_error res/*0:11*/::int) = pointer 0,[]; error_handler x/*0:1*/ = throw x/*0:1*/ {
+  rule #0: error_handler (printf_error res::int) = pointer 0,[]
+  rule #1: error_handler x = throw x
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	printf_error state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+	<var>::int state 7
+  state 6: #1
+  state 7: #0 #1
+}; do_sprintf (u/*0:0101*/,arg/*0:01101*/:args/*0:0111*/) (printf_format_spec t/*0:101*/ s/*0:11*/) = u/*0:*/,args/*4:0111*/ when size/*0:*/ = case t/*0:101*/,arg/*0:01101*/ of "s",x/*0:1*/::string = #s/*1:11*/+#x/*0:1*/+1000; _/*0:*/ = 64 {
+  rule #0: "s",x::string = #s+#x+1000
+  rule #1: _ = 64
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	<app> state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+	, state 9
+  state 6: #1
+	<var> state 7
+  state 7: #1
+	<var> state 8
+  state 8: #1
+  state 9: #0 #1
+	<var> state 10
+	"s"::string state 12
+  state 10: #1
+	<var> state 11
+  state 11: #1
+  state 12: #0 #1
+	<var> state 13
+	<var>::string state 14
+  state 13: #1
+  state 14: #0 #1
+} end; buf/*0:*/ = check_buf/*2*/ (malloc size/*0:*/); res/*0:*/ = case t/*2:101*/,arg/*2:01101*/ of "d",x/*0:1*/::int = pure_snprintf_int buf/*1:*/ size/*2:*/ s/*3:11*/ x/*0:1*/; "d",x/*0:1*/::bigint = pure_snprintf_int buf/*1:*/ size/*2:*/ s/*3:11*/ (int x/*0:1*/); "g",x/*0:1*/::double = pure_snprintf_double buf/*1:*/ size/*2:*/ s/*3:11*/ x/*0:1*/; "s",x/*0:1*/::string = pure_snprintf_string buf/*1:*/ size/*2:*/ s/*3:11*/ x/*0:1*/; "p",x/*0:1*/::string = pure_snprintf_pointer buf/*1:*/ size/*2:*/ s/*3:11*/ x/*0:1*/; "p",x/*0:1*/ = pure_snprintf_pointer buf/*1:*/ size/*2:*/ s/*3:11*/ x/*0:1*/; _/*0:*/ = throw (printf_value_error s/*4:11*/ arg/*4:01101*/) when _/*0:*/ = free buf/*1:*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: "d",x::int = pure_snprintf_int buf size s x
+  rule #1: "d",x::bigint = pure_snprintf_int buf size s (int x)
+  rule #2: "g",x::double = pure_snprintf_double buf size s x
+  rule #3: "s",x::string = pure_snprintf_string buf size s x
+  rule #4: "p",x::string = pure_snprintf_pointer buf size s x
+  rule #5: "p",x = pure_snprintf_pointer buf size s x
+  rule #6: _ = throw (printf_value_error s arg) when _ = free buf end
+  state 0: #0 #1 #2 #3 #4 #5 #6
+	<var> state 1
+	<app> state 2
+  state 1: #6
+  state 2: #0 #1 #2 #3 #4 #5 #6
+	<var> state 3
+	<app> state 5
+  state 3: #6
+	<var> state 4
+  state 4: #6
+  state 5: #0 #1 #2 #3 #4 #5 #6
+	<var> state 6
+	, state 9
+  state 6: #6
+	<var> state 7
+  state 7: #6
+	<var> state 8
+  state 8: #6
+  state 9: #0 #1 #2 #3 #4 #5 #6
+	<var> state 10
+	"d"::string state 12
+	"g"::string state 16
+	"s"::string state 19
+	"p"::string state 22
+  state 10: #6
+	<var> state 11
+  state 11: #6
+  state 12: #0 #1 #6
+	<var> state 13
+	<var>::int state 14
+	<var>::bigint state 15
+  state 13: #6
+  state 14: #0 #6
+  state 15: #1 #6
+  state 16: #2 #6
+	<var> state 17
+	<var>::double state 18
+  state 17: #6
+  state 18: #2 #6
+  state 19: #3 #6
+	<var> state 20
+	<var>::string state 21
+  state 20: #6
+  state 21: #3 #6
+  state 22: #4 #5 #6
+	<var> state 23
+	<var>::string state 24
+	<var> state 25
+  state 23: #6
+  state 24: #4 #6
+  state 25: #5 #6
+} end; u/*0:*/ = if res/*0:*/>=0 then u/*3:0101*/+cstring buf/*1:*/ else throw printf_error res/*1:*/ when _/*0:*/ = free buf/*1:*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = case t,arg of "d",x::int = pure_snprintf_int buf size s x; "d",x::bigint = pure_snprintf_int buf size s (int x); "g",x::double = pure_snprintf_double buf size s x; "s",x::string = pure_snprintf_string buf size s x; "p",x::string = pure_snprintf_pointer buf size s x; "p",x = pure_snprintf_pointer buf size s x; _ = throw (printf_value_error s arg) when _ = free buf end end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = check_buf (malloc size)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = case t,arg of "s",x::string = #s+#x+1000; _ = 64 end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_sprintf (u/*0:0101*/,args/*0:011*/) (printf_format_str s/*0:11*/) = u/*0:*/,args/*4:011*/ when size/*0:*/ = #s/*0:11*/+1000; buf/*0:*/ = check_buf/*2*/ (malloc size/*0:*/); res/*0:*/ = pure_snprintf buf/*0:*/ size/*1:*/ s/*2:11*/; u/*0:*/ = if res/*0:*/>=0 then u/*3:0101*/+cstring buf/*1:*/ else throw printf_error res/*1:*/ when _/*0:*/ = free buf/*1:*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = pure_snprintf buf size s
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = check_buf (malloc size)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = #s+1000
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_sprintf (u/*0:0101*/,_/*0:011*/) _/*0:1*/ = throw printf_arg_error {
+  rule #0: do_sprintf (u,arg:args) (printf_format_spec t s) = u,args when size = case t,arg of "s",x::string = #s+#x+1000; _ = 64 end; buf = check_buf (malloc size); res = case t,arg of "d",x::int = pure_snprintf_int buf size s x; "d",x::bigint = pure_snprintf_int buf size s (int x); "g",x::double = pure_snprintf_double buf size s x; "s",x::string = pure_snprintf_string buf size s x; "p",x::string = pure_snprintf_pointer buf size s x; "p",x = pure_snprintf_pointer buf size s x; _ = throw (printf_value_error s arg) when _ = free buf end end; u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end end
+  rule #1: do_sprintf (u,args) (printf_format_str s) = u,args when size = #s+1000; buf = check_buf (malloc size); res = pure_snprintf buf size s; u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end end
+  rule #2: do_sprintf (u,_) _ = throw printf_arg_error
+  state 0: #0 #1 #2
+	<app> state 1
+  state 1: #0 #1 #2
+	<app> state 2
+  state 2: #0 #1 #2
+	, state 3
+  state 3: #0 #1 #2
+	<var> state 4
+  state 4: #0 #1 #2
+	<var> state 5
+	<app> state 12
+  state 5: #1 #2
+	<var> state 6
+	<app> state 7
+  state 6: #2
+  state 7: #1 #2
+	<var> state 8
+	printf_format_str state 10
+  state 8: #2
+	<var> state 9
+  state 9: #2
+  state 10: #1 #2
+	<var> state 11
+  state 11: #1 #2
+  state 12: #0 #1 #2
+	<var> state 13
+	<app> state 21
+  state 13: #1 #2
+	<var> state 14
+  state 14: #1 #2
+	<var> state 15
+	<app> state 16
+  state 15: #2
+  state 16: #1 #2
+	<var> state 17
+	printf_format_str state 19
+  state 17: #2
+	<var> state 18
+  state 18: #2
+  state 19: #1 #2
+	<var> state 20
+  state 20: #1 #2
+  state 21: #0 #1 #2
+	<var> state 22
+	: state 31
+  state 22: #1 #2
+	<var> state 23
+  state 23: #1 #2
+	<var> state 24
+  state 24: #1 #2
+	<var> state 25
+	<app> state 26
+  state 25: #2
+  state 26: #1 #2
+	<var> state 27
+	printf_format_str state 29
+  state 27: #2
+	<var> state 28
+  state 28: #2
+  state 29: #1 #2
+	<var> state 30
+  state 30: #1 #2
+  state 31: #0 #1 #2
+	<var> state 32
+  state 32: #0 #1 #2
+	<var> state 33
+  state 33: #0 #1 #2
+	<var> state 34
+	<app> state 35
+  state 34: #2
+  state 35: #0 #1 #2
+	<var> state 36
+	<app> state 38
+	printf_format_str state 45
+  state 36: #2
+	<var> state 37
+  state 37: #2
+  state 38: #0 #2
+	<var> state 39
+	printf_format_spec state 42
+  state 39: #2
+	<var> state 40
+  state 40: #2
+	<var> state 41
+  state 41: #2
+  state 42: #0 #2
+	<var> state 43
+  state 43: #0 #2
+	<var> state 44
+  state 44: #0 #2
+  state 45: #1 #2
+	<var> state 46
+  state 46: #1 #2
+}; check_buf buf/*0:1*/ = throw printf_malloc_error if null buf/*0:1*/; check_buf buf/*0:1*/ = buf/*0:1*/ {
+  rule #0: check_buf buf = throw printf_malloc_error if null buf
+  rule #1: check_buf buf = buf
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+} end;
+scanf format/*0:1*/::string = fscanf stdin format/*0:1*/;
+fscanf fp/*0:01*/ format/*0:1*/::string = tuple$reverse ret/*0:*/ when ret/*0:*/ = catch error_handler/*0*/ (foldl (do_fscanf/*1*/ fp/*1:01*/) []$scanf_split_format format/*1:1*/) {
+  rule #0: ret = catch error_handler (foldl (do_fscanf fp) []$scanf_split_format format)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with error_handler (scanf_error ret/*0:11*/) = throw (scanf_error (tuple$reverse ret/*0:11*/)); error_handler x/*0:1*/ = throw x/*0:1*/ {
+  rule #0: error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret))
+  rule #1: error_handler x = throw x
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	scanf_error state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+  state 6: #0 #1
+}; check_buf buf/*0:1*/ = throw printf_malloc_error if null buf/*0:1*/; check_buf buf/*0:1*/ = buf/*0:1*/ {
+  rule #0: check_buf buf = throw printf_malloc_error if null buf
+  rule #1: check_buf buf = buf
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+}; do_fscanf fp/*0:001*/ ret/*0:01*/ (scanf_format_spec t/*0:101*/ s/*0:11*/) = ret/*0:*/ when size/*0:01*/,s/*0:1*/ = if t/*0:101*/=="s" then guestimate/*1*/ s/*0:11*/ else 16,s/*0:11*/; buf/*0:*/ = check_buf/*2*/ (calloc size/*0:01*/ 1); res/*0:*/ = case t/*2:101*/ of "d" = pure_fscanf_int fp/*3:001*/ s/*2:1*/ buf/*1:*/; "g" = pure_fscanf_double fp/*3:001*/ s/*2:1*/ buf/*1:*/; "s" = pure_fscanf_string fp/*3:001*/ s/*2:1*/ buf/*1:*/; "p" = pure_fscanf_pointer fp/*3:001*/ s/*2:1*/ buf/*1:*/; _/*0:*/ = throw (this_cant_happen ret/*3:01*/) {
+  rule #0: "d" = pure_fscanf_int fp s buf
+  rule #1: "g" = pure_fscanf_double fp s buf
+  rule #2: "s" = pure_fscanf_string fp s buf
+  rule #3: "p" = pure_fscanf_pointer fp s buf
+  rule #4: _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2 #3 #4
+	<var> state 1
+	"d"::string state 2
+	"g"::string state 3
+	"s"::string state 4
+	"p"::string state 5
+  state 1: #4
+  state 2: #0 #4
+  state 3: #1 #4
+  state 4: #2 #4
+  state 5: #3 #4
+} end; res/*0:*/ = if res/*0:*/>=1 then res/*0:*/ else throw (scanf_error ret/*4:01*/) when _/*0:*/ = free buf/*1:*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; val/*0:*/ = case t/*4:101*/ of "d" = get_int buf/*3:*/; "g" = get_double buf/*3:*/; "s" = cstring buf/*3:*/; "p" = get_pointer buf/*3:*/; _/*0:*/ = throw (this_cant_happen ret/*5:01*/) {
+  rule #0: "d" = get_int buf
+  rule #1: "g" = get_double buf
+  rule #2: "s" = cstring buf
+  rule #3: "p" = get_pointer buf
+  rule #4: _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2 #3 #4
+	<var> state 1
+	"d"::string state 2
+	"g"::string state 3
+	"s"::string state 4
+	"p"::string state 5
+  state 1: #4
+  state 2: #0 #4
+  state 3: #1 #4
+  state 4: #2 #4
+  state 5: #3 #4
+} end; _/*0:*/ = if t/*5:101*/=="s" then () else free buf/*3:*/; ret/*0:*/ = val/*1:*/:ret/*6:01*/ {
+  rule #0: ret = val:ret
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: _ = if t=="s" then () else free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = if res>=1 then res else throw (scanf_error ret) when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = case t of "d" = pure_fscanf_int fp s buf; "g" = pure_fscanf_double fp s buf; "s" = pure_fscanf_string fp s buf; "p" = pure_fscanf_pointer fp s buf; _ = throw (this_cant_happen ret) end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = check_buf (calloc size 1)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size,s = if t=="s" then guestimate s else 16,s
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end; do_fscanf fp/*0:001*/ ret/*0:01*/ (scanf_format_str s/*0:11*/) = ret/*0:*/ when res/*0:*/ = pure_fscanf fp/*0:001*/ s/*0:11*/; ret/*0:*/ = if res/*0:*/>=0 then ret/*1:01*/ else throw (scanf_error ret/*1:01*/) {
+  rule #0: ret = if res>=0 then ret else throw (scanf_error ret)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = pure_fscanf fp s
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_fscanf _/*0:001*/ ret/*0:01*/ _/*0:1*/ = throw (this_cant_happen ret/*0:01*/) {
+  rule #0: do_fscanf fp ret (scanf_format_spec t s) = ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "d" = pure_fscanf_int fp s buf; "g" = pure_fscanf_double fp s buf; "s" = pure_fscanf_string fp s buf; "p" = pure_fscanf_pointer fp s buf; _ = throw (this_cant_happen ret) end; res = if res>=1 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret end
+  rule #1: do_fscanf fp ret (scanf_format_str s) = ret when res = pure_fscanf fp s; ret = if res>=0 then ret else throw (scanf_error ret) end
+  rule #2: do_fscanf _ ret _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	<var> state 2
+  state 2: #0 #1 #2
+	<var> state 3
+	<app> state 4
+  state 3: #2
+  state 4: #0 #1 #2
+	<var> state 5
+	<app> state 7
+	scanf_format_str state 14
+  state 5: #2
+	<var> state 6
+  state 6: #2
+  state 7: #0 #2
+	<var> state 8
+	scanf_format_spec state 11
+  state 8: #2
+	<var> state 9
+  state 9: #2
+	<var> state 10
+  state 10: #2
+  state 11: #0 #2
+	<var> state 12
+  state 12: #0 #2
+	<var> state 13
+  state 13: #0 #2
+  state 14: #1 #2
+	<var> state 15
+  state 15: #1 #2
+}; guestimate format/*0:1*/ = n/*0:01*/,format/*0:1*/ when 1,0,_/*0:1101*/,1,s/*0:1111*/ = regex "^%([0-9]*)" REG_EXTENDED format/*0:1*/ 0; n/*0:01*/,format/*0:1*/ = if null s/*0:1111*/ then 1025,"%1024"+tail format/*1:1*/ else eval s/*0:1111*/+1,format/*1:1*/ {
+  rule #0: n,format = if null s then 1025,"%1024"+tail format else eval s+1,format
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	1::int state 4
+  state 4: #0
+	<app> state 5
+  state 5: #0
+	<app> state 6
+  state 6: #0
+	, state 7
+  state 7: #0
+	0::int state 8
+  state 8: #0
+	<app> state 9
+  state 9: #0
+	<app> state 10
+  state 10: #0
+	, state 11
+  state 11: #0
+	<var> state 12
+  state 12: #0
+	<app> state 13
+  state 13: #0
+	<app> state 14
+  state 14: #0
+	, state 15
+  state 15: #0
+	1::int state 16
+  state 16: #0
+	<var> state 17
+  state 17: #0
+} end {
+  rule #0: guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+scanf_split_format format/*0:1*/ = regexg analyze/*0*/ "(%[*]?[0-9]*([cdiouxXneEfgsp]|\\[\\^?\\]?[^]]+\\]))|(%)|([^%]|%%)+" REG_EXTENDED format/*0:1*/ 0 with analyze info/*0:1*/ = if p/*1:01*/>=0&&u/*2:1*/!1!="*" then scanf_format_spec t/*0:*/ (kludge/*5*/ t/*0:*/ u/*3:1*/) when t/*0:*/ = format_type/*4*/ (last u/*2:1*/) {
+  rule #0: t = format_type (last u)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end else if q/*0:01*/>=0 then throw (scanf_format_error q/*0:01*/) else scanf_format_str u/*2:1*/ when _/*0:01*/,u/*0:1*/ = reg 0 info/*0:1*/; p/*0:01*/,_/*0:1*/ = reg 1 info/*1:1*/; q/*0:01*/,_/*0:1*/ = reg 3 info/*2:1*/ {
+  rule #0: q,_ = reg 3 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: p,_ = reg 1 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: _,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end {
+  rule #0: analyze info = if p>=0&&u!1!="*" then scanf_format_spec t (kludge t u) when t = format_type (last u) end else if q>=0 then throw (scanf_format_error q) else scanf_format_str u when _,u = reg 0 info; p,_ = reg 1 info; q,_ = reg 3 info end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}; format_type x/*0:1*/ = if index "diouxXn" x/*0:1*/>=0 then "d" else if index "eEfg" x/*0:1*/>=0 then "g" else if x/*0:1*/=="]"||x/*0:1*/=="c" then "s" else x/*0:1*/ {
+  rule #0: format_type x = if index "diouxXn" x>=0 then "d" else if index "eEfg" x>=0 then "g" else if x=="]"||x=="c" then "s" else x
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}; kludge "g" u/*0:1*/ = init u/*0:1*/+"l"+last u/*0:1*/; kludge _/*0:01*/ u/*0:1*/ = u/*0:1*/ {
+  rule #0: kludge "g" u = init u+"l"+last u
+  rule #1: kludge _ u = u
+  state 0: #0 #1
+	<var> state 1
+	"g"::string state 3
+  state 1: #1
+	<var> state 2
+  state 2: #1
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+} end;
+sscanf s/*0:01*/::string format/*0:1*/::string = tuple$reverse ret/*0:1*/ when _/*0:01*/,ret/*0:1*/ = catch error_handler/*0*/ (foldl do_sscanf/*1*/ (s/*1:01*/,[])$scanf_split_format format/*1:1*/) {
+  rule #0: _,ret = catch error_handler (foldl do_sscanf (s,[])$scanf_split_format format)
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end with error_handler (scanf_error ret/*0:11*/) = throw (scanf_error (tuple$reverse ret/*0:11*/)); error_handler x/*0:1*/ = throw x/*0:1*/ {
+  rule #0: error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret))
+  rule #1: error_handler x = throw x
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	scanf_error state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+  state 6: #0 #1
+}; check_buf buf/*0:1*/ = throw printf_malloc_error if null buf/*0:1*/; check_buf buf/*0:1*/ = buf/*0:1*/ {
+  rule #0: check_buf buf = throw printf_malloc_error if null buf
+  rule #1: check_buf buf = buf
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+}; guestimate format/*0:1*/ = n/*0:01*/,format/*0:1*/ when 1,0,_/*0:1101*/,1,s/*0:1111*/ = regex "^%([0-9]*)" REG_EXTENDED format/*0:1*/ 0; n/*0:01*/,format/*0:1*/ = if null s/*0:1111*/ then 1025,"%1024"+tail format/*1:1*/ else eval s/*0:1111*/+1,format/*1:1*/ {
+  rule #0: n,format = if null s then 1025,"%1024"+tail format else eval s+1,format
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	1::int state 4
+  state 4: #0
+	<app> state 5
+  state 5: #0
+	<app> state 6
+  state 6: #0
+	, state 7
+  state 7: #0
+	0::int state 8
+  state 8: #0
+	<app> state 9
+  state 9: #0
+	<app> state 10
+  state 10: #0
+	, state 11
+  state 11: #0
+	<var> state 12
+  state 12: #0
+	<app> state 13
+  state 13: #0
+	<app> state 14
+  state 14: #0
+	, state 15
+  state 15: #0
+	1::int state 16
+  state 16: #0
+	<var> state 17
+  state 17: #0
+} end {
+  rule #0: guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}; do_sscanf (u/*0:0101*/,ret/*0:011*/) (scanf_format_spec t/*0:101*/ s/*0:11*/) = u/*0:*/,ret/*1:*/ when size/*0:01*/,s/*0:1*/ = if t/*0:101*/=="s" then guestimate/*1*/ s/*0:11*/ else 16,s/*0:11*/; buf/*0:*/ = check_buf/*2*/ (calloc size/*0:01*/ 1); res/*0:*/ = case t/*2:101*/ of "d" = pure_sscanf_int u/*3:0101*/ s/*2:1*/ buf/*1:*/; "g" = pure_sscanf_double u/*3:0101*/ s/*2:1*/ buf/*1:*/; "s" = pure_sscanf_string u/*3:0101*/ s/*2:1*/ buf/*1:*/; "p" = pure_sscanf_pointer u/*3:0101*/ s/*2:1*/ buf/*1:*/; _/*0:*/ = throw (this_cant_happen ret/*3:011*/) {
+  rule #0: "d" = pure_sscanf_int u s buf
+  rule #1: "g" = pure_sscanf_double u s buf
+  rule #2: "s" = pure_sscanf_string u s buf
+  rule #3: "p" = pure_sscanf_pointer u s buf
+  rule #4: _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2 #3 #4
+	<var> state 1
+	"d"::string state 2
+	"g"::string state 3
+	"s"::string state 4
+	"p"::string state 5
+  state 1: #4
+  state 2: #0 #4
+  state 3: #1 #4
+  state 4: #2 #4
+  state 5: #3 #4
+} end; res/*0:*/ = if res/*0:*/>=0 then res/*0:*/ else throw (scanf_error ret/*4:011*/) when _/*0:*/ = free buf/*1:*/ {
+  rule #0: _ = free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; val/*0:*/ = case t/*4:101*/ of "d" = get_int buf/*3:*/; "g" = get_double buf/*3:*/; "s" = cstring buf/*3:*/; "p" = get_pointer buf/*3:*/; _/*0:*/ = throw (this_cant_happen ret/*5:011*/) {
+  rule #0: "d" = get_int buf
+  rule #1: "g" = get_double buf
+  rule #2: "s" = cstring buf
+  rule #3: "p" = get_pointer buf
+  rule #4: _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2 #3 #4
+	<var> state 1
+	"d"::string state 2
+	"g"::string state 3
+	"s"::string state 4
+	"p"::string state 5
+  state 1: #4
+  state 2: #0 #4
+  state 3: #1 #4
+  state 4: #2 #4
+  state 5: #3 #4
+} end; _/*0:*/ = if t/*5:101*/=="s" then () else free buf/*3:*/; ret/*0:*/ = val/*1:*/:ret/*6:011*/; u/*0:*/ = drop res/*3:*/ u/*7:0101*/ {
+  rule #0: u = drop res u
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: ret = val:ret
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: _ = if t=="s" then () else free buf
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = case t of "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = check_buf (calloc size 1)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size,s = if t=="s" then guestimate s else 16,s
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end; do_sscanf (u/*0:0101*/,ret/*0:011*/) (scanf_format_str s/*0:11*/) = u/*0:*/,ret/*1:*/ when res/*0:*/ = pure_sscanf u/*0:0101*/ s/*0:11*/; ret/*0:*/ = if res/*0:*/>=0 then ret/*1:011*/ else throw (scanf_error ret/*1:011*/); u/*0:*/ = drop res/*1:*/ u/*2:0101*/ {
+  rule #0: u = drop res u
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: ret = if res>=0 then ret else throw (scanf_error ret)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: res = pure_sscanf u s
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end; do_sscanf (_/*0:0101*/,ret/*0:011*/) _/*0:1*/ = throw (this_cant_happen ret/*0:011*/) {
+  rule #0: do_sscanf (u,ret) (scanf_format_spec t s) = u,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end
+  rule #1: do_sscanf (u,ret) (scanf_format_str s) = u,ret when res = pure_sscanf u s; ret = if res>=0 then ret else throw (scanf_error ret); u = drop res u end
+  rule #2: do_sscanf (_,ret) _ = throw (this_cant_happen ret)
+  state 0: #0 #1 #2
+	<app> state 1
+  state 1: #0 #1 #2
+	<app> state 2
+  state 2: #0 #1 #2
+	, state 3
+  state 3: #0 #1 #2
+	<var> state 4
+  state 4: #0 #1 #2
+	<var> state 5
+  state 5: #0 #1 #2
+	<var> state 6
+	<app> state 7
+  state 6: #2
+  state 7: #0 #1 #2
+	<var> state 8
+	<app> state 10
+	scanf_format_str state 17
+  state 8: #2
+	<var> state 9
+  state 9: #2
+  state 10: #0 #2
+	<var> state 11
+	scanf_format_spec state 14
+  state 11: #2
+	<var> state 12
+  state 12: #2
+	<var> state 13
+  state 13: #2
+  state 14: #0 #2
+	<var> state 15
+  state 15: #0 #2
+	<var> state 16
+  state 16: #0 #2
+  state 17: #1 #2
+	<var> state 18
+  state 18: #1 #2
+} end;
+readline prompt/*0:1*/::string = cstring$c_readline prompt/*0:1*/;
+fnmatch pat/*0:001*/::string s/*0:01*/::string flags/*0:1*/::int = c_fnmatch pat/*0:001*/ s/*0:01*/ flags/*0:1*/==0;
+glob pat/*0:01*/::string flags/*0:1*/::int = result/*1:*/ when globptr/*0:*/ = calloc 1 GLOB_SIZE; result/*0:*/ = c_glob pat/*1:01*/ flags/*1:1*/ (pointer 0) globptr/*0:*/; result/*0:*/ = if result/*0:*/==0 then globlist globptr/*1:*/ else result/*0:*/; _/*0:*/ = globfree globptr/*2:*/,free globptr/*2:*/ {
+  rule #0: _ = globfree globptr,free globptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then globlist globptr else result
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = c_glob pat flags (pointer 0) globptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: globptr = calloc 1 GLOB_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+regex pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:1*/::int = result/*1:*/ when result/*0:*/ = regcomp regptr/*0:*/ pat/*1:0001*/ cflags/*1:001*/; result/*0:*/ = if result/*0:*/==0 then match/*1*/ else regerr result/*0:*/ (decode/*1*/ result/*0:*/); _/*0:*/ = regfree regptr/*2:*/,free regptr/*2:*/ {
+  rule #0: _ = regfree regptr,free regptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then match else regerr result (decode result)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regcomp regptr pat cflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with match = result/*0:*/ when n/*0:01*/,matches/*0:1*/ = regmatches regptr/*1:*/ cflags/*2:001*/; result/*0:*/ = regexec regptr/*2:*/ s/*3:01*/ n/*0:01*/ matches/*0:1*/ eflags/*3:1*/; result/*0:*/ = if result/*0:*/==0 then 1,reglist regptr/*3:*/ s/*4:01*/ matches/*1:1*/ else 0 {
+  rule #0: result = if result==0 then 1,reglist regptr s matches else 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regexec regptr s n matches eflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: n,matches = regmatches regptr cflags
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end {
+  rule #0: match = result when n,matches = regmatches regptr cflags; result = regexec regptr s n matches eflags; result = if result==0 then 1,reglist regptr s matches else 0 end
+  state 0: #0
+}; decode n/*0:1*/::int = cstring buf/*1:*/ when size/*0:*/ = regerror n/*0:1*/ regptr/*1:*/ (pointer 0) 0; buf/*0:*/ = malloc size/*0:*/; _/*0:*/ = regerror n/*2:1*/ regptr/*3:*/ buf/*0:*/ size/*1:*/ {
+  rule #0: _ = regerror n regptr buf size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = malloc size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = regerror n regptr (pointer 0) 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end when regptr/*0:*/ = calloc 1 REG_SIZE {
+  rule #0: regptr = calloc 1 REG_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+reg_result (regerr code/*0:101*/ msg/*0:11*/) = regerr code/*0:101*/ msg/*0:11*/;
+reg_result b/*0:1*/::int = b/*0:1*/;
+reg_result (b/*0:101*/::int,_/*0:11*/) = b/*0:101*/;
+reg_info (_/*0:101*/::int,info/*0:11*/) = info/*0:11*/;
+reg_info _/*0:1*/ = ();
+reg 0 (p/*0:101*/,s/*0:1101*/,_/*0:111*/) = p/*0:101*/,s/*0:1101*/;
+reg 0 (p/*0:101*/,s/*0:11*/) = p/*0:101*/,s/*0:11*/;
+reg n/*0:01*/::int (_/*0:101*/,_/*0:1101*/,infos/*0:111*/) = reg (n/*0:01*/-1) infos/*0:111*/ if n/*0:01*/>0;
+regs info/*0:1*/ = myregs/*0*/ 0 info/*0:1*/ with myregs n/*0:01*/ (p/*0:101*/,s/*0:1101*/,infos/*0:111*/) = (n/*0:01*/,p/*0:101*/,s/*0:1101*/):myregs/*1*/ (n/*0:01*/+1) infos/*0:111*/ if p/*0:101*/>=0; myregs n/*0:01*/ (p/*0:101*/,s/*0:1101*/,infos/*0:111*/) = myregs/*1*/ (n/*0:01*/+1) infos/*0:111*/; myregs n/*0:01*/ (p/*0:101*/,s/*0:11*/) = (n/*0:01*/,p/*0:101*/,s/*0:11*/):[] if p/*0:101*/>=0; myregs n/*0:01*/ (p/*0:101*/,s/*0:11*/) = [] {
+  rule #0: myregs n (p,s,infos) = (n,p,s):myregs (n+1) infos if p>=0
+  rule #1: myregs n (p,s,infos) = myregs (n+1) infos
+  rule #2: myregs n (p,s) = (n,p,s):[] if p>=0
+  rule #3: myregs n (p,s) = []
+  state 0: #0 #1 #2 #3
+	<var> state 1
+  state 1: #0 #1 #2 #3
+	<app> state 2
+  state 2: #0 #1 #2 #3
+	<app> state 3
+  state 3: #0 #1 #2 #3
+	, state 4
+  state 4: #0 #1 #2 #3
+	<var> state 5
+  state 5: #0 #1 #2 #3
+	<var> state 6
+	<app> state 7
+  state 6: #2 #3
+  state 7: #0 #1 #2 #3
+	<var> state 8
+	<app> state 10
+  state 8: #2 #3
+	<var> state 9
+  state 9: #2 #3
+  state 10: #0 #1 #2 #3
+	<var> state 11
+	, state 14
+  state 11: #2 #3
+	<var> state 12
+  state 12: #2 #3
+	<var> state 13
+  state 13: #2 #3
+  state 14: #0 #1 #2 #3
+	<var> state 15
+  state 15: #0 #1 #2 #3
+	<var> state 16
+  state 16: #0 #1 #2 #3
+} end;
+regexg f/*0:00001*/ pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:1*/::int = result/*1:*/ when result/*0:*/ = regcomp regptr/*0:*/ pat/*1:0001*/ cflags/*1:001*/; result/*0:*/ = if result/*0:*/==0 then match/*0*/ 0 s/*3:01*/ with match offs/*0:01*/ "" = []; match offs/*0:01*/ s/*0:1*/ = result/*0:*/ when result/*0:*/ = regexec regptr/*3:*/ s/*0:1*/ n/*1:01*/ matches/*1:1*/ eflags/*4:1*/; result/*0:*/ = if result/*0:*/==0 then if null u/*2:1*/ then match/*6*/ (offs/*5:01*/+q/*1:*/) (drop p/*2:01*/ s/*5:1*/) else f/*9:00001*/ info/*0:*/:match/*6*/ (offs/*5:01*/+q/*1:*/) (drop q/*1:*/ s/*5:1*/) when info/*0:*/ = reglist regptr/*4:*/ s/*1:1*/ matches/*2:1*/; p/*0:01*/,u/*0:1*/ = reg 0 info/*0:*/; q/*0:*/ = p/*0:01*/+#u/*0:1*/+null u/*0:1*/; info/*0:*/ = xlat_pos/*3*/ offs/*4:01*/ info/*2:*/ {
+  rule #0: info = xlat_pos offs info
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: q = p+#u+null u
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: p,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: info = reglist regptr s matches
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:1101*/,info/*0:111*/) = offs/*0:01*/+p/*0:101*/,u/*0:1101*/,xlat_pos/*1*/ offs/*0:01*/ info/*0:111*/ if p/*0:101*/>=0; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:1101*/,info/*0:111*/) = p/*0:101*/,u/*0:1101*/,xlat_pos/*1*/ offs/*0:01*/ info/*0:111*/; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:11*/) = offs/*0:01*/+p/*0:101*/,u/*0:11*/ if p/*0:101*/>=0; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:11*/) = p/*0:101*/,u/*0:11*/ {
+  rule #0: xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0
+  rule #1: xlat_pos offs (p,u,info) = p,u,xlat_pos offs info
+  rule #2: xlat_pos offs (p,u) = offs+p,u if p>=0
+  rule #3: xlat_pos offs (p,u) = p,u
+  state 0: #0 #1 #2 #3
+	<var> state 1
+  state 1: #0 #1 #2 #3
+	<app> state 2
+  state 2: #0 #1 #2 #3
+	<app> state 3
+  state 3: #0 #1 #2 #3
+	, state 4
+  state 4: #0 #1 #2 #3
+	<var> state 5
+  state 5: #0 #1 #2 #3
+	<var> state 6
+	<app> state 7
+  state 6: #2 #3
+  state 7: #0 #1 #2 #3
+	<var> state 8
+	<app> state 10
+  state 8: #2 #3
+	<var> state 9
+  state 9: #2 #3
+  state 10: #0 #1 #2 #3
+	<var> state 11
+	, state 14
+  state 11: #2 #3
+	<var> state 12
+  state 12: #2 #3
+	<var> state 13
+  state 13: #2 #3
+  state 14: #0 #1 #2 #3
+	<var> state 15
+  state 15: #0 #1 #2 #3
+	<var> state 16
+  state 16: #0 #1 #2 #3
+} end else [] {
+  rule #0: result = if result==0 then if null u then match (offs+q) (drop p s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else []
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regexec regptr s n matches eflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: match offs "" = []
+  rule #1: match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop p s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+	""::string state 3
+  state 2: #1
+  state 3: #0 #1
+} end when n/*0:01*/,matches/*0:1*/ = regmatches regptr/*1:*/ cflags/*2:001*/ {
+  rule #0: n,matches = regmatches regptr cflags
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end else regerr result/*0:*/ (decode/*1*/ result/*0:*/); _/*0:*/ = regfree regptr/*2:*/,free regptr/*2:*/ {
+  rule #0: _ = regfree regptr,free regptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then match 0 s with match offs "" = []; match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop p s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end end when n,matches = regmatches regptr cflags end else regerr result (decode result)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regcomp regptr pat cflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with decode n/*0:1*/::int = cstring buf/*1:*/ when size/*0:*/ = regerror n/*0:1*/ regptr/*1:*/ (pointer 0) 0; buf/*0:*/ = malloc size/*0:*/; _/*0:*/ = regerror n/*2:1*/ regptr/*3:*/ buf/*0:*/ size/*1:*/ {
+  rule #0: _ = regerror n regptr buf size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = malloc size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = regerror n regptr (pointer 0) 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end when regptr/*0:*/ = calloc 1 REG_SIZE {
+  rule #0: regptr = calloc 1 REG_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+regexgg f/*0:00001*/ pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:1*/::int = result/*1:*/ when result/*0:*/ = regcomp regptr/*0:*/ pat/*1:0001*/ cflags/*1:001*/; result/*0:*/ = if result/*0:*/==0 then match/*0*/ s/*3:01*/ with match offs/*0:01*/ "" = []; match offs/*0:01*/ s/*0:1*/ = result/*0:*/ when result/*0:*/ = regexec regptr/*3:*/ s/*0:1*/ n/*1:01*/ matches/*1:1*/ eflags/*4:1*/; result/*0:*/ = if result/*0:*/==0 then if null u/*2:1*/ then match/*6*/ (offs/*5:01*/+q/*1:*/) (drop q/*1:*/ s/*5:1*/) else f/*9:00001*/ info/*0:*/:match/*6*/ (offs/*5:01*/+q/*1:*/) (drop q/*1:*/ s/*5:1*/) when info/*0:*/ = reglist regptr/*4:*/ s/*1:1*/ matches/*2:1*/; p/*0:01*/,u/*0:1*/ = reg 0 info/*0:*/; q/*0:*/ = p/*0:01*/+1; info/*0:*/ = xlat_pos/*3*/ offs/*4:01*/ info/*2:*/ {
+  rule #0: info = xlat_pos offs info
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: q = p+1
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: p,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: info = reglist regptr s matches
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:1101*/,info/*0:111*/) = offs/*0:01*/+p/*0:101*/,u/*0:1101*/,xlat_pos/*1*/ offs/*0:01*/ info/*0:111*/ if p/*0:101*/>=0; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:1101*/,info/*0:111*/) = p/*0:101*/,u/*0:1101*/,xlat_pos/*1*/ offs/*0:01*/ info/*0:111*/; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:11*/) = offs/*0:01*/+p/*0:101*/,u/*0:11*/ if p/*0:101*/>=0; xlat_pos offs/*0:01*/ (p/*0:101*/,u/*0:11*/) = p/*0:101*/,u/*0:11*/ {
+  rule #0: xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0
+  rule #1: xlat_pos offs (p,u,info) = p,u,xlat_pos offs info
+  rule #2: xlat_pos offs (p,u) = offs+p,u if p>=0
+  rule #3: xlat_pos offs (p,u) = p,u
+  state 0: #0 #1 #2 #3
+	<var> state 1
+  state 1: #0 #1 #2 #3
+	<app> state 2
+  state 2: #0 #1 #2 #3
+	<app> state 3
+  state 3: #0 #1 #2 #3
+	, state 4
+  state 4: #0 #1 #2 #3
+	<var> state 5
+  state 5: #0 #1 #2 #3
+	<var> state 6
+	<app> state 7
+  state 6: #2 #3
+  state 7: #0 #1 #2 #3
+	<var> state 8
+	<app> state 10
+  state 8: #2 #3
+	<var> state 9
+  state 9: #2 #3
+  state 10: #0 #1 #2 #3
+	<var> state 11
+	, state 14
+  state 11: #2 #3
+	<var> state 12
+  state 12: #2 #3
+	<var> state 13
+  state 13: #2 #3
+  state 14: #0 #1 #2 #3
+	<var> state 15
+  state 15: #0 #1 #2 #3
+	<var> state 16
+  state 16: #0 #1 #2 #3
+} end else [] {
+  rule #0: result = if result==0 then if null u then match (offs+q) (drop q s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+1; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else []
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regexec regptr s n matches eflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: match offs "" = []
+  rule #1: match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop q s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+1; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+	""::string state 3
+  state 2: #1
+  state 3: #0 #1
+} end when n/*0:01*/,matches/*0:1*/ = regmatches regptr/*1:*/ cflags/*2:001*/ {
+  rule #0: n,matches = regmatches regptr cflags
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end else regerr result/*0:*/ (decode/*1*/ result/*0:*/); _/*0:*/ = regfree regptr/*2:*/,free regptr/*2:*/ {
+  rule #0: _ = regfree regptr,free regptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then match s with match offs "" = []; match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop q s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+1; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end end when n,matches = regmatches regptr cflags end else regerr result (decode result)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regcomp regptr pat cflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with decode n/*0:1*/::int = cstring buf/*1:*/ when size/*0:*/ = regerror n/*0:1*/ regptr/*1:*/ (pointer 0) 0; buf/*0:*/ = malloc size/*0:*/; _/*0:*/ = regerror n/*2:1*/ regptr/*3:*/ buf/*0:*/ size/*1:*/ {
+  rule #0: _ = regerror n regptr buf size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = malloc size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = regerror n regptr (pointer 0) 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end when regptr/*0:*/ = calloc 1 REG_SIZE {
+  rule #0: regptr = calloc 1 REG_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+regsub f/*0:00001*/ pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:1*/::int = result/*1:*/ when result/*0:*/ = regcomp regptr/*0:*/ pat/*1:0001*/ cflags/*1:001*/; result/*0:*/ = if result/*0:*/==0 then match/*0*/ s/*3:01*/ with match "" = ""; match s/*0:1*/ = result/*0:*/ when result/*0:*/ = regexec regptr/*3:*/ s/*0:1*/ n/*1:01*/ matches/*1:1*/ eflags/*4:1*/; result/*0:*/ = if result/*0:*/==0 then if null u/*1:1*/ then take q/*0:*/ s/*4:1*/+match/*5*/ (drop q/*0:*/ s/*4:1*/) else take p/*1:01*/ s/*4:1*/+f/*8:00001*/ info/*2:*/+match/*5*/ (drop q/*0:*/ s/*4:1*/) when info/*0:*/ = reglist regptr/*4:*/ s/*1:1*/ matches/*2:1*/; p/*0:01*/,u/*0:1*/ = reg 0 info/*0:*/; q/*0:*/ = p/*0:01*/+#u/*0:1*/+null u/*0:1*/ {
+  rule #0: q = p+#u+null u
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: p,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: info = reglist regptr s matches
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end else s/*1:1*/ {
+  rule #0: result = if result==0 then if null u then take q s+match (drop q s) else take p s+f info+match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else s
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regexec regptr s n matches eflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: match "" = ""
+  rule #1: match s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then take q s+match (drop q s) else take p s+f info+match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else s end
+  state 0: #0 #1
+	<var> state 1
+	""::string state 2
+  state 1: #1
+  state 2: #0 #1
+} end when n/*0:01*/,matches/*0:1*/ = regmatches regptr/*1:*/ cflags/*2:001*/ {
+  rule #0: n,matches = regmatches regptr cflags
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end else regerr result/*0:*/ (decode/*1*/ result/*0:*/); _/*0:*/ = regfree regptr/*2:*/,free regptr/*2:*/ {
+  rule #0: _ = regfree regptr,free regptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then match s with match "" = ""; match s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then take q s+match (drop q s) else take p s+f info+match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else s end end when n,matches = regmatches regptr cflags end else regerr result (decode result)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regcomp regptr pat cflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with decode n/*0:1*/::int = cstring buf/*1:*/ when size/*0:*/ = regerror n/*0:1*/ regptr/*1:*/ (pointer 0) 0; buf/*0:*/ = malloc size/*0:*/; _/*0:*/ = regerror n/*2:1*/ regptr/*3:*/ buf/*0:*/ size/*1:*/ {
+  rule #0: _ = regerror n regptr buf size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = malloc size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = regerror n regptr (pointer 0) 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end when regptr/*0:*/ = calloc 1 REG_SIZE {
+  rule #0: regptr = calloc 1 REG_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+regsplit pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:1*/::int = result/*1:*/ when result/*0:*/ = regcomp regptr/*0:*/ pat/*1:0001*/ cflags/*1:001*/; result/*0:*/ = if result/*0:*/==0 then match/*0*/ s/*3:01*/ with match "" = [""]; match s/*0:1*/ = result/*0:*/ when result/*0:*/ = regexec regptr/*3:*/ s/*0:1*/ n/*1:01*/ matches/*1:1*/ eflags/*4:1*/; result/*0:*/ = if result/*0:*/==0 then take p/*1:01*/ s/*4:1*/:match/*5*/ (drop q/*0:*/ s/*4:1*/) when info/*0:*/ = reglist regptr/*4:*/ s/*1:1*/ matches/*2:1*/; p/*0:01*/,u/*0:1*/ = reg 0 info/*0:*/; q/*0:*/ = p/*0:01*/+#u/*0:1*/+null u/*0:1*/ {
+  rule #0: q = p+#u+null u
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: p,u = reg 0 info
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: info = reglist regptr s matches
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end else [s/*1:1*/] {
+  rule #0: result = if result==0 then take p s:match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else [s]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regexec regptr s n matches eflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: match "" = [""]
+  rule #1: match s = result when result = regexec regptr s n matches eflags; result = if result==0 then take p s:match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else [s] end
+  state 0: #0 #1
+	<var> state 1
+	""::string state 2
+  state 1: #1
+  state 2: #0 #1
+} end when n/*0:01*/,matches/*0:1*/ = regmatches regptr/*1:*/ cflags/*2:001*/ {
+  rule #0: n,matches = regmatches regptr cflags
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end else regerr result/*0:*/ (decode/*1*/ result/*0:*/); _/*0:*/ = regfree regptr/*2:*/,free regptr/*2:*/ {
+  rule #0: _ = regfree regptr,free regptr
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = if result==0 then match s with match "" = [""]; match s = result when result = regexec regptr s n matches eflags; result = if result==0 then take p s:match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else [s] end end when n,matches = regmatches regptr cflags end else regerr result (decode result)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: result = regcomp regptr pat cflags
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with decode n/*0:1*/::int = cstring buf/*1:*/ when size/*0:*/ = regerror n/*0:1*/ regptr/*1:*/ (pointer 0) 0; buf/*0:*/ = malloc size/*0:*/; _/*0:*/ = regerror n/*2:1*/ regptr/*3:*/ buf/*0:*/ size/*1:*/ {
+  rule #0: _ = regerror n regptr buf size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: buf = malloc size
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: size = regerror n regptr (pointer 0) 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end {
+  rule #0: decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end when regptr/*0:*/ = calloc 1 REG_SIZE {
+  rule #0: regptr = calloc 1 REG_SIZE
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
+{
+  rule #0: errno = pure_errno
+  state 0: #0
+}
+{
+  rule #0: set_errno val::int = pure_set_errno val
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+}
+{
+  rule #0: fgets f = read_a_line f buf "" when buf = malloc 1024 end with read_a_line f buf t = check s when s = c_fgets buf 1024 f end with check s::string = return (t+s) if done s; check s::string = read_a_line f buf (t+s); check s = return s if null t; check s = return t; return x = x when _ = free buf end; done s::string = feof f||ferror f||not null s&&last s=="\n" end end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: gets = if null s then s else if last s=="\n" then init s else s when s = fgets stdin end
+  state 0: #0
+}
+{
+  rule #0: fget f = read_a_file f buf "" when buf = malloc 65536 end with read_a_file f buf t = check s when s = c_fgets buf 65536 f end with check s::string = return (t+s) if feof f||ferror f; check s::string = read_a_file f buf (t+s); check s = return s if null t; check s = return t; return x = x when _ = free buf end end end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: printf format::string args = fprintf stdout format args
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+}
+{
+  rule #0: fprintf fp format::string args = count when args = if tuplep args then list args else [args]; count,_ = catch error_handler (foldl (do_fprintf fp) (0,args)$printf_split_format format) end with error_handler (printf_error res::int) = res,[]; error_handler x = throw x; do_fprintf fp (count,arg:args) (printf_format_spec t s) = count,args when res = case t,arg of "d",x::int = pure_fprintf_int fp s x; "d",x::bigint = pure_fprintf_int fp s (int x); "g",x::double = pure_fprintf_double fp s x; "s",x::string = pure_fprintf_string fp s x; "p",x::string = pure_fprintf_pointer fp s x; "p",x = pure_fprintf_pointer fp s x; _ = throw (printf_value_error s arg) end; count = if res>=0 then count+res else throw printf_error res end; do_fprintf fp (count,args) (printf_format_str s) = count,args when res = pure_fprintf fp s; count = if res>=0 then count+res else throw printf_error res end; do_fprintf fp (count,_) _ = throw printf_arg_error end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}
+{
+  rule #0: printf_split_format format = regexg analyze "(%[-#0 ]?[0-9]*([.][0-9]*)?[diouxXeEfgGsp])|(%)|([^%]|%%)+" REG_EXTENDED format 0 with analyze info = if p>=0 then printf_format_spec (format_type (last u)) u else if q>=0 then throw (printf_format_error q) else printf_format_str u when _,u = reg 0 info; p,_ = reg 1 info; q,_ = reg 3 info end; format_type x = if index "diouxX" x>=0 then "d" else if index "eEfgG" x>=0 then "g" else x end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: regexg f pat::string cflags::int s::string eflags::int = result when result = regcomp regptr pat cflags; result = if result==0 then match 0 s with match offs "" = []; match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop p s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end end when n,matches = regmatches regptr cflags end else regerr result (decode result); _ = regfree regptr,free regptr end with decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end end when regptr = calloc 1 REG_SIZE end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+	<var>::int state 3
+  state 3: #0
+	<var>::string state 4
+  state 4: #0
+	<var>::int state 5
+  state 5: #0
+}
+{
+  rule #0: reg 0 (p,s,_) = p,s
+  rule #1: reg 0 (p,s) = p,s
+  rule #2: reg n::int (_,_,infos) = reg (n-1) infos if n>0
+  state 0: #0 #1 #2
+	<var>::int state 1
+	0::int state 11
+  state 1: #2
+	<app> state 2
+  state 2: #2
+	<app> state 3
+  state 3: #2
+	, state 4
+  state 4: #2
+	<var> state 5
+  state 5: #2
+	<app> state 6
+  state 6: #2
+	<app> state 7
+  state 7: #2
+	, state 8
+  state 8: #2
+	<var> state 9
+  state 9: #2
+	<var> state 10
+  state 10: #2
+  state 11: #0 #1 #2
+	<app> state 12
+  state 12: #0 #1 #2
+	<app> state 13
+  state 13: #0 #1 #2
+	, state 14
+  state 14: #0 #1 #2
+	<var> state 15
+  state 15: #0 #1 #2
+	<var> state 16
+	<app> state 17
+  state 16: #1
+  state 17: #0 #1 #2
+	<var> state 18
+	<app> state 20
+  state 18: #1
+	<var> state 19
+  state 19: #1
+  state 20: #0 #1 #2
+	<var> state 21
+	, state 24
+  state 21: #1
+	<var> state 22
+  state 22: #1
+	<var> state 23
+  state 23: #1
+  state 24: #0 #1 #2
+	<var> state 25
+  state 25: #0 #1 #2
+	<var> state 26
+  state 26: #0 #1 #2
+}
+{
+  rule #0: sprintf format::string args = s when args = if tuplep args then list args else [args]; s,_ = catch error_handler (foldl do_sprintf ("",args)$printf_split_format format) end with error_handler (printf_error res::int) = pointer 0,[]; error_handler x = throw x; do_sprintf (u,arg:args) (printf_format_spec t s) = u,args when size = case t,arg of "s",x::string = #s+#x+1000; _ = 64 end; buf = check_buf (malloc size); res = case t,arg of "d",x::int = pure_snprintf_int buf size s x; "d",x::bigint = pure_snprintf_int buf size s (int x); "g",x::double = pure_snprintf_double buf size s x; "s",x::string = pure_snprintf_string buf size s x; "p",x::string = pure_snprintf_pointer buf size s x; "p",x = pure_snprintf_pointer buf size s x; _ = throw (printf_value_error s arg) when _ = free buf end end; u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end end; do_sprintf (u,args) (printf_format_str s) = u,args when size = #s+1000; buf = check_buf (malloc size); res = pure_snprintf buf size s; u = if res>=0 then u+cstring buf else throw printf_error res when _ = free buf end end; do_sprintf (u,_) _ = throw printf_arg_error; check_buf buf = throw printf_malloc_error if null buf; check_buf buf = buf end
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+}
+{
+  rule #0: scanf format::string = fscanf stdin format
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+}
+{
+  rule #0: fscanf fp format::string = tuple$reverse ret when ret = catch error_handler (foldl (do_fscanf fp) []$scanf_split_format format) end with error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret)); error_handler x = throw x; check_buf buf = throw printf_malloc_error if null buf; check_buf buf = buf; do_fscanf fp ret (scanf_format_spec t s) = ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "d" = pure_fscanf_int fp s buf; "g" = pure_fscanf_double fp s buf; "s" = pure_fscanf_string fp s buf; "p" = pure_fscanf_pointer fp s buf; _ = throw (this_cant_happen ret) end; res = if res>=1 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret end; do_fscanf fp ret (scanf_format_str s) = ret when res = pure_fscanf fp s; ret = if res>=0 then ret else throw (scanf_error ret) end; do_fscanf _ ret _ = throw (this_cant_happen ret); guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+}
+{
+  rule #0: scanf_split_format format = regexg analyze "(%[*]?[0-9]*([cdiouxXneEfgsp]|\\[\\^?\\]?[^]]+\\]))|(%)|([^%]|%%)+" REG_EXTENDED format 0 with analyze info = if p>=0&&u!1!="*" then scanf_format_spec t (kludge t u) when t = format_type (last u) end else if q>=0 then throw (scanf_format_error q) else scanf_format_str u when _,u = reg 0 info; p,_ = reg 1 info; q,_ = reg 3 info end; format_type x = if index "diouxXn" x>=0 then "d" else if index "eEfg" x>=0 then "g" else if x=="]"||x=="c" then "s" else x; kludge "g" u = init u+"l"+last u; kludge _ u = u end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: regex pat::string cflags::int s::string eflags::int = result when result = regcomp regptr pat cflags; result = if result==0 then match else regerr result (decode result); _ = regfree regptr,free regptr end with match = result when n,matches = regmatches regptr cflags; result = regexec regptr s n matches eflags; result = if result==0 then 1,reglist regptr s matches else 0 end; decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end end when regptr = calloc 1 REG_SIZE end
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var>::int state 2
+  state 2: #0
+	<var>::string state 3
+  state 3: #0
+	<var>::int state 4
+  state 4: #0
+}
+{
+  rule #0: sscanf s::string format::string = tuple$reverse ret when _,ret = catch error_handler (foldl do_sscanf (s,[])$scanf_split_format format) end with error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret)); error_handler x = throw x; check_buf buf = throw printf_malloc_error if null buf; check_buf buf = buf; guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end; do_sscanf (u,ret) (scanf_format_spec t s) = u,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end; do_sscanf (u,ret) (scanf_format_str s) = u,ret when res = pure_sscanf u s; ret = if res>=0 then ret else throw (scanf_error ret); u = drop res u end; do_sscanf (_,ret) _ = throw (this_cant_happen ret) end
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+}
+{
+  rule #0: readline prompt::string = cstring$c_readline prompt
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+}
+{
+  rule #0: fnmatch pat::string s::string flags::int = c_fnmatch pat s flags==0
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+	<var>::int state 3
+  state 3: #0
+}
+{
+  rule #0: glob pat::string flags::int = result when globptr = calloc 1 GLOB_SIZE; result = c_glob pat flags (pointer 0) globptr; result = if result==0 then globlist globptr else result; _ = globfree globptr,free globptr end
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var>::int state 2
+  state 2: #0
+}
+{
+  rule #0: reg_result (regerr code msg) = regerr code msg
+  rule #1: reg_result b::int = b
+  rule #2: reg_result (b::int,_) = b
+  state 0: #0 #1 #2
+	<var>::int state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #2
+	<app> state 3
+  state 3: #0 #2
+	, state 4
+	regerr state 7
+  state 4: #2
+	<var>::int state 5
+  state 5: #2
+	<var> state 6
+  state 6: #2
+  state 7: #0
+	<var> state 8
+  state 8: #0
+	<var> state 9
+  state 9: #0
+}
+{
+  rule #0: reg_info (_::int,info) = info
+  rule #1: reg_info _ = ()
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	<app> state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+	, state 9
+  state 6: #1
+	<var> state 7
+  state 7: #1
+	<var> state 8
+  state 8: #1
+  state 9: #0 #1
+	<var> state 10
+	<var>::int state 12
+  state 10: #1
+	<var> state 11
+  state 11: #1
+  state 12: #0 #1
+	<var> state 13
+  state 13: #0 #1
+}
+{
+  rule #0: regs info = myregs 0 info with myregs n (p,s,infos) = (n,p,s):myregs (n+1) infos if p>=0; myregs n (p,s,infos) = myregs (n+1) infos; myregs n (p,s) = (n,p,s):[] if p>=0; myregs n (p,s) = [] end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: regexgg f pat::string cflags::int s::string eflags::int = result when result = regcomp regptr pat cflags; result = if result==0 then match s with match offs "" = []; match offs s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then match (offs+q) (drop q s) else f info:match (offs+q) (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+1; info = xlat_pos offs info end with xlat_pos offs (p,u,info) = offs+p,u,xlat_pos offs info if p>=0; xlat_pos offs (p,u,info) = p,u,xlat_pos offs info; xlat_pos offs (p,u) = offs+p,u if p>=0; xlat_pos offs (p,u) = p,u end else [] end end when n,matches = regmatches regptr cflags end else regerr result (decode result); _ = regfree regptr,free regptr end with decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end end when regptr = calloc 1 REG_SIZE end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+	<var>::int state 3
+  state 3: #0
+	<var>::string state 4
+  state 4: #0
+	<var>::int state 5
+  state 5: #0
+}
+{
+  rule #0: regsub f pat::string cflags::int s::string eflags::int = result when result = regcomp regptr pat cflags; result = if result==0 then match s with match "" = ""; match s = result when result = regexec regptr s n matches eflags; result = if result==0 then if null u then take q s+match (drop q s) else take p s+f info+match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else s end end when n,matches = regmatches regptr cflags end else regerr result (decode result); _ = regfree regptr,free regptr end with decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end end when regptr = calloc 1 REG_SIZE end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var>::string state 2
+  state 2: #0
+	<var>::int state 3
+  state 3: #0
+	<var>::string state 4
+  state 4: #0
+	<var>::int state 5
+  state 5: #0
+}
+{
+  rule #0: regsplit pat::string cflags::int s::string eflags::int = result when result = regcomp regptr pat cflags; result = if result==0 then match s with match "" = [""]; match s = result when result = regexec regptr s n matches eflags; result = if result==0 then take p s:match (drop q s) when info = reglist regptr s matches; p,u = reg 0 info; q = p+#u+null u end else [s] end end when n,matches = regmatches regptr cflags end else regerr result (decode result); _ = regfree regptr,free regptr end with decode n::int = cstring buf when size = regerror n regptr (pointer 0) 0; buf = malloc size; _ = regerror n regptr buf size end end when regptr = calloc 1 REG_SIZE end
+  state 0: #0
+	<var>::string state 1
+  state 1: #0
+	<var>::int state 2
+  state 2: #0
+	<var>::string state 3
+  state 3: #0
+	<var>::int state 4
+  state 4: #0
+}
+sscanf "this" "%d";
+<stdin>:2.0-17: unhandled exception 'scanf_error ()' while evaluating 'sscanf "this" "%d"'
+sscanf "this" "%g";
+<stdin>:3.0-17: unhandled exception 'scanf_error ()' while evaluating 'sscanf "this" "%g"'
+sscanf "this" "%s";
+"this"
+sscanf "this" "%p";
+<stdin>:5.0-17: unhandled exception 'scanf_error ()' while evaluating 'sscanf "this" "%p"'
+sscanf "this" "this";
+()
+sscanf "this" "that";
+<stdin>:7.0-19: unhandled exception 'scanf_error ()' while evaluating 'sscanf "this" "that"'
