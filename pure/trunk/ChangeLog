@@ -1,5 +1,8 @@
 2008-05-23  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (eval): Fix premature freeing of eval result.
+	Reported by Eddie Rucker.
+
 	* Makefile: Bump version number.
 
 	* interpreter.cc: If there are any child environments, doeval and
