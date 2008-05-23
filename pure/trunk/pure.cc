@@ -151,7 +151,9 @@ main(int argc, char *argv[])
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
   // make sure that SIGPIPE is ignored
+#ifndef _WIN32
   signal(SIGPIPE, SIG_IGN);
+#endif
   /* Set up a SIGINT handler which throws a Pure exception, so that we safely
      return to the interpreter's interactive command line when the user
      interrupts a computation. */
