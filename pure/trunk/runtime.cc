@@ -673,7 +673,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       interp.sstk_sz = sz;
       if (!e) e = pure_const(interp.symtab.void_sym().f);
       assert(e);
-      h->refc--;
+      pure_unref_internal(h);
       pure_expr *res = pure_apply2(h, e);
       assert(res);
       res->refc++;
