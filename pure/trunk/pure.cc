@@ -56,8 +56,8 @@ command_generator(const char *text, int state)
   if (!state) {
     list_index = 0;
     assert(interpreter::g_interp);
-    it = interpreter::g_interp->environ.begin();
-    end = interpreter::g_interp->environ.end();
+    it = interpreter::g_interp->globenv.begin();
+    end = interpreter::g_interp->globenv.end();
     len = strlen(text);
   }
 
@@ -92,8 +92,8 @@ symbol_generator(const char *text, int state)
   /* New match. */
   if (!state) {
     assert(interpreter::g_interp);
-    it = interpreter::g_interp->environ.begin();
-    end = interpreter::g_interp->environ.end();
+    it = interpreter::g_interp->globenv.begin();
+    end = interpreter::g_interp->globenv.end();
     len = strlen(text);
   }
 

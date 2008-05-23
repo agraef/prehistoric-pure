@@ -271,7 +271,7 @@ public:
   pure_expr *result; // last computed result
   clock_t clocks;    // last evaluation time, if stats is set
   expr last;         // last processed lhs
-  env environ;       // global function and variable environment
+  env globenv;       // global function and variable environment
   funset dirty;      // "dirty" function entries which need a recompile
   pure_mem *mem;     // runtime expression memory
   pure_expr *exps;   // head of the free list (available expression nodes)

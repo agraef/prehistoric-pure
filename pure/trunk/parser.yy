@@ -269,7 +269,7 @@ item
 | LET simple_rule
 { action(interp.define($2), delete $2); }
 | rule
-{ action(interp.add_rule(interp.environ, interp.last, $1, true), delete $1); }
+{ action(interp.add_rule(interp.globenv, interp.last, $1, true), delete $1); }
 | fixity
 /* Lexical tie-in: We need to tell the lexer that we're defining new operator
    symbols (interp.declare_op = true) instead of searching for existing ones
