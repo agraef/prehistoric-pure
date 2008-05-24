@@ -245,12 +245,12 @@ extern int pure_fscanf_pointer(FILE *fp, char *format, void **x);
 scanf format::string = fscanf stdin format;
 
 fscanf fp::pointer format::string = tuple $ reverse ret when
-  ret = catch error_handler
-    (foldl (do_fscanf fp) [] $ scanf_split_format format);
+  _, ret = catch error_handler
+    (foldl (do_fscanf fp) (0,[]) $ scanf_split_format format);
 end with
   error_handler (scanf_error ret) = throw (scanf_error (tuple $ reverse ret));
   error_handler x = throw x otherwise;
-  do_fscanf fp ret (scanf_format_spec t s) = ret
+  do_fscanf fp (nread,ret) (scanf_format_spec t s) = nread+res, ret
   when
     // 16 bytes should be more than enough to hold any elementary type;
     // for the string case, see guestimate below.
@@ -259,6 +259,7 @@ end with
     // null byte.
     buf = check_buf (calloc size 1);
     res = case t of
+      "n" = pure_fscanf_int fp s buf;
       "d" = pure_fscanf_int fp s buf;
       "g" = pure_fscanf_double fp s buf;
       "s" = pure_fscanf_string fp s buf;
@@ -270,6 +271,7 @@ end with
     res = if res>=0 then res
           else (throw (scanf_error ret) when _ = free buf end);
     val = case t of
+      "n" = nread+get_int buf;
       "d" = get_int buf;
       "g" = get_double buf;
       "s" = cstring buf;
@@ -279,13 +281,13 @@ end with
     _ = if t=="s" then () else free buf;
     ret = val:ret;
   end;
-  do_fscanf fp ret (scanf_format_str s) = ret
+  do_fscanf fp (nread,ret) (scanf_format_str s) = nread+res, ret
   when
     res = pure_fscanf fp s;
     ret = if res>=0 then ret else throw (scanf_error ret);
   end;
   do_fscanf _ ret _ = throw (this_cant_happen ret);
-  check_buf buf = throw printf_malloc_error if null buf;
+  check_buf buf = throw scanf_malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
@@ -313,7 +315,8 @@ with
     q, _ = reg 3 info; // q>=0 indicates unrecognized format specifier
   end;
   format_type x = 
-    if index "diouxXn" x >= 0 then "d"
+    if x == "n" then "n"
+    else if index "diouxX" x >= 0 then "d"
     else if index "eEfg" x >= 0 then "g"
     else if x=="]" || x=="c" then "s"
     else x;
@@ -332,12 +335,12 @@ extern int pure_sscanf_string(char *buf, char *format, void *x);
 extern int pure_sscanf_pointer(char *buf, char *format, void **x);
 
 sscanf s::string format::string = tuple $ reverse ret when
-  _, ret = catch error_handler
-    (foldl do_sscanf (s,[]) $ scanf_split_format format);
+  _, _, ret = catch error_handler
+    (foldl do_sscanf (s,0,[]) $ scanf_split_format format);
 end with
   error_handler (scanf_error ret) = throw (scanf_error (tuple $ reverse ret));
   error_handler x = throw x otherwise;
-  do_sscanf (u,ret) (scanf_format_spec t s) = u, ret
+  do_sscanf (u,nread,ret) (scanf_format_spec t s) = u, nread+res, ret
   when
     // 16 bytes should be more than enough to hold any elementary type;
     // for the string case, see guestimate below.
@@ -346,6 +349,7 @@ end with
     // null byte.
     buf = check_buf (calloc size 1);
     res = case t of
+      "n" = pure_fscanf_int fp s buf;
       "d" = pure_sscanf_int u s buf;
       "g" = pure_sscanf_double u s buf;
       "s" = pure_sscanf_string u s buf;
@@ -357,6 +361,7 @@ end with
     res = if res>=0 then res
           else (throw (scanf_error ret) when _ = free buf end);
     val = case t of
+      "n" = nread+get_int buf;
       "d" = get_int buf;
       "g" = get_double buf;
       "s" = cstring buf;
@@ -367,14 +372,14 @@ end with
     ret = val:ret;
     u = drop res u;
   end;
-  do_sscanf (u,ret) (scanf_format_str s) = u, ret
+  do_sscanf (u,nread,ret) (scanf_format_str s) = u, nread+res, ret
   when
     res = pure_sscanf u s;
     ret = if res>=0 then ret else throw (scanf_error ret);
     u = drop res u;
   end;
   do_sscanf (_,ret) _ = throw (this_cant_happen ret);
-  check_buf buf = throw printf_malloc_error if null buf;
+  check_buf buf = throw scanf_malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
