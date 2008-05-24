@@ -1791,7 +1791,7 @@ extern "C"
 int pure_sscanf_int(const char *buf, const char *format, int32_t *x)
 {
   // wrap this up in case int on the target platform is not 32 bit
-  int count, y, res = sscanf(buf, myformat(format), &y, &count);
+  int count = -1, y, res = sscanf(buf, myformat(format), &y, &count);
   *x = y;
   return (res >= 0)?count:-1;
 }
