@@ -276,14 +276,13 @@ static inline pure_expr* signal_exception(int sig)
   if (!interpreter::g_interp) return 0;
   pure_expr *f = pure_const(interpreter::g_interp->symtab.signal_sym().f);
   pure_expr *x = pure_int(sig);
-  return pure_new_internal(pure_apply2(f, x));
+  return pure_apply2(f, x);
 }
 
 static inline pure_expr* stack_exception()
 {
   if (!interpreter::g_interp) return 0;
-  return pure_new_internal
-    (pure_const(interpreter::g_interp->symtab.segfault_sym().f));
+  return pure_const(interpreter::g_interp->symtab.segfault_sym().f);
 }
 
 extern "C"
@@ -612,7 +611,6 @@ void pure_throw(pure_expr* e)
     abort(); // no exception handler, bail out
   else {
     interp.estk.front().e = e;
-    assert(!e || e->refc > 0);
     longjmp(interp.estk.front().jmp, 1);
   }
 }
@@ -669,9 +667,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       size_t sz = interp.estk.front().sz;
       pure_expr *e = interp.estk.front().e;
       interp.estk.pop_front();
-      assert(!e || e->refc > 0);
-      // make sure that we don't accidentally collect the exception value
-      if (e) e->refc++;
+      if (e) pure_new_internal(e);
       // collect garbage
       pure_expr *tmps = interp.tmps;
       while (tmps) {
@@ -683,10 +679,13 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 	if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	  pure_free_internal(interp.sstk[i]);
       interp.sstk_sz = sz;
-      if (e && e->refc > 1) e->refc--;
       if (!e)
 	e = pure_new_internal(pure_const(interp.symtab.void_sym().f));
       assert(e && e->refc > 0);
+#if DEBUG>1
+      cerr << "pure_catch: exception " << (void*)e << " (refc = " << e->refc
+	   << "): " << e << endl;
+#endif
       pure_expr *res = pure_apply(h, e);
       assert(res);
       res->refc++;
@@ -743,9 +742,7 @@ pure_expr *pure_invoke(void *f, pure_expr*& e)
     size_t sz = interp.estk.front().sz;
     e = interp.estk.front().e;
     interp.estk.pop_front();
-    assert(!e || e->refc > 0);
-    // make sure that we don't accidentally collect the exception value
-    if (e) e->refc++;
+    if (e) pure_new_internal(e);
     // collect garbage
     pure_expr *tmps = interp.tmps;
     while (tmps) {
@@ -757,7 +754,11 @@ pure_expr *pure_invoke(void *f, pure_expr*& e)
       if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	pure_free_internal(interp.sstk[i]);
     interp.sstk_sz = sz;
-    if (e && e->refc > 1) e->refc--;
+#if DEBUG>1
+    if (e)
+      cerr << "pure_invoke: exception " << (void*)e << " (refc = " << e->refc
+	   << "): " << e << endl;
+#endif
     MEMDEBUG_SUMMARY(e)
     return 0;
   } else {

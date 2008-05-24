@@ -3902,7 +3902,7 @@ void interpreter::unwind(int32_t tag)
   assert(f);
   vector<Value*> args;
   if (tag > 0)
-    args.push_back(call("pure_new", cbox(tag)));
+    args.push_back(cbox(tag));
   else
     args.push_back(NullExprPtr);
   Env& e = act_env();
