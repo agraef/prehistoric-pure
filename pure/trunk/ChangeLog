@@ -1,5 +1,8 @@
 2008-05-24  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc, lib/system.pure: Bugfixes in the scanf
+	functions. Reported by Jiri Spitz.
+
 	* pure.cc, runtime.cc, util.cc: Windows/MinGW compatibility
 	fixes. Suggested by Jiri Spitz.
 

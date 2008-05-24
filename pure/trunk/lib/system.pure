@@ -265,7 +265,9 @@ end with
       "p" = pure_fscanf_pointer fp s buf;
       _ = throw (this_cant_happen ret);
     end;
-    res = if res>=1 then res
+    // Note: In difference to C scanf, the return value is the number of read
+    // characters here, with -1 denoting an error condition.
+    res = if res>=0 then res
           else (throw (scanf_error ret) when _ = free buf end);
     val = case t of
       "d" = get_int buf;
@@ -350,8 +352,8 @@ end with
       "p" = pure_sscanf_pointer u s buf;
       _ = throw (this_cant_happen ret);
     end;
-    // Note: In difference to pure_fscanf, the return value is the number of
-    // read characters here, with -1 denoting an error condition.
+    // Note: In difference to C scanf, the return value is the number of read
+    // characters here, with -1 denoting an error condition.
     res = if res>=0 then res
           else (throw (scanf_error ret) when _ = free buf end);
     val = case t of
