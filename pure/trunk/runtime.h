@@ -20,6 +20,7 @@ typedef mp_limb_t limb_t;
 
 typedef struct {
   void *fp;			// pointer to executable code
+  void *ep;			// pointer to compile time environment (Env*)
   uint32_t n, m;		// number of arguments and environment size
   struct _pure_expr **env;	// captured environment (if m>0, 0 otherwise)
   bool local;			// local function?
@@ -59,7 +60,7 @@ typedef struct _pure_mem {
 /* Expression constructors. */
 
 pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
-		     void *f, uint32_t m, /* m x pure_expr* */ ...);
+		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...);
 pure_expr *pure_const(int32_t tag);
 pure_expr *pure_int(int32_t i);
 pure_expr *pure_bigint(int32_t size, limb_t *limbs);
