@@ -437,7 +437,7 @@ pure_expr *interpreter::eval(expr x)
   globals g;
   save_globals(g);
   pure_expr *e, *res = eval(x, e);
-  if (!res && e) pure_freenew(e);
+  if (!res && e) pure_free(e);
   restore_globals(g);
   return res;
 }
@@ -462,7 +462,7 @@ pure_expr *interpreter::defn(expr pat, expr x)
   globals g;
   save_globals(g);
   pure_expr *e, *res = defn(pat, x, e);
-  if (!res && e) pure_freenew(e);
+  if (!res && e) pure_free(e);
   restore_globals(g);
   return res;
 }
@@ -744,7 +744,7 @@ void interpreter::exec(expr *x)
     if (e) {
       msg << "unhandled exception '" << e << "' while evaluating '"
 	  << *x << "'";
-      pure_freenew(e);
+      pure_free(e);
     } else
       msg << "unhandled exception while evaluating '" << *x << "'";
     throw err(msg.str());
@@ -769,7 +769,7 @@ void interpreter::define(rule *r)
     if (e) {
       msg << "unhandled exception '" << e << "' while evaluating '"
 	  << "let " << r->lhs << " = " << r->rhs << "'";
-      pure_freenew(e);
+      pure_free(e);
     } else
       msg << "failed match while evaluating '"
 	  << "let " << r->lhs << " = " << r->rhs << "'";

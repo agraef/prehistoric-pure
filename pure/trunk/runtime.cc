@@ -612,10 +612,7 @@ void pure_throw(pure_expr* e)
     abort(); // no exception handler, bail out
   else {
     interp.estk.front().e = e;
-    if (e) {
-      assert(e->refc > 0);
-      pure_unref_internal(e);
-    }
+    assert(!e || e->refc > 0);
     longjmp(interp.estk.front().jmp, 1);
   }
 }
@@ -672,21 +669,25 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       size_t sz = interp.estk.front().sz;
       pure_expr *e = interp.estk.front().e;
       interp.estk.pop_front();
+      assert(!e || e->refc > 0);
+      // make sure that we don't accidentally collect the exception value
+      if (e) e->refc++;
       // collect garbage
       pure_expr *tmps = interp.tmps;
       while (tmps) {
 	pure_expr *next = tmps->xp;
-	if (tmps != e) pure_freenew(tmps);
+	pure_freenew(tmps);
 	tmps = next;
       }
       for (size_t i = interp.sstk_sz; i-- > sz; )
 	if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	  pure_free_internal(interp.sstk[i]);
       interp.sstk_sz = sz;
-      if (!e) e = pure_const(interp.symtab.void_sym().f);
-      assert(e);
-      pure_unref_internal(h);
-      pure_expr *res = pure_apply2(h, e);
+      if (e && e->refc > 1) e->refc--;
+      if (!e)
+	e = pure_new_internal(pure_const(interp.symtab.void_sym().f));
+      assert(e && e->refc > 0);
+      pure_expr *res = pure_apply(h, e);
       assert(res);
       res->refc++;
       pure_free_internal(x);
@@ -742,17 +743,21 @@ pure_expr *pure_invoke(void *f, pure_expr*& e)
     size_t sz = interp.estk.front().sz;
     e = interp.estk.front().e;
     interp.estk.pop_front();
+    assert(!e || e->refc > 0);
+    // make sure that we don't accidentally collect the exception value
+    if (e) e->refc++;
     // collect garbage
     pure_expr *tmps = interp.tmps;
     while (tmps) {
       pure_expr *next = tmps->xp;
-      if (tmps != e) pure_freenew(tmps);
+      pure_freenew(tmps);
       tmps = next;
     }
     for (size_t i = interp.sstk_sz; i-- > sz; )
       if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	pure_free_internal(interp.sstk[i]);
     interp.sstk_sz = sz;
+    if (e && e->refc > 1) e->refc--;
     MEMDEBUG_SUMMARY(e)
     return 0;
   } else {
