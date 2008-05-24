@@ -1,5 +1,8 @@
 2008-05-24  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc, runtime.cc: Fix more memory allocation bugs in
+	exception handling.
+
 	* runtime.cc, lib/system.pure: Bugfixes in the scanf
 	functions. Reported by Jiri Spitz.
 
