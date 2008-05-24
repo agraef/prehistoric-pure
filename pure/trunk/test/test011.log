@@ -1042,8 +1042,8 @@ sscanf s/*0:01*/::string format/*0:1*/::string = tuple$reverse ret/*0:11*/ when 
   state 0: #0
 	<var> state 1
   state 1: #0
-}; do_sscanf (u/*0:0101*/,nread/*0:01101*/,ret/*0:0111*/) (scanf_format_spec t/*0:101*/ s/*0:11*/) = u/*0:*/,nread/*8:01101*/+res/*4:*/,ret/*1:*/ when size/*0:01*/,s/*0:1*/ = if t/*0:101*/=="s" then guestimate/*1*/ s/*0:11*/ else 16,s/*0:11*/; buf/*0:*/ = check_buf/*2*/ (calloc size/*0:01*/ 1); res/*0:*/ = case t/*2:101*/ of "n" = pure_fscanf_int fp s/*2:1*/ buf/*1:*/; "d" = pure_sscanf_int u/*3:0101*/ s/*2:1*/ buf/*1:*/; "g" = pure_sscanf_double u/*3:0101*/ s/*2:1*/ buf/*1:*/; "s" = pure_sscanf_string u/*3:0101*/ s/*2:1*/ buf/*1:*/; "p" = pure_sscanf_pointer u/*3:0101*/ s/*2:1*/ buf/*1:*/; _/*0:*/ = throw (this_cant_happen ret/*3:0111*/) {
-  rule #0: "n" = pure_fscanf_int fp s buf
+}; do_sscanf (u/*0:0101*/,nread/*0:01101*/,ret/*0:0111*/) (scanf_format_spec t/*0:101*/ s/*0:11*/) = u/*0:*/,nread/*8:01101*/+res/*4:*/,ret/*1:*/ when size/*0:01*/,s/*0:1*/ = if t/*0:101*/=="s" then guestimate/*1*/ s/*0:11*/ else 16,s/*0:11*/; buf/*0:*/ = check_buf/*2*/ (calloc size/*0:01*/ 1); res/*0:*/ = case t/*2:101*/ of "n" = pure_sscanf_int u/*3:0101*/ s/*2:1*/ buf/*1:*/; "d" = pure_sscanf_int u/*3:0101*/ s/*2:1*/ buf/*1:*/; "g" = pure_sscanf_double u/*3:0101*/ s/*2:1*/ buf/*1:*/; "s" = pure_sscanf_string u/*3:0101*/ s/*2:1*/ buf/*1:*/; "p" = pure_sscanf_pointer u/*3:0101*/ s/*2:1*/ buf/*1:*/; _/*0:*/ = throw (this_cant_happen ret/*3:0111*/) {
+  rule #0: "n" = pure_sscanf_int u s buf
   rule #1: "d" = pure_sscanf_int u s buf
   rule #2: "g" = pure_sscanf_double u s buf
   rule #3: "s" = pure_sscanf_string u s buf
@@ -1113,7 +1113,7 @@ sscanf s/*0:01*/::string format/*0:1*/::string = tuple$reverse ret/*0:11*/ when 
 	<var> state 1
   state 1: #0
 } {
-  rule #0: res = case t of "n" = pure_fscanf_int fp s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end
+  rule #0: res = case t of "n" = pure_sscanf_int u s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end
   state 0: #0
 	<var> state 1
   state 1: #0
@@ -1151,7 +1151,7 @@ sscanf s/*0:01*/::string format/*0:1*/::string = tuple$reverse ret/*0:11*/ when 
 	<var> state 1
   state 1: #0
 } end; do_sscanf (_/*0:0101*/,_/*0:01101*/,ret/*0:0111*/) _/*0:1*/ = throw (this_cant_happen ret/*0:0111*/) {
-  rule #0: do_sscanf (u,nread,ret) (scanf_format_spec t s) = u,nread+res,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "n" = pure_fscanf_int fp s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "n" = nread+get_int buf; "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end
+  rule #0: do_sscanf (u,nread,ret) (scanf_format_spec t s) = u,nread+res,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "n" = pure_sscanf_int u s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "n" = nread+get_int buf; "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end
   rule #1: do_sscanf (u,nread,ret) (scanf_format_str s) = u,nread+res,ret when res = pure_sscanf u s; ret = if res>=0 then ret else throw (scanf_error ret); u = drop res u end
   rule #2: do_sscanf (_,_,ret) _ = throw (this_cant_happen ret)
   state 0: #0 #1 #2
@@ -1970,7 +1970,7 @@ regsplit pat/*0:0001*/::string cflags/*0:001*/::int s/*0:01*/::string eflags/*0:
   state 4: #0
 }
 {
-  rule #0: sscanf s::string format::string = tuple$reverse ret when _,_,ret = catch error_handler (foldl do_sscanf (s,0,[])$scanf_split_format format) end with error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret)); error_handler x = throw x; check_buf buf = throw scanf_malloc_error if null buf; check_buf buf = buf; guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end; do_sscanf (u,nread,ret) (scanf_format_spec t s) = u,nread+res,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "n" = pure_fscanf_int fp s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "n" = nread+get_int buf; "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end; do_sscanf (u,nread,ret) (scanf_format_str s) = u,nread+res,ret when res = pure_sscanf u s; ret = if res>=0 then ret else throw (scanf_error ret); u = drop res u end; do_sscanf (_,_,ret) _ = throw (this_cant_happen ret) end
+  rule #0: sscanf s::string format::string = tuple$reverse ret when _,_,ret = catch error_handler (foldl do_sscanf (s,0,[])$scanf_split_format format) end with error_handler (scanf_error ret) = throw (scanf_error (tuple$reverse ret)); error_handler x = throw x; check_buf buf = throw scanf_malloc_error if null buf; check_buf buf = buf; guestimate format = n,format when 1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0; n,format = if null s then 1025,"%1024"+tail format else eval s+1,format end; do_sscanf (u,nread,ret) (scanf_format_spec t s) = u,nread+res,ret when size,s = if t=="s" then guestimate s else 16,s; buf = check_buf (calloc size 1); res = case t of "n" = pure_sscanf_int u s buf; "d" = pure_sscanf_int u s buf; "g" = pure_sscanf_double u s buf; "s" = pure_sscanf_string u s buf; "p" = pure_sscanf_pointer u s buf; _ = throw (this_cant_happen ret) end; res = if res>=0 then res else throw (scanf_error ret) when _ = free buf end; val = case t of "n" = nread+get_int buf; "d" = get_int buf; "g" = get_double buf; "s" = cstring buf; "p" = get_pointer buf; _ = throw (this_cant_happen ret) end; _ = if t=="s" then () else free buf; ret = val:ret; u = drop res u end; do_sscanf (u,nread,ret) (scanf_format_str s) = u,nread+res,ret when res = pure_sscanf u s; ret = if res>=0 then ret else throw (scanf_error ret); u = drop res u end; do_sscanf (_,_,ret) _ = throw (this_cant_happen ret) end
   state 0: #0
 	<var>::string state 1
   state 1: #0
@@ -2114,3 +2114,7 @@ sscanf "this" "this";
 ()
 sscanf "this" "that";
 <stdin>:7.0-19: unhandled exception 'scanf_error ()' while evaluating 'sscanf "this" "that"'
+sscanf "this that" "this%n that%n";
+4,9
+sscanf "this that" "this%n%s%n";
+4,"that",9

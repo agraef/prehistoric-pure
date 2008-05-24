@@ -349,7 +349,7 @@ end with
     // null byte.
     buf = check_buf (calloc size 1);
     res = case t of
-      "n" = pure_fscanf_int fp s buf;
+      "n" = pure_sscanf_int u s buf;
       "d" = pure_sscanf_int u s buf;
       "g" = pure_sscanf_double u s buf;
       "s" = pure_sscanf_string u s buf;
