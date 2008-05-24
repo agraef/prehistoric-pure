@@ -147,6 +147,11 @@ static void pure_free_clos(pure_expr *x)
        << (x->data.clos->local?"local":"global") << " closure "
        << x << " (" << (void*)x << "), refc = " << x->refc << endl;
 #endif
+  if (x->data.clos->ep) {
+    Env *env = (Env*)x->data.clos->ep;
+    assert(env->refc > 0);
+    if (--env->refc == 0) delete env;
+  }
   if (x->data.clos->env) {
     for (size_t i = 0; i < x->data.clos->m; i++)
       pure_free(x->data.clos->env[i]);
@@ -283,7 +288,7 @@ static inline pure_expr* stack_exception()
 
 extern "C"
 pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
-		     void *f, uint32_t m, /* m x pure_expr* */ ...)
+		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...)
 {
   // Parameterless closures are always thunked, otherwise they would already
   // have been executed.
@@ -296,6 +301,8 @@ pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
   x->data.clos->n = n;
   x->data.clos->m = m;
   x->data.clos->fp = f;
+  x->data.clos->ep = e;
+  if (e) ((Env*)e)->refc++;
   if (m == 0)
     x->data.clos->env = 0;
   else {
@@ -519,9 +526,10 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
   char test;
   assert(x && y && x->refc > 0 && y->refc > 0);
   // travel down the spine, count arguments
-  pure_expr *f = x;
+  pure_expr *f = x, *f0, *ret;
   uint32_t n = 0;
   while (f->tag == EXPR::APP) { f = f->data.x[0]; n++; }
+  f0 = f;
   if (f->tag >= 0 && f->data.clos && !f->data.clos->thunked &&
       f->data.clos->n == n+1) {
     // saturated call; execute it now
@@ -551,7 +559,8 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     }
     i += n; argv[i++] = y;
     assert(i == k);
-    pure_free_internal(x);
+    // make sure that we do not gc the function before calling it
+    f0->refc++; pure_free_internal(x);
     // construct a stack frame
     {
       size_t sz = interp.sstk_sz;
@@ -580,7 +589,9 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     cerr << "pure_apply: calling " << x << " (" << y << ") -> " << fp << endl;
 #endif
     checkstk(test);
-    funcall(fp, k, argv);
+    funcall(ret, fp, k, argv);
+    pure_free_internal(f0);
+    return ret;
   } else {
     // construct a literal application node
     f = new_expr();

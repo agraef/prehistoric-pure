@@ -1,3 +1,8 @@
+2008-05-24  Albert Graef  <Dr.Graef@t-online.de>
+
+	* pure.cc, runtime.cc, util.cc: Windows/MinGW compatibility
+	fixes. Suggested by Jiri Spitz.
+
 2008-05-23  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc: Fix premature freeing of eval result, and a minor
@@ -16,11 +21,6 @@
 	Double) was already in the 0.2 release, but this didn't deal with
 	all cases, such as closures constructed in a call to the eval
 	function, as reported by Eddie Rucker.
-
-	TODO: The current solution leaks memory, as the doeval/dodefn
-	environments aren't reclaimed any more. This still needs to be
-	fixed, by counting references on the global ancestor environments
-	of each closure constructed in doeval and dodefn.
 
 2008-05-22  Albert Graef  <Dr.Graef@t-online.de>
 

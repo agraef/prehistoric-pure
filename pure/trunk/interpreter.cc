@@ -55,7 +55,7 @@ interpreter::interpreter()
     stats(false), temp(0),
     ps("> "), lib(""), histfile("/.pure_history"), modname("pure"),
     nerrs(0), source_s(0), result(0), mem(0), exps(0), tmps(0),
-    module(0), JIT(0), FPM(0)
+    module(0), JIT(0), FPM(0), fptr(0), vptr(0)
 {
   if (!g_interp) {
     g_interp = this;
@@ -191,8 +191,8 @@ interpreter::interpreter()
   // function pointers into the runtime map.
 
   declare_extern((void*)pure_clos,
-		 "pure_clos",       "expr*", -6, "bool", "bool", "int",
-		                                 "int", "void*", "int");
+		 "pure_clos",       "expr*", -7, "bool", "bool", "int", "int",
+		                                 "void*", "void*", "int");
   declare_extern((void*)pure_call,
 		 "pure_call",       "expr*",  1, "expr*");
   declare_extern((void*)pure_const,
@@ -588,7 +588,7 @@ void interpreter::compile()
 #endif
 	// do a direct call to the runtime to create the fbox and cache it in
 	// a global variable
-	pure_expr *fv = pure_clos(false, false, f.tag, f.n, f.fp, 0);
+	pure_expr *fv = pure_clos(false, false, f.tag, f.n, f.fp, 0, 0);
 	GlobalVar& v = globalvars[f.tag];
 	if (!v.v) {
 	  v.v = new GlobalVariable
@@ -1489,6 +1489,7 @@ expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
 #define ValFldIndex	Two
 #define ValFld2Index	Three
 #define SubFldIndex(i)	UInt(i+2)
+#define NullPtr		ConstantPointerNull::get(VoidPtrTy)
 #define NullExprPtr	ConstantPointerNull::get(ExprPtrTy)
 #define NullExprPtrPtr	ConstantPointerNull::get(ExprPtrPtrTy)
 
@@ -2576,6 +2577,15 @@ Function *interpreter::declare_extern(string name, string restype,
   return f;
 }
 
+Value *interpreter::envptr(Env *f)
+{
+  if (!fptr) return NullPtr;
+  if (!vptr) vptr = new GlobalVariable
+    (VoidPtrTy, false, GlobalVariable::InternalLinkage, 0, "$$fptr$$", module);
+  JIT->updateGlobalMapping(vptr, &fptr);
+  return act_builder().CreateLoad(vptr);
+}
+
 pure_expr *interpreter::doeval(expr x, pure_expr*& e)
 {
   char test;
@@ -2590,7 +2600,8 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
      which might still be called at a later time. XXXFIXME: This leaks memory
      right now. How do we keep track of environments that might still be
      needed? */
-  Env *fptr = new Env(0, 0, x, false);
+  Env *save_fptr = fptr;
+  fptr = new Env(0, 0, x, false); fptr->refc = 1;
   Env &f = *fptr;
   push("doeval", &f);
   fun_prolog("");
@@ -2612,8 +2623,12 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
-  // If there are no child envs, we can get rid of the environment now.
-  if (f.fmap[0].empty()) delete fptr;
+  // If there are no more references, we can get rid of the environment now.
+  if (fptr->refc == 1)
+    delete fptr;
+  else
+    fptr->refc--;
+  fptr = save_fptr;
   // NOTE: Result (if any) is to be freed by the caller.
   return res;
 }
@@ -2627,7 +2642,8 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   }
   // Create an anonymous function to call in order to evaluate the rhs
   // expression, match against the lhs and bind variables in lhs accordingly.
-  Env *fptr = new Env(0, 0, rhs, false);
+  Env *save_fptr = fptr;
+  fptr = new Env(0, 0, rhs, false); fptr->refc = 1;
   Env &f = *fptr;
   push("dodefn", &f);
   fun_prolog("");
@@ -2693,8 +2709,12 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
   f.f->eraseFromParent();
-  // If there are no child envs, we can get rid of the environment now.
-  if (f.fmap[0].empty()) delete fptr;
+  // If there are no more references, we can get rid of the environment now.
+  if (fptr->refc == 1)
+    delete fptr;
+  else
+    fptr->refc--;
+  fptr = save_fptr;
   if (!res) {
     // We caught an exception, clean up the mess.
     for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -3331,7 +3351,7 @@ Value *interpreter::codegen(expr x)
       const ExternInfo& info = it->second;
       vector<Value*> env;
       // build an fbox for the external
-      return call("pure_clos", false, false, x.tag(), info.f,
+      return call("pure_clos", false, false, x.tag(), info.f, NullPtr,
 		  info.argtypes.size(), env);
     }
     // check for an existing global variable
@@ -3380,7 +3400,7 @@ Value *interpreter::fbox(Env& f, bool thunked)
       newargs.insert(newargs.end(), x.begin(), x.end());
       act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
     }
-    return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
+    return call("pure_clos", f.local, thunked, f.tag, f.h, envptr(&f), f.n, x);
   }
 }
 
@@ -3601,7 +3621,7 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
       newargs.insert(newargs.end(), x.begin(), x.end());
       act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
     }
-    return call("pure_clos", f.local, thunked, f.tag, f.h, f.n, x);
+    return call("pure_clos", f.local, thunked, f.tag, f.h, envptr(&f), f.n, x);
   }
 }
 
@@ -3642,7 +3662,7 @@ Value *interpreter::fcall(Env &f, vector<Value*>& args, vector<Value*>& env)
 }
 
 Value *interpreter::call(string name, bool local, bool thunked, int32_t tag,
-			 Function *f, uint32_t argc,
+			 Function *f, Value *e, uint32_t argc,
 			 vector<Value*>& x)
 {
   // call to create an fbox (closure) for the given function with the given
@@ -3659,7 +3679,9 @@ Value *interpreter::call(string name, bool local, bool thunked, int32_t tag,
   // argc
   args.push_back(SInt(argc));
   // function pointer
-  args.push_back(act_builder().CreateBitCast(f, VoidPtrTy, "fun"));
+  args.push_back(act_builder().CreateBitCast(f, VoidPtrTy));
+  // environment pointer
+  args.push_back(e);
   // captured environment (varargs)
   args.push_back(SInt(x.size()));
   args.insert(args.end(), x.begin(), x.end());
@@ -4070,7 +4092,8 @@ void interpreter::fun_body(matcher *pm, bool nodefault)
       newargs.insert(newargs.end(), x.begin(), x.end());
       act_env().CreateCall(module->getFunction("pure_new_args"), newargs);
     }
-    Value *defaultv = call("pure_clos", f.local, true, f.tag, f.h, f.n, x);
+    Value *defaultv =
+      call("pure_clos", f.local, true, f.tag, f.h, envptr(&f), f.n, x);
     for (size_t i = 0; i < f.n; ++i) {
       Value *arg = f.args[i];
       assert(arg->getType() == ExprPtrTy);

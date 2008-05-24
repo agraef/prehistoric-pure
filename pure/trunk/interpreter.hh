@@ -404,6 +404,9 @@ public:
 				 bool varargs = false, void *fp = 0,
 				 string asname = "");
 private:
+  Env *fptr;
+  llvm::GlobalVariable *vptr;
+  llvm::Value *envptr(Env *f);
   EnvStack envstk;
   void push(const char *msg, Env *e);
   void pop(Env *e);
@@ -443,7 +446,7 @@ private:
   llvm::Value *fcall(Env& f, vector<llvm::Value*>& env)
   { vector<llvm::Value*> args; return fcall(f, args, env); }
   llvm::Value *call(string name, bool local, bool thunked, int32_t tag,
-		    llvm::Function* f, uint32_t argc,
+		    llvm::Function* f, llvm::Value *e, uint32_t argc,
 		    vector<llvm::Value*>& vars);
   llvm::Value *call(string name, llvm::Value *x);
   llvm::Value *call(string name, llvm::Value *x, llvm::Value *y);
