@@ -286,7 +286,7 @@ end with
     res = pure_fscanf fp s;
     ret = if res>=0 then ret else throw (scanf_error ret);
   end;
-  do_fscanf _ ret _ = throw (this_cant_happen ret);
+  do_fscanf _ (_,ret) _ = throw (this_cant_happen ret);
   check_buf buf = throw scanf_malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
@@ -378,7 +378,7 @@ end with
     ret = if res>=0 then ret else throw (scanf_error ret);
     u = drop res u;
   end;
-  do_sscanf (_,ret) _ = throw (this_cant_happen ret);
+  do_sscanf (_,_,ret) _ = throw (this_cant_happen ret);
   check_buf buf = throw scanf_malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
