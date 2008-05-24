@@ -1783,7 +1783,7 @@ static inline char *sscanf_format(char *buf, const char *format)
 extern "C"
 int pure_sscanf(const char *buf, const char *format)
 {
-  int count, res = sscanf(buf, myformat(format), &count);
+  int count = -1, res = sscanf(buf, myformat(format), &count);
   return (res >= 0)?count:-1;
 }
 
@@ -1793,28 +1793,28 @@ int pure_sscanf_int(const char *buf, const char *format, int32_t *x)
   // wrap this up in case int on the target platform is not 32 bit
   int count, y, res = sscanf(buf, myformat(format), &y, &count);
   *x = y;
-  return (res > 0)?count:-1;
+  return (res >= 0)?count:-1;
 }
 
 extern "C"
 int pure_sscanf_double(const char *buf, const char *format, double *x)
 {
-  int count, res = sscanf(buf, myformat(format), x, &count);
-  return (res > 0)?count:-1;
+  int count = -1, res = sscanf(buf, myformat(format), x, &count);
+  return (res >= 0)?count:-1;
 }
 
 extern "C"
 int pure_sscanf_string(const char *buf, const char *format, char *x)
 {
-  int count, res = sscanf(buf, myformat(format), x, &count);
-  return (res > 0)?count:-1;
+  int count = -1, res = sscanf(buf, myformat(format), x, &count);
+  return (res >= 0)?count:-1;
 }
 
 extern "C"
 int pure_sscanf_pointer(const char *buf, const char *format, void **x)
 {
-  int count, res = sscanf(buf, myformat(format), x, &count);
-  return (res > 0)?count:-1;
+  int count = -1, res = sscanf(buf, myformat(format), x, &count);
+  return (res >= 0)?count:-1;
 }
 
 #include <fnmatch.h>
