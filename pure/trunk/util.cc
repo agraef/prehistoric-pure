@@ -14,6 +14,8 @@
 // disable this if your system doesn't have nl_langinfo()
 #define HAVE_LANGINFO_CODESET
 #include <langinfo.h>
+#else
+#include <windows.h>
 #endif
 
 /* some utf-8 helpers pilfered from the Q source ***************************/
@@ -432,7 +434,7 @@ char *default_encoding()
 #endif /* HAVE_LANGINFO_CODESET */
 }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__MINGW32__)
 #define myiconv(ic, inbuf, inbytes, outbuf, outbytes) \
   iconv(ic, (const char**)inbuf, inbytes, outbuf, outbytes)
 #else
