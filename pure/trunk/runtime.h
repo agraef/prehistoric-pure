@@ -63,6 +63,7 @@ pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
 		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...);
 pure_expr *pure_const(int32_t tag);
 pure_expr *pure_int(int32_t i);
+pure_expr *pure_long(int64_t l);
 pure_expr *pure_bigint(int32_t size, limb_t *limbs);
 pure_expr *pure_mpz(mpz_t z);
 pure_expr *pure_double(double d);
@@ -95,11 +96,11 @@ int32_t pure_cmp_string(pure_expr *x, const char *s);
 char *pure_get_cstring(pure_expr *x);
 void pure_free_cstrings();
 
-/* Get a pointer to the mpz_t value of a bigint expression which can be passed
-   to the GMP routines. This is used to unbox bigint arguments and map them to
-   void* in the C interface. */
+/* Convert a bigint expression to a pointer (mpz_t) or a long (64 bit)
+   integer. This is used to marshall bigint arguments in the C interface. */
 
 void *pure_get_bigint(pure_expr *x);
+int64_t pure_get_long(pure_expr *x);
 
 /* Execute a closure. If the given expression x (or x y in the case of
    pure_apply) is a parameterless closure (or a saturated application of a

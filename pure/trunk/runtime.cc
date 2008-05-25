@@ -340,6 +340,22 @@ pure_expr *pure_int(int32_t i)
   return x;
 }
 
+extern "C"
+pure_expr *pure_long(int64_t l)
+{
+  int sgn = (l>0)?1:(l<0)?-1:0;
+  uint64_t v = (uint64_t)(l>=0?l:-l);
+  if (sizeof(mp_limb_t) == 8) {
+    // 8 byte limbs, value fits in a single limb.
+    limb_t u[1] = { v };
+    return pure_bigint(sgn, u);
+  } else {
+    // 4 byte limbs, put least significant word in the first limb.
+    limb_t u[2] = { (uint32_t)v, (uint32_t)(v>>32) };
+    return pure_bigint(sgn+sgn, u);
+  }
+}
+
 static void make_bigint(mpz_t z, int32_t size, limb_t *limbs)
 {
   // FIXME: For efficiency, we poke directly into the mpz struct here, this
@@ -466,6 +482,7 @@ char *pure_get_cstring(pure_expr *x)
   return s;
 }
 
+extern "C"
 void pure_free_cstrings()
 {
   for (list<char*>::iterator t = temps.begin(); t != temps.end(); t++)
@@ -473,6 +490,18 @@ void pure_free_cstrings()
   temps.clear();
 }
 
+extern "C"
+int64_t pure_get_long(pure_expr *x)
+{
+  uint64_t v =
+    (sizeof(mp_limb_t) == 8) ? (uint64_t)mpz_getlimbn(x->data.z, 0) :
+    (mpz_getlimbn(x->data.z, 0) +
+     (((uint64_t)mpz_getlimbn(x->data.z, 1))<<32));
+  cerr << "v = " << v << endl;
+  return (mpz_sgn(x->data.z) < 0) ? -(int64_t)v : (int64_t)v;
+}
+
+extern "C"
 void *pure_get_bigint(pure_expr *x)
 {
   assert(x && x->tag == EXPR::BIGINT);
