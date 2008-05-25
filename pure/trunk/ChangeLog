@@ -1,5 +1,8 @@
 2008-05-25  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/prelude.pure: Rewrite prelude operations to make them
+	tail-recursive.
+
 	* interpreter.cc, runtime.cc: Add marshalling between long (64
 	bit) ints and Pure bigints in the C interface. This means that
 	both Pure ints and bigints can now be passed for 'long' arguments
@@ -8,8 +11,6 @@
 	functions taking 64 bit integers as arguments and returning them
 	as results can now be called from Pure without loosing bits due to
 	truncation.
-
-	* lib/prelude.pure: Make 'all' and 'any' tail-recursive.
 
 	* interpreter.cc: Make toplevel if-then-else properly
 	tail-recursive. Thus, e.g., the following function will now run in

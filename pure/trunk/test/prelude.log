@@ -334,66 +334,267 @@ x/*0:01*/,() = x/*0:01*/;
 ()==() = 1;
 (x/*0:0101*/,xs/*0:011*/)==() = 0;
 ()==(x/*0:101*/,xs/*0:11*/) = 0;
-(x/*0:0101*/,xs/*0:011*/)==(y/*0:101*/,ys/*0:11*/) = x/*0:0101*/==y/*0:101*/&&xs/*0:011*/==ys/*0:11*/;
+(x/*0:0101*/,xs/*0:011*/)==(y/*0:101*/,ys/*0:11*/) = if x/*0:0101*/==y/*0:101*/ then xs/*0:011*/==ys/*0:11*/ else 0;
 ()!=() = 0;
 (x/*0:0101*/,xs/*0:011*/)!=() = 1;
 ()!=(x/*0:101*/,xs/*0:11*/) = 1;
-(x/*0:0101*/,xs/*0:011*/)!=(y/*0:101*/,ys/*0:11*/) = x/*0:0101*/!=y/*0:101*/||xs/*0:011*/!=ys/*0:11*/;
+(x/*0:0101*/,xs/*0:011*/)!=(y/*0:101*/,ys/*0:11*/) = if x/*0:0101*/!=y/*0:101*/ then 1 else xs/*0:011*/!=ys/*0:11*/;
 null () = 1;
 null (x/*0:101*/,xs/*0:11*/) = 0;
 #() = 0;
-#(x/*0:101*/,y/*0:1101*/,xs/*0:111*/) = 1+#(y/*0:1101*/,xs/*0:111*/);
-#(x/*0:101*/,y/*0:11*/) = 2;
+#(x/*0:101*/,xs/*0:11*/) = accum/*0*/ 1 xs/*0:11*/ with accum n/*0:01*/::int (x/*0:101*/,xs/*0:11*/) = accum/*1*/ (n/*0:01*/+1) xs/*0:11*/; accum n/*0:01*/::int x/*0:1*/ = n/*0:01*/+1 {
+  rule #0: accum n::int (x,xs) = accum (n+1) xs
+  rule #1: accum n::int x = n+1
+  state 0: #0 #1
+	<var>::int state 1
+  state 1: #0 #1
+	<var> state 2
+	<app> state 3
+  state 2: #1
+  state 3: #0 #1
+	<var> state 4
+	<app> state 6
+  state 4: #1
+	<var> state 5
+  state 5: #1
+  state 6: #0 #1
+	<var> state 7
+	, state 10
+  state 7: #1
+	<var> state 8
+  state 8: #1
+	<var> state 9
+  state 9: #1
+  state 10: #0 #1
+	<var> state 11
+  state 11: #0 #1
+	<var> state 12
+  state 12: #0 #1
+} end;
 (x/*0:0101*/,xs/*0:011*/)!0 = x/*0:0101*/;
 (x/*0:0101*/,y/*0:01101*/,xs/*0:0111*/)!n/*0:1*/::int = (y/*0:01101*/,xs/*0:0111*/)!(n/*0:1*/-1) if n/*0:1*/>0;
 (x/*0:0101*/,y/*0:011*/)!1 = y/*0:011*/;
+reverse () = ();
+reverse (x/*0:101*/,xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*0:01*/ (x/*0:101*/,xs/*0:11*/) = accum/*1*/ (x/*0:101*/,ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ x/*0:1*/ = x/*0:1*/,ys/*0:01*/ {
+  rule #0: accum ys (x,xs) = accum (x,ys) xs
+  rule #1: accum ys x = x,ys
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+	<app> state 3
+  state 2: #1
+  state 3: #0 #1
+	<var> state 4
+	<app> state 6
+  state 4: #1
+	<var> state 5
+  state 5: #1
+  state 6: #0 #1
+	<var> state 7
+	, state 10
+  state 7: #1
+	<var> state 8
+  state 8: #1
+	<var> state 9
+  state 9: #1
+  state 10: #0 #1
+	<var> state 11
+  state 11: #0 #1
+	<var> state 12
+  state 12: #0 #1
+} end;
 []==[] = 1;
 x/*0:0101*/:xs/*0:011*/==[] = 0;
 []==x/*0:101*/:xs/*0:11*/ = 0;
-x/*0:0101*/:xs/*0:011*/==y/*0:101*/:ys/*0:11*/ = x/*0:0101*/==y/*0:101*/&&xs/*0:011*/==ys/*0:11*/;
+x/*0:0101*/:xs/*0:011*/==y/*0:101*/:ys/*0:11*/ = if x/*0:0101*/==y/*0:101*/ then xs/*0:011*/==ys/*0:11*/ else 1;
 []!=[] = 0;
 x/*0:0101*/:xs/*0:011*/!=[] = 1;
 []!=x/*0:101*/:xs/*0:11*/ = 1;
-x/*0:0101*/:xs/*0:011*/!=y/*0:101*/:ys/*0:11*/ = x/*0:0101*/!=y/*0:101*/||xs/*0:011*/!=ys/*0:11*/;
+x/*0:0101*/:xs/*0:011*/!=y/*0:101*/:ys/*0:11*/ = if x/*0:0101*/!=y/*0:101*/ then 1 else xs/*0:011*/!=ys/*0:11*/;
 null [] = 1;
 null (x/*0:101*/:xs/*0:11*/) = 0;
 #[] = 0;
-#(x/*0:101*/:xs/*0:11*/) = 1+#xs/*0:11*/;
+#(x/*0:101*/:xs/*0:11*/) = accum/*0*/ 1 xs/*0:11*/ with accum n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (n/*0:01*/+1) xs/*0:11*/; accum n/*0:01*/::int [] = n/*0:01*/; accum _/*0:01*/ xs/*0:1*/ = throw (bad_list_value xs/*0:1*/) {
+  rule #0: accum n::int (x:xs) = accum (n+1) xs
+  rule #1: accum n::int [] = n
+  rule #2: accum _ xs = throw (bad_list_value xs)
+  state 0: #0 #1 #2
+	<var> state 1
+	<var>::int state 3
+  state 1: #2
+	<var> state 2
+  state 2: #2
+  state 3: #0 #1 #2
+	<var> state 4
+	<app> state 5
+	[] state 15
+  state 4: #2
+  state 5: #0 #2
+	<var> state 6
+	<app> state 8
+  state 6: #2
+	<var> state 7
+  state 7: #2
+  state 8: #0 #2
+	<var> state 9
+	: state 12
+  state 9: #2
+	<var> state 10
+  state 10: #2
+	<var> state 11
+  state 11: #2
+  state 12: #0 #2
+	<var> state 13
+  state 13: #0 #2
+	<var> state 14
+  state 14: #0 #2
+  state 15: #1 #2
+} end;
 (x/*0:0101*/:xs/*0:011*/)!0 = x/*0:0101*/;
 (x/*0:0101*/:xs/*0:011*/)!n/*0:1*/::int = xs/*0:011*/!(n/*0:1*/-1) if n/*0:1*/>0;
 []+ys/*0:1*/ = ys/*0:1*/;
-(x/*0:0101*/:xs/*0:011*/)+ys/*0:1*/ = x/*0:0101*/:xs/*0:011*/+ys/*0:1*/;
-list () = [];
-list (x/*0:101*/,y/*0:1101*/,xs/*0:111*/) = x/*0:101*/:list (y/*0:1101*/,xs/*0:111*/);
-list (x/*0:101*/,y/*0:11*/) = [x/*0:101*/,y/*0:11*/];
-tuple [] = ();
-tuple [x/*0:101*/] = x/*0:101*/;
-tuple (x/*0:101*/:y/*0:1101*/:xs/*0:111*/) = x/*0:101*/,tuple (y/*0:1101*/:xs/*0:111*/);
-xs/*0:01*/![] = [];
-xs/*0:01*/!(n/*0:101*/::int:ns/*0:11*/) = slice/*0*/ xs/*1:01*/ (n/*1:101*/:ns/*1:11*/) with slice xs/*0:01*/ [] = []; slice xs/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = xs/*0:01*/!n/*0:101*/:slice/*1*/ xs/*0:01*/ ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; slice xs/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = xs/*0:01*/!ns/*0:11*/ {
-  rule #0: slice xs [] = []
-  rule #1: slice xs (n::int:ns) = xs!n:slice xs ns if n>=0&&n<m
-  rule #2: slice xs (n::int:ns) = xs!ns
+(x/*0:0101*/:xs/*0:011*/)+ys/*0:1*/ = x/*0:0101*/:accum/*0*/ ys/*0:1*/ (reverse xs/*0:011*/) with accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ [] = ys/*0:01*/ {
+  rule #0: accum ys (x:xs) = accum (x:ys) xs
+  rule #1: accum ys [] = ys
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<app> state 2
+	[] state 7
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	: state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<var> state 6
+  state 6: #0
+  state 7: #1
+} end;
+reverse [] = [];
+reverse (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [x/*0:101*/] xs/*0:11*/ with accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ [] = ys/*0:01*/; accum _/*0:01*/ xs/*0:1*/ = throw (bad_list_value xs/*0:1*/) {
+  rule #0: accum ys (x:xs) = accum (x:ys) xs
+  rule #1: accum ys [] = ys
+  rule #2: accum _ xs = throw (bad_list_value xs)
   state 0: #0 #1 #2
 	<var> state 1
   state 1: #0 #1 #2
-	[] state 2
+	<var> state 2
 	<app> state 3
-  state 2: #0
-  state 3: #1 #2
-	<app> state 4
-  state 4: #1 #2
-	: state 5
-  state 5: #1 #2
-	<var>::int state 6
-  state 6: #1 #2
+	[] state 13
+  state 2: #2
+  state 3: #0 #2
+	<var> state 4
+	<app> state 6
+  state 4: #2
+	<var> state 5
+  state 5: #2
+  state 6: #0 #2
 	<var> state 7
+	: state 10
+  state 7: #2
+	<var> state 8
+  state 8: #2
+	<var> state 9
+  state 9: #2
+  state 10: #0 #2
+	<var> state 11
+  state 11: #0 #2
+	<var> state 12
+  state 12: #0 #2
+  state 13: #1 #2
+} end;
+list () = [];
+list (x/*0:101*/,xs/*0:11*/) = accum/*0*/ [x/*0:101*/] xs/*0:11*/ with accum ys/*0:01*/ (x/*0:101*/,xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ x/*0:1*/ = reverse (x/*0:1*/:ys/*0:01*/) {
+  rule #0: accum ys (x,xs) = accum (x:ys) xs
+  rule #1: accum ys x = reverse (x:ys)
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+	<app> state 3
+  state 2: #1
+  state 3: #0 #1
+	<var> state 4
+	<app> state 6
+  state 4: #1
+	<var> state 5
+  state 5: #1
+  state 6: #0 #1
+	<var> state 7
+	, state 10
+  state 7: #1
+	<var> state 8
+  state 8: #1
+	<var> state 9
+  state 9: #1
+  state 10: #0 #1
+	<var> state 11
+  state 11: #0 #1
+	<var> state 12
+  state 12: #0 #1
+} end;
+tuple [] = ();
+tuple (x/*0:101*/:xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/,ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ [] = if tuplep ys/*0:01*/ then reverse ys/*0:01*/ else ys/*0:01*/; accum _/*0:01*/ xs/*0:1*/ = throw (bad_list_value xs/*0:1*/) {
+  rule #0: accum ys (x:xs) = accum (x,ys) xs
+  rule #1: accum ys [] = if tuplep ys then reverse ys else ys
+  rule #2: accum _ xs = throw (bad_list_value xs)
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	<var> state 2
+	<app> state 3
+	[] state 13
+  state 2: #2
+  state 3: #0 #2
+	<var> state 4
+	<app> state 6
+  state 4: #2
+	<var> state 5
+  state 5: #2
+  state 6: #0 #2
+	<var> state 7
+	: state 10
+  state 7: #2
+	<var> state 8
+  state 8: #2
+	<var> state 9
+  state 9: #2
+  state 10: #0 #2
+	<var> state 11
+  state 11: #0 #2
+	<var> state 12
+  state 12: #0 #2
+  state 13: #1 #2
+} end;
+xs/*0:01*/![] = [];
+xs/*0:01*/!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] xs/*0:01*/ (reverse (n/*0:101*/:ns/*0:11*/)) (#xs/*0:01*/) with accum ys/*0:0001*/ xs/*0:001*/ [] m/*0:1*/ = ys/*0:0001*/; accum ys/*0:0001*/ xs/*0:001*/ (n/*0:0101*/::int:ns/*0:011*/) m/*0:1*/ = accum/*1*/ (xs/*0:001*/!n/*0:0101*/:ys/*0:0001*/) xs/*0:001*/ ns/*0:011*/ m/*0:1*/ if n/*0:0101*/>=0&&n/*0:0101*/<m/*0:1*/; accum ys/*0:0001*/ xs/*0:001*/ (n/*0:0101*/::int:ns/*0:011*/) m/*0:1*/ = accum/*1*/ ys/*0:0001*/ xs/*0:001*/ ns/*0:011*/ m/*0:1*/ {
+  rule #0: accum ys xs [] m = ys
+  rule #1: accum ys xs (n::int:ns) m = accum (xs!n:ys) xs ns m if n>=0&&n<m
+  rule #2: accum ys xs (n::int:ns) m = accum ys xs ns m
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	<var> state 2
+  state 2: #0 #1 #2
+	[] state 3
+	<app> state 5
+  state 3: #0
+	<var> state 4
+  state 4: #0
+  state 5: #1 #2
+	<app> state 6
+  state 6: #1 #2
+	: state 7
   state 7: #1 #2
-} end when m/*0:*/::int = #xs/*0:01*/ {
-  rule #0: m::int = #xs
-  state 0: #0
-	<var>::int state 1
-  state 1: #0
+	<var>::int state 8
+  state 8: #1 #2
+	<var> state 9
+  state 9: #1 #2
+	<var> state 10
+  state 10: #1 #2
 } end;
 n1/*0:0101*/,n2/*0:011*/..m/*0:1*/ = while (\i/*0:*/ -> s/*1:*/*i/*0:*/<=s/*1:*/*m/*3:1*/ {
   rule #0: i = s*i<=s*m
@@ -514,98 +715,128 @@ takewhile p/*0:01*/ [] = [];
 takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:takewhile p/*0:01*/ xs/*0:11*/ if p/*0:01*/ x/*0:101*/;
 takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [];
 cat [] = [];
-cat (xs/*0:101*/:xss/*0:11*/) = accum/*0*/ (reverse xs/*0:101*/) xss/*0:11*/ with accum xs/*0:01*/ [] = reverse xs/*0:01*/; accum xs/*0:01*/ ([]:yss/*0:11*/) = accum/*1*/ xs/*0:01*/ yss/*0:11*/; accum xs/*0:01*/ ((y/*0:10101*/:ys/*0:1011*/):yss/*0:11*/) = accum/*1*/ (y/*0:10101*/:xs/*0:01*/) (ys/*0:1011*/:yss/*0:11*/); accum xs/*0:01*/ yss/*0:1*/ = reverse xs/*0:01*/+cat yss/*0:1*/ {
+cat (xs/*0:101*/:xss/*0:11*/) = accum/*0*/ (reverse xs/*0:101*/) xss/*0:11*/ with accum xs/*0:01*/ [] = reverse xs/*0:01*/; accum xs/*0:01*/ ([]:yss/*0:11*/) = accum/*1*/ xs/*0:01*/ yss/*0:11*/; accum xs/*0:01*/ ((y/*0:10101*/:ys/*0:1011*/):yss/*0:11*/) = accum/*1*/ (y/*0:10101*/:xs/*0:01*/) (ys/*0:1011*/:yss/*0:11*/); accum _/*0:01*/ (ys/*0:101*/:_/*0:11*/) = throw (bad_list_value ys/*0:101*/); accum _/*0:01*/ yss/*0:1*/ = throw (bad_list_value yss/*0:1*/) {
   rule #0: accum xs [] = reverse xs
   rule #1: accum xs ([]:yss) = accum xs yss
   rule #2: accum xs ((y:ys):yss) = accum (y:xs) (ys:yss)
-  rule #3: accum xs yss = reverse xs+cat yss
-  state 0: #0 #1 #2 #3
+  rule #3: accum _ (ys:_) = throw (bad_list_value ys)
+  rule #4: accum _ yss = throw (bad_list_value yss)
+  state 0: #0 #1 #2 #3 #4
 	<var> state 1
-  state 1: #0 #1 #2 #3
+  state 1: #0 #1 #2 #3 #4
 	<var> state 2
 	[] state 3
 	<app> state 4
-  state 2: #3
-  state 3: #0 #3
-  state 4: #1 #2 #3
+  state 2: #4
+  state 3: #0 #4
+  state 4: #1 #2 #3 #4
 	<var> state 5
 	<app> state 7
-  state 5: #3
+  state 5: #4
 	<var> state 6
-  state 6: #3
-  state 7: #1 #2 #3
+  state 6: #4
+  state 7: #1 #2 #3 #4
 	<var> state 8
 	: state 11
-  state 8: #3
+  state 8: #4
 	<var> state 9
-  state 9: #3
+  state 9: #4
 	<var> state 10
-  state 10: #3
-  state 11: #1 #2 #3
+  state 10: #4
+  state 11: #1 #2 #3 #4
 	<var> state 12
 	[] state 14
 	<app> state 16
-  state 12: #3
+  state 12: #3 #4
 	<var> state 13
-  state 13: #3
-  state 14: #1 #3
+  state 13: #3 #4
+  state 14: #1 #3 #4
 	<var> state 15
-  state 15: #1 #3
-  state 16: #2 #3
+  state 15: #1 #3 #4
+  state 16: #2 #3 #4
 	<var> state 17
 	<app> state 20
-  state 17: #3
+  state 17: #3 #4
 	<var> state 18
-  state 18: #3
+  state 18: #3 #4
 	<var> state 19
-  state 19: #3
-  state 20: #2 #3
+  state 19: #3 #4
+  state 20: #2 #3 #4
 	<var> state 21
 	: state 25
-  state 21: #3
+  state 21: #3 #4
 	<var> state 22
-  state 22: #3
+  state 22: #3 #4
 	<var> state 23
-  state 23: #3
+  state 23: #3 #4
 	<var> state 24
-  state 24: #3
-  state 25: #2 #3
+  state 24: #3 #4
+  state 25: #2 #3 #4
 	<var> state 26
-  state 26: #2 #3
+  state 26: #2 #3 #4
 	<var> state 27
-  state 27: #2 #3
+  state 27: #2 #3 #4
 	<var> state 28
-  state 28: #2 #3
-} end if listp xs/*0:101*/;
+  state 28: #2 #3 #4
+} end;
 catmap f/*0:01*/ xs/*0:1*/ = cat (map f/*0:01*/ xs/*0:1*/);
-reverse xs/*0:1*/ = foldl (flip (:)) [] xs/*0:1*/ if listp xs/*0:1*/;
-repeat n/*0:01*/ x/*0:1*/ = [] if n/*0:01*/<=0;
-repeat n/*0:01*/ x/*0:1*/ = x/*0:1*/:repeat (n/*0:01*/-1) x/*0:1*/;
-cycle n/*0:01*/ [] = [];
-cycle n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
-cycle n/*0:01*/ (x/*0:101*/:xs/*0:11*/) = mkcycle/*0*/ n/*2:01*/ xs/*1:*/ with mkcycle n/*0:01*/ xs/*0:1*/ = take n/*0:01*/ xs/*0:1*/ if n/*0:01*/<=m/*1:*/; mkcycle n/*0:01*/ xs/*0:1*/ = xs/*0:1*/+mkcycle/*1*/ (n/*0:01*/-m/*1:*/) xs/*0:1*/ {
-  rule #0: mkcycle n xs = take n xs if n<=m
-  rule #1: mkcycle n xs = xs+mkcycle (n-m) xs
+repeat n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = xs/*0:001*/ if n/*0:01*/<=0; accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = accum/*1*/ (x/*0:1*/:xs/*0:001*/) (n/*0:01*/-1) x/*0:1*/ {
+  rule #0: accum xs n::int x = xs if n<=0
+  rule #1: accum xs n::int x = accum (x:xs) (n-1) x
   state 0: #0 #1
 	<var> state 1
   state 1: #0 #1
-	<var> state 2
+	<var>::int state 2
   state 2: #0 #1
-} end when xs/*0:*/ = x/*0:101*/:xs/*0:11*/; m/*0:*/ = #xs/*0:*/ {
-  rule #0: m = #xs
-  state 0: #0
+	<var> state 3
+  state 3: #0 #1
+} end;
+cycle n/*0:01*/::int [] = [];
+cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
+cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] (#xs/*0:*/) n/*1:01*/ xs/*0:*/ with accum ys/*0:0001*/ m/*0:001*/::int n/*0:01*/::int xs/*0:1*/ = cat ys/*0:0001*/+take n/*0:01*/ xs/*0:1*/ if n/*0:01*/<=m/*0:001*/; accum ys/*0:0001*/ m/*0:001*/::int n/*0:01*/::int xs/*0:1*/ = accum/*1*/ (xs/*0:1*/:ys/*0:0001*/) m/*0:001*/ (n/*0:01*/-m/*0:001*/) xs/*0:1*/ {
+  rule #0: accum ys m::int n::int xs = cat ys+take n xs if n<=m
+  rule #1: accum ys m::int n::int xs = accum (xs:ys) m (n-m) xs
+  state 0: #0 #1
 	<var> state 1
-  state 1: #0
-} {
+  state 1: #0 #1
+	<var>::int state 2
+  state 2: #0 #1
+	<var>::int state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+} end when xs/*0:*/ = x/*0:101*/:xs/*0:11*/ {
   rule #0: xs = x:xs
   state 0: #0
 	<var> state 1
   state 1: #0
 } end;
-while p/*0:001*/ f/*0:01*/ a/*0:1*/ = a/*0:1*/:while p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) if p/*0:001*/ a/*0:1*/;
-while p/*0:001*/ f/*0:01*/ a/*0:1*/ = [];
-until p/*0:001*/ f/*0:01*/ a/*0:1*/ = [] if p/*0:001*/ a/*0:1*/;
-until p/*0:001*/ f/*0:01*/ a/*0:1*/ = a/*0:1*/:until p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/);
+while p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ a/*0:1*/ with accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*1*/ (a/*0:1*/:as/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) if p/*0:001*/ a/*0:1*/; accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = reverse as/*0:0001*/ {
+  rule #0: accum as p f a = accum (a:as) p f (f a) if p a
+  rule #1: accum as p f a = reverse as
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
+	<var> state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+} end;
+until p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ a/*0:1*/ with accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = reverse as/*0:0001*/ if p/*0:001*/ a/*0:1*/; accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*1*/ (a/*0:1*/:as/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) {
+  rule #0: accum as p f a = reverse as if p a
+  rule #1: accum as p f a = accum (a:as) p f (f a)
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
+	<var> state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+} end;
 zip (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = (x/*0:0101*/,y/*0:101*/):zip xs/*0:011*/ ys/*0:11*/;
 zip _/*0:01*/ _/*0:1*/ = [];
 zip3 (x/*0:00101*/:xs/*0:0011*/) (y/*0:0101*/:ys/*0:011*/) (z/*0:101*/:zs/*0:11*/) = (x/*0:00101*/,y/*0:0101*/,z/*0:101*/):zip3 xs/*0:0011*/ ys/*0:011*/ zs/*0:11*/;
