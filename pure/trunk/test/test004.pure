@@ -35,11 +35,16 @@ count 100;
 count2 n::int	= n if n<=0;
 		= count2 (n-1) otherwise;
 
-// This should always work.
 count2 100;
-// Again, this should work if proper tail calls are supported, no matter what
-// your stack size is.
 //count2 10000000;
+
+// Definitions involving toplevel if-then-else are properly tail-recursive as
+// well.
+
+count3 n::int	= if n<=0 then n else count3 (n-1);
+
+count3 100;
+//count3 10000000;
 
 // Trivial tail-recursive local function which passes an environment to
 // another local function. Note that the callee can never be tail-called in

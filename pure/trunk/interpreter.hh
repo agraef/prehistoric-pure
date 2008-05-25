@@ -416,6 +416,7 @@ private:
   pure_expr *doeval(expr x, pure_expr*& e);
   pure_expr *dodefn(env vars, expr lhs, expr rhs, pure_expr*& e);
   llvm::Value *codegen(expr x);
+  void toplevel_codegen(expr x);
   llvm::Value *builtin_codegen(expr x);
   llvm::Value *get_int(expr x);
   llvm::Value *get_double(expr x);
@@ -428,6 +429,7 @@ private:
   llvm::Value *call(llvm::Value *x);
   llvm::Value *apply(llvm::Value *x, llvm::Value *y);
   llvm::Value *cond(expr x, expr y, expr z);
+  void toplevel_cond(expr x, expr y, expr z);
   llvm::Value *fbox(Env& f, bool thunked = false);
   llvm::Value *cbox(int32_t tag);
   llvm::Value *ibox(llvm::Value *i);
