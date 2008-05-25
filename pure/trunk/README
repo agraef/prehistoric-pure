@@ -19,7 +19,10 @@ You can find tarballs and the svn repository at http://pure-lang.sf.net.
 
 LICENSE
 
-GPL V3 or later. See the accompanying COPYING file for details.
+GPL V3 or later. See the accompanying COPYING file for details. Note that the
+sample scripts in the examples subdir, even though they are bundled with the
+sources, are considered to be in the public domain, so feel free to use them
+for whatever purpose.
 
 INSTALLATION
 
