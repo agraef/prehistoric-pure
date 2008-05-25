@@ -78,8 +78,8 @@ CXXFLAGS = -g -O -Wall $(LLVM_FLAGS)
 CFLAGS = -g -O -Wall
 else
 ifeq ($(build),release)
-CXXFLAGS = -O3 -DNDEBUG -Wall $(LLVM_FLAGS)
-CFLAGS = -O3 -DNDEBUG -Wall
+CXXFLAGS = -O3 -DNDEBUG -DDEBUG=0 -Wall $(LLVM_FLAGS)
+CFLAGS = -O3 -DNDEBUG -DDEBUG=0 -Wall
 else
 ifeq ($(build),debug)
 CXXFLAGS = -g -Wall $(LLVM_FLAGS)
