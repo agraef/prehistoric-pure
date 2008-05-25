@@ -1,5 +1,14 @@
 2008-05-25  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc, runtime.cc: Add marshalling between long (64
+	bit) ints and Pure bigints in the C interface. This means that
+	both Pure ints and bigints can now be passed for 'long' arguments
+	of externals (with sign extension/truncation as necessary), and
+	'long' values are promoted to Pure bigints on return. Hence C
+	functions taking 64 bit integers as arguments and returning them
+	as results can now be called from Pure without loosing bits due to
+	truncation.
+
 	* lib/prelude.pure: Make 'all' and 'any' tail-recursive.
 
 	* interpreter.cc: Make toplevel if-then-else properly
@@ -74,9 +83,7 @@
 	Please note that the typename 'long' *always* denotes signed 64
 	bit integers in Pure's extern declarations, even if the C 'long'
 	type is actually 32 bit (as it usually is even on most 64 bit
-	systems). Also note that at present 'long' is still converted
-	to/from Pure (32 bit) ints only, marshalling from/to Pure bigints
-	is not supported yet.
+	systems).
 
 2008-05-16  Albert Graef  <Dr.Graef@t-online.de>
 

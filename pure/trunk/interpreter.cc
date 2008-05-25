@@ -199,6 +199,8 @@ interpreter::interpreter()
 		 "pure_const",      "expr*",  1, "int");
   declare_extern((void*)pure_int,
 		 "pure_int",        "expr*",  1, "int");
+  declare_extern((void*)pure_long,
+		 "pure_long",       "expr*",  1, "long");
   declare_extern((void*)pure_bigint,
 		 "pure_bigint",     "expr*",  2, "int",
 		 sizeof(mp_limb_t)==8?"long*":"int*");
@@ -224,6 +226,8 @@ interpreter::interpreter()
 		 "pure_free_cstrings", "void", 0);
   declare_extern((void*)pure_get_bigint,
 		 "pure_get_bigint",    "void*", 1, "expr*");
+  declare_extern((void*)pure_get_long,
+		 "pure_get_long",      "long",  1, "expr*");
 
   declare_extern((void*)pure_catch,
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
@@ -2224,8 +2228,8 @@ Function *interpreter::declare_extern(string name, string restype,
   }
   // External C function visible in the Pure program. No varargs are allowed
   // here for now. Also, we have to translate some of the parameter types
-  // (expr** becomes void*, int32_t gets promoted in64_t if the default int
-  // type of the target platform has 64 bit).
+  // (expr** becomes void*, int32_t gets promoted to int64_t if the default
+  // int type of the target platform has 64 bit).
   assert(!varargs);
   if (type == ExprPtrPtrTy)
     type = VoidPtrTy;
@@ -2388,17 +2392,33 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = iv;
     } else if (argt[i] == Type::Int64Ty) {
+      BasicBlock *intbb = new BasicBlock("int");
+      BasicBlock *mpzbb = new BasicBlock("mpz");
       BasicBlock *okbb = new BasicBlock("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
-      b.CreateCondBr
-	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
-      f->getBasicBlockList().push_back(okbb);
-      b.SetInsertPoint(okbb);
+      SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
+      /* We allow either ints or bigints to be passed for a long value. */
+      sw->addCase(SInt(EXPR::INT), intbb);
+      sw->addCase(SInt(EXPR::BIGINT), mpzbb);
+      f->getBasicBlockList().push_back(intbb);
+      b.SetInsertPoint(intbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
       idx[1] = ValFldIndex;
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
-      unboxed[i] = b.CreateSExt(iv, Type::Int64Ty);
+      Value *intv = b.CreateSExt(iv, Type::Int64Ty);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(mpzbb);
+      b.SetInsertPoint(mpzbb);
+      // Handle the case of a bigint (mpz_t -> long).
+      Value *mpzv = b.CreateCall(module->getFunction("pure_get_long"), x);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      PHINode *phi = b.CreatePHI(Type::Int64Ty);
+      phi->addIncoming(intv, intbb);
+      phi->addIncoming(mpzv, mpzbb);
+      unboxed[i] = phi;
     } else if (argt[i] == Type::DoubleTy) {
       BasicBlock *okbb = new BasicBlock("ok");
       Value *idx[2] = { Zero, Zero };
@@ -2478,8 +2498,7 @@ Function *interpreter::declare_extern(string name, string restype,
 	// An external builtin already has this parameter declared as char*.
 	// We allow void* to be passed anyway, so just cast it to char* to
 	// make the LLVM typechecker happy.
-	unboxed[i] = b.CreateBitCast
-	  (unboxed[i], CharPtrTy);
+	unboxed[i] = b.CreateBitCast(unboxed[i], CharPtrTy);
     } else
       assert(0 && "invalid C type");
   }
@@ -2504,8 +2523,7 @@ Function *interpreter::declare_extern(string name, string restype,
   else if (type == Type::Int32Ty)
     u = b.CreateCall(module->getFunction("pure_int"), u);
   else if (type == Type::Int64Ty)
-    u = b.CreateCall(module->getFunction("pure_int"),
-		     b.CreateTrunc(u, Type::Int32Ty));
+    u = b.CreateCall(module->getFunction("pure_long"), u);
   else if (type == Type::DoubleTy)
     u = b.CreateCall(module->getFunction("pure_double"), u);
   else if (type == CharPtrTy)
