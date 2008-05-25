@@ -1211,11 +1211,12 @@ pure_expr *pure_pointerval(pure_expr *x)
   case EXPR::INT:	return pure_pointer((void*)x->data.i);
   case EXPR::BIGINT:
     if (sizeof(mp_limb_t) == 8)
-      return pure_pointer((void*)x->data.z->_mp_d[0]);
+      return pure_pointer((void*)mpz_getlimbn(x->data.z, 0));
     else if (sizeof(void*) == 4)
       return pure_pointer((void*)mpz_get_ui(x->data.z));
     else {
-      uint64_t u = x->data.z->_mp_d[0]+(((uint64_t)x->data.z->_mp_d[1])<<32);
+      uint64_t u = mpz_getlimbn(x->data.z, 0) +
+	(((uint64_t)mpz_getlimbn(x->data.z, 1))<<32);
       return pure_pointer((void*)u);
     }
   default:		return 0;
