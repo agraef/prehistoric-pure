@@ -3197,6 +3197,15 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
     return 0;
 }
 
+void interpreter::toplevel_codegen(expr x)
+{
+  assert(!x.is_null());
+  if (x.tag() == EXPR::COND)
+    toplevel_cond(x.xval1(), x.xval2(), x.xval3());
+  else
+    act_env().CreateRet(codegen(x));
+}
+
 Value *interpreter::codegen(expr x)
 {
   assert(!x.is_null());
@@ -3485,6 +3494,40 @@ Value *interpreter::cond(expr x, expr y, expr z)
   phi->addIncoming(thenv, thenbb);
   phi->addIncoming(elsev, elsebb);
   return phi;
+}
+
+void interpreter::toplevel_cond(expr x, expr y, expr z)
+{
+  // emit tail-recursive code for a toplevel if-then-else
+  Env& f = act_env();
+  assert(f.f!=0);
+  // emit the code for x
+  Value *iv = 0;
+  if (x.ttag() == EXPR::INT)
+    // optimize the case that x is an ::int (constant or application)
+    iv = get_int(x);
+  else if (x.ttag() != 0) {
+    // wrong type of constant; raise an exception
+    // XXXTODO: we might want to optionally invoke the debugger here
+    unwind(symtab.failed_cond_sym().f);
+    return;
+  } else
+    // typeless expression, will be checked at runtime
+    iv = get_int(x);
+  // emit the condition (turn the previous result into a flag)
+  Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
+  // create the basic blocks for the branches
+  BasicBlock *thenbb = new BasicBlock("then");
+  BasicBlock *elsebb = new BasicBlock("else");
+  // create the branch instruction and emit the 'then' block
+  f.builder.CreateCondBr(condv, thenbb, elsebb);
+  f.f->getBasicBlockList().push_back(thenbb);
+  f.builder.SetInsertPoint(thenbb);
+  toplevel_codegen(y);
+  // emit the 'else' block
+  f.f->getBasicBlockList().push_back(elsebb);
+  f.builder.SetInsertPoint(elsebb);
+  toplevel_codegen(z);
 }
 
 // Other value boxes. These just call primitives in the runtime which take
@@ -4321,11 +4364,11 @@ void interpreter::complex_match(matcher *pm, BasicBlock *failedbb)
     f.f->getBasicBlockList().push_back(matchedbb);
     f.builder.SetInsertPoint(matchedbb);
 #if DEBUG>1
-  if (!f.name.empty()) { ostringstream msg;
-    msg << "exit " << f.name << ", result: " << pm->r[0].rhs;
-    debug(msg.str().c_str()); }
+    if (!f.name.empty()) { ostringstream msg;
+      msg << "exit " << f.name << ", result: " << pm->r[0].rhs;
+      debug(msg.str().c_str()); }
 #endif
-    f.CreateRet(codegen(pm->r[0].rhs));
+    toplevel_codegen(pm->r[0].rhs);
   } else {
     // build the initial stack of expressions to be matched
     list<Value*>xs;
@@ -4607,7 +4650,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
 	msg << "exit " << f.name << ", result: " << rr.rhs;
 	debug(msg.str().c_str()); }
 #endif
-      f.CreateRet(codegen(rr.rhs));
+      toplevel_codegen(rr.rhs);
       break;
     }
     // check the guard
@@ -4647,7 +4690,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
       msg << "exit " << f.name << ", result: " << rr.rhs;
       debug(msg.str().c_str()); }
 #endif
-    f.CreateRet(codegen(rr.rhs));
+    toplevel_codegen(rr.rhs);
     rulebb = nextbb;
   }
   if (f.fmap.size() > 1) f.fmap_idx = 0;
