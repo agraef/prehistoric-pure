@@ -1,5 +1,7 @@
 2008-05-25  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/prelude.pure: Make 'all' and 'any' tail-recursive.
+
 	* interpreter.cc: Make toplevel if-then-else properly
 	tail-recursive. Thus, e.g., the following function will now run in
 	constant stack space: count x = if x<=0 then x else count (x-1);

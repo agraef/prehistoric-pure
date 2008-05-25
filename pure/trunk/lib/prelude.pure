@@ -173,10 +173,10 @@ n..m		= while (\i->i<=m) (\x->x+1) n;
    functions have slightly different names). */
 
 all p []	= 1;
-all p (x:xs)	= p x && all p xs;
+all p (x:xs)	= if p x then all p xs else 0;
 
 any p []	= 0;
-any p (x:xs)	= p x || any p xs;
+any p (x:xs)	= if p x then 1 else any p xs;
 
 do f []		= ();
 do f (x:xs)	= do f xs when _ = f x end;
