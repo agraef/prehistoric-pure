@@ -36,8 +36,7 @@ things that remain to be done. Most important items, in no particular order:
   functions to the runtime.
 
 - Better support for proper tail calls. Currently this only works for direct
-  calls and if the callee doesn't need an environment (i.e., all data is
-  passed as parameters). See the manpage for details.
+  calls. See the manpage for details.
 
 - More aggressive optimizations (common subexpression elimination for "pure"
   a.k.a. side-effect-free function calls, etc.).

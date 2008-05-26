@@ -1,3 +1,11 @@
+2008-05-26  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc, runtime.cc: Overhaul of the shadow stack
+	machinery. Environment vectors are now maintained on the shadow
+	stack, so that all local functions and anonymous closures are
+	eligible for tail call optimization, even if they need access to
+	their environment.
+
 2008-05-25  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/prelude.pure: Rewrite prelude operations to make them
