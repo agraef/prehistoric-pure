@@ -172,24 +172,31 @@ void pure_unref(pure_expr *x);
 void pure_new_args(uint32_t n, ...);
 void pure_free_args(pure_expr *x, uint32_t n, ...);
 
-/* The following are like pure_new_args and pure_free_args above, but also
-   maintain an internal shadow stack, for the purpose of cleaning up function
-   arguments when an exception is thrown, and to provide data needed by the
-   symbolic debugger. pure_pop_tail_args is to be called instead of
-   pure_pop_args in case of a (potential) tail call, since in this case the
-   new stack frame of the tail-called function is already on the stack and
-   thus the previous stack frame is to be popped instead of the current
-   one. */
+/* The following are similar to pure_new_args and pure_free_args above, but
+   also maintain an internal shadow stack, for the purpose of keeping track of
+   dynamically allocated environment vectors, for cleaning up function
+   arguments and environments, and for providing data needed by the symbolic
+   debugger. The arguments n and m denote the number of function parameters
+   and environment variables, respectively. pure_push_args takes the function
+   parameters followed by the environment values as additional arguments and
+   returns the index of the first environment variable on the shadow stack (0
+   if none). Parameters and environment are reclaimed with a corresponding
+   pure_pop_args/pure_pop_tail_args call; pure_pop_tail_args is to be called
+   instead of pure_pop_args in case of a (potential) tail call, since in this
+   case the new stack frame of the tail-called function is already on the
+   stack and thus the previous stack frame is to be popped instead of the
+   current one. */
 
-void pure_push_args(uint32_t n, ...);
-void pure_pop_args(pure_expr *x, uint32_t n, ...);
-void pure_pop_tail_args(pure_expr *x, uint32_t n, ...);
+uint32_t pure_push_args(uint32_t n, uint32_t m, ...);
+void pure_pop_args(pure_expr *x, uint32_t n, uint32_t m);
+void pure_pop_tail_args(pure_expr *x, uint32_t n, uint32_t m);
 
-/* Optimize the special case of a single argument to be pushed/popped. */
+/* Optimize the special case of a single argument without environment to be
+   pushed/popped. */
 
 void pure_push_arg(pure_expr *x);
-void pure_pop_arg(pure_expr *x);
-void pure_pop_tail_arg(pure_expr *x);
+void pure_pop_arg();
+void pure_pop_tail_arg();
 
 /* Debugging support. Preliminary. */
 

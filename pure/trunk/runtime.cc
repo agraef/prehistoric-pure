@@ -65,18 +65,12 @@ static void mem_mark(pure_expr *x)
 #define MEMDEBUG_SUMMARY(ret)
 #endif
 
-// Debug shadow stack manipulations. SSTK_DEBUG=1 adds special code to verify
-// the integrity of the shadow stack, any level >1 also prints pushes and pops
-// of stack frames. NOTE: Enabling this code slows down the interpreter, and
-// generates *lots* of debugging output for level >1.
+// Debug shadow stack manipulations. Prints pushes and pops of stack frames.
+// NOTE: Enabling this code generates *lots* of debugging output.
 #if DEBUG>2
-#define SSTK_DEBUG 2
-#else
-#if DEBUG>1
 #define SSTK_DEBUG 1
 #else
 #define SSTK_DEBUG 0
-#endif
 #endif
 
 // Expression pointers are allocated in larger chunks for better performance.
@@ -555,51 +549,43 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
   assert(x && y && x->refc > 0 && y->refc > 0);
   // travel down the spine, count arguments
   pure_expr *f = x, *f0, *ret;
-  uint32_t n = 0;
+  uint32_t n = 1;
   while (f->tag == EXPR::APP) { f = f->data.x[0]; n++; }
   f0 = f;
   if (f->tag >= 0 && f->data.clos && !f->data.clos->thunked &&
-      f->data.clos->n == n+1) {
+      f->data.clos->n == n) {
     // saturated call; execute it now
     interpreter& interp = *interpreter::g_interp;
     void *fp = f->data.clos->fp;
-    size_t i = 0, m = f->data.clos->m, k = n+1+(m>0?1:0);
-    assert(k <= MAXARGS && "pure_apply: function call exceeds maximum #args");
-    void **argv = (void**)alloca(k*sizeof(void*));
+    size_t m = f->data.clos->m;
+    uint32_t env = 0;
+    void **argv = (void**)alloca(n*sizeof(void*));
     assert(argv && "pure_apply: stack overflow");
+    assert(n <= MAXARGS && "pure_apply: function call exceeds maximum #args");
     assert(f->data.clos->local || m == 0);
-    pure_expr **env = 0;
-    if (f->data.clos->local && m>0) {
-      // add implicit environment parameter
-      env = (pure_expr**)alloca(m*sizeof(pure_expr*));
-      assert(env && "pure_apply: stack overflow");
-      argv[i++] = env;
-      for (size_t j = 0; j < m; j++) {
-	assert(f->data.clos->env[j]->refc > 0);
-	env[j] = f->data.clos->env[j]; env[j]->refc++;
-      }
-    }
     // collect arguments
     f = x;
     for (size_t j = 1; f->tag == EXPR::APP; j++, f = f->data.x[0]) {
       assert(f->data.x[1]->refc > 0);
-      argv[i+n-j] = f->data.x[1]; f->data.x[1]->refc++;
+      argv[n-1-j] = f->data.x[1]; f->data.x[1]->refc++;
     }
-    i += n; argv[i++] = y;
-    assert(i == k);
+    argv[n-1] = y;
     // make sure that we do not gc the function before calling it
     f0->refc++; pure_free_internal(x);
     // construct a stack frame
     {
       size_t sz = interp.sstk_sz;
-      assert(k == n+1+(env?1:0));
-      resize_sstk(interp.sstk, interp.sstk_cap, sz, n+m+2);
-      pure_expr** sstk = interp.sstk;
+      resize_sstk(interp.sstk, interp.sstk_cap, sz, n+m+1);
+      pure_expr **sstk = interp.sstk;
+      if (m>0) env = sz+n+1;
       sstk[sz++] = 0;
-      for (size_t j = env?1:0; j < k; j++)
+      for (size_t j = 0; j < n; j++)
 	sstk[sz++] = (pure_expr*)argv[j];
-      if (env) for (size_t j = 0; j < m; j++)
-	sstk[sz++] = env[j];
+      for (size_t j = 0; j < m; j++) {
+	sstk[sz++] = f0->data.clos->env[j];
+	assert(f0->data.clos->env[j]->refc > 0);
+	f0->data.clos->env[j]->refc++;
+      }
 #if SSTK_DEBUG>1
       cerr << "++ stack: (sz = " << sz << ")\n";
       for (size_t i = 0; i < sz; i++) {
@@ -617,7 +603,10 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     cerr << "pure_apply: calling " << x << " (" << y << ") -> " << fp << endl;
 #endif
     checkstk(test);
-    funcall(ret, fp, k, argv);
+    if (m>0)
+      xfuncall(ret, fp, n, env, argv)
+    else
+      funcall(ret, fp, n, argv)
     pure_free_internal(f0);
     return ret;
   } else {
@@ -657,22 +646,18 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 #endif
     assert(h->refc > 0 && x->refc > 0);
     size_t m = x->data.clos->m;
+    assert(x->data.clos->local || m == 0);
     pure_expr **env = 0;
-    if (x->data.clos->local && m>0) {
-      // add implicit environment parameter
-      env = (pure_expr**)alloca(m*sizeof(pure_expr*));
-      assert(env && "pure_catch: stack overflow");
-      for (size_t i = 0; i < m; i++) {
-	assert(x->data.clos->env[i]->refc > 0);
-	env[i] = x->data.clos->env[i]; env[i]->refc++;
-      }
+    if (m>0) {
       // construct a stack frame
       size_t sz = interp.sstk_sz;;
       resize_sstk(interp.sstk, interp.sstk_cap, sz, m+1);
-      pure_expr** sstk = interp.sstk;
+      pure_expr **sstk = interp.sstk; env = sstk+sz+1;
       sstk[sz++] = 0;
-      for (size_t i = 0; i < m; i++)
-	sstk[sz++] = env[i];
+      for (size_t j = 0; j < m; j++) {
+	sstk[sz++] = x->data.clos->env[j];
+	assert(env[j]->refc > 0); env[j]->refc++;
+      }
 #if SSTK_DEBUG>1
       cerr << "++ stack: (sz = " << sz << ")\n";
       for (size_t i = 0; i < sz; i++) {
@@ -725,7 +710,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       pure_expr *res;
       if (env)
 	// pass environment
-	res = ((pure_expr*(*)(void*))fp)(env);
+	res = ((pure_expr*(*)(uint32_t))fp)(env-interp.sstk);
       else
 	// parameterless call
 	res = ((pure_expr*(*)())fp)();
@@ -868,17 +853,17 @@ void pure_free_args(pure_expr *x, uint32_t n, ...)
 }
 
 extern "C"
-void pure_push_args(uint32_t n, ...)
+uint32_t pure_push_args(uint32_t n, uint32_t m, ...)
 {
   va_list ap;
   interpreter& interp = *interpreter::g_interp;
   size_t sz = interp.sstk_sz;
-  resize_sstk(interp.sstk, interp.sstk_cap, sz, n+1);
-  pure_expr** sstk = interp.sstk;
+  resize_sstk(interp.sstk, interp.sstk_cap, sz, n+m+1);
+  pure_expr **sstk = interp.sstk; uint32_t env = (m>0)?sz+n+1:0;
   // mark the beginning of this frame
   sstk[sz++] = 0;
-  va_start(ap, n);
-  while (n-- > 0) {
+  va_start(ap, m);
+  for (size_t i = 0; i < n+m; i++) {
     pure_expr *x = va_arg(ap, pure_expr*);
     sstk[sz++] = x;
     if (x->refc > 0)
@@ -887,7 +872,7 @@ void pure_push_args(uint32_t n, ...)
       pure_new_internal(x);
   };
   va_end(ap);
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
   cerr << "++ stack: (sz = " << sz << ")\n";
   for (size_t i = 0; i < sz; i++) {
     pure_expr *x = sstk[i];
@@ -899,33 +884,22 @@ void pure_push_args(uint32_t n, ...)
   }
 #endif
   interp.sstk_sz = sz;
+  // return a pointer to the environment:
+  return env;
 }
 
 extern "C"
-void pure_pop_args(pure_expr *x, uint32_t n, ...)
+void pure_pop_args(pure_expr *x, uint32_t n, uint32_t m)
 {
-  va_list ap;
   interpreter& interp = *interpreter::g_interp;
-#if SSTK_DEBUG
   pure_expr **sstk = interp.sstk;
-  pure_expr **y = (pure_expr**)alloca(n*sizeof(pure_expr*));
-  size_t i, sz = interp.sstk_sz, oldsz = sz;
-  while (sz > 0 && sstk[--sz]) ;
+  size_t sz = interp.sstk_sz;
+#if !defined(NDEBUG) || SSTK_DEBUG
+  size_t oldsz = sz;
+#endif
+  sz -= n+m+1;
   assert(sz < oldsz && !sstk[sz]);
-  if (x) x->refc++;
-  va_start(ap, n);
-  for (i = 0; i < n; i++) {
-    pure_expr *x = va_arg(ap, pure_expr*);
-    y[i] = x;
-  };
-  va_end(ap);
-  if (oldsz-sz-1 != n) goto error;
-  for (i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    if (sstk[sz+i+1] != x) goto error;
-  }
-  interp.sstk_sz = sz;
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
   cerr << "++ stack: (oldsz = " << oldsz << ")\n";
   for (size_t i = 0; i < oldsz; i++) {
     pure_expr *x = sstk[i];
@@ -936,74 +910,29 @@ void pure_pop_args(pure_expr *x, uint32_t n, ...)
       cerr << i << ": " << "** frame **\n";
   }
 #endif
-  for (size_t i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    if (x->refc > 1)
-      x->refc--;
-    else
-      pure_free_internal(x);
-  }
-  return;
- error:
-  cerr << "ERROR: can't find stack frame to be popped.\n";
-  cerr << "++ stack: (oldsz = " << oldsz << ")\n";
-  for (size_t i = 0; i < oldsz; i++) {
-    pure_expr *x = sstk[i];
-    if (x)
-      cerr << i << ": " << (void*)x << ": " << x << endl;
-    else
-      cerr << i << ": " << "** frame **\n";
-  }
-  cerr << "++ pop:\n";
-  for (size_t i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    cerr << i << ": " << (void*)x << ": " << x << endl;
-  }
-  abort();
-#else
-  // This doesn't verify the integrity of the shadow stack and is *much*
-  // faster.
-  interp.sstk_sz -= n+1;
   if (x) x->refc++;
-  va_start(ap, n);
-  while (n-- > 0) {
-    pure_expr *x = va_arg(ap, pure_expr*);
+  for (size_t i = 0; i < n+m; i++) {
+    pure_expr *x = sstk[sz+1+i];
+    assert(x);
     if (x->refc > 1)
       x->refc--;
     else
       pure_free_internal(x);
   };
-  va_end(ap);
-#endif
+  interp.sstk_sz = sz;
 }
 
 extern "C"
-void pure_pop_tail_args(pure_expr *x, uint32_t n, ...)
+void pure_pop_tail_args(pure_expr *x, uint32_t n, uint32_t m)
 {
-  va_list ap;
   interpreter& interp = *interpreter::g_interp;
-#if SSTK_DEBUG
   pure_expr **sstk = interp.sstk;
-  pure_expr **y = (pure_expr**)alloca(n*sizeof(pure_expr*));
-  size_t i, sz = interp.sstk_sz, lastsz, oldsz = sz;
-  while (sz > 0 && sstk[--sz]) ;
-  assert(sz < oldsz && !sstk[sz]);
-  lastsz = sz;
-  while (sz > 0 && sstk[--sz]) ;
+  size_t sz, lastsz = interp.sstk_sz, oldsz = lastsz;
+  while (lastsz > 0 && sstk[--lastsz]) ;
+  assert(lastsz < oldsz && !sstk[lastsz]);
+  sz = lastsz-(n+m+1);
   assert(sz < lastsz && !sstk[sz]);
-  if (x) x->refc++;
-  va_start(ap, n);
-  for (i = 0; i < n; i++) {
-    pure_expr *x = va_arg(ap, pure_expr*);
-    y[i] = x;
-  };
-  va_end(ap);
-  if (lastsz-sz-1 != n) goto error;
-  for (i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    if (sstk[sz+i+1] != x) goto error;
-  }
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
   cerr << "++ stack: (oldsz = " << oldsz << ", lastsz = " << lastsz << ")\n";
   for (size_t i = 0; i < oldsz; i++) {
     pure_expr *x = sstk[i];
@@ -1015,62 +944,17 @@ void pure_pop_tail_args(pure_expr *x, uint32_t n, ...)
       cerr << i << ": " << "** frame **\n";
   }
 #endif
-  memmove(sstk+sz, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
-  oldsz -= n+1;
-  interp.sstk_sz = oldsz;
-#if SSTK_DEBUG>1
-  cerr << "++ new stack: (newsz = " << oldsz << ")\n";
-  for (size_t i = 0; i < oldsz; i++) {
-    pure_expr *x = sstk[i];
-    if (x)
-      cerr << i << ": " << (void*)x << ": " << x << endl;
-    else
-      cerr << i << ": " << "** frame **\n";
-  }
-#endif
-  for (size_t i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    if (x->refc > 1)
-      x->refc--;
-    else
-      pure_free_internal(x);
-  }
-  return;
- error:
-  cerr << "ERROR: can't find stack frame to be popped.\n";
-  cerr << "++ stack: (oldsz = " << oldsz << ", lastsz = " << lastsz << ")\n";
-  for (size_t i = 0; i < oldsz; i++) {
-    pure_expr *x = sstk[i];
-    if (x)
-      cerr << i << ": " << (void*)x << ": " << x << endl;
-    else
-      cerr << i << ": " << "** frame **\n";
-  }
-  cerr << "++ pop:\n";
-  for (size_t i = 0; i < n; i++) {
-    pure_expr *x = y[i];
-    cerr << i << ": " << (void*)x << ": " << x << endl;
-  }
-  abort();
-#else
-  // This doesn't verify the integrity of the shadow stack and is *much*
-  // faster.
-  pure_expr **sstk = interp.sstk;
-  size_t lastsz = interp.sstk_sz, oldsz = lastsz;
-  while (lastsz > 0 && sstk[--lastsz]) ;
-  memmove(sstk+lastsz-n-1, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
-  interp.sstk_sz -= n+1;
   if (x) x->refc++;
-  va_start(ap, n);
-  while (n-- > 0) {
-    pure_expr *x = va_arg(ap, pure_expr*);
+  for (size_t i = 0; i < n+m; i++) {
+    pure_expr *x = sstk[sz+1+i];
+    assert(x);
     if (x->refc > 1)
       x->refc--;
     else
       pure_free_internal(x);
   };
-  va_end(ap);
-#endif
+  memmove(sstk+sz, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
+  interp.sstk_sz -= n+m+1;
 }
 
 extern "C"
@@ -1100,36 +984,38 @@ void pure_push_arg(pure_expr *x)
 }
 
 extern "C"
-void pure_pop_arg(pure_expr *x)
+void pure_pop_arg()
 {
 #if SSTK_DEBUG
-  pure_pop_args(0, 1, x);
+  pure_pop_args(0, 1, 0);
 #else
   interpreter& interp = *interpreter::g_interp;
-  interp.sstk_sz -= 2;
+  pure_expr *x = interp.sstk[interp.sstk_sz-1];
   if (x->refc > 1)
     x->refc--;
   else
     pure_free_internal(x);
+  interp.sstk_sz -= 2;
 #endif
 }
 
 extern "C"
-void pure_pop_tail_arg(pure_expr *x)
+void pure_pop_tail_arg()
 {
 #if SSTK_DEBUG
-  pure_pop_tail_args(0, 1, x);
+  pure_pop_tail_args(0, 1, 0);
 #else
   interpreter& interp = *interpreter::g_interp;
   pure_expr **sstk = interp.sstk;
   size_t lastsz = interp.sstk_sz, oldsz = lastsz;
   while (lastsz > 0 && sstk[--lastsz]) ;
-  memmove(sstk+lastsz-2, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
-  interp.sstk_sz -= 2;
+  pure_expr *x = interp.sstk[lastsz-1];
   if (x->refc > 1)
     x->refc--;
   else
     pure_free_internal(x);
+  memmove(sstk+lastsz-2, sstk+lastsz, (oldsz-lastsz)*sizeof(pure_expr*));
+  interp.sstk_sz -= 2;
 #endif
 }
 

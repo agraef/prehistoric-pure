@@ -1092,33 +1092,23 @@ certain occasions, such as entry into a global function.
 Fortunately, Pure normally does proper tail calls (if LLVM provides that
 feature on the platform at hand), so most tail-recursive definitions should
 work fine in limited stack space. For instance, the following little program
-should loop forever if your platform supports the required optimizations:
+will loop forever if your platform supports the required optimizations:
 .sp
 .nf
 loop = loop;
 .fi
 .PP
-The current tail call implementation appears to work fairly well in practice,
-but it has a few quirks which are discussed in the following. Most notably, a
-tail call will be eliminated \fIonly\fP if the call is done \fIdirectly\fP,
-i.e., through an explicit call, not through a (global or local) function
-variable. Otherwise the call will be handled by the runtime system which is
-written in C and can't do proper tail calls because C can't (at least not in a
-portable way).
-.PP
-This also affects mutually recursive global function calls, since there the
-calls are handled in an indirect way, too, through an anonymous global
-variable. (This is done so that a global function definition can be changed at
-any time during an interactive session, without having to recompile the entire
-program.) However, mutual tail recursion does work with \fIlocal\fP functions,
-so it's easy to work around this limitation.
-.PP
-Alas, with local functions there's another restriction, namely that a local
-function can be tail-called \fIonly\fP if it does \fInot\fP use its
-environment. That's because in the current implementation the implicit
-environment parameter is created on the caller's stack. Hence, to get proper
-tail recursion with local functions, you \fImust\fP pass all data needed by
-the function as parameters (which can usually be achieved quite easily).
+In the current implementation, a tail call will be eliminated \fIonly\fP if
+the call is done \fIdirectly\fP, i.e., through an explicit call, not through a
+(global or local) function variable. Otherwise the call will be handled by the
+runtime system which is written in C and can't do proper tail calls because C
+can't (at least not in a portable way). This also affects mutually recursive
+global function calls, since there the calls are handled in an indirect way,
+too, through an anonymous global variable. (This is done so that a global
+function definition can be changed at any time during an interactive session,
+without having to recompile the entire program.) However, mutual tail
+recursion does work with \fIlocal\fP functions, so it's easy to work around
+this limitation.
 .SH FILES
 .TP
 .B ~/.pure_history

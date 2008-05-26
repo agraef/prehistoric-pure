@@ -92,9 +92,8 @@ struct Env {
   // function environment
   int32_t tag; // function id, zero for anonymous functions
   string name; // LLVM assembly function name
-  // n = #function args, m = #extra args (captured environment), l = max
-  // environment size in fbox call
-  uint32_t n, m, l;
+  // n = #function args, m = #extra args (captured environment)
+  uint32_t n, m;
   // f = the (internal) LLVM function, h = the C-callable stub (if needed)
   llvm::Function *f, *h;
   // fp = pointer to the JITed function (executable code)
@@ -103,8 +102,6 @@ struct Env {
   vector<llvm::Value*> args;
   // environment pointer (expr**)
   llvm::Value *envs;
-  // storage for passed environment vectors
-  llvm::AllocaInst* argv;
   // mapping of captured variables to the corresponding locals
   map<xmap_key,uint32_t > xmap;
   // info about captured variables
@@ -164,12 +161,12 @@ struct Env {
   llvm::ReturnInst *CreateRet(llvm::Value *v);
   // default constructor
   Env()
-    : tag(0), n(0), m(0), l(0), f(0), h(0), fp(0), args(0), envs(0), argv(0),
+    : tag(0), n(0), m(0), f(0), h(0), fp(0), args(0), envs(0),
       fmap(1), fmap_idx(0), b(false), local(false), parent(0), refc(0) {}
   // environment for an anonymous closure with given body x
   Env(int32_t _tag, uint32_t _n, expr x, bool _b, bool _local = false)
-    : tag(_tag), n(_n), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
+    : tag(_tag), n(_n), m(0), f(0), h(0), fp(0), args(n), envs(0),
+      fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
@@ -182,8 +179,8 @@ struct Env {
   }
   // environment for a named closure with given definition info
   Env(int32_t _tag, const env_info& info, bool _b, bool _local = false)
-    : tag(_tag), n(info.argc), m(0), l(0), f(0), h(0), fp(0), args(n), envs(0),
-      argv(0), fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
+    : tag(_tag), n(info.argc), m(0), f(0), h(0), fp(0), args(n), envs(0),
+      fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
@@ -393,6 +390,7 @@ public:
   map<int32_t,Env> globalfuns;
   list<pure_exception> estk;
   pure_expr** sstk; size_t sstk_cap, sstk_sz;
+  llvm::GlobalVariable *sstkvar;
 #if DEBUG
   set<pure_expr*> mem_allocations;
 #endif
@@ -405,7 +403,7 @@ public:
 				 string asname = "");
 private:
   Env *fptr;
-  llvm::GlobalVariable *vptr;
+  llvm::GlobalVariable *fptrvar;
   llvm::Value *envptr(Env *f);
   EnvStack envstk;
   void push(const char *msg, Env *e);

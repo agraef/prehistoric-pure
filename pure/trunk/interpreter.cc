@@ -55,7 +55,7 @@ interpreter::interpreter()
     stats(false), temp(0),
     ps("> "), lib(""), histfile("/.pure_history"), modname("pure"),
     nerrs(0), source_s(0), result(0), mem(0), exps(0), tmps(0),
-    module(0), JIT(0), FPM(0), fptr(0), vptr(0)
+    module(0), JIT(0), FPM(0), fptr(0)
 {
   if (!g_interp) {
     g_interp = this;
@@ -64,6 +64,7 @@ interpreter::interpreter()
 
   sstk_sz = 0; sstk_cap = 0x10000; // 64K
   sstk = (pure_expr**)malloc(sstk_cap*sizeof(pure_expr*));
+  assert(sstk);
 
   // Initialize the JIT.
 
@@ -187,6 +188,14 @@ interpreter::interpreter()
   StrExprPtrTy = PointerType::get(StrExprTy, 0);
   PtrExprPtrTy = PointerType::get(PtrExprTy, 0);
 
+  sstkvar = new GlobalVariable
+    (ExprPtrPtrTy, false, GlobalVariable::InternalLinkage, 0, "$$sstk$$",
+     module);
+  JIT->addGlobalMapping(sstkvar, &sstk);
+  fptrvar = new GlobalVariable
+    (VoidPtrTy, false, GlobalVariable::InternalLinkage, 0, "$$fptr$$", module);
+  JIT->addGlobalMapping(fptrvar, &fptr);
+
   // Add prototypes for the runtime interface and enter the corresponding
   // function pointers into the runtime map.
 
@@ -207,9 +216,9 @@ interpreter::interpreter()
   declare_extern((void*)pure_double,
 		 "pure_double",     "expr*",  1, "double");
   declare_extern((void*)pure_string_dup,
-		 "pure_string_dup",     "expr*",  1, "char*");
+		 "pure_string_dup", "expr*",  1, "char*");
   declare_extern((void*)pure_cstring_dup,
-		 "pure_cstring_dup",    "expr*",  1, "char*");
+		 "pure_cstring_dup","expr*",  1, "char*");
   declare_extern((void*)pure_pointer,
 		 "pure_pointer",    "expr*",  1, "void*");
   declare_extern((void*)pure_apply,
@@ -221,13 +230,13 @@ interpreter::interpreter()
 		 "pure_cmp_string", "int",    2, "expr*", "char*");
 
   declare_extern((void*)pure_get_cstring,
-		 "pure_get_cstring",   "char*", 1, "expr*");
+		 "pure_get_cstring", "char*", 1, "expr*");
   declare_extern((void*)pure_free_cstrings,
-		 "pure_free_cstrings", "void", 0);
+		 "pure_free_cstrings","void", 0);
   declare_extern((void*)pure_get_bigint,
-		 "pure_get_bigint",    "void*", 1, "expr*");
+		 "pure_get_bigint",  "void*", 1, "expr*");
   declare_extern((void*)pure_get_long,
-		 "pure_get_long",      "long",  1, "expr*");
+		 "pure_get_long",    "long",  1, "expr*");
 
   declare_extern((void*)pure_catch,
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
@@ -251,18 +260,18 @@ interpreter::interpreter()
 		 "pure_free_args",  "void",  -2, "expr*", "int");
 
   declare_extern((void*)pure_push_args,
-		 "pure_push_args",  "void",  -1, "int");
+		 "pure_push_args",  "int",   -2, "int", "int");
   declare_extern((void*)pure_pop_args,
-		 "pure_pop_args",   "void",  -2, "expr*", "int");
+		 "pure_pop_args",   "void",   3, "expr*", "int", "int");
   declare_extern((void*)pure_pop_tail_args,
-		 "pure_pop_tail_args", "void", -2, "expr*", "int");
+		 "pure_pop_tail_args","void", 3, "expr*", "int", "int");
 
   declare_extern((void*)pure_push_arg,
 		 "pure_push_arg",  "void",    1, "expr*");
   declare_extern((void*)pure_pop_arg,
-		 "pure_pop_arg",   "void",    1, "expr*");
+		 "pure_pop_arg",   "void",    0);
   declare_extern((void*)pure_pop_tail_arg,
-		 "pure_pop_tail_arg", "void", 1, "expr*");
+		 "pure_pop_tail_arg", "void", 0);
 
   declare_extern((void*)pure_debug,
 		 "pure_debug",      "void",  -2, "int", "char*");
@@ -1588,7 +1597,7 @@ Env& Env::operator= (const Env& e)
   } else {
     // uninitialized environment; simply copy everything
     tag = e.tag; name = e.name; n = e.n; f = e.f; h = e.h; fp = e.fp;
-    args = e.args; envs = e.envs; argv = e.argv;
+    args = e.args; envs = e.envs;
     b = e.b; local = e.local; parent = e.parent;
   }
   fmap = e.fmap; fmap_idx = e.fmap_idx;
@@ -1628,7 +1637,7 @@ void Env::clear()
     fp = 0;
     // delete all nested environments and reinitialize other body-related data
     fmap.clear(); fmap_idx = 0;
-    xmap.clear(); xtab.clear(); prop.clear(); m = 0; argv = 0;
+    xmap.clear(); xtab.clear(); prop.clear(); m = 0;
     // now that all references have been removed, delete the function pointers
     for (list<Function*>::iterator fi = to_be_deleted.begin();
 	 fi != to_be_deleted.end(); fi++) {
@@ -1693,11 +1702,19 @@ ReturnInst *Env::CreateRet(Value *v)
       if (isa<CallInst>(it)) {
 	CallInst* c1 = cast<CallInst>(it);
 	if (c1->getCalledFunction() ==
-	    interp.module->getFunction("pure_push_args") ||
-	    c1->getCalledFunction() ==
 	    interp.module->getFunction("pure_push_arg")) {
 	  free_fun = interp.module->getFunction("pure_pop_tail_args");
 	  free1_fun = interp.module->getFunction("pure_pop_tail_arg");
+	} else if (c1->getCalledFunction() ==
+		   interp.module->getFunction("pure_push_args")) {
+	  free_fun = interp.module->getFunction("pure_pop_tail_args");
+	  free1_fun = interp.module->getFunction("pure_pop_tail_arg");
+	  /* Patch up this call to correct the offset of the environment. */
+	  CallInst *c2 = c1->clone();
+	  c1->getParent()->getInstList().insert(c1, c2);
+	  Value *v = BinaryOperator::createSub(c2, UInt(n+m+1), "", c1);
+	  BasicBlock::iterator ii(c1);
+	  ReplaceInstWithValue(c1->getParent()->getInstList(), ii, v);
 	}
       }
     }
@@ -1705,24 +1722,16 @@ ReturnInst *Env::CreateRet(Value *v)
   }
   // We must garbage-collect args and environment here, immediately before the
   // call (if any), or the return instruction otherwise.
-  vector<Value*> myargs;
   if (pi != ret && n == 1 && m == 0)
-    new CallInst(free1_fun, args[0], "", pi);
-  else if (pi != ret && n == 0 && m == 1) {
-    Value *v = new GetElementPtrInst(envs, Zero, "", pi);
-    new CallInst(free1_fun, new LoadInst(v, "", pi), "", pi);
-  } else if (n+m != 0) {
+    new CallInst(free1_fun, "", pi);
+  else if (n+m != 0) {
+    vector<Value*> myargs;
     if (pi == ret)
       myargs.push_back(v);
     else
       myargs.push_back(ConstantPointerNull::get(interp.ExprPtrTy));
-    myargs.push_back(UInt(n+m));
-    for (size_t i = 0; i < n; i++)
-      myargs.push_back(args[i]);
-    for (size_t i = 0; i < m; i++) {
-      Value *v = new GetElementPtrInst(envs, UInt(i), "", pi);
-      myargs.push_back(new LoadInst(v, "", pi));
-    }
+    myargs.push_back(UInt(n));
+    myargs.push_back(UInt(m));
     new CallInst(free_fun, myargs.begin(), myargs.end(), "", pi);
     if (pi == ret) {
       Value *x[1] = { v };
@@ -2549,11 +2558,10 @@ Function *interpreter::declare_extern(string name, string restype,
   // free arguments (we do that here so that the arguments don't get freed
   // before we know that we don't need them anymore)
   if (n > 0) {
-    vector<Value*> freeargs(n+2);
+    vector<Value*> freeargs(3);
     freeargs[0] = u;
     freeargs[1] = UInt(n);
-    for (size_t i = 0; i < n; i++)
-      freeargs[i+2] = args[i];
+    freeargs[2] = Zero;
     b.CreateCall(module->getFunction("pure_pop_args"),
 		 freeargs.begin(), freeargs.end());
     b.CreateCall(module->getFunction("pure_unref"), u);
@@ -2597,11 +2605,10 @@ Function *interpreter::declare_extern(string name, string restype,
 
 Value *interpreter::envptr(Env *f)
 {
-  if (!fptr) return NullPtr;
-  if (!vptr) vptr = new GlobalVariable
-    (VoidPtrTy, false, GlobalVariable::InternalLinkage, 0, "$$fptr$$", module);
-  JIT->updateGlobalMapping(vptr, &fptr);
-  return act_builder().CreateLoad(vptr);
+  if (!fptr)
+    return NullPtr;
+  else
+    return act_builder().CreateLoad(fptrvar);
 }
 
 pure_expr *interpreter::doeval(expr x, pure_expr*& e)
@@ -3126,6 +3133,7 @@ Value *interpreter::external_funcall(int32_t tag, uint32_t n, expr x)
     else {
       vector<Value*> argv1;
       argv1.push_back(UInt(n));
+      argv1.push_back(Zero);
       argv1.insert(argv1.end(), argv.begin(), argv.end());
       act_env().CreateCall(module->getFunction("pure_push_args"), argv1);
     }
@@ -3624,7 +3632,8 @@ Value *interpreter::vref(int32_t tag, uint32_t v)
 {
   // environment proxy
   Env &e = act_env();
-  return e.CreateLoadGEP(e.envs, UInt(v));
+  Value *sstkptr = e.builder.CreateLoad(sstkvar);
+  return e.CreateLoadGEP(sstkptr, e.builder.CreateAdd(e.envs, UInt(v)));
 }
 
 Value *interpreter::vref(int32_t tag, uint8_t idx, path p)
@@ -3694,28 +3703,22 @@ Value *interpreter::fcall(Env &f, vector<Value*>& args, vector<Value*>& env)
   // direct call of a function, with parameters
   assert(f.f);
   size_t n = args.size(), m = env.size();
-  // initialize the environment parameter
+  // count references to parameters and create the environment parameter
   assert(f.local || m == 0);
-  for (size_t i = 0; i < m; i++)
-    e.builder.CreateStore(env[i], e.CreateGEP(e.argv, UInt(i)));
-  // pass the environment as the first parameter, if applicable
-  vector<Value*> x;
-  if (f.local && m > 0) {
-    if (m > e.l) e.l = m;
-    x.push_back(e.argv);
-  }
-  // count references to parameters
+  Value *argv = 0;
   if (n == 1 && m == 0)
     e.CreateCall(module->getFunction("pure_push_arg"), args);
-  else if (n == 0 && m == 1)
-    e.CreateCall(module->getFunction("pure_push_arg"), env);
   else if (n+m > 0) {
     vector<Value*> args1;
-    args1.push_back(UInt(n+m));
+    args1.push_back(UInt(n));
+    args1.push_back(UInt(m));
     args1.insert(args1.end(), args.begin(), args.end());
     args1.insert(args1.end(), env.begin(), env.end());
-    e.CreateCall(module->getFunction("pure_push_args"), args1);
+    argv = e.CreateCall(module->getFunction("pure_push_args"), args1);
   }
+  // pass the environment as the first parameter, if applicable
+  vector<Value*> x;
+  if (m>0) x.push_back(argv);
   // pass the function parameters
   x.insert(x.end(), args.begin(), args.end());
   // create the call
@@ -3989,7 +3992,7 @@ Function *interpreter::fun_prolog(string name)
     // argument types
     vector<const Type*> argt(f.n, ExprPtrTy);
     assert(f.m == 0 || f.local);
-    if (f.m > 0) argt.insert(argt.begin(), ExprPtrPtrTy);
+    if (f.m > 0) argt.insert(argt.begin(), Type::Int32Ty);
     // function type
     FunctionType *ft = FunctionType::get(ExprPtrTy, argt, false);
     /* Mangle local function names so that they're easier to identify; as a
@@ -4025,14 +4028,7 @@ Function *interpreter::fun_prolog(string name)
 	f.tag == 0 || symtab.sym(f.tag).prec < 10)
       scope = Function::InternalLinkage;
 #if USE_FASTCC
-    /* Currently we only allow fastcc (and thus tail call elimination) if the
-       function takes no environment. This is because the passed environment
-       is allocated on the caller's stack, so we can't do a tail call in this
-       case. It would be possible to also optimize the case of a local
-       function with environment which just calls itself directly (passing
-       through the environment), but currently we don't keep track of such
-       situations and thus this optimization isn't implemented yet. */
-    if (!name.empty() && f.m == 0) cc = CallingConv::Fast;
+    if (!name.empty()) cc = CallingConv::Fast;
 #endif
     /* Mangle the name of the C-callable wrapper if it would shadow another C
        function. */
@@ -4094,10 +4090,6 @@ Function *interpreter::fun_prolog(string name)
     msg << "entry " << f.name;
     debug(msg.str().c_str()); }
 #endif
-  // Allocate an array to be filled with environment values passed in
-  // parameterless function calls. NOTE: This needs to be patched up when
-  // finalizing the function body, as we don't know the needed size yet.
-  f.argv = f.builder.CreateAlloca(ExprPtrTy, /*UInt(f.l)*/0, "argv");
   // return the function just created
   return f.f;
 }
@@ -4141,8 +4133,9 @@ void interpreter::fun_body(matcher *pm, bool nodefault)
     // failed match is non-fatal, instead we return a "thunk" (literal fbox)
     // of ourself applied to our arguments as the result
     vector<Value*> x(f.m);
+    Value *sstkptr = f.builder.CreateLoad(sstkvar);
     for (size_t i = 0; i < f.m; i++) {
-      x[i] = f.CreateLoadGEP(f.envs, UInt(i));
+      x[i] = f.CreateLoadGEP(sstkptr, f.builder.CreateAdd(f.envs, UInt(i)));
       assert(x[i]->getType() == ExprPtrTy);
     }
     if (f.m == 1)
@@ -4169,16 +4162,6 @@ void interpreter::fun_finish()
 {
   Env& f = act_env();
   assert(f.f!=0);
-  // Now that all locals have been processed, we need to patch up the alloca
-  // for the environment vector used as temporary storage in parameterless
-  // function calls.
-  BasicBlock::iterator ii(f.argv);
-  if (f.l == 0)
-    ReplaceInstWithValue(f.argv->getParent()->getInstList(), ii,
-			 NullExprPtrPtr);
-  else
-    ReplaceInstWithInst(f.argv->getParent()->getInstList(), ii,
-			new AllocaInst(ExprPtrTy, UInt(f.l), "argv"));
   // validate the generated code, checking for consistency
   verifyFunction(*f.f);
   // optimize
