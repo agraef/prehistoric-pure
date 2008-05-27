@@ -1,5 +1,8 @@
 2008-05-27  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/prelude.pure: Rewrite prelude operations to make them
+	tail-recursive.
+
 	* interpreter.cc (toplevel_codegen): Experimental support for
 	tail-recursive logical operators (&& and ||). This works but is
 	disabled, since it makes these operations behave in different ways
@@ -15,9 +18,6 @@
 	their environment.
 
 2008-05-25  Albert Graef  <Dr.Graef@t-online.de>
-
-	* lib/prelude.pure: Rewrite prelude operations to make them
-	tail-recursive.
 
 	* interpreter.cc, runtime.cc: Add marshalling between long (64
 	bit) ints and Pure bigints in the C interface. This means that
