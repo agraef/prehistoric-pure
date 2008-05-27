@@ -35,7 +35,6 @@ nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
    need to work from the end of a list towards its front. */
 
 nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
-nullary    empty_list;		// empty list (head, tail, etc.)
 //         bad_list_value xs;	// not a proper list value (reverse, etc.)
 				// xs denotes the offending tail of the list
 
@@ -256,7 +255,6 @@ foldr1 f [x]	= x;
 foldr1 f (x:xs)	= foldr f x xs;
 
 head (x:xs)	= x;
-head []		= throw empty_list;
 
 init [x]	= [];
 init (x:xs)	= accum [x] xs with
@@ -264,11 +262,9 @@ init (x:xs)	= accum [x] xs with
 		    accum ys (x:xs)	= accum (x:ys) xs;
 		    accum ys xs		= reverse ys+init xs;
 		  end;
-init []		= throw empty_list;
 
 last [x]	= x;
 last (x:xs)	= last xs;
-last []		= throw empty_list;
 
 map f []	= [];
 map f (x:xs)	= accum [f x] xs with
@@ -307,7 +303,6 @@ scanr1 f (x:xs)	= f x y:ys when
 		  end;
 
 tail (x:xs)	= xs;
-tail []		= throw empty_list;
 
 take n::int []	= [];
 take n::int (x:xs)
