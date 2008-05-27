@@ -1,4 +1,5 @@
 throw x/*0:1*/ = pure_throw x/*0:1*/;
+assert p/*0:01*/ e/*0:1*/ = if p/*0:01*/ then 1 else throw e/*0:1*/;
 x/*0:01*/===y/*0:1*/ = same x/*0:01*/ y/*0:1*/;
 x/*0:01*/!==y/*0:1*/ = not same x/*0:01*/ y/*0:1*/;
 intp x/*0:1*/ = case x/*0:1*/ of _/*0:*/::int = 1; _/*0:*/ = 0 {
@@ -49,6 +50,9 @@ pointerp x/*0:1*/ = case x/*0:1*/ of _/*0:*/ = 1; _/*0:*/ = 0 {
 listp [] = 1;
 listp (x/*0:101*/:xs/*0:11*/) = listp xs/*0:11*/;
 listp _/*0:1*/ = 0;
+listnp [] = 1;
+listnp (x/*0:101*/:xs/*0:11*/) = 1;
+listnp _/*0:1*/ = 0;
 tuplep () = 1;
 tuplep (x/*0:101*/,xs/*0:11*/) = 1;
 tuplep _/*0:1*/ = 0;
@@ -374,6 +378,7 @@ null (x/*0:101*/,xs/*0:11*/) = 0;
 (x/*0:0101*/,xs/*0:011*/)!0 = x/*0:0101*/;
 (x/*0:0101*/,y/*0:01101*/,xs/*0:0111*/)!n/*0:1*/::int = (y/*0:01101*/,xs/*0:0111*/)!(n/*0:1*/-1) if n/*0:1*/>0;
 (x/*0:0101*/,y/*0:011*/)!1 = y/*0:011*/;
+(x/*0:0101*/,xs/*0:011*/)!n/*0:1*/::int = throw out_of_bounds;
 reverse () = ();
 reverse (x/*0:101*/,xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*0:01*/ (x/*0:101*/,xs/*0:11*/) = accum/*1*/ (x/*0:101*/,ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ x/*0:1*/ = x/*0:1*/,ys/*0:01*/ {
   rule #0: accum ys (x,xs) = accum (x,ys) xs
@@ -452,7 +457,9 @@ null (x/*0:101*/:xs/*0:11*/) = 0;
   state 15: #1 #2
 } end;
 (x/*0:0101*/:xs/*0:011*/)!0 = x/*0:0101*/;
-(x/*0:0101*/:xs/*0:011*/)!n/*0:1*/::int = xs/*0:011*/!(n/*0:1*/-1) if n/*0:1*/>0;
+(x/*0:0101*/:xs/*0:011*/)!n/*0:1*/::int = xs/*0:011*/!(n/*0:1*/-1) if n/*0:1*/>0&&assert (listnp xs/*0:011*/) (bad_list_value xs/*0:011*/);
+(x/*0:0101*/:xs/*0:011*/)!n/*0:1*/::int = throw out_of_bounds;
+[]!n/*0:1*/::int = throw out_of_bounds;
 []+ys/*0:1*/ = ys/*0:1*/;
 (x/*0:0101*/:xs/*0:011*/)+ys/*0:1*/ = x/*0:0101*/:accum/*0*/ ys/*0:1*/ (reverse xs/*0:011*/) with accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ [] = ys/*0:01*/ {
   rule #0: accum ys (x:xs) = accum (x:ys) xs
@@ -570,31 +577,35 @@ tuple (x/*0:101*/:xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*
   state 13: #1 #2
 } end;
 xs/*0:01*/![] = [];
-xs/*0:01*/!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] xs/*0:01*/ (reverse (n/*0:101*/:ns/*0:11*/)) (#xs/*0:01*/) with accum ys/*0:0001*/ xs/*0:001*/ [] m/*0:1*/ = ys/*0:0001*/; accum ys/*0:0001*/ xs/*0:001*/ (n/*0:0101*/::int:ns/*0:011*/) m/*0:1*/ = accum/*1*/ (xs/*0:001*/!n/*0:0101*/:ys/*0:0001*/) xs/*0:001*/ ns/*0:011*/ m/*0:1*/ if n/*0:0101*/>=0&&n/*0:0101*/<m/*0:1*/; accum ys/*0:0001*/ xs/*0:001*/ (n/*0:0101*/::int:ns/*0:011*/) m/*0:1*/ = accum/*1*/ ys/*0:0001*/ xs/*0:001*/ ns/*0:011*/ m/*0:1*/ {
-  rule #0: accum ys xs [] m = ys
-  rule #1: accum ys xs (n::int:ns) m = accum (xs!n:ys) xs ns m if n>=0&&n<m
-  rule #2: accum ys xs (n::int:ns) m = accum ys xs ns m
-  state 0: #0 #1 #2
+xs/*0:01*/!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] (reverse (n/*1:101*/:ns/*1:11*/)) with accum ys/*0:01*/ [] = ys/*0:01*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum _/*0:01*/ (n/*0:101*/:_/*0:11*/) = throw (bad_value n/*0:101*/) {
+  rule #0: accum ys [] = ys
+  rule #1: accum ys (n::int:ns) = accum (xs!n:ys) ns if n>=0&&n<m
+  rule #2: accum ys (n::int:ns) = accum ys ns
+  rule #3: accum _ (n:_) = throw (bad_value n)
+  state 0: #0 #1 #2 #3
 	<var> state 1
-  state 1: #0 #1 #2
-	<var> state 2
-  state 2: #0 #1 #2
-	[] state 3
-	<app> state 5
-  state 3: #0
-	<var> state 4
-  state 4: #0
-  state 5: #1 #2
-	<app> state 6
-  state 6: #1 #2
-	: state 7
-  state 7: #1 #2
+  state 1: #0 #1 #2 #3
+	[] state 2
+	<app> state 3
+  state 2: #0
+  state 3: #1 #2 #3
+	<app> state 4
+  state 4: #1 #2 #3
+	: state 5
+  state 5: #1 #2 #3
+	<var> state 6
 	<var>::int state 8
-  state 8: #1 #2
+  state 6: #3
+	<var> state 7
+  state 7: #3
+  state 8: #1 #2 #3
 	<var> state 9
-  state 9: #1 #2
-	<var> state 10
-  state 10: #1 #2
+  state 9: #1 #2 #3
+} end when m/*0:*/::int = #xs/*0:01*/ {
+  rule #0: m::int = #xs
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
 } end;
 n1/*0:0101*/,n2/*0:011*/..m/*0:1*/ = while (\i/*0:*/ -> s/*1:*/*i/*0:*/<=s/*1:*/*m/*3:1*/ {
   rule #0: i = s*i<=s*m
@@ -652,9 +663,9 @@ foldl f/*0:001*/ a/*0:01*/ [] = a/*0:01*/;
 foldl f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = foldl f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/;
 foldl1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = foldl f/*0:01*/ x/*0:101*/ xs/*0:11*/;
 foldr f/*0:001*/ a/*0:01*/ [] = a/*0:01*/;
-foldr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:001*/ x/*0:101*/ (foldr f/*0:001*/ a/*0:01*/ xs/*0:11*/);
+foldr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:001*/ x/*0:101*/ (foldl (flip f/*0:001*/) a/*0:01*/ (reverse xs/*0:11*/));
 foldr1 f/*0:01*/ [x/*0:101*/] = x/*0:101*/;
-foldr1 f/*0:01*/ (x/*0:101*/:y/*0:1101*/:xs/*0:111*/) = f/*0:01*/ x/*0:101*/ (foldr1 f/*0:01*/ (y/*0:1101*/:xs/*0:111*/));
+foldr1 f/*0:01*/ (x/*0:101*/:y/*0:1101*/:xs/*0:111*/) = f/*0:01*/ x/*0:101*/ (foldl1 (flip f/*0:01*/) (reverse (y/*0:1101*/:xs/*0:111*/)));
 head (x/*0:101*/:xs/*0:11*/) = x/*0:101*/;
 init [x/*0:101*/] = [];
 init (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:init xs/*0:11*/;
@@ -663,11 +674,46 @@ last (x/*0:101*/:xs/*0:11*/) = last xs/*0:11*/;
 map f/*0:01*/ [] = [];
 map f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:01*/ x/*0:101*/:map f/*0:01*/ xs/*0:11*/;
 scanl f/*0:001*/ a/*0:01*/ [] = [a/*0:01*/];
-scanl f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = a/*0:01*/:scanl f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/;
+scanl f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [a/*0:01*/] f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/ with accum ys/*0:0001*/ f/*0:001*/ a/*0:01*/ [] = reverse (a/*0:01*/:ys/*0:0001*/); accum ys/*0:0001*/ f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (a/*0:01*/:ys/*0:0001*/) f/*0:001*/ (f/*0:001*/ a/*0:01*/ x/*0:101*/) xs/*0:11*/; accum _/*0:0001*/ _/*0:001*/ _/*0:01*/ xs/*0:1*/ = throw (bad_list_value xs/*0:1*/) {
+  rule #0: accum ys f a [] = reverse (a:ys)
+  rule #1: accum ys f a (x:xs) = accum (a:ys) f (f a x) xs
+  rule #2: accum _ _ _ xs = throw (bad_list_value xs)
+  state 0: #0 #1 #2
+	<var> state 1
+  state 1: #0 #1 #2
+	<var> state 2
+  state 2: #0 #1 #2
+	<var> state 3
+  state 3: #0 #1 #2
+	<var> state 4
+	[] state 5
+	<app> state 6
+  state 4: #2
+  state 5: #0 #2
+  state 6: #1 #2
+	<var> state 7
+	<app> state 9
+  state 7: #2
+	<var> state 8
+  state 8: #2
+  state 9: #1 #2
+	<var> state 10
+	: state 13
+  state 10: #2
+	<var> state 11
+  state 11: #2
+	<var> state 12
+  state 12: #2
+  state 13: #1 #2
+	<var> state 14
+  state 14: #1 #2
+	<var> state 15
+  state 15: #1 #2
+} end;
 scanl1 f/*0:01*/ [] = [];
 scanl1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = scanl f/*0:01*/ x/*0:101*/ xs/*0:11*/;
 scanr f/*0:001*/ a/*0:01*/ [] = [a/*0:01*/];
-scanr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:001*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = scanr f/*0:001*/ a/*0:01*/ xs/*0:11*/; y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
+scanr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:001*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = reverse (scanl (flip f/*0:001*/) a/*0:01*/ (reverse xs/*0:11*/)); y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
   rule #0: y:_ = ys
   state 0: #0
 	<app> state 1
@@ -681,14 +727,14 @@ scanr f/*0:001*/ a/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:001*/ x/*2:101*/ y/*0:
 	<var> state 5
   state 5: #0
 } {
-  rule #0: ys = scanr f a xs
+  rule #0: ys = reverse (scanl (flip f) a (reverse xs))
   state 0: #0
 	<var> state 1
   state 1: #0
 } end;
 scanr1 f/*0:01*/ [] = [];
 scanr1 f/*0:01*/ [x/*0:101*/] = [x/*0:101*/];
-scanr1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:01*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = scanr1 f/*0:01*/ xs/*0:11*/; y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
+scanr1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:01*/ x/*2:101*/ y/*0:01*/:ys/*1:*/ when ys/*0:*/ = reverse (scanl1 (flip f/*0:01*/) (reverse xs/*0:11*/)); y/*0:01*/:_/*0:1*/ = ys/*0:*/ {
   rule #0: y:_ = ys
   state 0: #0
 	<app> state 1
@@ -702,7 +748,7 @@ scanr1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*2:01*/ x/*2:101*/ y/*0:01*/:ys/*1:
 	<var> state 5
   state 5: #0
 } {
-  rule #0: ys = scanr1 f xs
+  rule #0: ys = reverse (scanl1 (flip f) (reverse xs))
   state 0: #0
 	<var> state 1
   state 1: #0
@@ -715,6 +761,7 @@ takewhile p/*0:01*/ [] = [];
 takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:takewhile p/*0:01*/ xs/*0:11*/ if p/*0:01*/ x/*0:101*/;
 takewhile p/*0:01*/ (x/*0:101*/:xs/*0:11*/) = [];
 cat [] = [];
+cat [xs/*0:101*/] = xs/*0:101*/;
 cat (xs/*0:101*/:xss/*0:11*/) = accum/*0*/ (reverse xs/*0:101*/) xss/*0:11*/ with accum xs/*0:01*/ [] = reverse xs/*0:01*/; accum xs/*0:01*/ ([]:yss/*0:11*/) = accum/*1*/ xs/*0:01*/ yss/*0:11*/; accum xs/*0:01*/ ((y/*0:10101*/:ys/*0:1011*/):yss/*0:11*/) = accum/*1*/ (y/*0:10101*/:xs/*0:01*/) (ys/*0:1011*/:yss/*0:11*/); accum _/*0:01*/ (ys/*0:101*/:_/*0:11*/) = throw (bad_list_value ys/*0:101*/); accum _/*0:01*/ yss/*0:1*/ = throw (bad_list_value yss/*0:1*/) {
   rule #0: accum xs [] = reverse xs
   rule #1: accum xs ([]:yss) = accum xs yss
