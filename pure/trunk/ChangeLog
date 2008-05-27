@@ -1,10 +1,10 @@
 2008-05-27  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (toplevel_codegen): Experimental support for
-	tail-recursive short-circuit logical operators (&& and ||). Note
-	that this makes these operations behave slightly differently (more
-	like if-then-else) if they form the right-hand side of an
-	equation. But the advantages seem to outweigh the semantic quirks.
+	tail-recursive logical operators (&& and ||). This works but is
+	disabled, since it makes these operations behave in different ways
+	depending on the context, which is a really bad idea because it
+	violates referential transparency.
 
 2008-05-26  Albert Graef  <Dr.Graef@t-online.de>
 
