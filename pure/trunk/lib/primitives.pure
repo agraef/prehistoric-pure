@@ -24,6 +24,11 @@
 extern void pure_throw(expr*); // IMPURE!
 throw x		= pure_throw x;
 
+/* Convenience function to ensure a condition p. Returns 1 (true) if p holds,
+   and throws the given exception e otherwise. */
+
+assert p e	= if p then 1 else throw e;
+
 /* Syntactic equality. */
 
 extern bool same(expr* x, expr* y);
@@ -39,7 +44,7 @@ stringp x	= case x of _::string  = 1; _ = 0 end;
 pointerp x	= case x of _::pointer = 1; _ = 0 end;
 
 /* Predicates to check for function objects, global (unbound) variables,
-   function applications and proper lists and tuples. */
+   function applications, proper lists, list nodes and tuples. */
 
 extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*),
   bool applp(expr*);
@@ -47,6 +52,10 @@ extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*),
 listp []	= 1;
 listp (x:xs)	= listp xs;
 listp _		= 0 otherwise;
+
+listnp []	= 1;
+listnp (x:xs)	= 1;
+listnp _	= 0 otherwise;
 
 tuplep ()	= 1;
 tuplep (x,xs)	= 1;

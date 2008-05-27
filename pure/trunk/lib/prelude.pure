@@ -28,6 +28,17 @@ nullary	   failed_cond;		// failed conditional (guard, if-then-else)
 nullary	   failed_match;	// failed pattern match (lambda, case, etc.)
 nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
 
+/* Other exceptions defined by the prelude. Note that some of the list
+   operations require that their list arguments are "proper" lists (ending in
+   []) and will raise a 'bad_list_value xs' exception otherwise; in this case
+   xs denotes the offending tail. Likewise, some operations will raise the
+   'empty_list' exception if a nonempty list is required. */
+
+nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
+nullary    empty_list;		// empty list (head, tail, etc.)
+//         bad_list_value xs;	// not a proper list value (reverse, etc.)
+//         bad_value x;		// invalid argument type
+
 /* Other constants. */
 
 nullary    [] ();		// empty list and tuple
@@ -80,11 +91,6 @@ uncurry3 f (x,y,z)
    inequality and emptiness, to determine the size of a tuple, for zero-based
    indexing, and to reverse a tuple. */
 
-/* Note: Some of these definitions aren't exactly pretty. They are what they
-   are because they are the most efficient (at least asymptotically). In
-   particular, we strive for tail-recursive and constant or linear-time
-   implementations where this is feasible. */
-
 x,()		= x;
 (),y		= y;
 (x,y),z		= x,(y,z);
@@ -111,6 +117,7 @@ end;
 (x,xs)!0	= x;
 (x,y,xs)!n::int	= (y,xs)!(n-1) if n>0;
 (x,y)!1		= y;
+(x,xs)!n::int	= throw out_of_bounds;
 
 reverse ()	= ();
 reverse (x,xs)	= accum x xs with
@@ -125,10 +132,6 @@ end;
    operations are provided to test for equality/inequality and emptiness, to
    compute the size of a list, for indexing and concatenation, and for
    reversing a list. */
-
-/* Note: Some list operations throw a 'bad_list_value xs' exception if their
-   argument is not a "proper" list (i.e., ending in []). In this case xs
-   denotes the offending tail of the list. */
 
 []==[]		= 1;
 (x:xs)==[]	= 0;
@@ -151,7 +154,9 @@ null (x:xs)	= 0;
 end;
 
 (x:xs)!0	= x;
-(x:xs)!n::int	= xs!(n-1) if n>0;
+(x:xs)!n::int	= xs!(n-1) if n>0 && assert (listnp xs) (bad_list_value xs);
+(x:xs)!n::int	= throw out_of_bounds;
+[]!n::int	= throw out_of_bounds;
 
 []+ys		= ys;
 (x:xs)+ys	= x : accum ys (reverse xs) with
@@ -187,11 +192,12 @@ end;
    structures defined above. */
 
 xs![]		= [];
-xs!(n:ns)	= accum [] xs (reverse (n:ns)) (#xs) with
-  accum ys xs [] m		= ys;
-  accum ys xs (n::int:ns) m	= accum (xs!n:ys) xs ns m if n>=0 && n<m;
-				= accum ys xs ns m otherwise;
-end;
+xs!(n:ns)	= accum [] (reverse (n:ns)) with
+  accum ys []		= ys;
+  accum ys (n::int:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
+			= accum ys ns otherwise;
+  accum _ (n:_)		= throw (bad_value n);
+end when m::int = #xs end;
 
 /* Arithmetic sequences. */
 
@@ -203,8 +209,9 @@ n..m		= while (\i->i<=m) (\x->x+1) n;
 
 /* Common list functions. This mostly comes straight from the Q prelude which
    in turn was based on the first edition of the Bird/Wadler book, and is very
-   similar to what you can find in the Haskell prelude (although some
-   functions have slightly different names). */
+   similar to what you can find in the Haskell prelude. Some functions have
+   slightly different names, though, and some of the definitions were massaged
+   to make them tail-recursive. */
 
 all p []	= 1;
 all p (x:xs)	= p x && all p xs;
@@ -236,11 +243,11 @@ foldl1 f (x:xs)	= foldl f x xs;
 
 foldr f a []	= a;
 foldr f a (x:xs)
-		= f x (foldr f a xs);
+		= f x (foldl (flip f) a (reverse xs));
 
 foldr1 f [x]	= x;
 foldr1 f (x:y:xs)
-		= f x (foldr1 f (y:xs));
+		= f x (foldl1 (flip f) (reverse (y:xs)));
 
 head (x:xs)	= x;
 
@@ -255,18 +262,28 @@ map f (x:xs)	= f x:map f xs;
 
 scanl f a []	= [a];
 scanl f a (x:xs)
-		= a:scanl f (f a x) xs;
+		= accum [a] f (f a x) xs with
+		    accum ys f a []	= reverse (a:ys);
+		    accum ys f a (x:xs)	= accum (a:ys) f (f a x) xs;
+		    accum _ _ _ xs	= throw (bad_list_value xs);
+		  end;
 
 scanl1 f []	= [];
 scanl1 f (x:xs)	= scanl f x xs;
 
 scanr f a []	= [a];
 scanr f a (x:xs)
-		= f x y:ys when ys = scanr f a xs; y:_ = ys end;
+		= f x y:ys when
+		    ys = reverse (scanl (flip f) a (reverse xs));
+		    y:_ = ys;
+		  end;
 
 scanr1 f []	= [];
 scanr1 f [x]	= [x];
-scanr1 f (x:xs)	= f x y:ys when ys = scanr1 f xs; y:_ = ys end;
+scanr1 f (x:xs)	= f x y:ys when
+		    ys = reverse (scanl1 (flip f) (reverse xs));
+		    y:_ = ys;
+		  end;
 
 tail (x:xs)	= xs;
 
@@ -282,6 +299,7 @@ takewhile p (x:xs)
 /* Concatenate a list of lists. */
 
 cat []		= [];
+cat [xs]	= xs;
 cat (xs:xss)	= accum (reverse xs) xss with
   accum xs []		= reverse xs;
   accum xs ([]:yss)	= accum xs yss;
