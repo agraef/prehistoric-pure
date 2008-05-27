@@ -28,16 +28,16 @@ nullary	   failed_cond;		// failed conditional (guard, if-then-else)
 nullary	   failed_match;	// failed pattern match (lambda, case, etc.)
 nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
 
-/* Other exceptions defined by the prelude. Note that some of the list
-   operations require that their list arguments are "proper" lists (ending in
-   []) and will raise a 'bad_list_value xs' exception otherwise; in this case
-   xs denotes the offending tail. Likewise, some operations will raise the
-   'empty_list' exception if a nonempty list is required. */
+/* Other exceptions defined by the prelude. We use exceptions sparingly, to
+   not interfere with symbolic evaluation, but in some cases it makes sense to
+   raise special kinds of exceptions in response to obvious error conditions.
+   In particular, the 'bad_list_value' exception is raised by functions which
+   need to work from the end of a list towards its front. */
 
 nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
 nullary    empty_list;		// empty list (head, tail, etc.)
 //         bad_list_value xs;	// not a proper list value (reverse, etc.)
-//         bad_value x;		// invalid argument type
+				// xs denotes the offending tail of the list
 
 /* Other constants. */
 
@@ -114,10 +114,10 @@ null (x,xs)	= 0;
   accum n::int x	= n+1;
 end;
 
+(x,xs)!n::int	= throw out_of_bounds if n<0;
 (x,xs)!0	= x;
-(x,y,xs)!n::int	= (y,xs)!(n-1) if n>0;
+(x,y,xs)!n::int	= (y,xs)!(n-1);
 (x,y)!1		= y;
-(x,xs)!n::int	= throw out_of_bounds;
 
 reverse ()	= ();
 reverse (x,xs)	= accum x xs with
@@ -150,12 +150,12 @@ null (x:xs)	= 0;
 #(x:xs)		= accum 1 xs with
   accum n::int (x:xs)	= accum (n+1) xs;
   accum n::int []	= n;
-  accum	_ xs		= throw (bad_list_value xs);
+  accum	n::int xs	= n+#xs;
 end;
 
+(x,xs)!n::int	= throw out_of_bounds if n<0;
 (x:xs)!0	= x;
-(x:xs)!n::int	= xs!(n-1) if n>0 && assert (listnp xs) (bad_list_value xs);
-(x:xs)!n::int	= throw out_of_bounds;
+(x:xs)!n::int	= xs!(n-1);
 []!n::int	= throw out_of_bounds;
 
 []+ys		= ys;
@@ -183,7 +183,7 @@ tuple []	= ();
 tuple (x:xs)	= accum x xs with
   accum ys (x:xs)	= accum (x,ys) xs;
   accum ys []		= if tuplep ys then reverse ys else ys;
-  accum	_ xs		= throw (bad_list_value xs);
+  accum	ys xs		= ys,xs;
 end;
 
 /* Slicing. xs!ns returns the list of xs!n for all members n of the index list
@@ -192,11 +192,13 @@ end;
    structures defined above. */
 
 xs![]		= [];
-xs!(n:ns)	= accum [] (reverse (n:ns)) with
-  accum ys []		= ys;
+xs!(n:ns)	= accum [] (n:ns) with
+  accum ys []		= reverse ys;
   accum ys (n::int:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
 			= accum ys ns otherwise;
-  accum _ (n:_)		= throw (bad_value n);
+  accum ys (n:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
+			= accum ys ns otherwise;
+  accum ys ns		= reverse ys+xs!ns;
 end when m::int = #xs end;
 
 /* Arithmetic sequences. */
@@ -222,9 +224,10 @@ any p (x:xs)	= if p x then 1 else any p xs;
 do f []		= ();
 do f (x:xs)	= do f xs when _ = f x end;
 
-drop n []	= [];
-drop n (x:xs)	= drop (n-1) xs if n>0;
-		= (x:xs) otherwise;
+drop n::int []	= [];
+drop n::int (x:xs)
+		= drop (n-1) xs if n>0;
+		= x:xs otherwise;
 
 dropwhile p []	= [];
 dropwhile p (x:xs)
@@ -232,8 +235,12 @@ dropwhile p (x:xs)
 		= x:xs otherwise;
 
 filter p []	= [];
-filter p (x:xs)	= x:filter p xs if p x;
-		= filter p xs otherwise;
+filter p (x:xs)	= accum [] (x:xs) with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs if p x;
+					= accum ys xs otherwise;
+		    accum ys xs		= reverse ys+filter p xs;
+		  end;
 
 foldl f a []	= a;
 foldl f a (x:xs)
@@ -246,30 +253,44 @@ foldr f a (x:xs)
 		= f x (foldl (flip f) a (reverse xs));
 
 foldr1 f [x]	= x;
-foldr1 f (x:y:xs)
-		= f x (foldl1 (flip f) (reverse (y:xs)));
+foldr1 f (x:xs)	= foldr f x xs;
 
 head (x:xs)	= x;
+head []		= throw empty_list;
 
 init [x]	= [];
-init (x:xs)	= x:init xs;
+init (x:xs)	= accum [x] xs with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs;
+		    accum ys xs		= reverse ys+init xs;
+		  end;
+init []		= throw empty_list;
 
 last [x]	= x;
 last (x:xs)	= last xs;
+last []		= throw empty_list;
 
 map f []	= [];
-map f (x:xs)	= f x:map f xs;
+map f (x:xs)	= accum [f x] xs with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (f x:ys) xs;
+		    accum ys xs		= reverse ys+map f xs;
+		  end;
 
 scanl f a []	= [a];
 scanl f a (x:xs)
-		= accum [a] f (f a x) xs with
-		    accum ys f a []	= reverse (a:ys);
-		    accum ys f a (x:xs)	= accum (a:ys) f (f a x) xs;
-		    accum _ _ _ xs	= throw (bad_list_value xs);
+		= accum [a] (f a x) xs with
+		    accum ys a []	= reverse (a:ys);
+		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
+		    accum _ _ xs	= throw (bad_list_value xs);
 		  end;
 
 scanl1 f []	= [];
-scanl1 f (x:xs)	= scanl f x xs;
+scanl1 f (x:xs)	= accum [] x xs with
+		    accum ys a []	= reverse (a:ys);
+		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
+		    accum _ _ xs	= throw (bad_list_value xs);
+		  end;
 
 scanr f a []	= [a];
 scanr f a (x:xs)
@@ -286,15 +307,26 @@ scanr1 f (x:xs)	= f x y:ys when
 		  end;
 
 tail (x:xs)	= xs;
+tail []		= throw empty_list;
 
-take n []	= [];
-take n (x:xs)	= x:take (n-1) xs if n>0;
-		= [] otherwise;
+take n::int []	= [];
+take n::int (x:xs)
+		= accum n [] (x:xs) with
+		    accum _ ys []	= reverse ys;
+		    accum n::int ys _	= reverse ys if n<=0;
+		    accum n::int ys (x:xs)
+					= accum (n-1) (x:ys) xs;
+		    accum n ys xs	= reverse ys+take n xs;
+		  end;
 
 takewhile p []	= [];
 takewhile p (x:xs)
-		= x:takewhile p xs if p x;
-		= [] otherwise;
+		= accum [] (x:xs) with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs if p x;
+					= reverse ys otherwise;
+		    accum ys xs		= reverse ys+takewhile p xs;
+		  end;
 
 /* Concatenate a list of lists. */
 
@@ -340,22 +372,25 @@ until p f a	= accum [] p f a with
 
 /* zip, unzip and friends. */
 
-zip (x:xs) (y:ys)
-		= (x,y):zip xs ys;
-zip _ _		= [] otherwise;
+zip xs ys	= accum [] xs ys with
+  accum us (x:xs) (y:ys)	= accum ((x,y):us) xs ys;
+  accum us _ _			= reverse us;
+end;
 
-zip3 (x:xs) (y:ys) (z:zs)
-		= (x,y,z):zip3 xs ys zs;
-zip3 _ _ _	= [] otherwise;
+zip3 xs ys zs	= accum [] xs ys zs with
+  accum us (x:xs) (y:ys) (z:zs)	= accum ((x,y,z):us) xs ys zs;
+  accum us _ _ _		= reverse us;
+end;
 
-zipwith f (x:xs) (y:ys)
-		= f x y:zipwith f xs ys;
-zipwith f _ _	= [] otherwise;
+zipwith f xs ys	= accum [] xs ys with
+  accum us (x:xs) (y:ys)	= accum (f x y:us) xs ys;
+  accum us _ _			= reverse us;
+end;
 
-zipwith3 f (x:xs) (y:ys) (z:zs)
-		= f x y z:zipwith3 f xs ys zs;
-zipwith3 f _ _ _
-		= [] otherwise;
+zipwith3 f xs ys zs = accum [] xs ys zs with
+  accum us (x:xs) (y:ys) (z:zs)	= accum (f x y z:us) xs ys zs;
+  accum us _ _ _		= reverse us;
+end;
 
 dowith f (x:xs) (y:ys)
 		= dowith f xs ys when _ = f x y end;
@@ -365,10 +400,18 @@ dowith3 f (x:xs) (y:ys) (z:zs)
 		= dowith3 f xs ys zs when _ = f x y z end;
 dowith3 f _ _ _	= () otherwise;
 
-unzip ((x,y):us)
-		= x:xs,y:ys when xs,ys = unzip us end;
 unzip []	= [],[];
+unzip ((x,y):us) = x:xs,y:ys when xs,ys = accum [] [] us end
+with
+  accum xs ys []		= reverse xs,reverse ys;
+  accum xs ys ((x,y):us)	= accum (x:xs) (y:ys) us;
+  accum _ _ us			= throw (bad_list_value us);
+end;
 
-unzip3 ((x,y,z):us)
-		= x:xs,y:ys,z:zs when xs,ys,zs = unzip3 us end;
 unzip3 []	= [],[],[];
+unzip3 ((x,y,z):us) = x:xs,y:ys,z:zs when xs,ys,zs = accum [] [] [] us end
+with
+  accum xs ys zs []		= reverse xs,reverse ys,reverse zs;
+  accum xs ys zs ((x,y,z):us)	= accum (x:xs) (y:ys) (z:zs) us;
+  accum _ _ _ us		= throw (bad_list_value us);
+end;
