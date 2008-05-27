@@ -2765,8 +2765,8 @@ Value *interpreter::when_codegen(expr x, matcher *m,
 // end = end of rule list
 {
   if (r == end) {
-    Value *v = codegen(x);
-    return v;
+    toplevel_codegen(x);
+    return 0;
   } else {
     Env& act = act_env();
     rulel::const_iterator s = r;
@@ -2788,7 +2788,8 @@ Value *interpreter::when_codegen(expr x, matcher *m,
     // matched => emit code for the reduct
     e.f->getBasicBlockList().push_back(matchedbb);
     e.builder.SetInsertPoint(matchedbb);
-    e.CreateRet(when_codegen(x, m+1, s, end));
+    Value *v = when_codegen(x, m+1, s, end);
+    if (v) e.CreateRet(v);
     // failed => throw an exception
     e.f->getBasicBlockList().push_back(failedbb);
     e.builder.SetInsertPoint(failedbb);
