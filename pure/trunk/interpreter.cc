@@ -3225,11 +3225,51 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
 
 void interpreter::toplevel_codegen(expr x)
 {
+#if USE_FASTCC
   assert(!x.is_null());
-  if (x.tag() == EXPR::COND)
+  if (x.tag() == EXPR::COND) {
     toplevel_cond(x.xval1(), x.xval2(), x.xval3());
-  else
-    act_env().CreateRet(codegen(x));
+    return;
+  }
+  Env& e = act_env();
+#if TAILOPS
+  Builder& b = act_builder();
+  expr f; uint32_t n = count_args(x, f);
+  if (n == 2 && x.ttag() == EXPR::INT &&
+      x.xval1().xval2().ttag() != EXPR::DBL &&
+      x.xval2().ttag() != EXPR::DBL) {
+    if (f.ftag() == symtab.or_sym().f) {
+      Value *u = get_int(x.xval1().xval2());
+      Value *condv = b.CreateICmpNE(u, Zero, "cond");
+      BasicBlock *iftruebb = new BasicBlock("iftrue");
+      BasicBlock *iffalsebb = new BasicBlock("iffalse");
+      b.CreateCondBr(condv, iftruebb, iffalsebb);
+      e.f->getBasicBlockList().push_back(iftruebb);
+      b.SetInsertPoint(iftruebb);
+      e.CreateRet(ibox(One));
+      e.f->getBasicBlockList().push_back(iffalsebb);
+      b.SetInsertPoint(iffalsebb);
+      toplevel_codegen(x.xval2());
+    } else if (f.ftag() == symtab.and_sym().f) {
+      Value *u = get_int(x.xval1().xval2());
+      Value *condv = b.CreateICmpNE(u, Zero, "cond");
+      BasicBlock *iftruebb = new BasicBlock("iftrue");
+      BasicBlock *iffalsebb = new BasicBlock("iffalse");
+      b.CreateCondBr(condv, iftruebb, iffalsebb);
+      e.f->getBasicBlockList().push_back(iffalsebb);
+      b.SetInsertPoint(iffalsebb);
+      e.CreateRet(ibox(Zero));
+      e.f->getBasicBlockList().push_back(iftruebb);
+      b.SetInsertPoint(iftruebb);
+      toplevel_codegen(x.xval2());
+    } else
+      e.CreateRet(codegen(x));
+  } else
+#endif
+    e.CreateRet(codegen(x));
+#else
+  act_env().CreateRet(codegen(x));
+#endif
 }
 
 Value *interpreter::codegen(expr x)

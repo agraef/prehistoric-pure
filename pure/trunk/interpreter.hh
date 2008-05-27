@@ -28,6 +28,11 @@
 /* Experimental support for the "fast" calling convention which is needed to
    get tail call elimination. */
 #define USE_FASTCC 1
+/* Experimental support for tail-recursive short-circuit logical operators (&&
+   and ||). This will only have an effect if USE_FASTCC is enabled. Note that
+   if you disable this option, && and || will still be short-curcuit, they
+   just won't be tail-recursive in their second operand any more. */
+#define TAILOPS 1
 
 using namespace std;
 
