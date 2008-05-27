@@ -3224,6 +3224,11 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
     return 0;
 }
 
+/* Experimental support for tail-recursive logical operators (&& and ||). This
+   works, but is inherently broken (e.g., 0||-1 might return either -1 or 1,
+   depending on whether the code is TCO'ed or not). Never use this. */
+#define TAILOPS 0
+
 void interpreter::toplevel_codegen(expr x)
 {
 #if USE_FASTCC
