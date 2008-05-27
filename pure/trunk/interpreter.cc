@@ -4010,8 +4010,7 @@ void interpreter::unwind(int32_t tag)
   else
     args.push_back(NullExprPtr);
   Env& e = act_env();
-  CallInst *v = e.CreateCall(f, args);
-  v->setTailCall();
+  e.CreateCall(f, args);
   // add a ret instruction to terminate the current block
   e.builder.CreateRet(NullExprPtr);
 }
