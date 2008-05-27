@@ -92,12 +92,12 @@ x,()		= x;
 ()==()		= 1;
 (x,xs)==()	= 0;
 ()==(x,xs)	= 0;
-(x,xs)==(y,ys)	= if x==y then xs==ys else 0;
+(x,xs)==(y,ys)	= x==y && xs==ys;
 
 ()!=()		= 0;
 (x,xs)!=()	= 1;
 ()!=(x,xs)	= 1;
-(x,xs)!=(y,ys)	= if x!=y then 1 else xs!=ys;
+(x,xs)!=(y,ys)	= x!=y || xs!=ys;
 
 null ()		= 1;
 null (x,xs)	= 0;
@@ -133,12 +133,12 @@ end;
 []==[]		= 1;
 (x:xs)==[]	= 0;
 []==(x:xs)	= 0;
-(x:xs)==(y:ys)	= if x==y then xs==ys else 1;
+(x:xs)==(y:ys)	= x==y && xs==ys;
 
 []!=[]		= 0;
 (x:xs)!=[]	= 1;
 []!=(x:xs)	= 1;
-(x:xs)!=(y:ys)	= if x!=y then 1 else xs!=ys;
+(x:xs)!=(y:ys)	= x!=y || xs!=ys;
 
 null []		= 1;
 null (x:xs)	= 0;
@@ -207,10 +207,10 @@ n..m		= while (\i->i<=m) (\x->x+1) n;
    functions have slightly different names). */
 
 all p []	= 1;
-all p (x:xs)	= if p x then all p xs else 0;
+all p (x:xs)	= p x && all p xs;
 
 any p []	= 0;
-any p (x:xs)	= if p x then 1 else any p xs;
+any p (x:xs)	= p x || any p xs;
 
 do f []		= ();
 do f (x:xs)	= do f xs when _ = f x end;
