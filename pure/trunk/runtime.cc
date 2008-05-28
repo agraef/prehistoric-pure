@@ -806,7 +806,8 @@ void pure_free(pure_expr *x)
 extern "C"
 void pure_freenew(pure_expr *x)
 {
-  pure_free_internal(pure_new_internal(x));
+  if (x->refc == 0)
+    pure_free_internal(pure_new_internal(x));
 }
 
 extern "C"
