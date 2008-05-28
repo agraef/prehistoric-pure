@@ -295,6 +295,22 @@ split delim/*0:01*/::string s/*0:1*/::string = if null s/*1:1*/ then [] else spl
 } end if not null delim/*0:01*/;
 reverse s/*0:1*/::string = strcat (reverse (chars s/*0:1*/));
 cat (s/*0:101*/::string:xs/*0:11*/) = cat (chars s/*0:101*/:xs/*0:11*/);
+cycle n/*0:01*/::int "" = "";
+cycle n/*0:01*/::int s/*0:1*/::string = "" if n/*0:01*/<=0;
+cycle n/*0:01*/::int s/*0:1*/::string = accum/*0*/ [] n/*1:01*/ with accum ys/*0:01*/ n/*0:1*/ = strcat ys/*0:01*/+take n/*0:1*/ s/*2:1*/ if n/*0:1*/<=m/*1:*/; accum ys/*0:01*/ n/*0:1*/ = accum/*1*/ (s/*2:1*/:ys/*0:01*/) (n/*0:1*/-m/*1:*/) {
+  rule #0: accum ys n = strcat ys+take n s if n<=m
+  rule #1: accum ys n = accum (s:ys) (n-m)
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
+} end when m/*0:*/::int = #s/*0:1*/ {
+  rule #0: m::int = #s
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} end;
 all p/*0:01*/ s/*0:1*/::string = all p/*0:01*/ (chars s/*0:1*/);
 any p/*0:01*/ s/*0:1*/::string = any p/*0:01*/ (chars s/*0:1*/);
 do f/*0:01*/ s/*0:1*/::string = do f/*0:01*/ (chars s/*0:1*/);
@@ -1033,6 +1049,46 @@ cat (xs/*0:101*/:xss/*0:11*/) = accum/*0*/ (reverse xs/*0:101*/) xss/*0:11*/ wit
   state 28: #2 #3 #4
 } end;
 catmap f/*0:01*/ xs/*0:1*/ = cat (map f/*0:01*/ xs/*0:1*/);
+index [] _/*0:1*/ = -1;
+index (x/*0:0101*/:xs/*0:011*/) y/*0:1*/ = search/*0*/ 0 (x/*0:0101*/:xs/*0:011*/) with search _/*0:01*/ [] = -1; search n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = n/*0:01*/ if x/*0:101*/==y/*1:1*/; search n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = search/*1*/ (n/*0:01*/+1) xs/*0:11*/; search _/*0:01*/ xs/*0:1*/ = index xs/*0:1*/ y/*1:1*/ {
+  rule #0: search _ [] = -1
+  rule #1: search n::int (x:xs) = n if x==y
+  rule #2: search n::int (x:xs) = search (n+1) xs
+  rule #3: search _ xs = index xs y
+  state 0: #0 #1 #2 #3
+	<var> state 1
+	<var>::int state 4
+  state 1: #0 #3
+	<var> state 2
+	[] state 3
+  state 2: #3
+  state 3: #0 #3
+  state 4: #0 #1 #2 #3
+	<var> state 5
+	[] state 6
+	<app> state 7
+  state 5: #3
+  state 6: #0 #3
+  state 7: #1 #2 #3
+	<var> state 8
+	<app> state 10
+  state 8: #3
+	<var> state 9
+  state 9: #3
+  state 10: #1 #2 #3
+	<var> state 11
+	: state 14
+  state 11: #3
+	<var> state 12
+  state 12: #3
+	<var> state 13
+  state 13: #3
+  state 14: #1 #2 #3
+	<var> state 15
+  state 15: #1 #2 #3
+	<var> state 16
+  state 16: #1 #2 #3
+} end;
 repeat n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = xs/*0:001*/ if n/*0:01*/<=0; accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = accum/*1*/ (x/*0:1*/:xs/*0:001*/) (n/*0:01*/-1) x/*0:1*/ {
   rule #0: accum xs n::int x = xs if n<=0
   rule #1: accum xs n::int x = accum (x:xs) (n-1) x
@@ -1046,24 +1102,25 @@ repeat n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/
 } end;
 cycle n/*0:01*/::int [] = [];
 cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
-cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] (#xs/*0:*/) n/*1:01*/ xs/*0:*/ with accum ys/*0:0001*/ m/*0:001*/::int n/*0:01*/::int xs/*0:1*/ = cat ys/*0:0001*/+take n/*0:01*/ xs/*0:1*/ if n/*0:01*/<=m/*0:001*/; accum ys/*0:0001*/ m/*0:001*/::int n/*0:01*/::int xs/*0:1*/ = accum/*1*/ (xs/*0:1*/:ys/*0:0001*/) m/*0:001*/ (n/*0:01*/-m/*0:001*/) xs/*0:1*/ {
-  rule #0: accum ys m::int n::int xs = cat ys+take n xs if n<=m
-  rule #1: accum ys m::int n::int xs = accum (xs:ys) m (n-m) xs
+cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] n/*2:01*/ with accum ys/*0:01*/ n/*0:1*/::int = cat ys/*0:01*/+take n/*0:1*/ xs/*2:*/ if n/*0:1*/<=m/*1:*/; accum ys/*0:01*/ n/*0:1*/::int = accum/*1*/ (xs/*2:*/:ys/*0:01*/) (n/*0:1*/-m/*1:*/) {
+  rule #0: accum ys n::int = cat ys+take n xs if n<=m
+  rule #1: accum ys n::int = accum (xs:ys) (n-m)
   state 0: #0 #1
 	<var> state 1
   state 1: #0 #1
 	<var>::int state 2
   state 2: #0 #1
-	<var>::int state 3
-  state 3: #0 #1
-	<var> state 4
-  state 4: #0 #1
-} end when xs/*0:*/ = x/*0:101*/:xs/*0:11*/ {
+} end when xs/*0:*/ = x/*0:101*/:xs/*0:11*/; m/*0:*/::int = #xs/*0:*/ {
+  rule #0: m::int = #xs
+  state 0: #0
+	<var>::int state 1
+  state 1: #0
+} {
   rule #0: xs = x:xs
   state 0: #0
 	<var> state 1
   state 1: #0
-} end;
+} end if listp xs/*0:11*/;
 while p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ a/*0:1*/ with accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*1*/ (a/*0:1*/:as/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) if p/*0:001*/ a/*0:1*/; accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = reverse as/*0:0001*/ {
   rule #0: accum as p f a = accum (a:as) p f (f a) if p a
   rule #1: accum as p f a = reverse as
