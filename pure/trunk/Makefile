@@ -222,7 +222,7 @@ check: pure
 	@ (export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure 2>&1 | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
 	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f 2>&1 | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
 
-test/prelude.log: lib/prelude.pure
+test/prelude.log: lib/prelude.pure lib/primitives.pure lib/strings.pure
 	PURELIB=./lib ./pure -n -v$(level) $< > $@ 2>&1
 
 %.log: %.pure
