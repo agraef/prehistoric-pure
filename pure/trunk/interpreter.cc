@@ -23,6 +23,7 @@ static void* resolve_external(const std::string& name)
 {
   // This is just to give a little more informative error message before we
   // bail out anyway.
+  cout.flush();
   cerr << "error trying to resolve external: " << name << endl;
   assert(0);
   return 0;
@@ -317,6 +318,7 @@ void
 interpreter::error(const yy::location& l, const string& m)
 {
   nerrs++;
+  cout.flush();
   if (!source_s) cerr << l << ": " << m << endl;
 }
 
@@ -324,18 +326,21 @@ void
 interpreter::error(const string& m)
 {
   nerrs++;
+  cout.flush();
   if (!source_s) cerr << m << endl;
 }
 
 void
 interpreter::warning(const yy::location& l, const string& m)
 {
+  cout.flush();
   if (!source_s) cerr << l << ": " << m << endl;
 }
 
 void
 interpreter::warning(const string& m)
 {
+  cout.flush();
   if (!source_s) cerr << m << endl;
 }
 
