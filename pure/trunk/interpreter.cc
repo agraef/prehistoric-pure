@@ -4115,6 +4115,7 @@ Function *interpreter::fun_prolog(string name)
       f.builder.SetInsertPoint(bb);
       CallInst* v = f.builder.CreateCall(f.f, myargs.begin(), myargs.end());
       v->setCallingConv(cc);
+      if (cc == CallingConv::Fast) v->setTailCall();
       f.builder.CreateRet(v);
       // validate the generated code, checking for consistency
       verifyFunction(*f.h);
