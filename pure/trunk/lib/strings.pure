@@ -143,6 +143,13 @@ end when m = #delim end if not null delim;
 reverse s::string	= strcat (reverse (chars s));
 cat (s::string:xs)	= cat (chars s:xs);
 
+cycle n::int ""		= "";
+cycle n::int s::string	= "" if n<=0;
+			= accum [] n with
+			    accum ys n	= strcat ys+take n s if n<=m;
+					= accum (s:ys) (n-m) otherwise;
+			  end when m::int = #s end;
+
 all p s::string		= all p (chars s);
 any p s::string		= any p (chars s);
 do f s::string		= do f (chars s);

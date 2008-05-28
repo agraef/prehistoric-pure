@@ -1,3 +1,11 @@
+2008-05-28  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/strings.pure: Make 'cycle' work on strings. Reported by
+	Eddie Rucker.
+
+	* lib/prelude.pure: Make 'index' work on lists. Code contributed
+	by Eddie Rucker.
+
 2008-05-27  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/prelude.pure: Rewrite prelude operations to make them
