@@ -293,6 +293,8 @@ split delim/*0:01*/::string s/*0:1*/::string = if null s/*1:1*/ then [] else spl
 	<var> state 1
   state 1: #0
 } end if not null delim/*0:01*/;
+list s/*0:1*/::string = chars s/*0:1*/;
+tuple s/*0:1*/::string = tuple (chars s/*0:1*/);
 reverse s/*0:1*/::string = strcat (reverse (chars s/*0:1*/));
 cat (s/*0:101*/::string:xs/*0:11*/) = cat (chars s/*0:101*/:xs/*0:11*/);
 cycle n/*0:01*/::int "" = "";
