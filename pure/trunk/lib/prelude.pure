@@ -339,6 +339,17 @@ end;
 
 catmap f xs	= cat (map f xs);
 
+/* Search an element in a list. Returns -1 if not found, index of first
+   occurrence otherwise. */
+
+index [] _	= -1;
+index (x:xs) y	= search 0 (x:xs) with
+  search _ []		= -1;
+  search n::int (x:xs)	= n if x==y;
+			= search (n+1) xs;
+  search _ xs		= index xs y;
+end;
+
 /* Some useful list generators. */
 
 repeat n::int x	= accum [] n x with
@@ -349,11 +360,10 @@ end;
 cycle n::int []	= [];
 cycle n::int (x:xs)
 		= [] if n<=0;
-		= accum [] (#xs) n xs with
-		    accum ys m::int n::int xs
-		      = cat ys+take n xs if n<=m;
-		      = accum (xs:ys) m (n-m) xs otherwise;
-		  end when xs = x:xs end;
+		= accum [] n with
+		    accum ys n::int = cat ys+take n xs if n<=m;
+		                    = accum (xs:ys) (n-m) otherwise;
+		  end when xs = x:xs; m::int = #xs end if listp xs;
 
 while p f a	= accum [] p f a with
 		    accum as p f a = accum (a:as) p f (f a) if p a;
@@ -367,44 +377,43 @@ until p f a	= accum [] p f a with
 
 /* zip, unzip and friends. */
 
-zip xs ys	= accum [] xs ys with
+zip xs ys		= accum [] xs ys with
   accum us (x:xs) (y:ys)	= accum ((x,y):us) xs ys;
   accum us _ _			= reverse us;
 end;
 
-zip3 xs ys zs	= accum [] xs ys zs with
+zip3 xs ys zs		= accum [] xs ys zs with
   accum us (x:xs) (y:ys) (z:zs)	= accum ((x,y,z):us) xs ys zs;
   accum us _ _ _		= reverse us;
 end;
 
-zipwith f xs ys	= accum [] xs ys with
+zipwith f xs ys		= accum [] xs ys with
   accum us (x:xs) (y:ys)	= accum (f x y:us) xs ys;
   accum us _ _			= reverse us;
 end;
 
-zipwith3 f xs ys zs = accum [] xs ys zs with
+zipwith3 f xs ys zs	= accum [] xs ys zs with
   accum us (x:xs) (y:ys) (z:zs)	= accum (f x y z:us) xs ys zs;
   accum us _ _ _		= reverse us;
 end;
 
-dowith f (x:xs) (y:ys)
-		= dowith f xs ys when _ = f x y end;
-dowith f _ _	= () otherwise;
+dowith f (x:xs) (y:ys)	= dowith f xs ys when _ = f x y end;
+dowith f _ _		= () otherwise;
 
 dowith3 f (x:xs) (y:ys) (z:zs)
-		= dowith3 f xs ys zs when _ = f x y z end;
-dowith3 f _ _ _	= () otherwise;
+			= dowith3 f xs ys zs when _ = f x y z end;
+dowith3 f _ _ _		= () otherwise;
 
-unzip []	= [],[];
-unzip ((x,y):us) = x:xs,y:ys when xs,ys = accum [] [] us end
+unzip []		= [],[];
+unzip ((x,y):us)	= x:xs,y:ys when xs,ys = accum [] [] us end
 with
   accum xs ys []		= reverse xs,reverse ys;
   accum xs ys ((x,y):us)	= accum (x:xs) (y:ys) us;
   accum _ _ us			= throw (bad_list_value us);
 end;
 
-unzip3 []	= [],[],[];
-unzip3 ((x,y,z):us) = x:xs,y:ys,z:zs when xs,ys,zs = accum [] [] [] us end
+unzip3 []		= [],[],[];
+unzip3 ((x,y,z):us)	= x:xs,y:ys,z:zs when xs,ys,zs = accum [] [] [] us end
 with
   accum xs ys zs []		= reverse xs,reverse ys,reverse zs;
   accum xs ys zs ((x,y,z):us)	= accum (x:xs) (y:ys) (z:zs) us;
