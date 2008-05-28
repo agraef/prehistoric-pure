@@ -491,7 +491,6 @@ int64_t pure_get_long(pure_expr *x)
     (sizeof(mp_limb_t) == 8) ? (uint64_t)mpz_getlimbn(x->data.z, 0) :
     (mpz_getlimbn(x->data.z, 0) +
      (((uint64_t)mpz_getlimbn(x->data.z, 1))<<32));
-  cerr << "v = " << v << endl;
   return (mpz_sgn(x->data.z) < 0) ? -(int64_t)v : (int64_t)v;
 }
 
