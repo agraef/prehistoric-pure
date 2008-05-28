@@ -28,7 +28,9 @@
       <item> char </item>
       <item> double  </item>
       <item> expr </item>
+      <item> short </item>
       <item> int </item>
+      <item> long </item>
       <item> string </item>
       <item> pointer </item>
       <item> void </item>

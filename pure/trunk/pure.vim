@@ -35,7 +35,8 @@ syn region   pureString		start=+"+ skip=+\\"+ end=+"+
 syn keyword pureKeyword	infix infixl infixr prefix postfix nullary
 syn keyword pureKeyword	case else end extern if let of otherwise then
 syn keyword pureKeyword	using when with
-syn keyword pureIdentifier bigint bool char double expr int string pointer void
+syn keyword pureIdentifier bigint bool char short int long double
+syn keyword pureIdentifier expr string pointer void
 
 syn match   pureNumber	         "\<[0-9]*\>"
 syn match   pureHexNumber	 "\<0[Xx][0-9A-Fa-f]*\>"
