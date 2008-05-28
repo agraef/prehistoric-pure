@@ -185,6 +185,15 @@ have a syntactic representation in Pure, though, so they need to be created
 with external C functions). Truth values are encoded as machine integers (as
 you might expect, zero denotes ``false'' and any non-zero value ``true'').
 .PP
+Expressions are generally evaluated from left to right, innermost expressions
+first, i.e., using
+.I call by value
+semantics. Pure also has a few built-in special forms (most notably,
+conditional expressions and the short-circuit logical connectives && and ||)
+which take some of their arguments using
+.I call by name
+semantics.
+.PP
 Expressions consist of the following elements:
 .TP
 .B Constants: \fR4711, 4711G, 1.2e-3, \(dqHello,\ world!\en\(dq
@@ -282,7 +291,11 @@ exactly the same as (+) x y.
 .TP
 .B Conditional expressions: if\fR\ x\ \fBthen\fR\ y\ \fBelse\fR\ z
 Evaluates to y or z depending on whether x is ``true'' (i.e., a nonzero
-integer).
+integer). An exception is generated if the condition is not an
+integer. Conditional expressions are special forms with call-by-name arguments
+y and z; only one of the branches is actually evaluated. (The logical
+operators && and || are treated in a similar fashion, in order to implement
+short-circuit semantics.)
 .TP
 .B Lambdas: \fR\ex\ ->\ y
 These work pretty much like in Haskell. More than one variable may be bound
@@ -372,6 +385,20 @@ A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
 .PP
+Expressions are parsed according to the following precedence rules: Lambda
+binds most weakly, followed by
+.BR when ,
+.B with
+and
+.BR case ,
+followed by conditional expressions (\fBif\fP-\fBthen\fP-\fBelse\fP), followed
+by the ``simple'' expressions (i.e., all other kinds of expressions involving
+operators, function applications, constants, symbols and other primary
+expressions). Precedence and associativity of operator symbols are given by
+their declarations (in the prelude or the user's program), and function
+application binds stronger than all operators. Parentheses can be used to
+override default precedences and associativities as usual.
+.PP
 For instance, here are two more function definitions showing most of these
 elements in action:
 .sp
@@ -439,8 +466,8 @@ with the value to be thrown as the argument. To catch an exception, you use
 the built-in special form
 .B catch
 with the exception handler (a function to be applied to the exception value)
-as the first and the expression to be evaluated as the second argument. For
-instance:
+as the first and the expression to be evaluated as the second (call-by-name)
+argument. For instance:
 .sp
 .nf
 > catch error (throw hello_world);
@@ -592,16 +619,31 @@ the human reader; they are effectively treated as comments by the compiler.
 .PP
 The interpreter makes sure that the parameters in a call match; if not, the
 call is treated as a normal form expression. The range of supported C types is
-a bit limited right now (void, bool, char, int, double, as well as arbitrary
-pointer types, i.e.: void*, char*, etc.), but in practice these should cover
-most kinds of calls that need to be done when interfacing to C libraries. Note
-that char* is for string arguments and return values which need translation
-between Pure's internal utf-8 representation and the system encoding, while
-void* is for any generic kind of pointer (including strings, which are
-\fInot\fP translated when passed/returned as void*). Any other kind of pointer
-(except expr*, see below), is effectively treated as void* right now, although
-in a future version the interpreter may keep track of the type names for the
-purpose of checking parameter types.
+a bit limited right now (void, bool, char, short, int, long, double, as well
+as arbitrary pointer types, i.e.: void*, char*, etc.), but in practice these
+should cover most kinds of calls that need to be done when interfacing to C
+libraries.
+.PP
+Since Pure only has 32 bit machine integers and GMP bigints, a variety of C
+integer types are provided which are converted from/to the Pure types in a
+straightfoward way. The short type indicates 16 bit integers which are
+converted from/to Pure machine ints using truncation and sign extension,
+respectively. The long type
+.I always
+denotes 64 bit integers, even if the corresponding C type is actually 32 bit
+(as it usually is on most contemporary systems). This type is to be used if a
+C function takes or returns 64 bit integer values. For a long parameter you
+can either pass a Pure machine int (which is sign-extended to 64 bit) or a
+Pure bigint (which is truncated to 64 bit if necessary). 64 bit return values
+are always converted to (signed) Pure bigints.
+.PP
+Concerning the pointer types, char* is for string arguments and return values
+which need translation between Pure's internal utf-8 representation and the
+system encoding, while void* is for any generic kind of pointer (including
+strings, which are \fInot\fP translated when passed/returned as void*). Any
+other kind of pointer (except expr*, see below) is effectively treated as
+void* right now, although in a future version the interpreter may keep track
+of the type names for the purpose of checking parameter types.
 .PP
 The expr* pointer type is special; it indicates a Pure expression parameter or
 return value which is just passed through unchanged. All other types of values
@@ -685,8 +727,8 @@ ML- and Haskell-like languages. Please refer to the
 file for details on the provided operations. Also, the beginnings of a system
 interface can be found in the
 .B system.pure
-module. In particular, this also includes operations to do basic I/O using
-text files. More stuff will be provided in future releases.
+module. In particular, this also includes operations to do basic I/O. More
+stuff will be provided in future releases.
 .SH INTERACTIVE USAGE
 In interactive mode, the interpreter reads definitions and expressions and
 processes them as usual. The input language is just the same as for source
@@ -1011,6 +1053,13 @@ should use lists instead). This also implies that an expression like
 a list of tuples, you must use the syntax (1,2):(3,4):[] instead; this is also
 the notation used when the interpreter prints such objects.
 .PP
+.B Special forms.
+Special forms are recognized at compile time only. Thus the catch function as
+well as the short-circuit logical connectives && and || are only treated as
+special forms in direct (saturated) calls. They can still be used if you pass
+them around as function values or partial applications, but in this case they
+lose all their special call-by-name argument processing.
+.PP
 .B Manipulating function applications.
 The ``head = function'' rule means that the head symbol f of an application f
 x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
@@ -1109,6 +1158,13 @@ function definition can be changed at any time during an interactive session,
 without having to recompile the entire program.) However, mutual tail
 recursion does work with \fIlocal\fP functions, so it's easy to work around
 this limitation.
+.PP
+Scheme programmers should note that conditional expressions
+(\fBif\fP-\fBthen\fP-\fBelse\fP) are tail-recursive in both branches, just
+like in Scheme, while the logical operators && and || are
+.I not
+tail-recursive. This is because the logical operators always return a proper
+truth value (0 or 1) which wouldn't be possible with tail call semantics.
 .SH FILES
 .TP
 .B ~/.pure_history
