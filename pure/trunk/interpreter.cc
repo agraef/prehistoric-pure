@@ -3669,12 +3669,6 @@ Value *interpreter::vref(int32_t tag, path p)
   // local arg reference
   Env &e = act_env();
   uint32_t k = 0;
-  if (e.b && e.n == 0) {
-    llvm::cerr << e.name << ": vref: " << symtab.sym(tag).s << ":";
-    for (size_t i = 0; i < p.len(); i++)
-      llvm::cerr << (unsigned)p[i];
-    llvm::cerr << endl;
-  }
   if (e.b)
     // pattern binding
     assert(e.n==1);
