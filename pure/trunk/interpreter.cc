@@ -2823,8 +2823,10 @@ Value *interpreter::get_int(expr x)
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
       Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "intval");
+#if 0
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
+#endif
       return v;
     } else {
       // double variable, needs unboxing and int conversion
@@ -2833,8 +2835,10 @@ Value *interpreter::get_int(expr x)
       Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
       Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "dblval");
       v = e.builder.CreateFPToSI(v, Type::Int32Ty);
+#if 0
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
+#endif
       return v;
     }
   } else {
@@ -2876,8 +2880,10 @@ Value *interpreter::get_double(expr x)
       Value *p = e.builder.CreateBitCast(u, IntExprPtrTy, "intexpr");
       Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "intval");
       v = e.builder.CreateSIToFP(v, Type::DoubleTy);
+#if 0
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
+#endif
       return v;
     } else {
       // double variable, needs unboxing
@@ -2885,8 +2891,10 @@ Value *interpreter::get_double(expr x)
       Value *u = codegen(x);
       Value *p = e.builder.CreateBitCast(u, DblExprPtrTy, "dblexpr");
       Value *v = e.CreateLoadGEP(p, Zero, ValFldIndex, "dblval");
+#if 0
       // collect the temporary, it's not needed any more
       call("pure_freenew", u);
+#endif
       return v;
     }
   } else {
