@@ -140,6 +140,9 @@ end when m = #delim end if not null delim;
 /* Define the customary list operations on strings, so that these can mostly
    be used as if they were lists. */
 
+list s::string		= chars s;
+tuple s::string		= tuple (chars s);
+
 reverse s::string	= strcat (reverse (chars s));
 cat (s::string:xs)	= cat (chars s:xs);
 
