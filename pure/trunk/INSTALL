@@ -82,9 +82,9 @@ $ sudo make install
 $ sudo /sbin/ldconfig
 
 (The latter step is required on Linux systems to tell the dynamic linker to
-update its cache so that it finds the Pure runtime library, libpure-x.y.so.
-On other systems it may be sufficient to install the library in a location
-which is searched by the dynamic linker.)
+update its cache so that it finds the Pure runtime library, libpure.so. On
+other systems it may be sufficient to install the library in a location which
+is searched by the dynamic linker.)
 
 After the build is complete, you can check that Pure is working correctly on
 your computer, as follows:
@@ -150,11 +150,11 @@ $ sudo /sbin/ldconfig
 OTHER COMPILATION OPTIONS
 ===== =========== =======
 
-By default, the pure program is installed under /usr/local/bin, the
-libpure-x.y.so library under /usr/local/lib, and the library scripts under
-/usr/local/lib/pure. The installation directory can be changed by editing the
-definition of the 'prefix' variable in the Makefile, or by specifying the
-desired value on the 'make' command line, e.g.:
+By default, the pure program goes to /usr/local/bin, the libpure.so library to
+/usr/local/lib, and the Pure library scripts to /usr/local/lib/pure. The
+installation directory can be changed by editing the definition of the
+'prefix' variable in the Makefile, or by specifying the desired value on the
+'make' command line, e.g.:
 
 $ make all install prefix=/usr
 
@@ -163,7 +163,7 @@ time since certain default paths are hardcoded into the interpreter (but can
 be changed at runtime by setting corresponding environment variables, see the
 manpage for details). Also note that if you install Pure into a non-standard
 location, you may have to set the LD_LIBRARY_PATH variable so that the dynamic
-linker finds the Pure runtime library, libpure-x.y.so.
+linker finds the Pure runtime library, libpure.so.
 
 After your build is done, you can (and should) also run 'make check' to verify
 that your Pure interpreter works correctly. This can be done without
@@ -171,7 +171,7 @@ installing the software. In fact, there's no need to install the interpreter
 if you just want to take it for a test drive, you can simply run it from the
 source directory, if you set up the following environment variables:
 
-- LD_LIBRARY_PATH=. This is required on Linux systems so that libpure-x.y.so
+- LD_LIBRARY_PATH=. This is required on Linux systems so that libpure.so
   is found. Other systems may require an analogous setting, or none at all.
 
 - PURELIB=./lib This is required on all systems so that the interpreter finds
