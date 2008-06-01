@@ -14,8 +14,18 @@ dist = pure-$(version)
 
 prefix = /usr/local
 bindir = $(prefix)/bin
-libdir = $(prefix)/lib/pure
+libdir = $(prefix)/lib
 mandir = $(prefix)/share/man/man1
+
+# Pure library name. Currently we use a simple versioning scheme, which
+# requires that the library version matches that of the interpreter. With some
+# extra fiddling, this enables you to install different versions of the Pure
+# interpreter on the same system.
+
+# NOTE: You might have to change the suffix .so for your system (e.g., use
+# .dll on Windows).
+
+libpure = libpure-$(version).so
 
 # Staging directory for 'make install'. If you use this, make sure that this
 # ends in a slash.
@@ -25,12 +35,9 @@ DESTDIR=
 # Linker flags. Adjust these as necessary for your system.
 
 # LDFLAGS is for additional linker options, LIBS for additional libraries that
-# might be needed (e.g., -liconv on OSX). Note that the -rdynamic flag is
-# required when using gcc with the ELF linker (e.g., Linux on x86) to enable
-# the dlopening of the program executable. On OSX this option isn't needed
-# (pass LDFLAGS="" to 'make' instead).
+# might be needed (e.g., -liconv on OSX and Windows).
 
-LDFLAGS=-rdynamic
+LDFLAGS=
 LIBS=
 
 # Compilation flags. We currently provide the following build profiles:
@@ -61,9 +68,6 @@ LIBS=
 # build=release'. (This option only has to be specified at build time, not for
 # installation or any other targets except 'all'.) Just 'make' builds with the
 # default flags.
-
-# Note that both the 'default' and the 'release' build may take quite a while
-# to compile (especially runtime.cc), so please be patient. ;-)
 
 build=default
 
@@ -104,11 +108,11 @@ endif
 # No need to edit below this line. Unless you really have to. :) ############
 
 SOURCE = expr.cc expr.hh funcall.h interpreter.cc interpreter.hh lexer.ll \
-matcher.cc matcher.hh parser.yy printer.cc printer.hh pure.cc \
+matcher.cc matcher.hh parser.yy printer.cc printer.hh \
 runtime.cc runtime.h symtable.cc symtable.hh util.cc util.hh
 EXTRA_SOURCE = lexer.cc parser.cc parser.hh location.hh position.hh stack.hh
 OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
-ALL_LIBS = $(LLVM_LIBS) -lreadline -lgmp $(LIBS)
+ALL_LIBS = -lreadline -lgmp $(LIBS)
 
 examples = $(wildcard examples/*.pure)
 lib = $(wildcard lib/*.pure)
@@ -117,7 +121,7 @@ logs = test/prelude.log $(tests:.pure=.log)
 distlogs = $(wildcard test/*.log)
 
 DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO Makefile \
-$(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.1 pure.xml pure.vim \
+$(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.cc pure.1 pure.xml pure.vim \
 $(examples) $(lib) $(tests) $(distlogs)
 
 .PHONY: all html dvi ps pdf clean realclean depend install uninstall strip \
@@ -127,11 +131,14 @@ dist distcheck cleanlogs logs check
 
 all: pure
 
-pure: $(OBJECT)
-	$(CXX) -o $@ $(LDFLAGS) $(OBJECT) $(ALL_LIBS)
+pure: pure.o $(libpure)
+	$(CXX) -o $@ $(LDFLAGS) pure.o -L. -lpure-$(version) $(ALL_LIBS)
+
+$(libpure): $(OBJECT)
+	$(CXX) -shared -o $@ $(LDFLAGS) $(OBJECT) $(LLVM_LIBS) $(ALL_LIBS)
 
 pure.o: pure.cc
-	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)"' -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)/pure"' -c -o $@ $<
 
 lexer.cc: lexer.ll
 	flex -o lexer.cc $<
@@ -163,7 +170,7 @@ pdf: pure.pdf
 # cleaning
 
 clean:
-	rm -f *~ *.bak *.html *.dvi *.ps pure $(OBJECT) parser.output
+	rm -f *~ *.bak *.html *.dvi *.ps pure $(OBJECT) pure.o $(libpure) parser.output
 
 cleanlogs:
 	rm -f $(logs)
@@ -176,24 +183,17 @@ realclean: clean
 depend: $(SOURCE) $(EXTRA_SOURCE)
 	makedepend -Y $(SOURCE) $(EXTRA_SOURCE) 2> /dev/null
 
-# Strip symbols from the executable. You might want to run this on Linux
-# systems before installation to get a smaller executable. *Never* do this on
-# OSX though, as the symbols are needed to properly resolve the runtime
-# externals which are linked into the executable.
-
-strip: pure
-	strip pure
-
 # installation
 
 install: pure $(lib)
-	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) $(DESTDIR)$(mandir)
+	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(mandir)
 	install pure $(DESTDIR)$(bindir)/pure
-	install -m 644 $(lib) $(DESTDIR)$(libdir)
+	install $(libpure) $(DESTDIR)$(libdir)/$(libpure)
+	install -m 644 $(lib) $(DESTDIR)$(libdir)/pure
 	install -m 644 pure.1 $(DESTDIR)$(mandir)/pure.1
 
 uninstall:
-	rm -rf $(DESTDIR)$(bindir)/pure $(DESTDIR)$(libdir) $(DESTDIR)$(mandir)/pure.1
+	rm -rf $(DESTDIR)$(bindir)/pure $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(mandir)/pure.1
 
 # roll a distribution tarball
 
@@ -219,14 +219,14 @@ logs: $(logs)
 
 check: pure
 	@ echo Running tests.
-	@ (export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure 2>&1 | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
-	@ (cd test; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f 2>&1 | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
+	@ (export LD_LIBRARY_PATH=.; export PURELIB=./lib; echo -n "prelude.pure: "; if ./pure -n -v$(level) lib/prelude.pure 2>&1 | diff -q - test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
+	@ (cd test; export LD_LIBRARY_PATH=..; export PURELIB=../lib; for x in $(tests); do f="`basename $$x`"; l="`basename $$x .pure`.log"; echo -n "$$x: "; if ../pure -v$(level) < $$f 2>&1 | diff -q - $$l > /dev/null; then echo passed; else echo FAILED; fi; done)
 
 test/prelude.log: lib/prelude.pure lib/primitives.pure lib/strings.pure
-	PURELIB=./lib ./pure -n -v$(level) $< > $@ 2>&1
+	LD_LIBRARY_PATH=. PURELIB=./lib ./pure -n -v$(level) $< > $@ 2>&1
 
 %.log: %.pure
-	PURELIB=./lib ./pure -v$(level) < $< > $@ 2>&1
+	LD_LIBRARY_PATH=. PURELIB=./lib ./pure -v$(level) < $< > $@ 2>&1
 
 # DO NOT DELETE
 

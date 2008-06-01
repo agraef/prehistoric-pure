@@ -1,3 +1,12 @@
+2008-06-01  Albert Graef  <Dr.Graef@t-online.de>
+
+	* Makefile, interpreter.cc: Put the runtime and interpreter into a
+	separate shared library, to make it possible for modules to link
+	against the runtime, and to reduce the memory footprint when
+	multiple instances of the interpreter are run as different
+	processes. Also, this makes it possible to access the runtime
+	routines on systems where a program cannot dlopen itself.
+
 2008-05-28  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc, runtime.cc: Optimization pure_freenew calls.

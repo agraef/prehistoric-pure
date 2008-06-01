@@ -4,11 +4,11 @@ INSTALLING PURE (AND LLVM)
 
 These instructions (mostly by courtesy of Eddie Rucker, thanks Eddie!) explain
 how to compile and install LLVM (which is the compiler backend required by
-Pure) and the Pure interpreter itself. More information about installing LLVM
-and the required LLVM source packages can be found at http://llvm.org. Please
-also have a look at the SYSTEM NOTES section at the end of this file which
-describes the tweaks necessary to make Pure compile and run on various
-platforms.
+Pure) and the Pure interpreter itself. The instructions are for Linux and
+similar Unix-like systems; the SYSTEM NOTES section at the end of this file
+details the tweaks necessary to make Pure compile and run on various other
+platforms. More information about installing LLVM and the required LLVM source
+packages can be found at http://llvm.org.
 
 Pure is known to work on Linux and Mac OSX, but should compile (with the usual
 amount of tweaking) on all UNIX/POSIX-based platforms. We recommend using
@@ -57,12 +57,15 @@ http://llvm.org/releases/download.html#2.2
 STEP 3. Configure, build and install LLVM as follows:
 
 $ cd llvm-2.2
-$ ./configure
+$ ./configure --enable-optimized --disable-assertions --disable-expensive-checks --enable-targets=host-only
 $ make ENABLE_OPTIMIZED=1
 $ sudo make install
 
-(To do a debug build of LLVM, leave away the 'ENABLE_OPTIMIZED=1' parameter.
-Note, however, that this will considerably slow down the Pure compiler.)
+Note the configure flags; these are for an optimized (non-debug) build and
+disable all compilation targets except the one for your system. To do a debug
+build of LLVM, simply leave away all the extra configure parameters (except
+possibly --enable-targets=host-only). Note, however, that this will
+considerably slow down the Pure compiler.
 
 STEP 4. Get and unpack the Pure sources at: http://pure-lang.sf.net/
 
@@ -76,9 +79,12 @@ version number, 0.3 at the time of this writing):
 $ cd pure-x.y
 $ make
 $ sudo make install
+$ sudo /sbin/ldconfig
 
-Note that compiling Pure with optimizations enabled (this is the default) may
-take quite a while, so please have some patience.
+(The latter step is required on Linux systems to tell the dynamic linker to
+update its cache so that it finds the Pure runtime library, libpure-x.y.so.
+On other systems it may be sufficient to install the library in a location
+which is searched by the dynamic linker.)
 
 After the build is complete, you can check that Pure is working correctly on
 your computer, as follows:
@@ -138,34 +144,41 @@ STEP 5': Build and install Pure:
 $ cd pure-lang/pure/trunk
 $ make
 $ sudo make install
+$ sudo /sbin/ldconfig
 
 
 OTHER COMPILATION OPTIONS
 ===== =========== =======
 
-By default, the pure program is installed under /usr/local/bin, with the
-library files going into /usr/local/lib/pure. The installation directory can
-be changed by editing the definition of the 'prefix' variable in the Makefile,
-or by specifying the desired value on the 'make' command line, e.g.:
+By default, the pure program is installed under /usr/local/bin, the
+libpure-x.y.so library under /usr/local/lib, and the library scripts under
+/usr/local/lib/pure. The installation directory can be changed by editing the
+definition of the 'prefix' variable in the Makefile, or by specifying the
+desired value on the 'make' command line, e.g.:
 
 $ make all install prefix=/usr
 
 Note that you should specify this option *both* at compile and installation
 time since certain default paths are hardcoded into the interpreter (but can
 be changed at runtime by setting corresponding environment variables, see the
-manpage for details).
+manpage for details). Also note that if you install Pure into a non-standard
+location, you may have to set the LD_LIBRARY_PATH variable so that the dynamic
+linker finds the Pure runtime library, libpure-x.y.so.
 
 After your build is done, you can (and should) also run 'make check' to verify
 that your Pure interpreter works correctly. This can be done without
 installing the software. In fact, there's no need to install the interpreter
 if you just want to take it for a test drive, you can simply run it from the
-source directory. Just make sure that you set the PURELIB environment variable
-to the lib directory in the sources which holds the prelude and the other
-library scripts. The following command,
+source directory, if you set up the following environment variables:
 
-$ PURELIB=./lib ./pure
+- LD_LIBRARY_PATH=. This is required on Linux systems so that libpure-x.y.so
+  is found. Other systems may require an analogous setting, or none at all.
 
-will run the Pure interpreter with that setting in Bourne-compatible shells.
+- PURELIB=./lib This is required on all systems so that the interpreter finds
+  the prelude and other library scripts.
+
+After that you should be able to run the Pure interpreter from the source
+directory, by typing './pure'.
 
 There are a number of other variables you can set on the 'make' command line
 if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
@@ -187,6 +200,10 @@ give you faster execution times, but the differences aren't really that big
 anymore (5-10% compared to the default flags on my Linux system running gcc
 4.1, YMMV), so you are encouraged to use the 'default' build unless
 performance is really critical.
+
+To get smaller executables with either the default or the release build, add
+'LDFLAGS=-s' to the 'make' command (gcc only, other compilers may provide a
+similar flag to strip compiled executables and libraries).
 
 You can also do a 'debug' build as follows:
 
@@ -241,20 +258,18 @@ LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
-should build out of the box on all recent Linux distributions. However, note
-the issues on 64 bit Linux systems described above.
+should build out of the box on all recent Linux distributions.
 
 MAC OSX
 --- ---
 
 A port by Ryan Schmidt exists in the MacPorts collection at
 http://www.macports.org/. If you compile Pure from the original sources
-yourself, you should remove the -rdynamic option from the link line (it's not
-needed on OSX) and add the -liconv flag instead. To these ends, build Pure
-with the following make command (add the build=release option for the release
-build):
+yourself, you should add the -liconv flag to the link line. To these ends,
+build Pure with the following make command (add the build=release option for
+the release build):
 
-$ make LDFLAGS="" LIBS="-liconv"
+$ make LIBS="-liconv"
 
 Also note that with at least some current versions of the Apple gcc compiler
 (4.0.1 and similar) you'll get the (bogus) warning "control reaches end of
@@ -266,12 +281,12 @@ once Apple upgrades its SDK to a newer gcc version.
 MS WINDOWS
 -- -------
 
-Nobody has reported a successful port to this platform yet, but it should be
-rather straightforward (albeit arduous) to do this with either Cygwin
-(http://www.cygwin.com/) or Mingw (http://www.mingw.org/), once you have all
-the necessary dependencies and a suitable version of LLVM installed. So *you*
-can still be the hero who first got Pure up and running on Windows; if you do,
-please let us know! :)
+Jiri Spitz is currently working on a Windows port using Mingw. Once this is
+finished, we'll provide Windows installation instructions here. For the time
+being, you can try for yourself; porting should be rather straightforward with
+either Cygwin (http://www.cygwin.com/) or Mingw (http://www.mingw.org/), once
+you have all the necessary dependencies and a suitable version of LLVM
+installed.
 
 
 May 2008
