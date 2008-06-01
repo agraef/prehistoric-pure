@@ -61,6 +61,7 @@ interpreter::interpreter()
   if (!g_interp) {
     g_interp = this;
     stackdir = c_stack_dir();
+    llvm::sys::DynamicLibrary::LoadLibraryPermanently("libpure", 0);
   }
 
   sstk_sz = 0; sstk_cap = 0x10000; // 64K
