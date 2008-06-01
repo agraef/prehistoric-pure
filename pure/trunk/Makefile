@@ -138,6 +138,7 @@ pure: pure.o $(libpure)
 
 $(libpure): $(OBJECT)
 	$(CXX) -shared -o $@ $(LDFLAGS) $(OBJECT) $(LLVM_LIBS) $(ALL_LIBS)
+	ln -sf $(libpure) libpure.$(DLL)
 
 pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) -DVERSION='"$(version)"' -DPURELIB='"$(libdir)/pure"' -c -o $@ $<
@@ -196,7 +197,7 @@ install: pure $(lib)
 	install -m 644 pure.1 $(DESTDIR)$(mandir)/pure.1
 
 uninstall:
-	rm -rf $(DESTDIR)$(bindir)/pure $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(mandir)/pure.1
+	rm -rf $(DESTDIR)$(bindir)/pure $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/libpure.$(DLL) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(mandir)/pure.1
 
 # roll a distribution tarball
 
