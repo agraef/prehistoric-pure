@@ -17,15 +17,10 @@ bindir = $(prefix)/bin
 libdir = $(prefix)/lib
 mandir = $(prefix)/share/man/man1
 
-# Pure library name. Currently we use a simple versioning scheme, which
-# requires that the library version matches that of the interpreter. With some
-# extra fiddling, this enables you to install different versions of the Pure
-# interpreter on the same system.
+# Shared library suffix. The default should work on most Linux and Unix
+# systems. Use DLL=dll on Windows.
 
-# NOTE: You might have to change the suffix .so for your system (e.g., use
-# .dll on Windows).
-
-libpure = libpure-$(version).so
+DLL=so
 
 # Staging directory for 'make install'. If you use this, make sure that this
 # ends in a slash.
@@ -104,6 +99,13 @@ endif
 endif
 endif
 endif
+
+# Pure library name. Currently we use a simple versioning scheme, which
+# requires that the library version matches that of the interpreter. With some
+# fiddling, this enables you to install different versions of the Pure
+# interpreter on the same system.
+
+libpure = libpure-$(version).$(DLL)
 
 # No need to edit below this line. Unless you really have to. :) ############
 
