@@ -182,8 +182,9 @@ directory, by typing './pure'.
 
 There are a number of other variables you can set on the 'make' command line
 if you need special compiler (CXXFLAGS) or linker flags (LDFLAGS), or if you
-have to add platform-specific libraries (LIBS). Please see the Makefile for
-additional information on these.
+have to add platform-specific libraries (LIBS). The DLL variable allows you to
+change the shared library suffix as appropriate for your system. Please see
+the Makefile for additional information on these.
 
 As of Pure 0.3, the 'default' build now also includes basic optimizations
 (-O). This build should be ok for most purposes, and has the advantage that it
@@ -197,13 +198,14 @@ $ make build=release
 This disables all runtime checks and debugging information in the interpreter
 and also uses a higher level of optimization. The 'release' build will usually
 give you faster execution times, but the differences aren't really that big
-anymore (5-10% compared to the default flags on my Linux system running gcc
-4.1, YMMV), so you are encouraged to use the 'default' build unless
+anymore (less than 5% compared to the default flags on my Linux system running
+gcc 4.1, YMMV), so you are encouraged to use the 'default' build unless
 performance is really critical.
 
 To get smaller executables with either the default or the release build, add
 'LDFLAGS=-s' to the 'make' command (gcc only, other compilers may provide a
-similar flag to strip compiled executables and libraries).
+similar flag or a separate command to strip compiled executables and
+libraries).
 
 You can also do a 'debug' build as follows:
 
