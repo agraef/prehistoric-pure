@@ -172,7 +172,7 @@ pdf: pure.pdf
 # cleaning
 
 clean:
-	rm -f *~ *.bak *.html *.dvi *.ps pure $(OBJECT) pure.o $(libpure) parser.output
+	rm -f *~ *.bak *.html *.dvi *.ps pure $(OBJECT) pure.o libpure.$(DLL) $(libpure) parser.output
 
 cleanlogs:
 	rm -f $(logs)
@@ -191,6 +191,7 @@ install: pure $(lib)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(mandir)
 	install pure $(DESTDIR)$(bindir)/pure
 	install $(libpure) $(DESTDIR)$(libdir)/$(libpure)
+	ln -sf $(libdir)/$(libpure) $(DESTDIR)$(libdir)/libpure.$(DLL)
 	install -m 644 $(lib) $(DESTDIR)$(libdir)/pure
 	install -m 644 pure.1 $(DESTDIR)$(mandir)/pure.1
 
