@@ -3,13 +3,12 @@
    (http://shootout.alioth.debian.org/). It can be used to measure aspects of
    the performance of the Pure interpreter and compiler. 2008-22-04 AG */
 
-/* Pure 0.1 (release build using gcc 4.1 on Linux) does the benchmark with an
-   input value of n=11 in 1m28s on my Athlon 2500+. (This is the user cpu time
-   as reported by 'time', which includes startup and compilation times.) 
-   That's a factor of 34 against the C benchmark on the same machine, which
-   puts Pure in about the same league as MZScheme. That's not bad considering
-   that Pure is a fully dynamic language. Most of the credit goes to LLVM, of
-   course. ;-) */
+/* Pure 0.3 (release build using gcc 4.1 on Linux) does the benchmark with an
+   input value of n=11 in 1m23s on my Athlon 2500+. (This is the user cpu time
+   as reported by 'time', which includes startup and compilation times.) That
+   corresponds to a factor of 31 against the C benchmark on the same machine,
+   which isn't bad considering that Pure is a fully dynamic language. Most of
+   the credit goes to LLVM, of course. ;-) */
 
 ack x::int y::int
 		= y+1 if x == 0;
