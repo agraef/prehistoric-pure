@@ -10,10 +10,12 @@
 #include <ctype.h>
 #include <wctype.h>
 
+#include "config.h"
+
 #ifndef _WIN32
-// disable this if your system doesn't have nl_langinfo()
-#define HAVE_LANGINFO_CODESET
+#ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
+#endif
 #else
 #include <windows.h>
 #endif
@@ -434,13 +436,8 @@ char *default_encoding()
 #endif /* HAVE_LANGINFO_CODESET */
 }
 
-#if defined(__APPLE__) || defined(__MINGW32__)
 #define myiconv(ic, inbuf, inbytes, outbuf, outbytes) \
-  iconv(ic, (const char**)inbuf, inbytes, outbuf, outbytes)
-#else
-#define myiconv(ic, inbuf, inbytes, outbuf, outbytes) \
-  iconv(ic, inbuf, inbytes, outbuf, outbytes)
-#endif
+  iconv(ic, (ICONV_CONST char**)inbuf, inbytes, outbuf, outbytes)
 
 #define CHUNKSZ 128
 
