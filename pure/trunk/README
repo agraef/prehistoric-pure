@@ -27,13 +27,11 @@ for whatever purpose.
 INSTALLATION
 
 Please see the INSTALL file for detailed instructions. On most Unix-like
-systems, the usual 'make && sudo make install' should do the trick. (No
-'configure' step necessary.) This requires GNU make and g++. For other setups,
-you'll probably have to fiddle with the Makefile and the sources. The sources
-should be pretty portable, but the Makefile really needs GNU make right now.
-You'll also need LLVM for the compiler backend (version 2.2 has been tested).
-For your convenience, instructions for installing LLVM are also included in
-the INSTALL file.
+systems, the usual './configure && make && sudo make install' should do the
+trick. This requires GNU make and g++. For other setups, you'll probably have
+to fiddle with the Makefile and the sources. You'll also need LLVM for the
+compiler backend (version 2.2 has been tested). For your convenience,
+instructions for installing LLVM are also included in the INSTALL file.
 
 USING PURE
 
