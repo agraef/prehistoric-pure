@@ -259,6 +259,16 @@ This is like the default build, but disables all optimizations, so compilation
 is faster but the compiled interpreter is *much* slower (a factor of about 2
 on my Linux box). Hence this build is only recommended for debugging purposes.
 
+In addition, there is an option --disable-shared to build an interpreter which
+is linked statically against all required libraries, instead of producing a
+separate runtime library. This works with all build types and is provided as a
+temporary workaround for systems like 64 bit Linux where LLVM refuses to be
+linked into shared libraries (see the notes on 64 bit systems in the NOTES
+section below). This isn't recommended if you don't need it, since it
+drastically increases the size of the executable and thereby the memory
+footprint of the interpreter if several interpreter processes are running
+simultaneously.
+
 RUNNING PURE FROM THE SOURCE DIRECTORY
 ------- ---- ---- --- ------ ---------
 
@@ -323,15 +333,24 @@ in case of a stack overflow.
 64 BIT SYSTEMS
 -- --- -------
 
-64 bit systems are fully supported by Pure. Alas, for unknown reasons the
-debug build currently does *not* work on (some?) 64 bit systems using gcc.
-This has been seen on various different 64 bit Linux versions, YMMV. You can
-tell that you're bitten by this bug if, after running 'make debug' (or using
-similar, custom compilation flags), 'make check' fails on most tests.
-Fortunately, it seems that you can easily work around this by making sure that
-you have at least -O enabled when compiling runtime.cc. Also please note that
-the default and release builds should work fine. 32 bit builds also seem to be
-unaffected.
+64 bit systems are fully supported by Pure. However, LLVM 2.2 apparently
+doesn't like to be linked into shared libraries on x86-64 systems. The symptom
+is that you get strange relocation errors when linking the runtime library
+during the build. In this case you have to build the interpreter as a
+monolithic executable which statically includes all required LLVM and Pure
+interpreter modules. This can be done by configuring with './configure
+--disable-shared'. This has several disadvantages, but seems to be the only
+way to get Pure to work on x86-64 right now. Hopefully, these issues will be
+fixed with the next LLVM release.
+
+Also, for unknown reasons the debug build currently does *not* work on (some?) 
+64 bit systems using gcc. This has been seen on various different 64 bit Linux
+versions, YMMV. You can tell that you're bitten by this bug if a normal build
+works, but 'make check' fails on most tests with the debug build (or if you
+manually disable optimization). Fortunately, it seems that you can easily work
+around this by making sure that you have at least -O enabled when compiling
+runtime.cc. Also please note that the default and release builds should work
+fine. 32 bit builds also seem to be unaffected.
 
 LINUX
 -----
