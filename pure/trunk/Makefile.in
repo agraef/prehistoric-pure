@@ -37,6 +37,11 @@ DESTDIR=
 EXE=@EXEEXT@
 DLL=@DLLEXT@
 
+# Programs.
+
+CXX = @CXX@
+INSTALL = @INSTALL@
+
 # Linker flags and required libraries. These are determined automatically by
 # configure, but if necessary you can also change these on the command line.
 
@@ -151,14 +156,14 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 # installation
 
 install: pure$(EXE)
-	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(man1dir)
-	install pure$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
+	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure $(man1dir)); do $(INSTALL) -d $$x; done
+	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
 ifeq ($(SHARED), yes)
-	install $(libpure) $(DESTDIR)$(libdir)/$(libpure)
+	$(INSTALL) $(libpure) $(DESTDIR)$(libdir)/$(libpure)
 	ln -sf $(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk)
 endif
-	install -m 644 $(srcdir)/lib/*.pure $(DESTDIR)$(libdir)/pure
-	install -m 644 pure.1 $(DESTDIR)$(man1dir)/pure.1
+	for x in $(srcdir)/lib/*.pure; do $(INSTALL) -m 644 $$x $(DESTDIR)$(libdir)/pure; done
+	$(INSTALL) -m 644 pure.1 $(DESTDIR)$(man1dir)/pure.1
 
 uninstall:
 	rm -rf $(DESTDIR)$(bindir)/pure$(EXE) $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(man1dir)/pure.1
