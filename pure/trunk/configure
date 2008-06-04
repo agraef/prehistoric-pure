@@ -2270,7 +2270,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # Check whether --enable-release was given.
 if test "${enable_release+set}" = set; then
   enableval=$enable_release; case "${enableval}" in
-    yes)  CXXFLAGS="-O3 -DNDEBUG -DDEBUG=0" ;;
+    yes)  CPPFLAGS="-DNDEBUG -DDEBUG=0"; CXXFLAGS="-O3" ;;
   esac
 fi
 
@@ -2284,7 +2284,7 @@ fi
 # Check whether --enable-debug2 was given.
 if test "${enable_debug2+set}" = set; then
   enableval=$enable_debug2; case "${enableval}" in
-    yes)  CXXFLAGS="-g -DDEBUG=2" ;;
+    yes)  CPPFLAGS="-DDEBUG=2"; CXXFLAGS="-g" ;;
   esac
 fi
 
