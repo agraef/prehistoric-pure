@@ -17,6 +17,13 @@ AC_ARG_ENABLE(debug2,
   [case "${enableval}" in
     yes)  CPPFLAGS="-DDEBUG=2"; CXXFLAGS="-g" ;;
   esac])
+SHARED=yes
+AC_ARG_ENABLE(shared,
+  [  --disable-shared        link the interpreter statically],
+  [case "${enableval}" in
+    no)   LDFLAGS=-rdynamic; SHARED=no ;;
+  esac])
+AC_SUBST(SHARED)
 AC_CHECK_LIB(gmp, __gmpz_init)
 AC_CHECK_LIB(readline, readline)
 dnl On some systems these are in separate libraries.

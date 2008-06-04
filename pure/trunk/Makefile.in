@@ -73,6 +73,12 @@ libpure      = lib$(libpure_vers)$(DLL)
 libpurelnk   = lib$(libpure_base)$(DLL)
 LIBPURE      = -l$(libpure_vers)
 
+# Whether to build the Pure library. If this is set to anything but "yes", the
+# interpreter will be linked statically. This is necessary on some systems
+# where LLVM cannot be linked in dynamically.
+
+SHARED = @SHARED@
+
 # No need to edit below this line. Unless you really have to. :) ############
 
 SOURCE = expr.cc expr.hh funcall.h interpreter.cc interpreter.hh lexer.ll \
@@ -93,8 +99,13 @@ dist distcheck cleanlogs logs check
 
 all: pure$(EXE)
 
+ifeq ($(SHARED), yes)
 pure$(EXE): pure.o $(libpure)
 	$(CXX) -o $@ $(LDFLAGS) pure.o -L. $(LIBPURE) $(LIBS)
+else
+pure$(EXE): pure.o $(OBJECT)
+	$(CXX) -o $@ $(LDFLAGS) pure.o $(OBJECT) $(LLVM_LIBS) $(LIBS)
+endif
 
 $(libpure): $(OBJECT)
 	$(CXX) -shared -o $@ $(LDFLAGS) $(OBJECT) $(LLVM_LIBS) $(LIBS)
@@ -151,8 +162,10 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 install: pure$(EXE)
 	install -d $(DESTDIR)$(bindir) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(man1dir)
 	install pure$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
+ifeq ($(SHARED), yes)
 	install $(libpure) $(DESTDIR)$(libdir)/$(libpure)
 	ln -sf $(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk)
+endif
 	install -m 644 $(srcdir)/lib/*.pure $(DESTDIR)$(libdir)/pure
 	install -m 644 pure.1 $(DESTDIR)$(man1dir)/pure.1
 
