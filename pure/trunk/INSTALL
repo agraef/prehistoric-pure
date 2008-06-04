@@ -259,15 +259,19 @@ This is like the default build, but disables all optimizations, so compilation
 is faster but the compiled interpreter is *much* slower (a factor of about 2
 on my Linux box). Hence this build is only recommended for debugging purposes.
 
-In addition, there is an option --disable-shared to build an interpreter which
-is linked statically against all required libraries, instead of producing a
-separate runtime library. This works with all build types and is provided as a
-temporary workaround for systems like 64 bit Linux where LLVM refuses to be
-linked into shared libraries (see the notes on 64 bit systems in the NOTES
-section below). This isn't recommended if you don't need it, since it
-drastically increases the size of the executable and thereby the memory
-footprint of the interpreter if several interpreter processes are running
-simultaneously.
+In addition, there is an option to build a "monolithic" interpreter which is
+linked statically against the LLVM libraries, instead of producing a separate
+runtime library:
+
+$ ./configure --disable-shared
+
+This works with all build types and is provided as a temporary workaround for
+systems like 64 bit Linux where LLVM refuses to be linked into shared
+libraries (see the notes on 64 bit systems in the NOTES section below). Please
+note, however, that it is *not* recommended to do this if you don't need it,
+since it drastically increases the size of the executable and thereby the
+memory footprint of the interpreter if several interpreter processes are
+running simultaneously.
 
 RUNNING PURE FROM THE SOURCE DIRECTORY
 ------- ---- ---- --- ------ ---------
@@ -298,7 +302,7 @@ logs and C++ source files generated from Flex and Bison grammars. (Only use
 the latter if you know what you are doing, since it will remove files which
 require special tools to be regenerated.)
 
-There are also a number of targets like 'html' and 'pdf' which generate the
+There also are a number of targets like 'html' and 'pdf' which generate the
 documentation in a variety of formats (this requires groff); see the Makefile
 for details.
 
@@ -337,8 +341,8 @@ in case of a stack overflow.
 doesn't like to be linked into shared libraries on x86-64 systems. The symptom
 is that you get strange relocation errors when linking the runtime library
 during the build. In this case you have to build the interpreter as a
-monolithic executable which statically includes all required LLVM and Pure
-interpreter modules. This can be done by configuring with './configure
+monolithic executable which statically includes all required LLVM and the Pure
+runtime modules. This can be done by configuring with './configure
 --disable-shared'. This has several disadvantages, but seems to be the only
 way to get Pure to work on x86-64 right now. Hopefully, these issues will be
 fixed with the next LLVM release.
@@ -356,13 +360,14 @@ LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
-should build out of the box on all recent Linux distributions.
+should build out of the box on all recent Linux distributions. (But note the
+issues on x86-64 Linux systems described above.)
 
 MAC OSX
 --- ---
 
-Pure works on OSX just fine. A port by Ryan Schmidt exists in the MacPorts
-collection, see http://www.macports.org/.
+Pure has been reported to work on OSX just fine. A port by Ryan Schmidt exists
+in the MacPorts collection, see http://www.macports.org/.
 
 Note that with at least some current versions of the Apple gcc compiler (4.0.1
 and similar) you'll get the (bogus) warning "control reaches end of non-void
