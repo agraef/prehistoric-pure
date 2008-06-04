@@ -18,6 +18,9 @@
 
 using namespace std;
 
+#ifndef HOST
+#define HOST "unknown"
+#endif
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.0"
 #endif
@@ -190,7 +193,8 @@ main(int argc, char *argv[])
   list<string> myargs;
   for (char **args = ++argv; *args; ++args)
     if (*args == string("-h")) {
-      cout << "Pure " << PACKAGE_VERSION << " " << COPYRIGHT << endl << USAGE;
+      cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
+	   << COPYRIGHT << endl << USAGE;
       return 0;
     } else if (*args == string("-i"))
       force_interactive = true;
@@ -212,7 +216,7 @@ main(int argc, char *argv[])
       interp.error(prog + ": invalid option " + *args);
       return 1;
     }
-  interp.init_sys_vars(PACKAGE_VERSION, myargs);
+  interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
   if (want_prelude) {
     // load the prelude if we can find it
     FILE *fp = fopen("prelude.pure", "r");
@@ -252,7 +256,8 @@ main(int argc, char *argv[])
   interp.interactive = true;
   if (isatty(fileno(stdin))) {
     // connected to a terminal, print sign-on and initialize readline
-    cout << "Pure " << PACKAGE_VERSION << " " << COPYRIGHT << endl << LICENSE;
+    cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
+	 << COPYRIGHT << endl << LICENSE;
     if (have_prelude)
       cout << "Loaded prelude from " << prelude << ".\n\n";
     rl_readline_name = "Pure";

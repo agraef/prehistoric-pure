@@ -245,6 +245,7 @@ public:
   virtual ~interpreter();
   // Populate the global environment with some useful variables.
   void init_sys_vars(const string& version = "",
+		     const string& host = "",
 		     const list<string>& argv = list<string>());
 
   // Option data. You can modify these according to your needs.
