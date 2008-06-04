@@ -1205,6 +1205,13 @@ if test -n "$ac_init_help"; then
    esac
   cat <<\_ACEOF
 
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-release        enable the release build
+  --enable-debug          enable the debug build
+  --enable-debug2         enable the maintenance build
+
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
@@ -2259,6 +2266,27 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+# Check whether --enable-release was given.
+if test "${enable_release+set}" = set; then
+  enableval=$enable_release; case "${enableval}" in
+    yes)  CXXFLAGS="-O3 -DNDEBUG -DDEBUG=0" ;;
+  esac
+fi
+
+# Check whether --enable-debug was given.
+if test "${enable_debug+set}" = set; then
+  enableval=$enable_debug; case "${enableval}" in
+    yes)  CXXFLAGS="-g" ;;
+  esac
+fi
+
+# Check whether --enable-debug2 was given.
+if test "${enable_debug2+set}" = set; then
+  enableval=$enable_debug2; case "${enableval}" in
+    yes)  CXXFLAGS="-g -DDEBUG=2" ;;
+  esac
+fi
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
