@@ -219,7 +219,7 @@ For instance, the following 'configure' command changes the default
 compilation options to '-g' and adds '/opt/include' and '/opt/lib' to the
 include and library search paths, respectively:
 
-$ CPPFLAGS=-I/opt/include CXXFLAGS=-g LDFLAGS=-L/opt/lib ./configure
+$ ./configure CPPFLAGS=-I/opt/include CXXFLAGS=-g LDFLAGS=-L/opt/lib
 
 More details on the build and installation process and other available targets
 and options can be found in the Makefile.
@@ -342,10 +342,9 @@ doesn't like to be linked into shared libraries on x86-64 systems. The symptom
 is that you get strange relocation errors when linking the runtime library
 during the build. In this case you have to build the interpreter as a
 monolithic executable which statically includes all required LLVM and the Pure
-runtime modules. This can be done by configuring with './configure
---disable-shared'. This has several disadvantages, but seems to be the only
-way to get Pure to work on x86-64 right now. Hopefully, these issues will be
-fixed with the next LLVM release.
+runtime modules, by configuring with --disable-shared. This has several
+disadvantages, but seems to be the only way to get Pure to work on x86-64
+right now. Hopefully, these issues will be fixed with the next LLVM release.
 
 Also, for unknown reasons the debug build currently does *not* work on (some?) 
 64 bit systems using gcc. This has been seen on various different 64 bit Linux
