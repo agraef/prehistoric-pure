@@ -3,11 +3,13 @@
 
 SHELL = /bin/sh
 
-# Package information.
+# Package and host information.
 
 name    = @PACKAGE_NAME@
 version = @PACKAGE_VERSION@
 dist    = $(name)-$(version)
+
+host    = @host@
 
 # Source and installation paths.
 
@@ -29,29 +31,17 @@ man1dir     = $(mandir)/man1
 
 DESTDIR=
 
-# OS-specific file suffixes. Windows (EXE=.exe, DLL=.dll) is handled
-# automatically by configure, for other systems with unusual conventions set
-# these as needed.
+# OS-specific special filename extensions. configure tries to guess this, but
+# if it guesses wrong, you can set these as needed.
 
 EXE=@EXEEXT@
-ifeq ($(EXE),.exe)
-DLL=.dll
-else
-DLL=.so
-endif
+DLL=@DLLEXT@
 
 # Linker flags and required libraries. These are determined automatically by
-# configure. Use EXTRA_LIBS to add any additional platform-specific libraries
-# that might be required.
+# configure, but if necessary you can also change these on the command line.
 
 LDFLAGS = @LDFLAGS@
-LIBS = @LIBS@ $(EXTRA_LIBS)
-
-ifeq ($(EXE),.exe)
-EXTRA_LIBS = -limagehlp -lpsapi
-else
-EXTRA_LIBS =
-endif
+LIBS = @LIBS@
 
 # Compilation flags.
 
@@ -74,8 +64,9 @@ libpurelnk   = lib$(libpure_base)$(DLL)
 LIBPURE      = -l$(libpure_vers)
 
 # Whether to build the Pure library. If this is set to anything but "yes", the
-# interpreter will be linked statically. This is necessary on some systems
-# where LLVM cannot be linked in dynamically.
+# interpreter is linked statically and no separate runtime library is
+# produced. This is necessary on some systems where LLVM cannot be linked in
+# dynamically.
 
 SHARED = @SHARED@
 
