@@ -18,7 +18,7 @@
 /* Define to 1 if you have the `regex' library (-lregex). */
 #undef HAVE_LIBREGEX
 
-/* Define to the canonical host system name. */
+/* Define to the name of the host system. */
 #undef HOST
 
 /* Define as const if the declaration of iconv() needs const. */
