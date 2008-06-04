@@ -297,9 +297,10 @@ interpreter::~interpreter()
 }
 
 void interpreter::init_sys_vars(const string& version,
+				const string& host,
 				const list<string>& argv)
 {
-  // command line arguments and version information
+  // command line arguments, system and version information
   pure_expr *args = pure_const(symtab.nil_sym().f);
   for (list<string>::const_reverse_iterator it = argv.rbegin();
        it != argv.rend(); it++) {
@@ -311,6 +312,7 @@ void interpreter::init_sys_vars(const string& version,
   defn("argc",		pure_int(argv.size()));
   defn("argv",		args);
   defn("version",	pure_cstring_dup(version.c_str()));
+  defn("sysinfo",	pure_cstring_dup(host.c_str()));
 }
 
 // Errors and warnings.
