@@ -12,8 +12,8 @@ dnl Figure out extra build flags and filename extensions for various systems.
 RDYNAMIC=
 DLLEXT=".so"
 case "$host" in
-    *-*-mingw*)       RDYNAMIC="-rdynamic"; LIBS= "-limagehlp -lpsapi";
-                      DLLEXT=".dll";;
+    *-*-mingw*)       RDYNAMIC="-rdynamic"; LIBS="$LIBS -limagehlp -lpsapi";
+                      LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
     *-*-linux*)       RDYNAMIC="-rdynamic";;
     *-*-freebsd*)     RDYNAMIC="-rdynamic";;
     *-*-darwin*)      DLLEXT=".dylib";;
@@ -50,9 +50,19 @@ AC_SUBST(SHARED)
 dnl Check for libraries.
 AC_CHECK_LIB(gmp, __gmpz_init)
 AC_CHECK_LIB(readline, readline)
-dnl On some systems these are in separate libraries.
+dnl On some systems these are in separate libraries, and may have other names.
+AC_CHECK_LIB(iconv, iconv)
+if test $ac_cv_lib_iconv_iconv = no; then
+  AC_CHECK_LIB(iconv, libiconv)
+fi
 AC_CHECK_LIB(glob, glob)
+if test $ac_cv_lib_glob_glob = no; then
+  AC_CHECK_LIB(glob, xxglob)
+fi
 AC_CHECK_LIB(regex, regcomp)
+if test $ac_cv_lib_regex_regcomp = no; then
+  AC_CHECK_LIB(regex, xxregcomp)
+fi
 dnl iconv and nl_langinfo need special treatment (macros by Bruno Haible).
 AM_ICONV
 AM_LANGINFO_CODESET
