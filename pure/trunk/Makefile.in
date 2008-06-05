@@ -85,6 +85,7 @@ OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
 
 DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO \
 Makefile.in aclocal.m4 configure.ac configure config.h.in \
+config.guess config.sub install-sh \
 $(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.cc pure.1 pure.xml pure.vim \
 examples/*.pure lib/*.pure test/*.pure test/*.log
 
