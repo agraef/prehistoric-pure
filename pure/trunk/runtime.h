@@ -324,6 +324,13 @@ void pure_sys_vars(void);
 int pure_errno(void);
 void pure_set_errno(int value);
 
+#ifdef __MINGW32__
+/* Windows compatibility. */
+
+FILE *popen(const char *command, const char *type);
+int pclose(FILE *stream);
+#endif
+
 /* printf/scanf support. Since we don't support calling C vararg functions
    from Pure right now, these little wrappers are provided to process at most
    one value at a time. It is the responsibility of the caller that the

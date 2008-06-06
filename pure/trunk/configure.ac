@@ -11,9 +11,12 @@ AC_SUBST(host)
 dnl Figure out extra build flags and filename extensions for various systems.
 RDYNAMIC=
 DLLEXT=".so"
+AUX_LIBS=
 case "$host" in
-    *-*-mingw*)       RDYNAMIC="-rdynamic"; LIBS="$LIBS -limagehlp -lpsapi";
-                      LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
+    *-*-mingw*)       RDYNAMIC="-rdynamic"; DLLEXT=".dll";
+                      AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
+                      LIBS="$LIBS -limagehlp -lpsapi";
+                      LDFLAGS="-Wl,--enable-auto-import";;
     *-*-linux*)       RDYNAMIC="-rdynamic";;
     *-*-freebsd*)     RDYNAMIC="-rdynamic";;
     *-*-darwin*)      DLLEXT=".dylib";;
@@ -21,9 +24,12 @@ case "$host" in
 esac
 AC_SUBST(RDYNAMIC)
 AC_SUBST(DLLEXT)
+AC_SUBST(AUXLIBS)
 dnl Check for programs.
 AC_PROG_INSTALL
 AC_PROG_CXX
+dnl Determine pointer sizes. This will be 8 on 64 bit systems.
+AC_CHECK_SIZEOF(void *)
 dnl Parse --enable options.
 AC_ARG_ENABLE(release,
   [  --enable-release        enable the release build],
@@ -47,22 +53,24 @@ AC_ARG_ENABLE(shared,
     no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; SHARED=no ;;
   esac])
 AC_SUBST(SHARED)
+AC_ARG_ENABLE(warnings,
+  [  --enable-warnings       enable compiler warnings (-Wall)],
+  [case "${enableval}" in
+    yes)  CXXFLAGS="$CXXFLAGS -Wall" ;;
+  esac])
 dnl Check for libraries.
 AC_CHECK_LIB(gmp, __gmpz_init)
 AC_CHECK_LIB(readline, readline)
-dnl On some systems these are in separate libraries, and may have other names.
-AC_CHECK_LIB(iconv, iconv)
-if test $ac_cv_lib_iconv_iconv = no; then
-  AC_CHECK_LIB(iconv, libiconv)
+dnl On some systems iconv is in a separate library, and may actually be named
+dnl libiconv.
+AC_CHECK_LIB(iconv, libiconv)
+if test $ac_cv_lib_iconv_libiconv = no; then
+  AC_CHECK_LIB(iconv, iconv)
 fi
+dnl On non-POSIX systems like Windows, we have to get the glob and regex
+dnl functions from separate libraries, too.
 AC_CHECK_LIB(glob, glob)
-if test $ac_cv_lib_glob_glob = no; then
-  AC_CHECK_LIB(glob, xxglob)
-fi
 AC_CHECK_LIB(regex, regcomp)
-if test $ac_cv_lib_regex_regcomp = no; then
-  AC_CHECK_LIB(regex, xxregcomp)
-fi
 dnl iconv and nl_langinfo need special treatment (macros by Bruno Haible).
 AM_ICONV
 AM_LANGINFO_CODESET

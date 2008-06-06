@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "config.h"
 #include "funcall.h"
 
 // Hook to report stack overflows and other kinds of hard errors.
@@ -1068,9 +1069,13 @@ pure_expr *pure_intval(pure_expr *x)
   case EXPR::INT:	return x;
   case EXPR::BIGINT:	return pure_int(mpz_get_ui(x->data.z));
   case EXPR::DBL:	return pure_int((int32_t)x->data.d);
+#if SIZEOF_VOID_P==8
     // Must cast to 64 bit here first, since on 64 bit systems g++ gives an
     // error when directly casting a 64 bit pointer to a 32 bit integer.
   case EXPR::PTR:	return pure_int((uint32_t)(uint64_t)x->data.p);
+#else
+  case EXPR::PTR:	return pure_int((uint32_t)x->data.p);
+#endif
   default:		return 0;
   }
 }
@@ -1097,13 +1102,19 @@ pure_expr *pure_pointerval(pure_expr *x)
   case EXPR::INT:	return pure_pointer((void*)x->data.i);
   case EXPR::BIGINT:
     if (sizeof(mp_limb_t) == 8)
+#if SIZEOF_VOID_P==8
       return pure_pointer((void*)mpz_getlimbn(x->data.z, 0));
-    else if (sizeof(void*) == 4)
-      return pure_pointer((void*)mpz_get_ui(x->data.z));
+#else
+      return pure_pointer((void*)(uint32_t)mpz_getlimbn(x->data.z, 0));
+#endif
     else {
+#if SIZEOF_VOID_P==8
       uint64_t u = mpz_getlimbn(x->data.z, 0) +
 	(((uint64_t)mpz_getlimbn(x->data.z, 1))<<32);
       return pure_pointer((void*)u);
+#else
+      return pure_pointer((void*)mpz_get_ui(x->data.z));
+#endif
     }
   default:		return 0;
   }
@@ -1113,21 +1124,24 @@ static pure_expr *pointer_to_bigint(void *p)
 {
   if (sizeof(mp_limb_t) == 8) {
     // In this case the pointer value ought to fit into a single limb.
+#if SIZEOF_VOID_P==8
     limb_t u[1] = { (uint64_t)p };
+#else
+    limb_t u[1] = { (uint64_t)(uint32_t)p };
+#endif
     return pure_bigint(1, u);
   }
   // 4 byte limbs.
-  if (sizeof(void*) == 4) {
-    // 4 byte pointers. Note that we still cast to 64 bit first, since
-    // otherwise the code will give an error on 64 bit systems.
-    limb_t u[1] = { (uint32_t)(uint64_t)p };
-    return pure_bigint(1, u);
-  } else {
-    // 8 byte pointers, put least significant word in the first limb.
-    assert(sizeof(void*) == 8);
-    limb_t u[2] = { (uint32_t)(uint64_t)p, (uint32_t)(((uint64_t)p)>>32) };
-    return pure_bigint(2, u);
-  }
+#if SIZEOF_VOID_P==8
+  // 8 byte pointers, put least significant word in the first limb.
+  assert(sizeof(void*) == 8);
+  limb_t u[2] = { (uint32_t)(uint64_t)p, (uint32_t)(((uint64_t)p)>>32) };
+  return pure_bigint(2, u);
+#else
+  // 4 byte pointers.
+  limb_t u[1] = { (uint32_t)p };
+  return pure_bigint(1, u);
+#endif
 }
 
 extern "C"
@@ -1603,6 +1617,20 @@ void pure_set_errno(int value)
 {
   errno = value;
 }
+
+#ifdef __MINGW32__
+extern "C"
+FILE *popen(const char *command, const char *type)
+{
+  return _popen(command, type);
+}
+
+extern "C"
+int pclose(FILE *stream)
+{
+  return _pclose(stream);
+}
+#endif
 
 extern "C"
 int pure_fprintf(FILE *fp, const char *format)
