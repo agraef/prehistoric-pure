@@ -69,7 +69,7 @@ extern void free(void* ptr);
 
 extern FILE* fopen(char* name, char* mode);
 extern FILE* popen(char* cmd, char* mode);
-extern int fclose(FILE* fp);
+extern int fclose(FILE* fp), int pclose(FILE* fp);
 extern char* fgets(void* buf, int size, FILE* fp) = c_fgets;
 extern char* gets(void* buf) = c_gets;
 extern int fputs(char* s, FILE* fp), int puts(char* s);
