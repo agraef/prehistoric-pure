@@ -11,8 +11,8 @@ shared library which makes it possible to link external modules against the
 runtime, and reduces the memory footprint when multiple instances of the
 interpreter are run as different processes.
 
-Special thanks are due to Tim Haynes, John Lunney, Eddie Rucker, Libor Spacek
-and Jiri Spitz for contributions, suggestions and bug reports.
+Special thanks to Tim Haynes, John Lunney, Eddie Rucker, Ryan Schmidt, Libor
+Spacek and Jiri Spitz for contributions, suggestions and bug reports.
 
 ** Pure 0.2 2008-05-04
 
