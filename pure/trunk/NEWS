@@ -2,14 +2,15 @@
 ** Pure 0.3 2008-06-06
 
 This release sports a lot of improvements as well as bug and portability
-fixes, see the ChangeLog for details. The build system has gone through a
-major overhaul, adding autoconf support. 64 bit support has been improved, and
-Pure now also works on MS Windows. Moreover, many library functions have been
-rewritten to make them tail-recursive, and some new functions have been added.
-Last but not least, the runtime support is now implemented as a separate
-shared library which makes it possible to link external modules against the
-runtime, and reduces the memory footprint when multiple instances of the
-interpreter are run as different processes.
+fixes, see the ChangeLog for details. Many memory leaks have been plugged, and
+tail call elimination has been improved a lot. The build system has gone
+through a major overhaul, adding autoconf support. 64 bit support has been
+improved as well, and Pure now builds and runs fine on MS Windows. Many
+library functions have been rewritten to make them tail-recursive, and some
+new functions have been added. Last but not least, the runtime support is now
+implemented as a separate shared library which makes it possible to link
+external modules against the runtime, and reduces the memory footprint when
+multiple instances of the interpreter are run as different processes.
 
 Special thanks to Tim Haynes, John Lunney, Eddie Rucker, Ryan Schmidt, Libor
 Spacek and Jiri Spitz for contributions, suggestions and bug reports.
