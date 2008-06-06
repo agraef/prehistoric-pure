@@ -375,7 +375,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       if (jt == interp.globenv.end()) {
 	assert(xt != interp.externals.end());
 	const ExternInfo& info = xt->second;
-	sout << "extern " << info << ";";
+	sout << info << ";";
 	if ((!sflag||lflag) && dflag) {
 	  if (!sflag) sout << endl;
 	  info.f->print(sout);
@@ -396,7 +396,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       } else {
 	if (xt != interp.externals.end()) {
 	  const ExternInfo& info = xt->second;
-	  sout << "extern " << info << ";";
+	  sout << info << ";";
 	  if ((!sflag||lflag) && dflag) {
 	    if (!sflag) sout << endl;
 	    info.f->print(sout);
