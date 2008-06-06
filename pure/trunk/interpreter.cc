@@ -11,6 +11,8 @@
 #include <llvm/System/DynamicLibrary.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 
+#include "config.h"
+
 uint8_t interpreter::g_verbose = 0;
 bool interpreter::g_interactive = false;
 interpreter* interpreter::g_interp = 0;
@@ -61,7 +63,17 @@ interpreter::interpreter()
   if (!g_interp) {
     g_interp = this;
     stackdir = c_stack_dir();
-    llvm::sys::DynamicLibrary::LoadLibraryPermanently("libpure", 0);
+    // Preload some auxiliary dlls. First load the Pure library if we built it.
+#ifdef LIBPURE
+    llvm::sys::DynamicLibrary::LoadLibraryPermanently(LIBPURE, 0);
+#endif
+    // Additional stuff to be loaded on some systems (e.g., Windows).
+#ifdef LIBGLOB
+    llvm::sys::DynamicLibrary::LoadLibraryPermanently(LIBGLOB, 0);
+#endif
+#ifdef LIBREGEX
+    llvm::sys::DynamicLibrary::LoadLibraryPermanently(LIBREGEX, 0);
+#endif
   }
 
   sstk_sz = 0; sstk_cap = 0x10000; // 64K

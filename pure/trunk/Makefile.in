@@ -54,7 +54,7 @@ LLVM_FLAGS = `llvm-config --cppflags`
 LLVM_LIBS = `llvm-config --ldflags --libs core jit native`
 
 CPPFLAGS = @CPPFLAGS@ $(LLVM_FLAGS)
-CXXFLAGS = @CXXFLAGS@ -Wall
+CXXFLAGS = @CXXFLAGS@
 
 # Pure library name. Currently we use a simple versioning scheme, which
 # requires that the library version matches that of the interpreter. With some
@@ -74,6 +74,16 @@ LIBPURE      = -l$(libpure_vers)
 # dynamically.
 
 SHARED = @SHARED@
+
+# Auxiliary libraries to be loaded at runtime. Usually this is just libpure
+# (when built), but on some systems we have to load additional dlls to resolve
+# some library functions.
+
+ifeq ($(SHARED), yes)
+AUXLIBS = -DLIBPURE='"$(libpure)"' @AUXLIBS@
+else
+AUXLIBS = @AUXLIBS@
+endif
 
 # No need to edit below this line. Unless you really have to. :) ############
 
@@ -110,6 +120,9 @@ $(libpure): $(OBJECT)
 
 pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DPURELIB='"$(libdir)/pure"' -c -o $@ $<
+
+interpreter.o: interpreter.cc
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(AUXLIBS) -c -o $@ $<
 
 lexer.cc: lexer.ll
 	flex -o lexer.cc $<
