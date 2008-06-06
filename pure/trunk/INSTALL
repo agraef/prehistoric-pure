@@ -259,6 +259,15 @@ This is like the default build, but disables all optimizations, so compilation
 is faster but the compiled interpreter is *much* slower (a factor of about 2
 on my Linux box). Hence this build is only recommended for debugging purposes.
 
+You can combine all build types with the following option to enable compiler
+warnings (-Wall):
+
+$ ./configure --enable-warnings
+
+This option is useful to check the interpreter sources for questionable
+constructs which might actually be bugs. However, for some older gcc versions
+it spits out lots of bogus warnings, so it is not enabled by default.
+
 In addition, there is an option to build a "monolithic" interpreter which is
 linked statically against the LLVM libraries, instead of producing a separate
 runtime library:
@@ -323,9 +332,10 @@ information on other known limitations of the current implementation.)
 ALL PLATFORMS
 --- ---------
 
-Compiling the default and release versions using gcc will give you the warning
-"dereferencing type-punned pointer will break strict-aliasing rules" at some
-point in util.cc. This is harmless and can be ignored.
+Compiling the default and release versions using gcc with all warnings turned
+on (-Wall) will give you the warning "dereferencing type-punned pointer will
+break strict-aliasing rules" at some point in util.cc. This is harmless and
+can be ignored.
 
 If your Pure program runs out of stack space, the interpreter will segfault.
 This is *not* a bug, it happens because runtime stack checks are disabled by
@@ -369,11 +379,12 @@ Pure has been reported to work on OSX just fine. A port by Ryan Schmidt exists
 in the MacPorts collection, see http://www.macports.org/.
 
 Note that with at least some current versions of the Apple gcc compiler (4.0.1
-and similar) you'll get the (bogus) warning "control reaches end of non-void
-function" a couple of times in interpreter.cc. These are due to a bug in older
-gcc versions (see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558), but they
-are harmless and can be ignored. These warnings should also go away once Apple
-upgrades its SDK to a newer gcc version.
+and similar), with all warnings turned on you'll get the (bogus) warning
+"control reaches end of non-void function" a couple of times in
+interpreter.cc. These are due to a bug in older gcc versions (see
+http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558), but they are harmless and
+can be ignored. These warnings should also go away once Apple upgrades its SDK
+to a newer gcc version.
 
 MS WINDOWS
 -- -------
