@@ -1,0 +1,88 @@
+// Dr Libor Spacek, 21th May 2008
+
+//General mathematical iterators over one and two indices and examples of their use
+MathIter1 op i1 i2 f = foldl1 op (map f (i1..i2));
+MathIter2 op i1 i2 j1 j2 f = foldl1 op (map (uncurry f) [x,y; x = i1..i2; y = j1..j2]);
+
+Sigma i1 i2 f = MathIter1 (+) i1 i2 f;
+Pi i1 i2 f = MathIter1 (*) i1 i2 f;
+Factorial n = Pi 1L n id;
+
+//Binomial using (k, n-k) symmetry and bignum division
+Binomial n k = (Pi (k+1L) n id) div (Pi 2L (n-k) id) if n-k < k;
+	     = (Pi (n-k+1L) n id) div (Pi 2L k id);
+
+// Euclid's recursive greatest common factor algorithm for ints and bignums
+Gcf x 0 = x;
+Gcf x 0L = x;
+Gcf x y = Gcf y (x mod y);
+
+// take the head of a list and put it at the end	
+rotate (h:t) = reverse (h:(reverse t));
+
+// protate = rotate n items from the front: use when n is positive: 0<=n<=#n
+protate 0 l = l;
+protate n::int l = cat [(drop n l),(take n l)];
+
+// rotate n items, generalisation of "rotate the bits instruction"
+// example: head (nrotate (-33) (0..23)); 
+// what time is 33 hrs before midnight? 15 hrs. The clock was moved -9 = -33 mod 24
+nrotate  n::int l = protate nm l when ll = #l; nm = ll + (n mod ll) end if n<0;
+	          = protate nm l when nm = n mod #l end;
+
+// interpret any nonzero result as true: prevents errors in conditions
+nonzero 0 = 0;
+nonzero x = 1;
+
+// The Queens problem: 
+// the solution is only the rows permutation, without the ordered columns (1..n). 
+// full 2D board coordinates can be produced with: zip (1..n) (queens n); 
+safe _ _ [] = 1;
+safe id::int j::int (j2::int:l) = if (j==j2) || (id==j2-j) || (id==j-j2) then 0 
+				  else safe (id+1) j l;
+
+queens n::int = list (search n n n [])
+  with
+   search _ 0 _ _ = (); 	 	          // last i, solved
+   search _ _ 0 _ = 0; 		  	 	  // fail, run out of alternative js
+   search n::int i::int j::int p = 
+     if nonzero solution then j,solution          // new i led to a solution
+     else search n i (j-1) p 		          // or it failed, try another j
+     when solution = search n (i-1) n (j:p); end if safe 1 j p;     		          
+     = search n i (j-1) p			  // also try another j when unsafe
+  end;
+  
+// this concise backtracking tailqueens throw a single solution
+tailqueens n::int = catch id (srch n n n []) 
+  with srch _ 0 _ p = throw p; srch _ _ 0 _ = 0;
+       srch n::int i::int j::int p = () if safe 1 j p && nonzero (srch n (i-1) n (j:p));
+       	   			   = srch n i (j-1) p end;
+  
+// thequeens encodes my no search solution which is my original discovery, 
+// to my knowledge the simplest known algorithm for this kind of a problem.
+// there always exists one fundamental centre-symmetrical solution of this form, 
+// representing an orbit of just four solutions, instead of the usual eight.
+// these few lines of code are self-contained (not calling any square checking).
+thequeens 1 = [0]; thequeens n::int = no solution if n<4;
+thequeens n::int = map (\x-> newsquare n x) (0..(n-1)) 
+  with newsquare n::int x::int = (start+2*x) mod n if x < halfn;
+         		       = (start2+2*(x-halfn)) mod n end //reflections
+  when halfn = n div 2;
+       start = if (n mod 3) then (halfn-1) else 1; // (n mod 3) == 0 is special
+       start2 = n-((start + 2*(halfn-1)) mod n)-1 end if (n mod 2)==0; // all even boards
+  = 0:(map (\x->1+x)(thequeens (n-1)));  // corner start solves odd size boards    
+
+// row numbering in thequeens was changed to the "C style" e.g. 0..7. 
+// full board coordinates, e.g. (1..8) x (1..8) can be reconstructed with: 
+fullboard simple = zip (1..(#simple)) (map (\x->1+x) simple);
+
+// checks one queens solution either in 0..7 encoding or in 1..8 encoding.
+// returns 1 for a valid solution, 0 otherwise 
+checkqs [] = 1;
+checkqs (s::int:l) = if safe 1 s l then checkqs l else 0;
+
+// conducts an exhaustive test of boards of all sizes from min to max, e.g. >queenstest (4..1000);
+// test _ min::int max::int = second argument must be greater than the first if min>=max;
+queenstest [] = 1;
+queenstest (h:l) = if checkqs (thequeens h) then queenstest l else 0;
+
