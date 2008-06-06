@@ -15,7 +15,7 @@
 
 2008-05-28  Albert Graef  <Dr.Graef@t-online.de>
 
-	* interpreter.cc, runtime.cc: Optimization pure_freenew calls.
+	* interpreter.cc, runtime.cc: Optimization of pure_freenew calls.
 
 	* lib/strings.pure: Make 'cycle' work on strings. Reported by
 	Eddie Rucker.
