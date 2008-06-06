@@ -1,3 +1,9 @@
+2008-06-06  Albert Graef  <Dr.Graef@t-online.de>
+
+	* configure.ac, etc.: Added autoconf support. Various fixes for 64
+	bit and Windows compatibility. See the INSTALL file for updated
+	installation instructions.
+
 2008-06-01  Albert Graef  <Dr.Graef@t-online.de>
 
 	* Makefile, interpreter.cc: Put the runtime and interpreter into a
