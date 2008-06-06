@@ -4,18 +4,18 @@ INSTALLING PURE (AND LLVM)
 
 These instructions (mostly by courtesy of Eddie Rucker, thanks Eddie!) explain
 how to compile and install LLVM (which is the compiler backend required by
-Pure) and the Pure interpreter itself. The instructions are for Linux and
-similar, Unix-like systems; the SYSTEM NOTES section at the end of this file
-details the tweaks necessary to make Pure compile and run on various other
-platforms. More information about installing LLVM and the required LLVM source
-packages can be found at http://llvm.org.
+Pure) and the Pure interpreter itself. The instructions are somewhat biased
+towards Linux and other Unix-like systems; the SYSTEM NOTES section at the end
+of this file details the tweaks necessary to make Pure compile and run on
+various other platforms. More information about installing LLVM and the
+required LLVM source packages can be found at http://llvm.org.
 
-Pure is known to work on Linux and Mac OSX, and should compile (with the usual
-amount of tweaking) on all UNIX/POSIX-based platforms. We recommend using
-version 4.x of the GNU C++ compiler; it should be available almost everywhere
-(in fact, since you'll need LLVM anyway, you can also use the gcc frontend
-available for LLVM). You'll also need a Bourne-compatible shell and GNU make,
-which are also readily available on most platforms.
+Pure is known to work on Linux, Mac OSX and MS Windows, and should compile
+(with the usual amount of tweaking) on all recent UNIX/POSIX-based platforms.
+We recommend using version 4.x of the GNU C++ compiler; it should be available
+almost everywhere (in fact, since you'll need LLVM anyway, you can also use
+the gcc frontend available for LLVM). You'll also need a Bourne-compatible
+shell and GNU make, which are also readily available on most platforms.
 
 
 BASIC INSTALLATION
@@ -325,9 +325,10 @@ SYSTEM NOTES
 ====== =====
 
 Pure is known to work on recent Linux and Mac OSX versions under x86, x86-64
-and ppc, but there are a few system-specific quirks which are discussed below.
-(Please also see the CAVEATS AND NOTES section of the manual page for
-information on other known limitations of the current implementation.)
+and ppc, as well as on MS Windows XP, but there are a few system-specific
+quirks which are discussed below.  (Please also see the CAVEATS AND NOTES
+section of the manual page for information on other known limitations of the
+current implementation.)
 
 ALL PLATFORMS
 --- ---------
@@ -375,8 +376,8 @@ issues on x86-64 Linux systems described above.)
 MAC OSX
 --- ---
 
-Pure has been reported to work on OSX just fine. A port by Ryan Schmidt exists
-in the MacPorts collection, see http://www.macports.org/.
+Pure has been reported to work on OSX, and a port by Ryan Schmidt exists in
+the MacPorts collection, see http://www.macports.org/.
 
 Note that with at least some current versions of the Apple gcc compiler (4.0.1
 and similar), with all warnings turned on you'll get the (bogus) warning
@@ -389,12 +390,14 @@ to a newer gcc version.
 MS WINDOWS
 -- -------
 
-Jiri Spitz is currently working on a Windows port using Mingw. Once this is
-finished, we'll provide Windows installation instructions here. For the time
-being, you can try it yourself; porting should be rather straightforward with
-either Cygwin (http://www.cygwin.com/) or Mingw (http://www.mingw.org/), once
-you have all the necessary dependencies and a suitable version of LLVM
-installed.
+Thanks to Jiri Spitz' perseverance, tireless testing and bug reports, the
+latest sources compile and run fine on Windows, using the Mingw port of the
+GNU C++ compiler and the MSys environment from http://www.mingw.org/. (Cygwin
+from http://www.cygwin.com/ probably works as well, but this has not been
+tested.) Just do the usual './configure && make && make install'. You'll need
+LLVM, of course (which builds with Mingw just fine), and a few additional
+libraries for which headers and precompiled binaries are available from the
+Pure website (http://pure-lang.sf.net/).
 
 
 June 2008
