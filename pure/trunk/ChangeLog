@@ -1,5 +1,7 @@
 2008-06-06  Albert Graef  <Dr.Graef@t-online.de>
 
+	* 0.3 release.
+
 	* configure.ac, etc.: Added autoconf support. Various fixes for 64
 	bit and Windows compatibility. See the INSTALL file for updated
 	installation instructions.

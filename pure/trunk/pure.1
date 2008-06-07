@@ -198,7 +198,7 @@ semantics.
 .PP
 Expressions consist of the following elements:
 .TP
-.B Constants: \fR4711, 4711G, 1.2e-3, \(dqHello,\ world!\en\(dq
+.B Constants: \fR4711, 4711L, 1.2e-3, \(dqHello,\ world!\en\(dq
 The usual C'ish notations for integers (decimal, hexadecimal, octal), floating
 point values and double-quoted strings are all provided, although the Pure
 syntax differs in some minor ways, as discussed in the following. First, there
@@ -491,7 +491,7 @@ prelude. You can use
 to handle these kinds of exceptions just like any other. For instance:
 .sp
 .nf
-> fact n = if n>0 then n*fact(n-1) else 1;
+> fact n = \fBif\fP n>0 \fBthen\fP n*fact(n-1) \fBelse\fP 1;
 > catch error (fact foo);
 error failed_cond
 > catch error (fact 100000);
@@ -604,7 +604,7 @@ function from the C library (of course you could just as well put the
 declaration into a script):
 .sp
 .nf
-> extern double sin(double);
+> \fBextern\fP double sin(double);
 > sin 0.3;
 0.29552020666134
 .fi
@@ -613,7 +613,7 @@ For clarity, the parameter types can also be annotated with parameter names,
 e.g.:
 .sp
 .nf
-extern double sin(double x);
+\fBextern\fP double sin(double x);
 .fi
 .sp
 Parameter names in prototypes only serve informational purposes and are for
@@ -678,7 +678,7 @@ the C function from the wrapper. An alias is introduced by terminating the
 declaration with a clause of the form ``= \fIalias\fP''. For instance:
 .sp
 .nf
-> extern double sin(double) = c_sin;
+> \fBextern\fP double sin(double) = c_sin;
 > sin x::double = c_sin x;
 > sin x::int = c_sin (double x);
 > sin 0.3; sin 0;
@@ -687,12 +687,12 @@ declaration with a clause of the form ``= \fIalias\fP''. For instance:
 .fi
 .PP
 External C functions are resolved by the LLVM runtime, which first looks for
-the symbol in the interpreter executable. Since the interpreter links in its
-own runtime support as well as all of the standard C library, these functions
-are ready to be used in Pure programs. Other functions can be made available
-by including them in the runtime, or by linking the interpreter against the
-corresponding modules. Or, better yet, you can just ``dlopen'' shared
-libraries at runtime with a special form of the
+the symbol in the C library and Pure's runtime library (or the interpreter
+executable, if the interpreter was linked statically). Thus all C library and
+Pure runtime functions are readily available in Pure programs. Other functions
+can be provided by including them in the runtime, or by linking the
+interpreter against the corresponding modules. Or, better yet, you can just
+``dlopen'' shared libraries at runtime with a special form of the
 .B using
 clause:
 .sp
@@ -713,9 +713,9 @@ declarations.
 .PP
 Shared libraries opened with \fBusing\fP clauses are searched for on the usual
 system linker path (\fBLD_LIBRARY_PATH\fP on Linux). The necessary filename
-suffix (\fB.so\fP on Linux) will also be supplied automatically. You can also
-specify a full pathname for the library if you prefer that. If a library file
-cannot be found, or if an
+suffix (e.g., \fB.so\fP on Linux or \fB.dll\fP on Windows) will also be
+supplied automatically. You can also specify a full pathname for the library
+if you prefer that. If a library file cannot be found, or if an
 .B extern
 declaration names a function symbol which cannot be resolved, an appropriate
 error message is printed.
@@ -886,7 +886,9 @@ Print information about variable symbols only.
 Output is piped through the
 .BR more (1)
 program to make it easier to read, as some of the options (in particular,
-.BR -c and -d )
+.B -c
+and
+.BR -d )
 may produce excessive amounts of information.
 .PP
 For instance, to list all definitions in all loaded scripts (including the
@@ -1009,8 +1011,8 @@ Again, the new equation was inserted \fIabove\fP the existing lower-priority
 rules, but \fIbelow\fP our previous `foo (x:xs) = x*foo xs;' equation entered
 at the same level. As you can see, we have now effectively replaced our
 original definition of `foo' with a version that calculates list products
-instead of sums, but of course we can easily go back to the previous level to
-restore the previous definition:
+instead of sums, but of course we can easily go back one level to restore the
+previous definition:
 .sp
 .nf
 > \fBclear\fP

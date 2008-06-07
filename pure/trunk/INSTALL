@@ -61,8 +61,8 @@ $ sudo make install
 Note the configure flags; these are for an optimized (non-debug) build and
 disable all compilation targets but the one for your system. (You might wish
 to omit the --enable-targets=host-only if you want to use other LLVM
-applications and offering cross-compilation capabilities.) To do a debug build
-of LLVM, simply leave away all the extra configure parameters (except possibly
+applications offering cross-compilation capabilities.) To do a debug build of
+LLVM, simply leave away all the extra configure parameters (except possibly
 --enable-targets=host-only). Note, however, that this will have an impact on
 the speed of the Pure compiler.
 
@@ -99,7 +99,7 @@ STEP 6. The Pure interpreter should be ready to go now.
 Run Pure interactively as:
 
 $ pure
-Pure 0.3 Copyright (c) 2008 by Albert Graef
+Pure 0.3 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
 This program is free software distributed under the GNU Public License
 (GPL V3 or later). Please see the COPYING file for details.
 Loaded prelude from /usr/local/lib/pure/prelude.pure.
@@ -147,7 +147,8 @@ named 'pure-lang', use the following command instead:
 $ svn co http://pure-lang.svn.sourceforge.net/svnroot/pure-lang pure-lang
 
 This step needs to be done only once; once you've checked out your working
-copy, you can update it to the latest revision by running 'svn up'.
+copy, you can update it to the latest revision at any time by running
+'svn up'.
 
 STEP 5': Configure, build and install Pure:
 
@@ -325,10 +326,10 @@ SYSTEM NOTES
 ====== =====
 
 Pure is known to work on recent Linux and Mac OSX versions under x86, x86-64
-and ppc, as well as on MS Windows XP, but there are a few system-specific
-quirks which are discussed below.  (Please also see the CAVEATS AND NOTES
-section of the manual page for information on other known limitations of the
-current implementation.)
+and ppc, as well as on MS Windows, but there are a few system-specific quirks
+which are discussed below. (Please also see the CAVEATS AND NOTES section of
+the manual page for information on other known limitations of the current
+implementation.)
 
 ALL PLATFORMS
 --- ---------
@@ -392,12 +393,17 @@ MS WINDOWS
 
 Thanks to Jiri Spitz' perseverance, tireless testing and bug reports, the
 latest sources compile and run fine on Windows, using the Mingw port of the
-GNU C++ compiler and the MSys environment from http://www.mingw.org/. (Cygwin
-from http://www.cygwin.com/ probably works as well, but this has not been
-tested.) Just do the usual './configure && make && make install'. You'll need
-LLVM, of course (which builds with Mingw just fine), and a few additional
-libraries for which headers and precompiled binaries are available from the
-Pure website (http://pure-lang.sf.net/).
+GNU C++ compiler and the MSYS environment from http://www.mingw.org/. Just do
+the usual './configure && make && make install'. You'll need LLVM, of course
+(which builds with Mingw just fine), and a few additional libraries for which
+headers and precompiled binaries are available from the Pure website
+(http://pure-lang.sf.net/).
+
+A binary package in msi format is available as well (see "Downloads" on the
+Pure website), which includes all required libraries. The package also
+includes some shortcuts which will be installed in your Program menu, allowing
+you to run the Pure interpreter either in a normal Windows command window or
+the MSYS shell available from http://www.mingw.org/.
 
 
 June 2008
