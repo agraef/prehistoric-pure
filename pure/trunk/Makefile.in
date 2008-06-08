@@ -139,8 +139,14 @@ dvi: pure.dvi
 ps: pure.ps
 pdf: pure.pdf
 
+# We do the html format using rman, because it produces nicer output. If you
+# don't have rman, uncomment the rule below instead.
+
 %.html: %.1
-	groff -man -Thtml $< > $@
+	rman -f HTML -r off $< | sed -e 's/dq/\"/g' -e '/<br>/d' > $@
+
+#%.html: %.1
+#	groff -man -Thtml $< > $@
 
 %.dvi: %.1
 	groff -man -Tdvi $< > $@
