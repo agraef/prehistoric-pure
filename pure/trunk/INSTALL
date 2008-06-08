@@ -392,18 +392,16 @@ MS WINDOWS
 -- -------
 
 Thanks to Jiri Spitz' perseverance, tireless testing and bug reports, the
-latest sources compile and run fine on Windows, using the Mingw port of the
-GNU C++ compiler and the MSYS environment from http://www.mingw.org/. Just do
-the usual './configure && make && make install'. You'll need LLVM, of course
+sources compile and run fine on Windows now, using the Mingw port of the GNU
+C++ compiler and the MSYS environment from http://www.mingw.org/. Just do the
+usual './configure && make && make install'. You'll need LLVM, of course
 (which builds with Mingw just fine), and a few additional libraries for which
 headers and precompiled binaries are available from the Pure website
 (http://pure-lang.sf.net/).
 
 A binary package in msi format is available as well (see "Downloads" on the
-Pure website), which includes all required libraries. The package also
-includes some shortcuts which will be installed in your Program menu, allowing
-you to run the Pure interpreter either in a normal Windows command window or
-the MSYS shell available from http://www.mingw.org/.
+Pure website), which includes all required libraries and some shortcuts to run
+the Pure interpreter and read online documentation in html help format.
 
 
 June 2008
