@@ -143,7 +143,7 @@ pdf: pure.pdf
 # don't have rman, uncomment the rule below instead.
 
 %.html: %.1
-	rman -f HTML -r off $< | sed -e 's/dq/\"/g' -e '/<br>/d' > $@
+	rman -f HTML $< | sed -e 's/dq/\"/g' -e '/<br>/d' > $@
 
 #%.html: %.1
 #	groff -man -Thtml $< > $@
