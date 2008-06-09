@@ -74,6 +74,8 @@ AC_CHECK_LIB(regex, regcomp)
 dnl iconv and nl_langinfo need special treatment (macros by Bruno Haible).
 AM_ICONV
 AM_LANGINFO_CODESET
+dnl Determine how to get alloca.
+AC_FUNC_ALLOCA
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
