@@ -19,7 +19,7 @@ square (a+b); square (a+1); square (a+0);
 
 diff x (u+v)	= diff x u + diff x v;
 diff x (u*v)	= u*diff x v + v*diff x u;
-diff x y	= 1 if str x==str y;
+diff x y	= 1 if x===y;
 		= 0 otherwise;
 
 // Example:
