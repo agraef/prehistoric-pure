@@ -1,0 +1,1218 @@
+.TH Pure 1 "March 2008" "Pure Version 0.x"
+.SH NAME
+pure \- the Pure interpreter
+.SH SYNOPSIS
+\fBpure\fP [-h] [-i] [-n] [-v[\fIlevel\fP]] [\fIscript\fP ...] [-- \fIargs\fP ...]
+.SH OPTIONS
+.TP
+.B -h
+Print help message and exit.
+.TP
+.B -i
+Force interactive mode (read commands from stdin).
+.TP
+.B -n
+Suppress automatic inclusion of the prelude.
+.TP
+.B -v
+Set verbosity level. See below for details.
+.TP
+.B --
+Stop option processing and pass the remaining command line arguments in the
+.B argv
+variable.
+.SH DESCRIPTION
+Pure is a modern-style functional programming language based on term
+rewriting. Pure programs are basically collections of equational rules used to
+evaluate expressions in a symbolic fashion by reducing them to normal form. A
+brief overview of the language can be found in the \fBPURE OVERVIEW\fP section
+below. (In case you're wondering, the name ``Pure'' actually refers to the
+adjective. But you can also write it as ``PURE'' and take this as a recursive
+acronym for the ``Pure Universal Rewriting Engine''.)
+.PP
+.B pure
+is the Pure interpreter. The interpreter has an LLVM backend which
+JIT-compiles Pure programs to machine code, hence programs run blazingly fast
+and interfacing to C modules is easy, while the interpreter still provides a
+convenient, fully interactive environment for running Pure scripts and
+evaluating expressions.
+.PP
+If any source scripts are specified on the command line, they are loaded and
+executed, after which the interpreter exits. Otherwise the interpreter enters
+the interactive read-eval-print loop. You can also use the
+.B -i
+option to enter the interactive loop (continue reading from stdin) even after
+processing some source scripts. To exit the interpreter, just type the
+.B quit
+command or the end-of-file character (^D on Unix) at the beginning of the
+command line.
+.PP
+When the interpreter is in interactive mode and reads from a tty, commands are
+read using
+.BR readline (3)
+(providing completion for all commands listed in section
+.B INTERACTIVE USAGE
+below, as well as for global function and variable symbols) and, when exiting
+the interpreter, the command history is stored in
+.BR ~/.pure_history ,
+from where it is restored the next time you run the interpreter.
+.PP
+Options and source files are processed in the order in which they are given on
+the command line. Processing of options and source files ends when the
+.B --
+option is encountered. Any following parameters are passed to the executing
+script by means of the global
+.B argc
+and
+.B argv
+variables. Moreover, the
+.B version
+variable is set to the Pure interpreter version, and the
+.B sysinfo
+variable provides information about the host system.
+.PP
+If available, the prelude script
+.B prelude.pure
+is loaded by the interpreter prior to any other other definitions, unless the
+.B -n
+option is specified. The prelude as well as other source scripts specified
+with a relative pathname are first searched for in the current directory and
+then in the directory specified with the
+.B PURELIB
+environment variable. If the
+.B PURELIB
+variable is not set, a system-specific default is used.
+.PP
+The
+.B -v
+option is most useful for debugging the interpreter, or if you are interested
+in the code your program gets compiled to. The
+.I level
+argument is optional; it defaults to 1. Six different levels are implemented
+at this time (two more bits are reserved for future extensions). For most
+purposes, only the first two levels will be useful for the average Pure
+programmer; the remaining levels are most likely to be used by the Pure
+interpreter developers.
+.TP
+.B 1 (0x1)
+denotes echoing of parsed definitions and expressions;
+.TP
+.B 2 (0x2)
+adds special annotations concerning local bindings (de Bruijn indices, subterm
+paths; this can be helpful to debug tricky variable binding issues);
+.TP
+.B 4 (0x4)
+adds abstract code snippets (matching automata etc.; you probably want to see
+this only when working on the guts of the interpreter).
+.TP
+.B 8 (0x8)
+dumps the ``real'' output code (LLVM assembler, which is as close to the
+native machine code for your program as it gets; you \fIdefinitely\fP don't
+want to see this unless you have to inspect the generated code for bugs or
+performance issues).
+.TP
+.B 16 (0x10)
+adds debugging messages from the
+.BR bison (1)
+parser; useful for debugging the parser.
+.TP
+.B 32 (0x20)
+adds debugging messages from the
+.BR flex (1)
+lexer; useful for debugging the lexer.
+.PP
+These values can be or'ed together, and, for convenience, can be specified in
+either decimal or hexadecimal. Thus 0xff always gives you full debugging
+output (which isn't most likely be used by anyone but the Pure developers).
+.PP
+Note that the
+.B -v
+option is only applied \fIafter\fP the prelude has been loaded. If you want to
+debug the prelude, use the
+.B -n
+option and specify the
+.B prelude.pure
+file explicitly on the command line. Alternatively, you can also use the
+interactive
+.B list
+command (see the \fBINTERACTIVE USAGE\fP section below) to list definitions
+along with additional debugging information.
+.SH PURE OVERVIEW
+.PP
+Pure is a fairly simple language. Programs are simply collections of
+equational rules defining functions, \fBlet\fP commands binding global
+variables, and expressions to be evaluated. Here's a simple example, entered
+interactively in the interpreter:
+.sp
+.nf
+> // my first Pure example
+> fact 1 = 1;
+> fact n::int = n*fact (n-1) \fBif\fP n>1;
+> \fBlet\fP x = fact 10; x;
+3628800
+.fi
+.PP
+The language is free-format (blanks are insignificant). As indicated,
+definitions and expressions at the toplevel have to be terminated with a
+semicolon. Comments have the same syntax as in C++ (using // for line-oriented
+and /* ... */ for multiline comments; the latter may not be nested).
+.PP
+On the surface, Pure is quite similar to other modern functional languages
+like Haskell and ML. But under the hood it is a much more dynamic and
+reflective language, more akin to Lisp. In particular, Pure is dynamically
+typed, so functions can be fully polymorphic and you can add to the definition
+of an existing function at any time:
+.sp
+.nf
+> fact 1.0 = 1.0;
+> fact n::double = n*fact (n-1) \fBif\fP n>1;
+> fact 10.0;
+3628800.0
+> fact 10;
+3628800
+.fi
+.sp
+Also, due to its term rewriting semantics, Pure can do symbolic evaluations:
+.sp
+.nf
+> square x = x*x;
+> square (a+b);
+(a+b)*(a+b)
+.fi
+.PP
+The Pure language provides built-in support for machine integers (32 bit),
+bigints (implemented using GMP), floating point values (double precision
+IEEE), character strings (UTF-8 encoded) and generic C pointers (these don't
+have a syntactic representation in Pure, though, so they need to be created
+with external C functions). Truth values are encoded as machine integers (as
+you might expect, zero denotes ``false'' and any non-zero value ``true'').
+.PP
+Expressions are generally evaluated from left to right, innermost expressions
+first, i.e., using
+.I call by value
+semantics. Pure also has a few built-in special forms (most notably,
+conditional expressions and the short-circuit logical connectives && and ||)
+which take some of their arguments using
+.I call by name
+semantics.
+.PP
+Expressions consist of the following elements:
+.TP
+.B Constants: \fR4711, 4711L, 1.2e-3, \(dqHello,\ world!\en\(dq
+The usual C'ish notations for integers (decimal, hexadecimal, octal), floating
+point values and double-quoted strings are all provided, although the Pure
+syntax differs in some minor ways, as discussed in the following. First, there
+is a special notation for denoting bigints. Note that an integer constant that
+is too large to fit into a machine integer will be interpreted as a bigint
+automatically. Moreover, as in Python an integer literal immediately followed
+by the uppercase letter ``L'' will always be interpreted as a bigint constant,
+even if it fits into a machine integer. This notation is also used when
+printing bigint constants. Second, character escapes in Pure strings have a
+more flexible syntax borrowed from the author's Q language, which provides
+notations to specify any Unicode character. In particular, the notation
+.BR \e\fIn\fP ,
+where \fIn\fP is an integer literal written in decimal (no prefix),
+hexadecimal (`0x' prefix) or octal (`0' prefix) notation, denotes the Unicode
+character (code point) #\fIn\fP. Since these escapes may consist of a varying
+number of digits, parentheses may be used for disambiguation purposes; thus,
+e.g.
+.B \(dq\e(123)4\(dq
+denotes character #123 followed by the character `4'. The usual C-like escapes
+for special non-printable characters such as
+.B \en
+are also supported. Moreover, you can use symbolic character escapes of the
+form
+.BR \e&\fIname\fP; ,
+where \fIname\fP is any of the XML single character entity names specified in
+the ``XML Entity definitions for Characters'', see
+.IR http://www.w3.org/TR/xml-entity-names/ .
+Thus, e.g., \(dq\e&copy;\(dq denotes the copyright character (code point
+0x000A9).
+.TP
+.B Function and variable symbols: \fRfoo, foo_bar, BAR, bar2
+These consist of the usual sequence of ASCII letters (including the
+underscore) and digits, starting with a letter. Case is significant, but it
+doesn't carry any meaning (that's in contrast to languages like Prolog and Q,
+where variables must be capitalized). Pure simply distinguishes function and
+variable symbols on the left-hand side of an equation by the ``head =
+function'' rule: Any symbol which occurs as the head symbol of a function
+application is a function symbol, all other symbols are variables -- except
+symbols explicitly declared as ``constant'' a.k.a.
+.B nullary
+symbols, see below. Another important thing to know is that in Pure, keeping
+with the tradition of term rewriting, there's no distinction between
+``defined'' and ``constructor'' function symbols; any function symbol can also
+act as a constructor if it happens to occur in a normal form term.
+.TP
+.B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x
+As indicated, these take the form of an identifier or a sequence of ASCII
+punctuation symbols, as defined in the source using corresponding
+\fBprefix\fP, \fBpostfix\fP and \fBinfix\fP declarations, which are discussed
+in section DECLARATIONS. Enclosing an operator in parentheses, such as (+) or
+(\fBnot\fP), turns it into an ordinary function symbol. Symbols can also be
+defined as \fBnullary\fP to denote special constant symbols. See the prelude
+for examples.
+.TP
+.B Lists and tuples: \fR[x,y,z], x..y, x:xs, x,y,z
+The necessary constructors to build lists and tuples are actually defined in
+the prelude: `[]' and `()' are the empty list and tuple, `:' produces list
+``conses'', and `,' produces ``pairs''. As indicated, Pure provides the usual
+syntactic sugar for list values in brackets, such as [x,y,z], which is exactly
+the same as x:y:z:[]. Moreover, the prelude also provides an infix `..' 
+operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0. Pure's
+tuples are a bit unusual, however: They are constructed by just ``paring''
+things using the `,' operator, for which the empty tuple acts as a neutral
+element (i.e., (),x is just x, as is x,()). The pairing operator is
+associative, which implies that tuples are completely flat (i.e., x,(y,z) is
+just x,y,z, as is (x,y),z). This means that there are no nested tuples (tuples
+of tuples), if you need such constructs then you should use lists
+instead. Also note that the parentheses are \fInot\fP part of the tuple syntax
+in Pure, although you \fIcan\fP use parentheses, just as with any other
+expression, for the usual purpose of grouping expressions and overriding
+default precedences and associativity. This means that a list of tuples will
+be printed (and must also be entered) using the ``canonical'' representation
+(x1,y1):(x2,y2):...:[] rather than [(x1,y1),(x2,y2),...] (which denotes just
+[x1,y1,x2,y2,...]).
+.TP
+.B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
+Pure also has list comprehensions which generate lists from an expression and
+one or more ``generator'' and ``filter'' clauses (the former bind a pattern to
+values drawn from a list, the latter are just predicates determining which
+generated elements should actually be added to the output list). List
+comprehensions are in fact syntactic sugar for a combination of nested
+lambdas, conditional expressions and ``catmaps'' (a list operation which
+combines list concatenation and mapping a function over a list, defined in the
+prelude), but they are often much easier to write.
+.TP
+.B Function applications: \fRfoo\ x\ y\ z
+As in other modern FPLs, these are written simply as juxtaposition (i.e., in
+``curried'' form) and associate to the left. Operator applications are written
+using prefix, postfix or infix notation, as the declaration of the operator
+demands, but are just ordinary function applications in disguise. E.g., x+y is
+exactly the same as (+) x y.
+.TP
+.B Conditional expressions: if\fR\ x\ \fBthen\fR\ y\ \fBelse\fR\ z
+Evaluates to y or z depending on whether x is ``true'' (i.e., a nonzero
+integer). An exception is generated if the condition is not an
+integer. Conditional expressions are special forms with call-by-name arguments
+y and z; only one of the branches is actually evaluated. (The logical
+operators && and || are treated in a similar fashion, in order to implement
+short-circuit semantics.)
+.TP
+.B Lambdas: \fR\ex\ ->\ y
+These work pretty much like in Haskell. More than one variable may be bound
+(e.g, \ex\ y\ ->\ x*y), which is equivalent to a nested lambda
+(\ex\ ->\ \ey\ ->\ x*y). Pure also fully supports pattern-matching lambda
+abstractions which match a pattern against the lambda argument and bind
+multiple lambda variables in one go, such as \e(x,y)\ ->\ x*y.
+.TP
+.B Case expressions: case\fR\ x\ \fBof\fR\ \fIrule\fR;\ ...\ \fBend
+Matches an expression, discriminating over a number of different patterns;
+similar to the Haskell \fBcase\fP construct.
+.TP
+.B When expressions: \fRx\ \fBwhen\fR\ \fIrule\fR;\ ...\ \fBend
+An alternative way to bind local variables by matching a collection of subject
+terms against corresponding patterns. Similar to Aardappel's \fBwhen\fP
+construct, but Pure allows more than one definition. Note that multiple
+definitions in a \fBwhen\fP clause are processed from left to right, so that
+later definitions may refer to the variables in earlier ones. In fact, a
+\fBwhen\fP expression with multiple definitions is treated like several
+nested \fBwhen\fP expressions, with the first binding being the ``outermost''
+one.
+.TP
+.B With expressions: \fRx\ \fBwith\fR\ \fIrule\fR;\ ...\ \fBend\fR
+Defines local functions. Like Haskell's \fBwhere\fP construct, but can be used
+anywhere inside an expression (just like Aardappel's \fBwhere\fP, but Pure
+uses the keyword \fBwith\fP which better lines up with \fBcase\fP and
+\fBwhen\fP). Also note that while Haskell lets you do \fIboth\fP function
+definitions and ``pattern bindings'' in its \fBwhere\fP clauses, in Pure you
+have to use \fBwith\fP for the former and \fBwhen\fP for the latter. This is
+necessary because Pure, in contrast to Haskell, does not distinguish between
+defined functions and constructors and thus there is no magic to figure out
+whether an equation is meant as a function definition or a pattern binding.
+.PP
+At the toplevel, a Pure program basically consists of rules a.k.a. equations
+defining functions, variable definitions a.k.a. global ``pattern bindings'',
+and expressions to be evaluated.
+.TP
+.B Rules: \fIlhs\fR = \fIrhs\fR;
+The basic form can also be augmented with a condition \fBif\ \fIguard\fR
+tacked on to the end of the rule (which restricts the applicability of the
+rule to the case that the guard evaluates to a nonzero integer), or the
+keyword
+.B otherwise
+denoting an empty guard which is always true (this is nothing but syntactic
+sugar useful to point out the ``default'' case of a definition; the
+interpreter just treats
+.B otherwise
+as a comment, so it can always be omitted). Moreover, the left-hand side can
+be omitted if it is the same as for the previous rule. This provides a
+convenient means to write out a collection of equations for the same left-hand
+side which discriminates over different conditions:
+.sp
+.nf
+\fIlhs\fR       = \fIrhs\fB if \fIguard\fR;
+          = \fIrhs\fB if \fIguard\fR;
+          ...
+          = \fIrhs\fB otherwise\fR;
+.fi
+.sp
+Rules are used to define functions at the toplevel and in \fBwith\fP
+expressions, as well as inside \fBcase\fP and \fBwhen\fP expressions for the
+purpose of performing pattern bindings (however, for obvious reasons the forms
+without a left-hand side or including a guard are not permitted in \fBwhen\fP
+expressions). When matching against a function call or the subject term in a
+\fBcase\fP expression, the rules are always considered in the order in which
+they are written, and the first matching rule (whose guard evaluates to a
+nonzero value, if applicable) is picked. (Again, the \fBwhen\fP construct is
+treated differently, because each rule is actually a separate pattern
+binding.)
+.sp
+In any case, the left-hand side pattern must not contain repeated variables
+(i.e., rules must be ``left-linear''), except for the ``anonymous'' variable
+`_' which matches an arbitrary value without binding a variable
+symbol. Moreover, a left-hand side variable may be followed by one of the
+special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP,
+to indicate that it can only match a constant value of the corresponding
+built-in type. (This is useful if you want to write rules matching \fIany\fP
+object of one of these types; note that there is no way to write out all
+``constructors'' for the built-in types, as there are infinitely many.)
+.TP
+.B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
+This binds every variable in the left-hand side pattern to the corresponding
+subterm of the evaluated right-hand side.
+.TP
+.B Toplevel expressions: \fIexpr\fR;
+A singleton expression at the toplevel, terminated with a semicolon, simply
+causes the given value to be evaluated (and the result to be printed, when
+running in interactive mode).
+.PP
+Expressions are parsed according to the following precedence rules: Lambda
+binds most weakly, followed by
+.BR when ,
+.B with
+and
+.BR case ,
+followed by conditional expressions (\fBif\fP-\fBthen\fP-\fBelse\fP), followed
+by the ``simple'' expressions (i.e., all other kinds of expressions involving
+operators, function applications, constants, symbols and other primary
+expressions). Precedence and associativity of operator symbols are given by
+their declarations (in the prelude or the user's program), and function
+application binds stronger than all operators. Parentheses can be used to
+override default precedences and associativities as usual.
+.PP
+For instance, here are two more function definitions showing most of these
+elements in action:
+.sp
+.nf
+fact n  = n*fact (n-1) \fBif\fP n>0;
+        = 1 \fBotherwise\fP;
+
+fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
+             \fBwith\fP fibs n = 0, 1 \fBif\fP n<=0;
+                         = \fBcase\fP fibs (n-1) \fBof\fP
+                             a, b = b, a+b;
+                           \fBend\fP;
+             \fBend\fP;
+
+\fBlet\fP facts = map fact (1..10); \fBlet\fP fibs = map fib (1..100);
+facts; fibs;
+.fi
+.PP
+And here's a little list comprehension example: Erathosthenes' classical prime
+sieve.
+.sp
+.nf
+primes n        = sieve (2..n) \fBwith\fP
+  sieve []      = [];
+  sieve (p:qs)  = p : sieve [q; q = qs; q mod p];
+\fBend\fP;
+.fi
+.sp
+For instance:
+.sp
+.nf
+> primes 100;
+[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]
+.fi
+.PP
+If you dare, you can actually have a look at the catmap-lambda-if-then-else
+expression the comprehension expanded to:
+.sp
+.nf
+> list primes
+primes n = sieve (2..n) with sieve [] = []; sieve (p:qs) = p:sieve
+(catmap (\eq -> if q mod p then [q] else []) qs) end;
+.fi
+.PP
+List comprehensions are also a useful device to organize backtracking
+searches. For instance, here's an algorithm for the n queens problem, which
+returns the list of all placements of n queens on an n x n board (encoded as
+lists of n pairs (i,j) with i = 1..n), so that no two queens hold each other
+in check.
+.sp
+.nf
+queens n        = search n 1 [] \fBwith\fP
+  search n i p  = [reverse p] \fBif\fP i>n;
+                = cat [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
+  safe (i,j) p  = not any (check (i,j)) p;
+  check (i1,j1) (i2,j2)
+                = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
+\fBend\fP;
+.fi
+.SH EXCEPTION HANDLING
+Pure also offers a useful exception handling facility. To raise an exception,
+you just invoke the built-in function
+.B throw
+with the value to be thrown as the argument. To catch an exception, you use
+the built-in special form
+.B catch
+with the exception handler (a function to be applied to the exception value)
+as the first and the expression to be evaluated as the second (call-by-name)
+argument. For instance:
+.sp
+.nf
+> catch error (throw hello_world);
+error hello_world
+.fi
+.PP
+Exceptions are also generated by the runtime system if the program runs out of
+stack space, when a guard does not evaluate to a truth value, and when the
+subject term fails to match the pattern in a pattern-matching lambda
+abstraction, or a \fBlet\fP, \fBcase\fP or \fBwhen\fP construct. These types
+of exceptions are reported using the symbols
+.BR stack_fault ,
+.B failed_cond
+and
+.BR failed_match ,
+respectively, which are declared as constant symbols in the standard
+prelude. You can use
+.B catch
+to handle these kinds of exceptions just like any other. For instance:
+.sp
+.nf
+> fact n = \fBif\fP n>0 \fBthen\fP n*fact(n-1) \fBelse\fP 1;
+> catch error (fact foo);
+error failed_cond
+> catch error (fact 100000);
+error stack_fault
+.fi
+.PP
+(You'll only get the latter kind of exception if the interpreter does stack
+checks, see the discussion of the
+.B PURE_STACK
+environment variable in the CAVEATS AND NOTES section.)
+.PP
+Note that unhandled exceptions are reported by the interpreter with a
+corresponding error message:
+.sp
+.nf
+> fact foo;
+<stdin>:2.0-7: unhandled exception 'failed_cond' while evaluating 'fact foo'
+.fi
+.PP
+Exceptions can also be used to implement non-local value returns. For
+instance, here's a variation of our n queens algorithm which only returns the
+first solution. Note the use of
+.B throw
+in the recursive search routine to bail out with a solution as soon as we
+found one. The value thrown there is caught in the main routine. If no value
+gets thrown, the function regularly returns with () to indicate that there is
+no solution.
+.sp
+.nf
+queens1 n       = catch reverse (search n 1 []) \fBwith\fP
+  search n i p  = throw p \fBif\fP i>n;
+                = void [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
+  safe (i,j) p  = not any (check (i,j)) p;
+  check (i1,j1) (i2,j2)
+                = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
+\fBend\fP;
+.fi
+.PP
+E.g., let's compute a solution for a standard 8x8 board:
+.sp
+.nf
+> queens 8;
+(1,1):(2,5):(3,8):(4,6):(5,3):(6,7):(7,2):(8,4):[]
+.fi
+.SH DECLARATIONS
+As you probably noticed, Pure is very terse. That's because, in contrast to
+hopelessly verbose languages like Java, you don't declare much stuff in Pure,
+you just define it and be done with it. Usually, all necessary information
+about the defined symbols is inferred automatically. However, there are a few
+toplevel constructs which let you declare special symbol attributes and manage
+programs consisting of several source modules. These are: operator and
+constant symbol declarations,
+.B extern
+declarations for external C functions (described in the next section), and
+.B using
+clauses which provide a simple include file mechanism.
+.TP
+.B Operator and constant declarations: infix \fIlevel\fP \fIop\fR ...;
+Ten different precedence levels are available for user-defined operators,
+numbered 0 (lowest) thru 9 (highest). On each precedence level, you can
+declare (in order of increasing precedence)
+.BR infix " (binary non-associative),"
+.BR infixl " (binary left-associative),"
+.BR infixr " (binary right-associative),"
+.BR prefix " (unary prefix) and"
+.BR postfix " (unary postfix)"
+operators. For instance:
+.sp
+.nf
+\fBinfixl\fP 6 + - ;
+\fBinfixl\fP 7 * / div mod ;
+.fi
+.sp
+Moreover, constant symbols are introduced using a declaration of
+the form:
+.sp
+.nf
+\fBnullary \fIsymbol\fR ...;
+.fi
+.sp
+Examples for all of these can be found in the prelude which declares a bunch
+of standard (arithmetic, relational, logical) operator symbols as well as the
+list and pair constructors `:' and `,' and the constant symbols `[]' and `()'
+denoting the empty list and tuple, respectively.
+.TP
+.B Using clause: using \fIname\fR ...;
+Causes each given script to be included, at the position of the
+.B using
+clause, but only if the script was not included already. The script name can
+be specified either as a string denoting the proper filename (possibly
+including path and/or filename extension), or as an identifier. In the latter
+case, the
+.B .pure
+filename extension is added automatically. In both cases, the script is
+searched for in the current directory and the directory named by the
+.B PURELIB
+environment variable. (The
+.B using
+clause also has an alternative form which allows dynamic libraries to be
+loaded, this will be discussed in the following section.)
+.SH C INTERFACE
+Accessing C functions from Pure programs is dead simple. You just need an
+.B extern
+declaration of the function, which is a simplified kind of C prototype. The
+function can then be called in Pure just like any other. For instance, the
+following commands, entered interactively in the interpreter, let you use the
+.B sin
+function from the C library (of course you could just as well put the
+.B extern
+declaration into a script):
+.sp
+.nf
+> \fBextern\fP double sin(double);
+> sin 0.3;
+0.29552020666134
+.fi
+.sp
+For clarity, the parameter types can also be annotated with parameter names,
+e.g.:
+.sp
+.nf
+\fBextern\fP double sin(double x);
+.fi
+.sp
+Parameter names in prototypes only serve informational purposes and are for
+the human reader; they are effectively treated as comments by the compiler.
+.PP
+The interpreter makes sure that the parameters in a call match; if not, the
+call is treated as a normal form expression. The range of supported C types is
+a bit limited right now (void, bool, char, short, int, long, double, as well
+as arbitrary pointer types, i.e.: void*, char*, etc.), but in practice these
+should cover most kinds of calls that need to be done when interfacing to C
+libraries.
+.PP
+Since Pure only has 32 bit machine integers and GMP bigints, a variety of C
+integer types are provided which are converted from/to the Pure types in a
+straightfoward way. The short type indicates 16 bit integers which are
+converted from/to Pure machine ints using truncation and sign extension,
+respectively. The long type
+.I always
+denotes 64 bit integers, even if the corresponding C type is actually 32 bit
+(as it usually is on most contemporary systems). This type is to be used if a
+C function takes or returns 64 bit integer values. For a long parameter you
+can either pass a Pure machine int (which is sign-extended to 64 bit) or a
+Pure bigint (which is truncated to 64 bit if necessary). 64 bit return values
+are always converted to (signed) Pure bigints.
+.PP
+Concerning the pointer types, char* is for string arguments and return values
+which need translation between Pure's internal utf-8 representation and the
+system encoding, while void* is for any generic kind of pointer (including
+strings, which are \fInot\fP translated when passed/returned as void*). Any
+other kind of pointer (except expr*, see below) is effectively treated as
+void* right now, although in a future version the interpreter may keep track
+of the type names for the purpose of checking parameter types.
+.PP
+The expr* pointer type is special; it indicates a Pure expression parameter or
+return value which is just passed through unchanged. All other types of values
+have to be ``unboxed'' when they are passed as arguments (i.e., from Pure to
+C) and ``boxed'' again when they are returned as function results (from C to
+Pure). All of this is handled by the runtime system in a transparent way, of
+course.
+.PP
+It is even possible to augment an external C function with ordinary Pure
+equations, but in this case you have to make sure that the
+.B extern
+declaration of the function comes first. For instance, we might want to extend
+our imported
+.B sin
+function with a rule to handle integers:
+.sp
+.nf
+> sin 0;
+sin 0
+> sin x::int = sin (double x);
+> sin 0;
+0.0
+.fi
+.PP
+Sometimes it is preferable to replace a C function with a wrapper function
+written in Pure. In such a case you can specify an \fIalias\fP under which the
+original C function is known to the Pure program, so that you can still call
+the C function from the wrapper. An alias is introduced by terminating the
+.B extern
+declaration with a clause of the form ``= \fIalias\fP''. For instance:
+.sp
+.nf
+> \fBextern\fP double sin(double) = c_sin;
+> sin x::double = c_sin x;
+> sin x::int = c_sin (double x);
+> sin 0.3; sin 0;
+0.29552020666134
+0.0
+.fi
+.PP
+External C functions are resolved by the LLVM runtime, which first looks for
+the symbol in the C library and Pure's runtime library (or the interpreter
+executable, if the interpreter was linked statically). Thus all C library and
+Pure runtime functions are readily available in Pure programs. Other functions
+can be provided by including them in the runtime, or by linking the
+interpreter against the corresponding modules. Or, better yet, you can just
+``dlopen'' shared libraries at runtime with a special form of the
+.B using
+clause:
+.sp
+.nf
+\fBusing\fP "lib:\fIlibname\fR[.\fIext\fP]";
+.fi
+.sp
+For instance, if you want to call the GMP functions directly from Pure:
+.sp
+.nf
+\fBusing\fP "lib:libgmp";
+.fi
+.sp
+After this declaration the GMP functions will be ready to be imported into
+your Pure program by means of corresponding
+.B extern
+declarations.
+.PP
+Shared libraries opened with \fBusing\fP clauses are searched for on the usual
+system linker path (\fBLD_LIBRARY_PATH\fP on Linux). The necessary filename
+suffix (e.g., \fB.so\fP on Linux or \fB.dll\fP on Windows) will also be
+supplied automatically. You can also specify a full pathname for the library
+if you prefer that. If a library file cannot be found, or if an
+.B extern
+declaration names a function symbol which cannot be resolved, an appropriate
+error message is printed.
+.SH STANDARD LIBRARY
+Pure comes with a collection of Pure library modules, which includes the
+standard prelude. Right now the library is pretty rudimentary, but it offers
+the necessary functions to work with the built-in types (including arithmetic
+and logical operations) and to do most kind of list processing you can find in
+ML- and Haskell-like languages. Please refer to the
+.B prelude.pure
+file for details on the provided operations. Also, the beginnings of a system
+interface can be found in the
+.B system.pure
+module. In particular, this also includes operations to do basic I/O. More
+stuff will be provided in future releases.
+.SH INTERACTIVE USAGE
+In interactive mode, the interpreter reads definitions and expressions and
+processes them as usual. The input language is just the same as for source
+scripts, and hence individual definitions and expressions \fImust\fP be
+terminated with a semicolon before they are processed. For instance, here is a
+simple interaction which defines the factorial and then uses that definition
+in some evaluations. Input lines begin with ``>'', which is the interpreter's
+default command prompt:
+.sp
+.nf
+> fact 1 = 1;
+> fact n = n*fact (n-1) \fBif\fP n>1;
+> \fBlet\fP x = fact 10; x;
+3628800
+> map fact (1..10);
+[1,2,6,24,120,720,5040,40320,362880,3628800]
+.fi
+.PP
+When running interactively, the interpreter also accepts a number of special
+commands useful for interactive purposes. Here is a quick rundown of the
+currently supported operations:
+.TP
+.B "! \fIcommand\fP"
+Shell escape.
+.TP
+.B "cd \fIdir\fP"
+Change the current working dir.
+.TP
+.B "clear \fR[\fIsymbol\fP ...]\fP"
+Purge the definitions of the given symbols (functions or global variables). If
+no symbols are given, purge \fIall\fP definitions (after confirmation) made
+after the most recent
+.B save
+command (or the beginning of the interactive session).
+See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+.TP
+.B "help \fR[\fIargs\fP]\fP"
+Display the
+.BR pure (1)
+manpage, or invoke
+.BR man (1)
+with the given arguments.
+.TP
+.B "list \fR[\fIoption\fP ...]\fP \fR[\fIsymbol\fP ...]\fP"
+List defined symbols in various formats.
+See the \fBLIST COMMAND\fP section below for details.
+.TP
+.B "ls \fR[\fIargs\fP]\fP"
+List files (shell \fBls\fP(1) command).
+.TP
+.B override
+Enter ``override'' mode. This allows you to add equations ``above'' existing
+definitions in the source script, possibly overriding existing equations.
+See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+.TP
+.B pwd
+Print the current working dir (shell \fBpwd\fP(1) command).
+.TP
+.B quit
+Exits the interpreter.
+.TP
+.B "run \fIscript\fP"
+Loads the given script file and adds its definitions to the current
+environment. This works more or less like a
+.B using
+clause, but loads the script ``anonymously'', as if the contents of the script
+had been typed at the command prompt. That is,
+.B run
+doesn't check whether the script is being used already and it puts the
+definitions on the current temporary level (so that
+.B clear
+can be used to remove them again).
+.TP
+.B save
+Begin a new level of temporary definitions. A subsequent
+.B clear
+command (see above) will purge all definitions made after the most recent
+.B save
+(or the beginning of the interactive session).
+See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+.TP
+.B "stats \fR[on|off]\fP"
+Enables (default) or disables ``stats'' mode, in which various statistics are
+printed after an expression has been evaluated. Currently, this just prints
+the cpu time in seconds for each evaluation, but in the future additional
+profiling information may be provided.
+.TP
+.B underride
+Exits ``override'' mode. This returns you to the normal mode of operation,
+where new equations are added `below'' previous rules of an existing function.
+See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+.PP
+Note that these special commands are only recognized at the beginning of the
+interactive command line. (Thus you can escape a symbol looking like a command
+by prefixing it with a space.)
+.PP
+Some commands which are especially important for effective operation of the
+interpreter are discussed in more detail in the following sections.
+.SH LIST COMMAND
+In interactive mode, the
+.B list
+command can be used to obtain information about defined symbols in various
+formats. This command recognizes the following options. Options may be
+combined, thus, e.g., \fBlist\fP -tvl is the same as \fBlist\fP -t -v -l.
+.TP
+.B -c
+Annotate printed definitions with compiled code (matching automata). Works
+like the
+.B -v4
+option of the interpreter.
+.TP
+.B -d
+Disassembles LLVM IR, showing the generated LLVM assembler code of a
+function. Works like the
+.B -v8
+option of the interpreter.
+.TP
+.B -e
+Annotate printed definitions with lexical environment information (de Bruijn
+indices, subterm paths). Works like the
+.B -v2
+option of the interpreter.
+.TP
+.B -f
+Print information about function symbols only.
+.TP
+.B -g
+Indicates that the following symbols are actually shell glob patterns and that
+all matching symbols should be listed.
+.TP
+.B -h
+Print a short help message.
+.TP
+.B -l
+Long format, prints definitions along with the summary symbol information.
+This implies \fB-s\fP.
+.TP
+.B -s
+Summary format, print just summary information about listed symbols.
+.TP
+.B -t[\fIlevel\fP]
+List only ``temporary'' symbols and definitions at the given \fIlevel\fP (the
+current level by default) or above. The \fIlevel\fP parameter, if given, must
+immediately follow the option character. A \fIlevel\fP of 1 denotes all
+temporary definitions, whereas 0 indicates \fIall\fP definitions (which is the
+default if \fB-t\fP is not specified). See the \fBDEFINITION LEVELS AND
+OVERRIDE MODE\fP section below for information about the notion of temporary
+definition levels.
+.TP
+.B -v
+Print information about variable symbols only.
+.PP
+Output is piped through the
+.BR more (1)
+program to make it easier to read, as some of the options (in particular,
+.B -c
+and
+.BR -d )
+may produce excessive amounts of information.
+.PP
+For instance, to list all definitions in all loaded scripts (including the
+prelude), simply say:
+.sp
+.nf
+> \fBlist\fP
+.fi
+.PP
+This may produce quite a lot of output, depending on which scripts are
+loaded. The following command will only show summary information about the
+variable symbols along with their current values (using the ``long format''):
+.sp
+.nf
+> \fBlist\fP -lv
+argc     var  argc = 0;
+argv     var  argv = [];
+sysinfo  var  sysinfo = "i686-pc-linux-gnu";
+version  var  version = "0.1";
+4 variables
+.fi
+.PP
+If you're like me then you'll frequently have to look up how some operations
+are defined. No sweat, with the Pure interpreter there's no need to dive into
+the sources, the
+.B list
+command can easily do it for you. For instance, here's how you can list the
+definitions of all list ``zipping'' operations from the prelude in one go:
+.sp
+.nf
+> \fBlist\fP -g zip*
+zip (x:xs) (y:ys) = (x,y):zip xs ys;
+zip _ _ = [];
+zip3 (x:xs) (y:ys) (z:zs) = (x,y,z):zip3 xs ys zs;
+zip3 _ _ _ = [];
+zipwith f (x:xs) (y:ys) = f x y:zipwith f xs ys;
+zipwith f _ _ = [];
+zipwith3 f (x:xs) (y:ys) (z:zs) = f x y z:zipwith3 f xs ys zs;
+zipwith3 f _ _ _ = [];
+.fi
+.SH DEFINITION LEVELS AND OVERRIDE MODE
+To help with incremental development, the interpreter also offers some
+facilities to manipulate the current set of definitions interactively. To
+these ends, defined symbols and their definitions are organized into different
+subsets called \fIlevels\fP. The prelude, as well as other source programs
+specified when invoking the interpreter, are always at level 0, while the
+interactive environment starts at level 1.
+.PP
+Each \fBsave\fP command introduces a new temporary level, and each subsequent
+\fBclear\fP command ``pops'' the symbols and definitions on the current level
+(including any definitions read using the
+.B run
+command) and returns you to the previous one. This gives you a ``stack'' of up
+to 255 temporary environments which enables you to ``plug and play'' in a safe
+fashion, without affecting the rest of your program. Example:
+.sp
+.nf
+> \fBsave\fP
+save: now at temporary definitions level #2
+> foo (x:xs) = x+foo xs;
+> foo [] = 0;
+> \fBlist\fP foo
+foo (x:xs) = x+foo xs;
+foo [] = 0;
+> foo (1..10);
+55
+> \fBclear\fP
+This will clear all temporary definitions at level #2. Continue (y/n)? y
+clear: now at temporary definitions level #1
+> \fBlist\fP foo
+> foo (1..10);
+foo [1,2,3,4,5,6,7,8,9,10]
+.fi
+.PP
+We've seen already that normally, if you enter a sequence of equations, they
+will be recorded in the order in which they were written. However, it is also
+possible to override definitions in lower levels with the
+.B override
+command:
+.sp
+.nf
+> foo (x:xs) = x+foo xs;
+> foo [] = 0;
+> \fBlist\fP foo
+foo (x:xs) = x+foo xs;
+foo [] = 0;
+> foo (1..10);
+55
+> \fBsave\fP
+save: now at temporary definitions level #2
+> \fBoverride\fP
+> foo (x:xs) = x*foo xs;
+> \fBlist\fP foo
+foo (x:xs) = x*foo xs;
+foo (x:xs) = x+foo xs;
+foo [] = 0;
+> foo (1..10);
+0
+.fi
+.PP
+Note that the equation `foo (x:xs) = x*foo xs;' was inserted before the
+previous `foo (x:xs) = x+foo xs;' rule, which is at level #1.
+.PP
+Even in override mode, new definitions will be added \fIafter\fP other
+definitions at the \fIcurrent\fP level. This allows us to just continue adding
+more high-priority definitions overriding lower-priority ones:
+.sp
+.nf
+> foo [] = 1;
+> \fBlist\fP foo
+foo (x:xs) = x*foo xs;
+foo [] = 1;
+foo (x:xs) = x+foo xs;
+foo [] = 0;
+> foo (1..10);
+3628800
+.fi
+.PP
+Again, the new equation was inserted \fIabove\fP the existing lower-priority
+rules, but \fIbelow\fP our previous `foo (x:xs) = x*foo xs;' equation entered
+at the same level. As you can see, we have now effectively replaced our
+original definition of `foo' with a version that calculates list products
+instead of sums, but of course we can easily go back one level to restore the
+previous definition:
+.sp
+.nf
+> \fBclear\fP
+This will clear all temporary definitions at level #2. Continue (y/n)? y
+clear: now at temporary definitions level #1
+clear: override mode is on
+> \fBlist\fP foo
+foo (x:xs) = x+foo xs;
+foo [] = 0;
+> foo (1..10);
+55
+.fi
+.PP
+Note that
+.B clear
+reminded us that override mode is still enabled (\fBsave\fP will do the same
+if override mode is on while pushing a new definitions level). To turn it off
+again, use the
+.B underride
+command. This will revert to the normal behaviour of adding new equations
+below existing ones:
+.sp
+.nf
+> \fBunderride\fP
+.fi
+.SH CAVEATS AND NOTES
+.B Debugging.
+There's no symbolic debugger yet. So
+.BR printf (3)
+(available in the
+.B system
+standard library module) should be your friend. ;-)
+.PP
+.B Tuples and parentheses.
+Please note that parentheses are really only used to group expressions and are
+\fInot\fP part of the tuple syntax; tuples are in fact not really part of the
+Pure language at all, but are implemented in the prelude. As you can see
+there, the pairing operator `,' used to construct tuples is
+(right-)associative. We call these the ``poor man's tuples'' since they are
+always flat and thus there are no nested tuples (if you need this then you
+should use lists instead). This also implies that an expression like
+[(1,2),(3,4)] is in fact exactly the same as [1,2,3,4]. If you want to denote
+a list of tuples, you must use the syntax (1,2):(3,4):[] instead; this is also
+the notation used when the interpreter prints such objects.
+.PP
+.B Special forms.
+Special forms are recognized at compile time only. Thus the catch function as
+well as the short-circuit logical connectives && and || are only treated as
+special forms in direct (saturated) calls. They can still be used if you pass
+them around as function values or partial applications, but in this case they
+lose all their special call-by-name argument processing.
+.PP
+.B Manipulating function applications.
+The ``head = function'' rule means that the head symbol f of an application f
+x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
+binding, or pattern-matching lambda expression, is always interpreted as a
+literal function symbol (not a variable). This implies that you cannot match
+the ``function'' component of an application against a variable, and thus you
+cannot directly define a generic function which operates on arbitrary function
+applications. As a remedy, the prelude provides three operations to handle
+such objects:
+.BR applp ,
+a predicate which checks whether a given expression is a function application,
+and
+.B fun
+and
+.BR arg ,
+which determine the function and argument parts of such an expression,
+respectively. (This may seem a little awkward, but as a matter of fact the
+``head = function'' rule is quite convenient since it covers the common cases
+without forcing the programmer to declare ``constructor'' symbols (except
+nullary symbols). Also note that in standard term rewriting you do not have
+rules parameterizing over the head symbol of a function application either.)
+.PP
+.B Numeric types.
+If possible, you should always decorate numeric variables on the left-hand
+sides of function definitions with the appropriate type tags, like
+.B ::int
+or
+.BR ::double .
+This often helps the compiler to generate better code and makes your programs
+run faster.
+.PP
+Talking about the built-in types, please note that
+.B int
+(the machine integers) and
+.B bigint
+(the GMP ``big'' integers) are really different kinds of objects, and thus if
+you want to define a function operating on both kinds of integers, you'll also
+have to provide equations for both. This also applies to equations matching
+against constant values of these types; in particular, a small integer
+constant like `0' only matches machine integers, not bigints; for the latter
+you'll have to use the ``big L'' notation `0L'.
+.PP
+.B External C functions.
+The interpreter always takes your
+.B extern
+declarations of C routines at face value. It will not go and read any C header
+files to determine whether you actually declared the function correctly! So
+you have to be careful to give the proper declarations, otherwise your program
+will probably segfault calling the function.
+.PP
+You also have to be careful when passing generic pointer values to external C
+routines, since currently there is no type checking for these; any pointer
+type other than char* and expr* is effectively treated as void*. This
+considerably simplifies lowlevel programming and interfacing to C libraries,
+but also makes it very easy to have your program segfault all over the place! 
+Therefore it is highly recommended that you wrap your lowlevel code in Pure
+routines and data structures which do all the checks necessary to ensure that
+only the right kind of data is passed to C routines.
+.PP
+.B Stack size and tail recursion.
+Pure programs may need a considerable amount of stack space to handle
+recursive function calls, and the interpreter itself also takes its toll. So
+you may have to configure your system accordingly (8 MB of stack space is
+recommended for 32 bit systems, systems with 64 bit pointers probably need
+more). If the
+.B PURE_STACK
+environment variable is defined, the interpreter performs advisory stack
+checks and raises a Pure exception if the current stack size exceeds the given
+limit. The value of
+.B PURE_STACK
+should be the maximum stack size in kilobytes. Please note that this is only
+an advisory limit which does \fInot\fP change the program's physical stack
+size. Your operating system should supply you with a command such as
+.BR ulimit (1)
+to set the real process stack size. Also note that this feature isn't 100%
+foolproof yet, since for performance reasons the stack will be checked only on
+certain occasions, such as entry into a global function.
+.PP
+Fortunately, Pure normally does proper tail calls (if LLVM provides that
+feature on the platform at hand), so most tail-recursive definitions should
+work fine in limited stack space. For instance, the following little program
+will loop forever if your platform supports the required optimizations:
+.sp
+.nf
+loop = loop;
+.fi
+.PP
+In the current implementation, a tail call will be eliminated \fIonly\fP if
+the call is done \fIdirectly\fP, i.e., through an explicit call, not through a
+(global or local) function variable. Otherwise the call will be handled by the
+runtime system which is written in C and can't do proper tail calls because C
+can't (at least not in a portable way). This also affects mutually recursive
+global function calls, since there the calls are handled in an indirect way,
+too, through an anonymous global variable. (This is done so that a global
+function definition can be changed at any time during an interactive session,
+without having to recompile the entire program.) However, mutual tail
+recursion does work with \fIlocal\fP functions, so it's easy to work around
+this limitation.
+.PP
+Scheme programmers should note that conditional expressions
+(\fBif\fP-\fBthen\fP-\fBelse\fP) are tail-recursive in both branches, just
+like in Scheme, while the logical operators && and || are
+.I not
+tail-recursive. This is because the logical operators always return a proper
+truth value (0 or 1) which wouldn't be possible with tail call semantics.
+.SH FILES
+.TP
+.B ~/.pure_history
+Interactive command history.
+.TP
+.B prelude.pure
+Standard prelude. If available, this script is loaded before any other
+definitions, unless
+.B -n
+was specified.
+.SH ENVIRONMENT
+.TP
+.B PURELIB
+Directory to search for source files, including the prelude. If
+.B PURELIB
+is not set, it defaults to some default location specified at installation
+time.
+.TP
+.B PURE_PS
+Command prompt used in the interactive command loop (">\ " by default).
+.TP
+.B PURE_STACK
+Maximum stack size in kilobytes (default: 0 = unlimited).
+.SH LICENSE
+GPL V3 or later. See the accompanying COPYING file for details.
+.SH AUTHOR
+Albert Graef <Dr.Graef@t-online.de>, Dept. of Computer Music, Johannes
+Gutenberg University of Mainz, Germany.
+.SH SEE ALSO
+.TP
+.B Aardappel
+Another functional programming language based on term rewriting,
+\fIhttp://wouter.fov120.com/aardappel\fP.
+.TP
+.B Haskell
+A popular non-strict FPL, \fIhttp://www.haskell.org\fP.
+.TP
+.B LLVM
+The LLVM code generator framework, \fIhttp://llvm.org\fP.
+.TP
+.B ML
+A popular strict FPL. See Robin Milner, Mads Tofte, Robert Harper,
+D. MacQueen: \fIThe Definition of Standard ML (Revised)\fP. MIT Press, 1997.
+.TP
+.B Q
+Another term rewriting language by yours truly, \fIhttp://q-lang.sf.net\fP.
