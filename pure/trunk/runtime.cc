@@ -13,6 +13,9 @@ char *alloca ();
 #  endif
 # endif
 #endif
+#ifdef __MINGW32__
+#include <malloc.h>
+#endif
 
 #include "runtime.h"
 #include "expr.hh"
