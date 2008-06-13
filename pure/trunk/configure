@@ -657,8 +657,9 @@ host
 host_cpu
 host_vendor
 host_os
+shared
+rdynamic
 PIC
-RDYNAMIC
 DLLEXT
 AUXLIBS
 INSTALL_PROGRAM
@@ -1847,21 +1848,20 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+shared="-shared"
+rdynamic="-rdynamic"
 PIC=
-RDYNAMIC=
 DLLEXT=".so"
-AUX_LIBS=
+AUXLIBS=
 case "$host" in
-    *-*-mingw*)       RDYNAMIC="-rdynamic"; DLLEXT=".dll";
-                      AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
+    *-*-mingw*)       AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
                       LIBS="$LIBS -limagehlp -lpsapi";
-                      LDFLAGS="-Wl,--enable-auto-import";;
-    x86_64-*-linux*)  RDYNAMIC="-rdynamic"; PIC="-fPIC";;
-    *-*-linux*)       RDYNAMIC="-rdynamic";;
-    *-*-freebsd*)     RDYNAMIC="-rdynamic";;
-    *-*-darwin*)      DLLEXT=".dylib";;
-    hppa*-hp-hpux*)   DLLEXT=".sl";;
+                      LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
+    x86_64-*-linux*)  PIC="-fPIC";;
+    *-*-darwin*)      rdynamic=""; shared="-dynamiclib"; DLLEXT=".dylib";;
+    hppa*-hp-hpux*)   rdynamic=""; DLLEXT=".sl";;
 esac
+
 
 
 
@@ -4296,7 +4296,7 @@ sharedlib=yes
 # Check whether --enable-shared was given.
 if test "${enable_shared+set}" = set; then
   enableval=$enable_shared; case "${enableval}" in
-    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; sharedlib=no ;;
+    no)   LDFLAGS="$LDFLAGS $rdynamic"; sharedlib=no ;;
   esac
 fi
 
@@ -6029,8 +6029,9 @@ host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
+shared!$shared$ac_delim
+rdynamic!$rdynamic$ac_delim
 PIC!$PIC$ac_delim
-RDYNAMIC!$RDYNAMIC$ac_delim
 DLLEXT!$DLLEXT$ac_delim
 AUXLIBS!$AUXLIBS$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
@@ -6056,7 +6057,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 70; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 71; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

@@ -9,25 +9,24 @@ fi
 AC_DEFINE_UNQUOTED(HOST, "${host}", [Define to the name of the host system.])
 AC_SUBST(host)
 dnl Figure out extra build flags and filename extensions for various systems.
-dnl XXXFIXME: -fPIC is acurrently assumed for Linux x86-64 only. There might
-dnl be other Unix systems which need this.
+dnl XXXFIXME: This is probably incomplete. Please let me know about options
+dnl needed for other Unix flavours.
+shared="-shared"
+rdynamic="-rdynamic"
 PIC=
-RDYNAMIC=
 DLLEXT=".so"
-AUX_LIBS=
+AUXLIBS=
 case "$host" in
-    *-*-mingw*)       RDYNAMIC="-rdynamic"; DLLEXT=".dll";
-                      AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
+    *-*-mingw*)       AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
                       LIBS="$LIBS -limagehlp -lpsapi";
-                      LDFLAGS="-Wl,--enable-auto-import";;
-    x86_64-*-linux*)  RDYNAMIC="-rdynamic"; PIC="-fPIC";;
-    *-*-linux*)       RDYNAMIC="-rdynamic";;
-    *-*-freebsd*)     RDYNAMIC="-rdynamic";;
-    *-*-darwin*)      DLLEXT=".dylib";;
-    hppa*-hp-hpux*)   DLLEXT=".sl";;
+                      LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
+    x86_64-*-linux*)  PIC="-fPIC";;
+    *-*-darwin*)      rdynamic=""; shared="-dynamiclib"; DLLEXT=".dylib";;
+    hppa*-hp-hpux*)   rdynamic=""; DLLEXT=".sl";;
 esac
+AC_SUBST(shared)
+AC_SUBST(rdynamic)
 AC_SUBST(PIC)
-AC_SUBST(RDYNAMIC)
 AC_SUBST(DLLEXT)
 AC_SUBST(AUXLIBS)
 dnl Check for programs.
@@ -55,7 +54,7 @@ sharedlib=yes
 AC_ARG_ENABLE(shared,
   [  --disable-shared        link the interpreter statically],
   [case "${enableval}" in
-    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; sharedlib=no ;;
+    no)   LDFLAGS="$LDFLAGS $rdynamic"; sharedlib=no ;;
   esac])
 AC_SUBST(sharedlib)
 AC_ARG_ENABLE(warnings,
