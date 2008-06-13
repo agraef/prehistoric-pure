@@ -74,6 +74,10 @@ libpurelnk   = lib$(libpure_base)$(DLL)
 
 sharedlib = @sharedlib@
 
+# Flag needed to create shared libraries. On most systems this is just -shared.
+
+shared = @shared@
+
 # On some systems -fPIC is needed for code linked as a shared library.
 
 ifeq ($(sharedlib), yes)
@@ -122,7 +126,7 @@ pure$(EXE): pure.o $(OBJECT)
 endif
 
 $(libpure): $(OBJECT)
-	$(CXX) -shared -o $@ $(LDFLAGS) $(OBJECT) $(LLVM_LIBS) $(LIBS)
+	$(CXX) $(shared) -o $@ $(LDFLAGS) $(OBJECT) $(LLVM_LIBS) $(LIBS)
 	ln -sf $(libpure) $(libpurelnk)
 
 pure.o: pure.cc
