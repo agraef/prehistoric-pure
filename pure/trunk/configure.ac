@@ -9,6 +9,9 @@ fi
 AC_DEFINE_UNQUOTED(HOST, "${host}", [Define to the name of the host system.])
 AC_SUBST(host)
 dnl Figure out extra build flags and filename extensions for various systems.
+dnl XXXFIXME: -fPIC is acurrently assumed for Linux x86-64 only. There might
+dnl be other Unix systems which need this.
+PIC=
 RDYNAMIC=
 DLLEXT=".so"
 AUX_LIBS=
@@ -17,11 +20,13 @@ case "$host" in
                       AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
                       LIBS="$LIBS -limagehlp -lpsapi";
                       LDFLAGS="-Wl,--enable-auto-import";;
+    x86_64-*-linux*)  RDYNAMIC="-rdynamic"; PIC="-fPIC";;
     *-*-linux*)       RDYNAMIC="-rdynamic";;
     *-*-freebsd*)     RDYNAMIC="-rdynamic";;
     *-*-darwin*)      DLLEXT=".dylib";;
     hppa*-hp-hpux*)   DLLEXT=".sl";;
 esac
+AC_SUBST(PIC)
 AC_SUBST(RDYNAMIC)
 AC_SUBST(DLLEXT)
 AC_SUBST(AUXLIBS)
