@@ -146,6 +146,15 @@ parser.cc: parser.yy
 
 parser.hh location.hh position.hh stack.hh: parser.cc
 
+# create the manpage from pure.1.in
+
+edit = sed -e 's,@version\@,$(version),g'
+
+pure.1: configure pure.1.in
+	rm -f pure.1 pure.1.tmp
+	$(edit) pure.1.in >pure.1.tmp
+	mv pure.1.tmp pure.1
+
 # documentation in various formats (requires groff)
 
 html: pure.html
