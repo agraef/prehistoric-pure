@@ -448,9 +448,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       else
 	sout << nfuns << " functions, " << nrules << " rules\n";
     }
+    FILE *fp;
     // FIXME: We should check that 'more' actually exists here.
-    FILE *fp = popen("more", "w");
-    if (fp) {
+    if (isatty(fileno(stdin)) && (fp = popen("more", "w"))) {
       fputs(sout.str().c_str(), fp);
       pclose(fp);
     } else
