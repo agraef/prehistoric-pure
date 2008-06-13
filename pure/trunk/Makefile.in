@@ -53,7 +53,7 @@ LIBS = @LIBS@
 LLVM_FLAGS = `llvm-config --cppflags`
 LLVM_LIBS = `llvm-config --ldflags --libs core jit native`
 
-CPPFLAGS = @CPPFLAGS@ $(LLVM_FLAGS)
+CPPFLAGS = @CPPFLAGS@
 CXXFLAGS = @CXXFLAGS@
 
 # Pure library name. Currently we use a simple versioning scheme, which
@@ -68,12 +68,20 @@ libpure      = lib$(libpure_vers)$(DLL)
 libpurelnk   = lib$(libpure_base)$(DLL)
 LIBPURE      = -l$(libpure_vers)
 
-# Whether to build the Pure library. If this is set to anything but "yes", the
-# interpreter is linked statically and no separate runtime library is
+# Whether to build the Pure runtime library. If this is set to anything but
+# "yes", the interpreter is linked statically and no separate library is
 # produced. This is necessary on some systems where LLVM cannot be linked in
 # dynamically.
 
 SHARED = @SHARED@
+
+# On some systems -fPIC is needed for code linked as a shared library.
+
+ifeq ($(SHARED), yes)
+PIC = @PIC@
+else
+PIC =
+endif
 
 # Auxiliary libraries to be loaded at runtime. Usually this is just libpure
 # (when built), but on some systems we have to load additional dlls to resolve
@@ -119,10 +127,13 @@ $(libpure): $(OBJECT)
 	ln -sf $(libpure) $(libpurelnk)
 
 pure.o: pure.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DPURELIB='"$(libdir)/pure"' -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LLVM_FLAGS) -DPURELIB='"$(libdir)/pure"' -c -o $@ $<
 
 interpreter.o: interpreter.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(AUXLIBS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(PIC) $(CPPFLAGS) $(LLVM_FLAGS) $(AUXLIBS) -c -o $@ $<
+
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) $(PIC) $(CPPFLAGS) $(LLVM_FLAGS) -c -o $@ $<
 
 lexer.cc: lexer.ll
 	flex -o lexer.cc $<
