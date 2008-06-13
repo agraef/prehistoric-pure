@@ -58,10 +58,13 @@ $ ./configure --enable-optimized --disable-assertions --disable-expensive-checks
 $ make
 $ sudo make install
 
-Note the configure flags; these are for an optimized (non-debug) build and
-disable all compilation targets but the one for your system. (You might wish
-to omit the --enable-targets=host-only if you want to use other LLVM
-applications offering cross-compilation capabilities.) To do a debug build of
+IMPORTANT: On x86-64 systems you also have to add --enable-pic. See the
+comments on 64 bit support in the SYSTEM NOTES section below.
+
+Also note the configure flags; these are for an optimized (non-debug) build
+and disable all compilation targets but the one for your system. You might
+wish to omit the --enable-targets=host-only if you want to use other LLVM
+applications offering cross-compilation capabilities. To do a debug build of
 LLVM, simply leave away all the extra configure parameters (except possibly
 --enable-targets=host-only). Note, however, that this will have an impact on
 the speed of the Pure compiler.
@@ -275,13 +278,11 @@ runtime library:
 
 $ ./configure --disable-shared
 
-This works with all build types and is provided as a temporary workaround for
-systems like 64 bit Linux where LLVM refuses to be linked into shared
-libraries (see the notes on 64 bit systems in the NOTES section below). Please
-note, however, that it is *not* recommended to do this if you don't need it,
-since it drastically increases the size of the executable and thereby the
-memory footprint of the interpreter if several interpreter processes are
-running simultaneously.
+We strongly discourage from using this option, since it drastically increases
+the size of the executable and thereby the memory footprint of the interpreter
+if several interpreter processes are running simultaneously. We only provide
+this as a workaround for systems on which LLVM refuses to be linked into
+shared libraries.
 
 RUNNING PURE FROM THE SOURCE DIRECTORY
 ------- ---- ---- --- ------ ---------
@@ -349,19 +350,16 @@ in case of a stack overflow.
 64 BIT SYSTEMS
 -- --- -------
 
-64 bit systems are fully supported by Pure. However, LLVM 2.2 apparently
-doesn't like to be linked into shared libraries on x86-64 systems. The symptom
-is that you get strange relocation errors when linking the runtime library
-during the build. In this case you have to build the interpreter as a
-monolithic executable which statically includes all required LLVM and the Pure
-runtime modules, by configuring with --disable-shared. This has several
-disadvantages, but seems to be the only way to get Pure to work on x86-64
-right now. Hopefully, these issues will be fixed with the next LLVM release.
+64 bit systems are fully supported by Pure. However, you'll need to patch up
+LLVM 2.2 so that it can be linked into the Pure runtime library on x86-64
+systems. You also have to configure LLVM with --enable-pic. The patch by
+Cyrille Berger, which is to be applied in the llvm-2.2 source directory, is
+available at http://pure-lang.sf.net/X86JITInfo.cpp.pic.patch.
 
-Also, for unknown reasons the debug build currently does *not* work on (some?) 
-64 bit systems using gcc. This has been seen on various different 64 bit Linux
-versions, YMMV. You can tell that you're bitten by this bug if a normal build
-works, but 'make check' fails on most tests with the debug build (or if you
+Also, the debug build currently does *not* work on x86-64 Linux versions. This
+seems to be a bug in LLVM, so there's hope that it will go away in a future
+LLVM version. You can tell that you're bitten by this bug if a normal build
+works, but 'make check' fails on some tests with the debug build (or if you
 manually disable optimization). Fortunately, it seems that you can easily work
 around this by making sure that you have at least -O enabled when compiling
 runtime.cc. Also please note that the default and release builds should work
@@ -380,13 +378,12 @@ MAC OSX
 Pure has been reported to work on OSX, and a port by Ryan Schmidt exists in
 the MacPorts collection, see http://www.macports.org/.
 
-Note that with at least some current versions of the Apple gcc compiler (4.0.1
-and similar), with all warnings turned on you'll get the (bogus) warning
-"control reaches end of non-void function" a couple of times in
-interpreter.cc. These are due to a bug in older gcc versions (see
-http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558), but they are harmless and
-can be ignored. These warnings should also go away once Apple upgrades its SDK
-to a newer gcc version.
+Note that with at least some versions of the Apple gcc compiler, with all
+warnings turned on you'll get the (bogus) warning "control reaches end of
+non-void function" a couple of times in interpreter.cc. These are due to a bug
+in older gcc versions (see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16558),
+but they are harmless and can be ignored. These warnings should also go away
+once Apple upgrades its SDK to a newer gcc version.
 
 MS WINDOWS
 -- -------
