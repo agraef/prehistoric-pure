@@ -1,3 +1,14 @@
+2008-06-13  Albert Graef  <Dr.Graef@t-online.de>
+
+	* configure.ac, Makefile.in, etc.: Overhauled configury and bumped
+	the version number.
+
+	Building a separate runtime lib on x86-64 works now (but requires
+	a patched LLVM, see the INSTALL file for details). Linking the
+	runtime lib on OSX should also work now. Moreover, it is now
+	possible to install different Pure versions in parallel, again see
+	the INSTALL file for details.
+
 2008-06-06  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.3 release.
