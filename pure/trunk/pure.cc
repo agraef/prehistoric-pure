@@ -25,7 +25,7 @@ using namespace std;
 #define PACKAGE_VERSION "0.0"
 #endif
 #ifndef PURELIB
-#define PURELIB "/usr/local/lib/pure"
+#define PURELIB "/usr/local/lib/pure-" PACKAGE_VERSION
 #endif
 
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"

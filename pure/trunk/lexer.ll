@@ -12,6 +12,8 @@
 #include "parser.hh"
 #include "util.hh"
 
+#include "config.h"
+
 /* Work around an incompatibility in flex (at least versions 2.5.31 through
    2.5.33): it generates code that does not conform to C89.  See Debian bug
    333231 <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.  */
@@ -196,7 +198,7 @@ ptrtag  ::{blank}*pointer
   if (*s && !isspace(*s)) REJECT;
   while (isspace(*s)) ++s;
   yylloc->step();
-  string cmd = string("man ") + ((*s)?s:"pure");
+  string cmd = string("man ") + ((*s)?s:("pure-" PACKAGE_VERSION));
   system(cmd.c_str());
 }
 ^ls.* {
