@@ -61,13 +61,13 @@ $ sudo make install
 IMPORTANT: On x86-64 systems you also have to add --enable-pic. See the
 comments on 64 bit support in the SYSTEM NOTES section below.
 
-Also note the configure flags; these are for an optimized (non-debug) build
-and disable all compilation targets but the one for your system. You might
-wish to omit the --enable-targets=host-only if you want to use other LLVM
-applications offering cross-compilation capabilities. To do a debug build of
-LLVM, simply leave away all the extra configure parameters (except possibly
---enable-targets=host-only). Note, however, that this will have an impact on
-the speed of the Pure compiler.
+Note that the configure flags are for an optimized (non-debug) build and
+disable all compilation targets but the one for your system. You might wish to
+omit --enable-targets=host-only if you want to enable cross-compilation (this
+isn't supported by Pure right now, but other LLVM applications offer such
+capabilities). To do a debug build of LLVM, simply leave away all the extra
+configure parameters (except possibly --enable-targets=host-only). Note,
+however, that this will have an impact on the speed of the Pure compiler.
 
 STEP 4. Get and unpack the Pure sources at: http://pure-lang.sf.net/
 
@@ -192,6 +192,13 @@ command will put all installed files into the tmp-root subdirectory of the
 current directory:
 
 $ make install DESTDIR=tmp-root
+
+Beginning with version 0.4, Pure fully supports parallel installations of
+different versions of the interpreter without any further ado. To these ends,
+bin/pure, lib/libpure.so, lib/pure and man/man1/pure.1 are actually symbolic
+links to the current version (bin/pure-x.y, lib/libpure-x.y.so etc., where x.y
+is the version number). If you install a new version of the interpreter, the
+old version remains available as pure-x.y.
 
 SEPARATE BUILD DIRECTORY
 -------- ----- ---------
