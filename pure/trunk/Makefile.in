@@ -106,8 +106,8 @@ OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
 
 DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO \
 Makefile.in aclocal.m4 configure.ac configure config.h.in \
-config.guess config.sub install-sh \
-$(SOURCE) $(EXTRA_SOURCE) w3centities.c pure.cc pure.1 pure.xml pure.vim \
+config.guess config.sub install-sh $(SOURCE) $(EXTRA_SOURCE) w3centities.c \
+pure.cc pure.1 pure.1.in pure.xml pure.vim \
 examples/*.pure lib/*.pure test/*.pure test/*.log
 
 .PHONY: all html dvi ps pdf clean realclean depend install uninstall strip \
@@ -115,7 +115,7 @@ dist distcheck cleanlogs logs check
 
 # compilation
 
-all: pure$(EXE)
+all: pure$(EXE) pure.1
 
 ifeq ($(sharedlib), yes)
 pure$(EXE): pure.o $(libpure)
@@ -150,7 +150,7 @@ parser.hh location.hh position.hh stack.hh: parser.cc
 
 edit = sed -e 's,@version\@,$(version),g'
 
-pure.1: configure pure.1.in
+pure.1: configure.ac pure.1.in
 	rm -f pure.1 pure.1.tmp
 	$(edit) pure.1.in >pure.1.tmp
 	mv pure.1.tmp pure.1
@@ -189,7 +189,7 @@ distclean: clean
 	rm -f Makefile config.h config.log config.status $(dist).tar.gz
 
 realclean: distclean
-	rm -f $(addprefix $(srcdir)/, test/*.log $(EXTRA_SOURCE))
+	rm -f $(addprefix $(srcdir)/, test/*.log $(EXTRA_SOURCE) pure.1)
 
 # dependencies (rerun configure after this)
 
@@ -198,7 +198,7 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 
 # installation
 
-install: pure$(EXE)
+install: pure$(EXE) pure.1
 	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE)
 	ln -sf $(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
