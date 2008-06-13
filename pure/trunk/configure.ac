@@ -1,5 +1,5 @@
 
-AC_INIT(pure, 0.3)
+AC_INIT(pure, 0.4)
 AC_CONFIG_HEADERS(config.h)
 dnl Determine host information.
 AC_CANONICAL_HOST
