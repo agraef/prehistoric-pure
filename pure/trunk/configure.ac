@@ -51,13 +51,13 @@ AC_ARG_ENABLE(debug2,
   [case "${enableval}" in
     yes)  CPPFLAGS="-DDEBUG=2"; CXXFLAGS="-g" ;;
   esac])
-SHARED=yes
+sharedlib=yes
 AC_ARG_ENABLE(shared,
   [  --disable-shared        link the interpreter statically],
   [case "${enableval}" in
-    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; SHARED=no ;;
+    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; sharedlib=no ;;
   esac])
-AC_SUBST(SHARED)
+AC_SUBST(sharedlib)
 AC_ARG_ENABLE(warnings,
   [  --enable-warnings       enable compiler warnings (-Wall)],
   [case "${enableval}" in
@@ -91,7 +91,7 @@ Pure is now configured for ${host}.
   Installation prefix:  ${prefix}
   Compiler:             $CXX $CXXFLAGS $CPPFLAGS
   Linker:               $CXX $LDFLAGS $LIBS
-  Build libpure:        $SHARED
+  Build libpure:        $sharedlib
 
 Now run 'make' to build everything, and 'make install' to install this
 software on your system. To remove the installed software at a later

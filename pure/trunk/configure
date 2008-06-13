@@ -677,7 +677,7 @@ ac_ct_CC
 CPP
 GREP
 EGREP
-SHARED
+sharedlib
 LIBICONV
 ALLOCA
 LIBOBJS
@@ -4292,11 +4292,11 @@ if test "${enable_debug2+set}" = set; then
   esac
 fi
 
-SHARED=yes
+sharedlib=yes
 # Check whether --enable-shared was given.
 if test "${enable_shared+set}" = set; then
   enableval=$enable_shared; case "${enableval}" in
-    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; SHARED=no ;;
+    no)   LDFLAGS="$LDFLAGS $RDYNAMIC"; sharedlib=no ;;
   esac
 fi
 
@@ -6049,7 +6049,7 @@ ac_ct_CC!$ac_ct_CC$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
-SHARED!$SHARED$ac_delim
+sharedlib!$sharedlib$ac_delim
 LIBICONV!$LIBICONV$ac_delim
 ALLOCA!$ALLOCA$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
@@ -6493,7 +6493,7 @@ Pure is now configured for ${host}.
   Installation prefix:  ${prefix}
   Compiler:             $CXX $CXXFLAGS $CPPFLAGS
   Linker:               $CXX $LDFLAGS $LIBS
-  Build libpure:        $SHARED
+  Build libpure:        $sharedlib
 
 Now run 'make' to build everything, and 'make install' to install this
 software on your system. To remove the installed software at a later
@@ -6506,7 +6506,7 @@ Pure is now configured for ${host}.
   Installation prefix:  ${prefix}
   Compiler:             $CXX $CXXFLAGS $CPPFLAGS
   Linker:               $CXX $LDFLAGS $LIBS
-  Build libpure:        $SHARED
+  Build libpure:        $sharedlib
 
 Now run 'make' to build everything, and 'make install' to install this
 software on your system. To remove the installed software at a later

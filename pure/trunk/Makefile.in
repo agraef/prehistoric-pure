@@ -66,18 +66,17 @@ libpure_vers = $(libpure_base)-$(version)
 
 libpure      = lib$(libpure_vers)$(DLL)
 libpurelnk   = lib$(libpure_base)$(DLL)
-LIBPURE      = -l$(libpure_vers)
 
 # Whether to build the Pure runtime library. If this is set to anything but
 # "yes", the interpreter is linked statically and no separate library is
 # produced. This is necessary on some systems where LLVM cannot be linked in
 # dynamically.
 
-SHARED = @SHARED@
+sharedlib = @sharedlib@
 
 # On some systems -fPIC is needed for code linked as a shared library.
 
-ifeq ($(SHARED), yes)
+ifeq ($(sharedlib), yes)
 PIC = @PIC@
 else
 PIC =
@@ -87,7 +86,7 @@ endif
 # (when built), but on some systems we have to load additional dlls to resolve
 # some library functions.
 
-ifeq ($(SHARED), yes)
+ifeq ($(sharedlib), yes)
 AUXLIBS = -DLIBPURE='"$(libpure)"' @AUXLIBS@
 else
 AUXLIBS = @AUXLIBS@
@@ -114,9 +113,9 @@ dist distcheck cleanlogs logs check
 
 all: pure$(EXE)
 
-ifeq ($(SHARED), yes)
+ifeq ($(sharedlib), yes)
 pure$(EXE): pure.o $(libpure)
-	$(CXX) -o $@ $(LDFLAGS) pure.o -L. $(LIBPURE) $(LIBS)
+	$(CXX) -o $@ $(LDFLAGS) pure.o -L. -l$(libpure_vers) $(LIBS)
 else
 pure$(EXE): pure.o $(OBJECT)
 	$(CXX) -o $@ $(LDFLAGS) pure.o $(OBJECT) $(LLVM_LIBS) $(LIBS)
@@ -189,7 +188,7 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 install: pure$(EXE)
 	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
-ifeq ($(SHARED), yes)
+ifeq ($(sharedlib), yes)
 	$(INSTALL) $(libpure) $(DESTDIR)$(libdir)/$(libpure)
 	ln -sf $(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk)
 endif
