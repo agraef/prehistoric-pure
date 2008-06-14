@@ -38,10 +38,11 @@ USING PURE
 
 Pure scripts are just ordinary text files, which can be created with any text
 editor. The source directory contains Pure syntax highlighting files for Kate
-and Vim (no Emacs mode yet, sorry). You might wish to install these into your
-katepart/syntax and .vim/syntax directories, respectively. (For Vim you also
-need to enable the syntax highlighting for .pure files; see the comments at
-the beginning of pure.vim for details.)
+and Vim, as well as an Emacs mode which allows you to run the interpreter in
+an Emacs buffer. You might wish to install these into your katepart/syntax,
+.vim/syntax and Emacs site-lisp directories, respectively. (The Emacs and Vim
+modes must also be enabled in your corresponding startup files; see the
+comments at the beginning of pure-mode.el and pure.vim for details.)
 
 See the manpage ('man pure' after installation) for information on how to use
 the interpreter and a brief description of the Pure language. Some example
