@@ -3,6 +3,8 @@
 pure \- the Pure interpreter
 .SH SYNOPSIS
 \fBpure\fP [-h] [-i] [-n] [-q] [-v[\fIlevel\fP]] [\fIscript\fP ...] [-- \fIargs\fP ...]
+.br
+\fBpure\fP [-h] [-i] [-n] [-q] [-v[\fIlevel\fP]] -x \fIscript\fP [\fIargs\fP ...]
 .SH OPTIONS
 .TP
 .B -h
@@ -19,6 +21,9 @@ Quiet startup (suppresses sign-on message in interactive mode).
 .TP
 .B -v
 Set verbosity level. See below for details.
+.TP
+.B -x
+Execute script with given command line arguments.
 .TP
 .B --
 Stop option processing and pass the remaining command line arguments in the
@@ -61,18 +66,42 @@ the interpreter, the command history is stored in
 from where it is restored the next time you run the interpreter.
 .PP
 Options and source files are processed in the order in which they are given on
-the command line. Processing of options and source files ends when the
+the command line. Processing of options and source files ends when either the
 .B --
-option is encountered. Any following parameters are passed to the executing
-script by means of the global
+or the
+.B -x
+option is encountered. The
+.B -x
+option must be followed by the name of a script to be executed, which becomes
+the ``main script'' of the application. In either case, any remaining
+parameters are passed to the executing script by means of the global
 .B argc
 and
 .B argv
-variables. Moreover, the
+variables, denoting the number of arguments and the list of the actual
+parameter strings, respectively. In the case of
+.B -x
+this also includes the script name as
+.BR argv!0 .
+The
+.B -x
+option is useful, in particular, to turn Pure scripts into executable programs
+by including a ``shebang'' like
+.sp
+.nf
+#! /usr/local/bin/pure -x
+.fi
+.sp
+as the first line in your main script. (This trick only works with Unix
+shells, though.)
+.PP
+On startup, the interpreter also defines the
 .B version
-variable is set to the Pure interpreter version, and the
+variable, which is set to the version string of the Pure interpreter, and the
 .B sysinfo
-variable provides information about the host system.
+variable, which provides a string identifying the host system. These are
+useful if parts of your script depend on the particular version of the
+interpreter and the system it runs on.
 .PP
 If available, the prelude script
 .B prelude.pure
@@ -158,7 +187,10 @@ interactively in the interpreter:
 The language is free-format (blanks are insignificant). As indicated,
 definitions and expressions at the toplevel have to be terminated with a
 semicolon. Comments have the same syntax as in C++ (using // for line-oriented
-and /* ... */ for multiline comments; the latter may not be nested).
+and /* ... */ for multiline comments; the latter may not be nested). Lines
+beginning with #! are treated as comments, too; as already discussed above, on
+Unix-like systems this allows you to add a ``shebang'' to your main script in
+order to turn it into an executable program.
 .PP
 On the surface, Pure is quite similar to other modern functional languages
 like Haskell and ML. But under the hood it is a much more dynamic and
