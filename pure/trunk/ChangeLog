@@ -1,13 +1,21 @@
 2008-06-14  Albert Graef  <Dr.Graef@t-online.de>
 
-	* lexer.ll: Initial '#!' on a line now denotes a comment line (in
-	order to support shebangs), and paging of the 'list' command is
-	now implemented using the program specified with the PURE_MORE
-	environment variable. This allows you to disable this option (if
-	PURE_MORE is undefined) or choose any pager program and options
-	that you prefer. Define PURE_MORE=more in your shell startup files
-	to get back the old behaviour of piping 'list' output through
-	'more'.
+	* lexer.ll: Various changes in order to facilitate script
+	execution and interfacing to Emacs.
+
+	Initial '#!' on a line now denotes a comment line, in order to
+	support shebangs (see below).
+
+	The new 'completion_matches' command provides information about
+	completions to programs driving the interpreter, such as Emacs
+	(see below).
+
+	Paging of the 'list' command is now implemented using the program
+	specified with the PURE_MORE environment variable. This allows you
+	to disable this option (if PURE_MORE is undefined) or choose any
+	pager program and options that you prefer. Define PURE_MORE=more
+	in your shell startup files to get back the old behaviour of
+	piping 'list' output through 'more'.
 
 	* pure.cc: Added new -q (quiet) and -x (execute) options. The
 	former is used in pure-mode.el to suppress the sign-on message of
