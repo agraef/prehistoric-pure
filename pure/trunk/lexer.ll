@@ -154,6 +154,7 @@ ptrtag  ::{blank}*pointer
 {blank}+   yylloc->step();
 [\n]+      yylloc->lines(yyleng); yylloc->step();
 
+^"#!".*    |
 "//".*     yylloc->step();
 
 "/*"       BEGIN(comment);

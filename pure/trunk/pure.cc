@@ -31,11 +31,13 @@ using namespace std;
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"
 #define USAGE \
 "Usage: pure [-h] [-i] [-n] [-q] [-v[level]] [script ...] [-- args ...]\n\
+       pure [-h] [-i] [-n] [-q] [-v[level]] -x script [args ...]\n\
 -h: Print this message and exit.\n\
 -i: Force interactive mode (read commands from stdin).\n\
 -n: Suppress automatic inclusion of the prelude.\n\
 -q: Quiet startup (suppresses sign-on message).\n\
 -v: Set verbosity level (useful for debugging purposes).\n\
+-x: Execute script with given command line arguments.\n\
 --: Stop option processing, pass remaining args in argv variable.\n\
 Environment:\n\
 PURELIB:    Directory to search for source scripts including the prelude.\n\
@@ -214,6 +216,9 @@ main(int argc, char *argv[])
 	interp.error(prog + ": invalid option " + *args);
 	return 1;
       }
+    } else if (*args == string("-x")) {
+      while (*++args) myargs.push_back(*args);
+      break;
     } else if (*args == string("--")) {
       while (*++args) myargs.push_back(*args);
       break;
@@ -244,6 +249,12 @@ main(int argc, char *argv[])
       string s = string(*argv).substr(2);
       if (!s.empty()) level = (uint8_t)strtoul(s.c_str(), 0, 0);
       interp.verbose = level;
+    } else if (*argv == string("-x")) {
+      if (*++argv) {
+	if (count++ == 0) interp.modname = *argv;
+	interp.run(*argv);
+      }
+      break;
     } else if (*argv == string("--"))
       break;
     else if (**argv == '-')
