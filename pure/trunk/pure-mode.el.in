@@ -172,6 +172,7 @@ For instance, add `turn-on-font-lock' to enable syntax highlighting."
 
 (defvar pure-font-lock-keywords
   (list
+   (list "^#!.*" 0 'font-lock-comment-face t)
    (list "::\\([A-Za-z_][A-Za-z_0-9]*\\)" 1 'font-lock-type-face)
    (list
     (concat "\\<\\("
