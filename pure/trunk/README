@@ -1,5 +1,6 @@
 
 PURE - The Pure programming language.
+==== = ==============================
 
 Pure is a functional programming language based on term rewriting. It has a
 modern syntax featuring curried function applications, lexical closures and
@@ -14,11 +15,13 @@ to the author. Also have a look at the TODO file for stuff that still needs to
 be done.
 
 WHERE TO GET IT
+----- -- --- --
 
 You can find tarballs, binary packages and the svn repository at
 http://pure-lang.sf.net.
 
 LICENSE
+-------
 
 GPL V3 or later. See the accompanying COPYING file for details. Note that the
 sample scripts in the examples subdir, even though they are bundled with the
@@ -26,6 +29,7 @@ sources, are considered to be in the public domain, so feel free to use them
 for whatever purpose.
 
 INSTALLATION
+------------
 
 Please see the INSTALL file for detailed instructions. On most Unix-like
 systems, the usual './configure && make && sudo make install' should do the
@@ -35,22 +39,63 @@ compiler backend (version 2.2 has been tested). For your convenience,
 instructions for installing LLVM are also included in the INSTALL file.
 
 USING PURE
+----- ----
+
+To start the Pure interpreter, just type 'pure' at the command prompt. You'll
+be greeted with a sign-on message, after which the interpreter leaves you at
+its prompt and you can start typing definitions and expressions to be
+evaluated. Use the 'quit' command to exit the interpreter (on Unix systems you
+can also just type EOF a.k.a. Ctrl-D at the beginning of the interpreter's
+command line). For instance:
+
+Pure 0.4 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
+This program is free software distributed under the GNU Public License
+(GPL V3 or later). Please see the COPYING file for details.
+Loaded prelude from /usr/local/lib/pure-0.4/prelude.pure.
+
+> fact n = if n>0 then n*fact (n-1) else 1;
+> map fact (1..10);
+[1,2,6,24,120,720,5040,40320,362880,3628800]
+> quit
+
+Of course, you can also put your definitions into a script and run that script
+from the command line:
+
+$ pure -x factorial.pure
+
+Add the -i option to force interactive mode when executing a script, and -q to
+suppress the sign-on message:
+
+$ pure -i -q -x factorial.pure
+> 
 
 Pure scripts are just ordinary text files, which can be created with any text
-editor. The source directory contains Pure syntax highlighting files for Kate
-and Vim, as well as an Emacs mode which allows you to run the interpreter in
-an Emacs buffer. You might wish to install these into your katepart/syntax,
-.vim/syntax and Emacs site-lisp directories, respectively. (The Emacs and Vim
-modes must also be enabled in your corresponding startup files; see the
-comments at the beginning of pure-mode.el and pure.vim for details.)
+editor. For Emacs users, the most convenient way to edit and run Pure scripts
+is Emacs Pure mode which works with both GNU Emacs and XEmacs. You'll have to
+install the pure-mode.el file from the Pure source directory into your Emacs
+site-lisp directory, and enable the mode in your .emacs file as explained at
+the beginning of the pure-mode.el file. Then you can just open and edit a Pure
+script in Emacs, and run it inside an Emacs buffer with Ctrl-C Ctrl-C. Syntax
+highlighting, auto-indentation and command line completion are also supported.
 
-See the manpage ('man pure' after installation) for information on how to use
-the interpreter and a brief description of the Pure language. Some example
-programs can be found in the examples subdir in the sources; in particular,
-have a look at the hello.pure program which will quickly give you an idea how
-Pure programs look like. You should also browse the scripts in the lib
-directory which contain the "built-in" definitions readily available when you
-start up the Pure interpreter.
+The source directory also contains Pure syntax highlighting files for Kate and
+Vim. You can install these into your .kde/share/apps/katepart/syntax and
+.vim/syntax directories, respectively. (The Vim mode must also be enabled in
+your vim startup file; see the comments at the beginning of pure.vim for
+details.)
+
+Online documentation is available as a manpage, which contains detailed
+information on how to use the interpreter and a brief description of the Pure
+language. You can invoke the manpage with 'man pure' after installation, or
+using the 'help' command inside the interpreter, or with Emacs' built-in
+manpage reader (the 'help' command won't work if the interpreter is running
+inside an Emacs buffer).
+
+Some example programs can be found in the examples subdir in the sources; in
+particular, have a look at the hello.pure program which will quickly give you
+an idea how Pure programs look like. You should also browse the scripts in the
+lib directory which contain the "built-in" definitions readily available when
+you start up the Pure interpreter.
 
 This is currently all you get; more elaborate documentation of the Pure
 language still needs to be written. But Pure is a really simple language; if
@@ -60,7 +105,6 @@ questions to the Pure mailing list (see http://pure-lang.sf.net).
 
 Enjoy! :)
 
-AUTHOR
 
 Albert Graef
 Dept. of Computer Music
