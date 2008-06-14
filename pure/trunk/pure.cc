@@ -253,6 +253,9 @@ main(int argc, char *argv[])
       if (*++argv) {
 	if (count++ == 0) interp.modname = *argv;
 	interp.run(*argv);
+      } else {
+	interp.error(prog + ": missing script name");
+	return 1;
       }
       break;
     } else if (*argv == string("--"))
