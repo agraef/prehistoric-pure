@@ -251,7 +251,7 @@ main(int argc, char *argv[])
       interp.verbose = level;
     } else if (*argv == string("-x")) {
       if (*++argv) {
-	if (count++ == 0) interp.modname = *argv;
+	count++; interp.modname = *argv;
 	interp.run(*argv);
       } else {
 	interp.error(prog + ": missing script name");
