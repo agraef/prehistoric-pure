@@ -107,7 +107,7 @@ OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
 DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO \
 Makefile.in aclocal.m4 configure.ac configure config.h.in \
 config.guess config.sub install-sh $(SOURCE) $(EXTRA_SOURCE) w3centities.c \
-pure.cc pure.1 pure.1.in pure.xml pure.vim \
+pure.cc pure.1 pure.1.in pure-mode.el.in pure.xml pure.vim \
 examples/*.pure lib/*.pure test/*.pure test/*.log
 
 .PHONY: all html dvi ps pdf clean realclean depend install uninstall strip \
@@ -115,7 +115,7 @@ dist distcheck cleanlogs logs check
 
 # compilation
 
-all: pure$(EXE) pure.1
+all: pure$(EXE) pure-mode.el pure.1
 
 ifeq ($(sharedlib), yes)
 pure$(EXE): pure.o $(libpure)
@@ -146,13 +146,18 @@ parser.cc: parser.yy
 
 parser.hh location.hh position.hh stack.hh: parser.cc
 
-# create the manpage from pure.1.in
+# create pure-mode.el from pure-mode.el.in
 
-edit = sed -e 's,@version\@,$(version),g'
+pure-mode.el: Makefile pure-mode.el.in
+	rm -f pure-mode.el pure-mode.el.tmp
+	sed -e 's,@bindir\@,$(bindir),g' -e 's,@libdir\@,$(libdir),g' pure-mode.el.in >pure-mode.el.tmp
+	mv pure-mode.el.tmp pure-mode.el
+
+# create the manpage from pure.1.in
 
 pure.1: configure.ac pure.1.in
 	rm -f pure.1 pure.1.tmp
-	$(edit) pure.1.in >pure.1.tmp
+	sed -e 's,@version\@,$(version),g' pure.1.in >pure.1.tmp
 	mv pure.1.tmp pure.1
 
 # documentation in various formats (requires groff)
@@ -186,7 +191,7 @@ clean:
 	rm -f *~ *.bak *.html *.dvi *.ps *.pdf pure$(EXE) $(OBJECT) pure.o $(libpurelnk) $(libpure) parser.output
 
 distclean: clean
-	rm -f Makefile config.h config.log config.status $(dist).tar.gz
+	rm -f Makefile config.h config.log config.status pure-mode.el $(dist).tar.gz
 
 realclean: distclean
 	rm -f $(addprefix $(srcdir)/, test/*.log $(EXTRA_SOURCE) pure.1)
@@ -198,7 +203,7 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 
 # installation
 
-install: pure$(EXE) pure.1
+install: pure$(EXE) pure-mode.el pure.1
 	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE)
 	ln -sf $(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
