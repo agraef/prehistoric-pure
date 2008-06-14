@@ -30,7 +30,7 @@ using namespace std;
 
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"
 #define USAGE \
-"Usage: pure [-h] [-i] [-n] [-v[level]] [script ...] [-- args ...]\n\
+"Usage: pure [-h] [-i] [-n] [-q] [-v[level]] [script ...] [-- args ...]\n\
 -h: Print this message and exit.\n\
 -i: Force interactive mode (read commands from stdin).\n\
 -n: Suppress automatic inclusion of the prelude.\n\
