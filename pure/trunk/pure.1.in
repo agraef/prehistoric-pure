@@ -2,7 +2,7 @@
 .SH NAME
 pure \- the Pure interpreter
 .SH SYNOPSIS
-\fBpure\fP [-h] [-i] [-n] [-v[\fIlevel\fP]] [\fIscript\fP ...] [-- \fIargs\fP ...]
+\fBpure\fP [-h] [-i] [-n] [-q] [-v[\fIlevel\fP]] [\fIscript\fP ...] [-- \fIargs\fP ...]
 .SH OPTIONS
 .TP
 .B -h
