@@ -46,6 +46,8 @@ main n::int
   printf "Tak(3.0,2.0,1.0): %.1f\n" (tak 3.0 2.0 1.0)
 when m = n-1 end;
 
-main _ = puts "Usage: time pure recursive.pure -- N" otherwise;
+main _ = usage otherwise;
 
-main $ eval $ argv!0;
+usage = puts "Usage: time pure -x recursive.pure N";
+
+if argc!=2 then usage else main $ eval $ argv!1;
