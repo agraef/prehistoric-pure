@@ -451,7 +451,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
     FILE *fp;
     const char *more = getenv("PURE_MORE");
     // FIXME: We should check that 'more' actually exists here.
-    if (more && isatty(fileno(stdin)) && (fp = popen(more, "w"))) {
+    if (more && *more && isatty(fileno(stdin)) && (fp = popen(more, "w"))) {
       fputs(sout.str().c_str(), fp);
       pclose(fp);
     } else
