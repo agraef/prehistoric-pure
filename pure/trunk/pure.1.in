@@ -89,7 +89,7 @@ option is useful, in particular, to turn Pure scripts into executable programs
 by including a ``shebang'' like
 .sp
 .nf
-#! /usr/local/bin/pure -x
+#!/usr/local/bin/pure -x
 .fi
 .sp
 as the first line in your main script. (This trick only works with Unix
