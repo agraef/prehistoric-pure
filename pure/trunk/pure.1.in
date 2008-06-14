@@ -14,6 +14,9 @@ Force interactive mode (read commands from stdin).
 .B -n
 Suppress automatic inclusion of the prelude.
 .TP
+.B -q
+Quiet startup (suppresses sign-on message in interactive mode).
+.TP
 .B -v
 Set verbosity level. See below for details.
 .TP
@@ -883,13 +886,17 @@ definition levels.
 .B -v
 Print information about variable symbols only.
 .PP
-Output is piped through the
-.BR more (1)
-program to make it easier to read, as some of the options (in particular,
+Note that some of the options (in particular,
 .B -c
 and
 .BR -d )
-may produce excessive amounts of information.
+may produce excessive amounts of information. By setting the
+.B PURE_MORE
+environment variable accordingly, you can specify a shell command to be used
+for paging, usually
+.BR more (1)
+or
+.BR less (1).
 .PP
 For instance, to list all definitions in all loaded scripts (including the
 prelude), simply say:
@@ -1187,6 +1194,11 @@ Directory to search for source files, including the prelude. If
 .B PURELIB
 is not set, it defaults to some default location specified at installation
 time.
+.TP
+.B PURE_MORE
+Shell command to be used for paging through output of the
+.B list
+command, when the interpreter runs in interactive mode.
 .TP
 .B PURE_PS
 Command prompt used in the interactive command loop (">\ " by default).
