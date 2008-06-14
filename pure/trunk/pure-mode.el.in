@@ -597,8 +597,9 @@ manipulating the command history, etc. See `pure-eval-mode'.
 	      (comint-read-input-ring t))))
       (goto-char (point-max))
       ;; invoke the interpreter
+      (setenv "PURE_MORE" nil) ; disable paging in the interpreter
       (comint-exec pure-eval-buffer "pure-eval" pure-prog-name nil
-		   (append (list "-i") args))
+		   (append (list "-q" "-i") args))
       ;; set up process parameters
       (setq pure-output-list nil
 	    pure-output-string nil
