@@ -813,42 +813,35 @@ window."
 
 ;; completion
 
-;; XXXFIXME: Currently this just calls the comint-dynamic-complete function,
-;; as the Pure interpreter doesn't understand the completion_matches command
-;; right now.
-
 (defun pure-complete ()
   "Perform completion on the token preceding point."
   (interactive)
-  (comint-dynamic-complete))
-
-; (defun pure-complete ()
-;   "Perform completion on the token preceding point."
-;   (interactive)
-;   (if (pure-at-command-prompt-p)
-;       (let* ((end (point))
-; 	     (command
-; 	      (save-excursion
-; 		;; skip over anything but whitespace, quotes and parentheses
-; 		(skip-syntax-backward "w_.\\$'<>")
-; 		(and (looking-at pure-prompt-regexp)
-; 		     (goto-char (match-end 0)))
-; 		(buffer-substring-no-properties (point) end))))
-; 	(pure-send-list-and-digest
-; 	 (list (concat "completion_matches \"" command "\"\n")))
-; 	;; Sort the list
-; 	(setq pure-output-list
-; 	      (sort pure-output-list 'string-lessp))
-; 	;; Remove duplicates
-; 	(let* ((x pure-output-list)
-; 	       (y (cdr x)))
-; 	  (while y
-; 	    (if (string-equal (car x) (car y))
-; 		(setcdr x (setq y (cdr y)))
-; 	      (setq x y
-; 		    y (cdr y)))))
-; 	;; And let comint handle the rest
-; 	(comint-dynamic-simple-complete command pure-output-list))))
+  (if (pure-at-command-prompt-p)
+      (let* ((end (point))
+	     (command
+	      (save-excursion
+		;; skip back one word/identifier or operator (punctuation)
+		(skip-syntax-backward "w_")
+		(and (eq (point) end)
+		     (skip-syntax-backward "."))
+		(and (looking-at pure-prompt-regexp)
+		     (goto-char (match-end 0)))
+		(buffer-substring-no-properties (point) end))))
+	(pure-send-list-and-digest
+	 (list (concat "completion_matches " command "\n")))
+	;; Sort the list
+	(setq pure-output-list
+	      (sort pure-output-list 'string-lessp))
+	;; Remove duplicates
+	(let* ((x pure-output-list)
+	       (y (cdr x)))
+	  (while y
+	    (if (string-equal (car x) (car y))
+		(setcdr x (setq y (cdr y)))
+	      (setq x y
+		    y (cdr y)))))
+	;; And let comint handle the rest
+	(comint-dynamic-simple-complete command pure-output-list))))
 
 ;; send commands to the Q interpreter and digest their results
 
