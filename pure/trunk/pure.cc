@@ -46,7 +46,7 @@ PURE_PS:    Command prompt to be used in the interactive command loop.\n\
 PURE_STACK: Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
-const char *commands[] = {
+static const char *commands[] = {
   "cd", "clear", "extern", "help", "infix", "infixl", "infixr", "let", "list",
   "ls", "nullary", "override", "postfix", "prefix", "pwd", "quit", "run",
   "save", "stats", "underride", "using", 0
