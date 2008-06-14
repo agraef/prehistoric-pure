@@ -122,6 +122,83 @@ static bool env_compare(env_sym s, env_sym t)
 {
   return s.sym->s < t.sym->s;
 }
+
+/* This is a watered-down version of the command completion routine from
+   pure.cc, used to implement the completion_matches command used by
+   pure-mode.el. This isn't perfect, since it will also complete command names
+   when not at the beginning of the line, but since the location inside the
+   line isn't passed to completion_matches, it's the best that we can do right
+   now. */
+
+static const char *commands[] = {
+  "cd", "clear", "extern", "help", "infix", "infixl", "infixr", "let", "list",
+  "ls", "nullary", "override", "postfix", "prefix", "pwd", "quit", "run",
+  "save", "stats", "underride", "using", 0
+};
+
+static char *
+command_generator(const char *text, int state)
+{
+  static int list_index, len;
+  static env::iterator it, end;
+  const char *name;
+
+  /* New match. */
+  if (!state) {
+    list_index = 0;
+    assert(interpreter::g_interp);
+    it = interpreter::g_interp->globenv.begin();
+    end = interpreter::g_interp->globenv.end();
+    len = strlen(text);
+  }
+
+  /* Return the next name which partially matches from the
+     command list. */
+  while ((name = commands[list_index])) {
+    list_index++;
+    if (strncmp(name, text, len) == 0)
+      return strdup(name);
+  }
+
+  /* Return the next name which partially matches from the
+     symbol list. */
+  while (it != end) {
+    assert(it->first > 0);
+    symbol& sym = interpreter::g_interp->symtab.sym(it->first);
+    it++;
+    if (strncmp(sym.s.c_str(), text, len) == 0)
+      return strdup(sym.s.c_str());
+  }
+
+  /* If no names matched, then return NULL. */
+  return 0;
+}
+
+static char **
+pure_completion(const char *text, int start, int end)
+{
+  return rl_completion_matches(text, command_generator);
+}
+
+static void list_completions(const char *s)
+{
+  char **matches = pure_completion(s, 0, strlen(s));
+  if (matches) {
+    if (matches[0])
+      if (!matches[1]) {
+	printf("%s\n", matches[0]);
+	free(matches[0]);
+      } else {
+	int i;
+	free(matches[0]);
+	for (i = 1; matches[i]; i++) {
+	  printf("%s\n", matches[i]);
+	  free(matches[i]);
+	}
+      }
+    free(matches);
+  }
+}
 %}
 
 %option noyywrap nounput debug
@@ -592,6 +669,15 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
     cerr << "quit: extra parameter\n";
   else
     exit(0);
+}
+^completion_matches.* {
+  // completion_matches command is only permitted in interactive mode
+  if (!interp.interactive) REJECT;
+  const char *s = yytext+18;
+  if (*s && !isspace(*s)) REJECT;
+  while (isspace(*s)) ++s;
+  yylloc->step();
+  list_completions(s);
 }
 
 {int}      {
