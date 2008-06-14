@@ -449,8 +449,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	sout << nfuns << " functions, " << nrules << " rules\n";
     }
     FILE *fp;
+    const char *more = getenv("PURE_MORE");
     // FIXME: We should check that 'more' actually exists here.
-    if (isatty(fileno(stdin)) && (fp = popen("more", "w"))) {
+    if (more && isatty(fileno(stdin)) && (fp = popen(more, "w"))) {
       fputs(sout.str().c_str(), fp);
       pclose(fp);
     } else

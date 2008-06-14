@@ -34,10 +34,12 @@ using namespace std;
 -h: Print this message and exit.\n\
 -i: Force interactive mode (read commands from stdin).\n\
 -n: Suppress automatic inclusion of the prelude.\n\
+-q: Quiet startup (suppresses sign-on message).\n\
 -v: Set verbosity level (useful for debugging purposes).\n\
 --: Stop option processing, pass remaining args in argv variable.\n\
 Environment:\n\
 PURELIB:    Directory to search for source scripts including the prelude.\n\
+PURE_MORE:  Shell command for paging through output of the 'list' command.\n\
 PURE_PS:    Command prompt to be used in the interactive command loop.\n\
 PURE_STACK: Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
@@ -152,7 +154,8 @@ main(int argc, char *argv[])
   char base;
   interpreter interp;
   int count = 0;
-  bool force_interactive = false, want_prelude = true, have_prelude = false;
+  bool quiet = false, force_interactive = false,
+    want_prelude = true, have_prelude = false;
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
   // make sure that SIGPIPE is ignored
@@ -200,6 +203,8 @@ main(int argc, char *argv[])
       force_interactive = true;
     else if (*args == string("-n"))
       want_prelude = false;
+    else if (*args == string("-q"))
+      quiet = true;
     else if (string(*args).substr(0,2) == "-v") {
       string s = string(*args).substr(2);
       if (s.empty()) continue;
@@ -256,10 +261,12 @@ main(int argc, char *argv[])
   interp.interactive = true;
   if (isatty(fileno(stdin))) {
     // connected to a terminal, print sign-on and initialize readline
-    cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
-	 << COPYRIGHT << endl << LICENSE;
-    if (have_prelude)
-      cout << "Loaded prelude from " << prelude << ".\n\n";
+    if (!quiet) {
+      cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
+	   << COPYRIGHT << endl << LICENSE;
+      if (have_prelude)
+	cout << "Loaded prelude from " << prelude << ".\n\n";
+    }
     rl_readline_name = "Pure";
     rl_attempted_completion_function = pure_completion;
     using_history();
