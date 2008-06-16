@@ -70,26 +70,22 @@ $ pure -i -q -x factorial.pure
 > 
 
 Pure scripts are just ordinary text files, which can be created with any text
-editor. For Emacs users, the most convenient way to edit and run Pure scripts
-is Emacs Pure mode which works with both GNU Emacs and XEmacs. You'll have to
-install the pure-mode.el file from the Pure source directory into your Emacs
-site-lisp directory, and enable the mode in your .emacs file as explained at
-the beginning of the pure-mode.el file. Then you can just open and edit a Pure
-script in Emacs, and run it inside an Emacs buffer with Ctrl-C Ctrl-C. Syntax
-highlighting, auto-indentation and command line completion are also supported.
+editor. The distribution contains some language definition files and
+programming modes to provide syntax highlighting in various popular text
+editors, such as Emacs, Kate and Vim. The Emacs mode also lets you run the
+Pure interpreter in an Emacs buffer, this is probably the most convenient
+interface to the interpreter if you're friends with Emacs. A syntax file for
+Andre Simon's highlight program is also included, this lets you pretty-print
+Pure source in various output formats such as HTML and LaTeX. You can find all
+this stuff in the etc subdirectory in the source distribution, installation
+instructions are included in the files.
 
-The source directory also contains Pure syntax highlighting files for Kate and
-Vim. You can install these into your .kde/share/apps/katepart/syntax and
-.vim/syntax directories, respectively. (The Vim mode must also be enabled in
-your vim startup file; see the comments at the beginning of pure.vim for
-details.)
-
-Online documentation is available as a manpage, which contains detailed
-information on how to use the interpreter and a brief description of the Pure
-language. You can invoke the manpage with 'man pure' after installation, or
-using the 'help' command inside the interpreter, or with Emacs' built-in
-manpage reader (the 'help' command won't work if the interpreter is running
-inside an Emacs buffer).
+Online documentation is available as a manual page, which contains detailed
+information on how to use the interpreter and a description of the Pure
+language. You can invoke the manpage with 'man pure' after installation or
+using the 'help' command inside the interpreter. When using Emacs, it can be
+displayed using Emacs' built-in manpage reader (the 'help' command won't work
+if the interpreter is running in an Emacs buffer).
 
 Some example programs can be found in the examples subdir in the sources; in
 particular, have a look at the hello.pure program which will quickly give you
@@ -100,7 +96,7 @@ you start up the Pure interpreter.
 This is currently all you get; more elaborate documentation of the Pure
 language still needs to be written. But Pure is a really simple language; if
 you have some experience using FPLs then you should be able to find your way
-with the manpage and the provided examples. Of course, you can also post
+with the manual page and the provided examples. Of course, you can also post
 questions to the Pure mailing list (see http://pure-lang.sf.net).
 
 Enjoy! :)
