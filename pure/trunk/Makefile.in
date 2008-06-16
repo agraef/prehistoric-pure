@@ -216,20 +216,22 @@ config.h.in: configure.ac config/aclocal.m4
 # installation
 
 install: pure$(EXE) etc/pure-mode.el pure.1
-	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
+	for x in $(addprefix $(DESTDIR), $(bindir) $(includedir)/pure-$(version) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE)
 	ln -sf $(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
 ifeq ($(sharedlib), yes)
 	$(INSTALL) $(libpure) $(DESTDIR)$(libdir)/$(libpure)
 	ln -sf $(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk)
 endif
+	$(INSTALL) runtime.h $(DESTDIR)$(includedir)/pure-$(version)
+	ln -sf $(includedir)/pure-$(version) $(DESTDIR)$(includedir)/pure
 	for x in $(srcdir)/lib/*.pure; do $(INSTALL) -m 644 $$x $(DESTDIR)$(libdir)/pure-$(version); done
 	ln -sf $(libdir)/pure-$(version) $(DESTDIR)$(libdir)/pure
 	$(INSTALL) -m 644 pure.1 $(DESTDIR)$(man1dir)/pure-$(version).1
 	ln -sf $(man1dir)/pure-$(version).1 $(DESTDIR)$(man1dir)/pure.1
 
 uninstall:
-	rm -rf $(DESTDIR)$(bindir)/pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(libdir)/pure-$(version) $(DESTDIR)$(man1dir)/pure.1 $(DESTDIR)$(man1dir)/pure-$(version).1
+	rm -rf $(DESTDIR)$(bindir)/pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk) $(DESTDIR)$(includedir)/pure $(DESTDIR)$(includedir)/pure-$(version) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(libdir)/pure-$(version) $(DESTDIR)$(man1dir)/pure.1 $(DESTDIR)$(man1dir)/pure-$(version).1
 
 # roll a distribution tarball
 
