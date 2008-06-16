@@ -1,5 +1,10 @@
 
+dnl To regenerate the configury after changes:
+dnl autoconf -I config && autoheader -I config
+
 AC_INIT(pure, 0.4)
+AC_CONFIG_AUX_DIR(config)
+dnl AC_CONFIG_MACRO_DIR(config)
 AC_CONFIG_HEADERS(config.h)
 dnl Determine host information.
 AC_CANONICAL_HOST
