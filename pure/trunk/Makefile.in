@@ -106,9 +106,10 @@ EXTRA_SOURCE = lexer.cc parser.cc parser.hh location.hh position.hh stack.hh
 OBJECT = $(subst .cc,.o,$(filter %.cc,$(SOURCE) $(EXTRA_SOURCE)))
 
 DISTFILES = COPYING ChangeLog INSTALL NEWS README TODO \
-Makefile.in aclocal.m4 configure.ac configure config.h.in \
-config.guess config.sub install-sh $(SOURCE) $(EXTRA_SOURCE) w3centities.c \
-pure.cc pure.1 pure.1.in pure-mode.el.in pure.xml pure.vim \
+Makefile.in configure.ac configure config.h.in \
+config/aclocal.m4 config/config.guess config/config.sub config/install-sh \
+$(SOURCE) $(EXTRA_SOURCE) w3centities.c \
+pure.cc pure.1 pure.1.in etc/pure-mode.el.in etc/pure.* \
 examples/*.pure lib/*.pure test/*.pure test/*.log
 
 .PHONY: all html dvi ps pdf clean realclean depend install uninstall strip \
@@ -116,7 +117,7 @@ dist distcheck cleanlogs logs check config
 
 # compilation
 
-all: pure$(EXE) pure-mode.el pure.1
+all: pure$(EXE) etc/pure-mode.el pure.1
 
 ifeq ($(sharedlib), yes)
 pure$(EXE): pure.o $(libpure)
@@ -149,10 +150,10 @@ parser.hh location.hh position.hh stack.hh: parser.cc
 
 # create pure-mode.el from pure-mode.el.in
 
-pure-mode.el: Makefile pure-mode.el.in
-	rm -f pure-mode.el pure-mode.el.tmp
-	sed -e 's,@bindir\@,$(bindir),g' -e 's,@libdir\@,$(libdir),g' pure-mode.el.in >pure-mode.el.tmp
-	mv pure-mode.el.tmp pure-mode.el
+etc/pure-mode.el: Makefile etc/pure-mode.el.in
+	rm -f etc/pure-mode.el etc/pure-mode.el.tmp
+	sed -e 's,@bindir\@,$(bindir),g' -e 's,@libdir\@,$(libdir),g' etc/pure-mode.el.in >etc/pure-mode.el.tmp
+	mv etc/pure-mode.el.tmp etc/pure-mode.el
 
 # create the manpage from pure.1.in
 
@@ -192,7 +193,7 @@ clean:
 	rm -f *~ *.bak *.html *.dvi *.ps *.pdf pure$(EXE) $(OBJECT) pure.o $(libpurelnk) $(libpure) parser.output
 
 distclean: clean
-	rm -f Makefile config.h config.log config.status pure-mode.el $(dist).tar.gz
+	rm -f Makefile config.h config.log config.status etc/pure-mode.el $(dist).tar.gz
 
 realclean: distclean
 	rm -f $(addprefix $(srcdir)/, test/*.log $(EXTRA_SOURCE) pure.1)
@@ -214,7 +215,7 @@ config.h.in: configure.ac config/aclocal.m4
 
 # installation
 
-install: pure$(EXE) pure-mode.el pure.1
+install: pure$(EXE) etc/pure-mode.el pure.1
 	for x in $(addprefix $(DESTDIR), $(bindir) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE)
 	ln -sf $(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
@@ -232,9 +233,9 @@ uninstall:
 
 # roll a distribution tarball
 
-dist:
+dist: pure.1
 	rm -rf $(dist)
-	mkdir $(dist) && mkdir $(dist)/examples && mkdir $(dist)/lib && mkdir $(dist)/test
+	mkdir $(dist) && mkdir $(dist)/config && mkdir $(dist)/etc && mkdir $(dist)/examples && mkdir $(dist)/lib && mkdir $(dist)/test
 	(builddir=$$PWD; cd $(srcdir); for x in $(DISTFILES); do ln -sf $$PWD/$$x $$builddir/$(dist)/$$x; done)
 	rm -f $(dist).tar.gz
 	tar cfzh $(dist).tar.gz $(dist)
