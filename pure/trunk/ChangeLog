@@ -1,3 +1,16 @@
+2008-06-16  Albert Graef  <Dr.Graef@t-online.de>
+
+	* etc/pure.lang: New language definition file for Andre Simon's
+	highlight program (http:/www.andre-simon.de/). This allows you to
+	format Pure sources with syntax highlighting as HTML and LaTeX
+	files, for instance.
+
+	* configure.ac, Makefile.in: Clean up the source tree. Moved
+	auxiliary configure files and the syntax highlighting and
+	programming mode stuff into separate config and etc
+	subdirectories. Moreover, Makefile.in now has a target to
+	regenerate the configury using autoconf and autoheader.
+
 2008-06-15  Albert Graef  <Dr.Graef@t-online.de>
 
 	* matcher.hh: gcc 4.3 compatibility fixes. Suggested by Toni
