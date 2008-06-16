@@ -324,10 +324,13 @@ There also are a number of targets like 'html' and 'pdf' which generate the
 documentation in a variety of formats (this requires groff); see the Makefile
 for details.
 
-Last but not least, maintainers can roll distribution tarballs with 'make
-dist' and 'make distcheck' (the latter is like 'make dist', but also does a
-test build and installation to verify that your tarball contains all needed
-bits and pieces).
+Maintainers can roll distribution tarballs with 'make dist' and 'make
+distcheck' (the latter is like 'make dist', but also does a test build and
+installation to verify that your tarball contains all needed bits and pieces).
+
+Last but not least, if you modify configure.ac for some reason then you
+regenerate the configure script and config.h.in with 'make config'. This needs
+autoconf, of course. (The distribution was prepared using autoconf 2.61.)
 
 
 SYSTEM NOTES
