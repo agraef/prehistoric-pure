@@ -873,7 +873,7 @@ void interpreter::clear(int32_t f)
   }
 }
 
-void interpreter::add_rule(rulel &rl, rule *r, bool b, yy::location* yylloc)
+void interpreter::add_rule(rulel &rl, rule *r, bool b)
 {
   rule r1 = *r;
   if (r->lhs.is_null()) {

@@ -352,7 +352,7 @@ public:
   void exec(expr *x);
   void clear(int32_t f = 0);
   void clearsym(int32_t f);
-  void add_rule(rulel &rl, rule *r, bool b, yy::location* yylloc = 0);
+  void add_rule(rulel &rl, rule *r, bool b);
   void add_rule(env &e, expr &l, rule *r, bool toplevel = false);
   void add_simple_rule(rulel &rl, rule *r);
   void promote_ttags(expr f, expr x, expr u);
