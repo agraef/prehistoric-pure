@@ -1533,7 +1533,7 @@ uint32_t hash(const pure_expr *x)
     return string_hash(x->data.s);
   case EXPR::PTR:
 #if SIZEOF_VOID_P==8
-    return ((uint32_t)(uint64_t)x->data.p) ^ ((uint32_t)(((uint64_t)p)>>32));
+    return ((uint32_t)(uint64_t)x->data.p) ^ ((uint32_t)(((uint64_t)x->data.p)>>32));
 #else
     return (uint32_t)x->data.p;
 #endif
