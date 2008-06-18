@@ -158,20 +158,20 @@ symbol& symtable::and_sym()
 
 symbol& symtable::bitor_sym()
 {
-  symbol *_sym = lookup("|");
+  symbol *_sym = lookup("or");
   if (_sym)
     return *_sym;
   else
-    return sym("|", 6, infixl);
+    return sym("or", 6, infixl);
 }
 
 symbol& symtable::bitand_sym()
 {
-  symbol *_sym = lookup("&");
+  symbol *_sym = lookup("and");
   if (_sym)
     return *_sym;
   else
-    return sym("&", 7, infixl);
+    return sym("and", 7, infixl);
 }
 
 symbol& symtable::shl_sym()
