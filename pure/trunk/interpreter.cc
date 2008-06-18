@@ -768,7 +768,7 @@ void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
 
 void interpreter::exec(expr *x)
 {
-  last = expr();
+  last.clear();
   if (result) pure_free(result); result = 0;
   pure_expr *e, *res = eval(*x, e);
   if ((verbose&verbosity::defs) != 0) cout << *x << ";\n";
@@ -793,7 +793,7 @@ void interpreter::exec(expr *x)
 
 void interpreter::define(rule *r)
 {
-  last = expr();
+  last.clear();
   pure_expr *e, *res = defn(r->lhs, r->rhs, e);
   if ((verbose&verbosity::defs) != 0)
     cout << "let " << r->lhs << " = " << r->rhs << ";\n";
@@ -873,41 +873,60 @@ void interpreter::clear(int32_t f)
   }
 }
 
-void interpreter::add_rule(rulel &rl, rule *r, bool b)
+rulel *interpreter::default_lhs(exprl &l, rulel *rl)
 {
-  rule r1 = *r;
-  if (r->lhs.is_null()) {
-    // empty lhs, repeat the one from the previous rule
-    rulel::reverse_iterator last = rl.rbegin();
-    if (last == rl.rend()) {
-      delete r;
-      throw err("error in function definition (missing left-hand side)");
-    } else
-      r1 = rule(last->lhs, r->rhs, r->qual);
+  assert(!rl->empty());
+  rule& r = rl->front();
+  if (r.lhs.is_null()) {
+    // empty lhs, repeat the ones from the previous rule
+    assert(rl->size() == 1);
+    if (l.empty()) {
+      delete rl;
+      throw err("error in rule (missing left-hand side)");
+    } else {
+      expr rhs = r.rhs, qual = r.qual;
+      rl->clear();
+      for (exprl::iterator i = l.begin(), end = l.end(); i != end; i++)
+	rl->push_back(rule(*i, rhs, qual));
+    }
+  } else {
+    l.clear();
+    for (rulel::iterator i = rl->begin(), end = rl->end(); i != end; i++)
+      l.push_back(i->lhs);
   }
-  delete r;
-  closure(r1, b);
-  rl.push_back(r1);
+  return rl;
 }
 
-void interpreter::add_rule(env &e, expr &l, rule *r, bool toplevel)
+void interpreter::add_rules(rulel &rl, rulel *r, bool b)
 {
-  rule r1 = *r;
-  if (r->lhs.is_null()) {
-    // empty lhs, repeat the one from the previous rule
-    if (l.is_null()) {
-      delete r;
-      throw err("error in function definition (missing left-hand side)");
-    } else
-      r1 = rule(l, r->rhs, r->qual);
-  }
+  for (rulel::iterator ri = r->begin(), end = r->end(); ri != end; ri++)
+    add_rule(rl, *ri, b);
   delete r;
-  closure(r1, false);
+}
+
+void interpreter::add_rules(env &e, rulel *r, bool toplevel)
+{
+  for (rulel::iterator ri = r->begin(), end = r->end(); ri != end; ri++)
+    add_rule(e, *ri, toplevel);
+  delete r;
+}
+
+void interpreter::add_rule(rulel &rl, rule &r, bool b)
+{
+  assert(!r.lhs.is_null());
+  closure(r, b);
+  rl.push_back(r);
+}
+
+void interpreter::add_rule(env &e, rule &r, bool toplevel)
+{
+  assert(!r.lhs.is_null());
+  closure(r, false);
   if (toplevel) {
-    compile(r1.rhs);
-    compile(r1.qual);
+    compile(r.rhs);
+    compile(r.qual);
   }
-  int32_t f; uint32_t argc = count_args(r1.lhs, f);
+  int32_t f; uint32_t argc = count_args(r.lhs, f);
   if (f <= 0)
     throw err("error in function definition (invalid head symbol)");
   env::iterator it = e.find(f);
@@ -936,27 +955,25 @@ void interpreter::add_rule(env &e, expr &l, rule *r, bool toplevel)
     info = env_info(argc, rulel(), toplevel?temp:0);
   assert(info.argc == argc);
   if (toplevel) {
-    r1.temp = temp;
+    r.temp = temp;
     if (override) {
       rulel::iterator p = info.rules->begin();
       for (; p != info.rules->end() && p->temp >= temp; p++) ;
-      info.rules->insert(p, r1);
+      info.rules->insert(p, r);
     } else
-      info.rules->push_back(r1);
+      info.rules->push_back(r);
   } else {
-    r1.temp = 0;
-    info.rules->push_back(r1);
+    r.temp = 0;
+    info.rules->push_back(r);
   }
-  if (l != r1.lhs) l = r1.lhs;
-  if (toplevel && (verbose&verbosity::defs) != 0) cout << r1 << ";\n";
+  if (toplevel && (verbose&verbosity::defs) != 0) cout << r << ";\n";
   if (toplevel) mark_dirty(f);
 }
 
 void interpreter::add_simple_rule(rulel &rl, rule *r)
 {
   assert(!r->lhs.is_null());
-  rule r1 = *r;
-  rl.push_back(r1);
+  rl.push_back(*r);
   delete r;
 }
 
