@@ -1,5 +1,8 @@
 2008-06-18  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc, lib/primitives.pure: Add hash function to compute 32
+	bit hash codes of Pure expressions. Suggested by Jiri Spitz.
+
 	* parser.yy, lexer.ll, interpreter.hh/cc: Add syntax for multiple
 	left-hand sides in function definitions and 'case' rules, as
 	requested by Jiri Spitz and discussed on the mailing list. See the
