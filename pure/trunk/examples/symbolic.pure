@@ -27,16 +27,12 @@ diff x (5*x*x+2*x+10); diff x (5*square (x+y));
 
 /* Disjunctive normal form. */
 
-// Note that 'not' is already declared in the prelude and is being reused
-// here, so make sure that these match up with the prelude.
-infixl 2 or; infixl 3 and; prefix 3 not;
-
 // eliminate double negations:
-not not a	= a;
+~~a		= a;
 
 // push negations inward (de Morgan's laws):
-not (a or b)	= not a and not b;
-not (a and b)	= not a or not b;
+~(a or b)	= ~a and ~b;
+~(a and b)	= ~a or ~b;
 
 // distributivity laws:
 a and (b or c)	= a and b or a and c;
@@ -47,4 +43,4 @@ a and (b and c)	= (a and b) and c;
 a or (b or c)	= (a or b) or c;
 
 // Example:
-a or not (b or (c and not d));
+a or ~(b or (c and ~d));
