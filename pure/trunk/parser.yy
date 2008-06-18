@@ -59,8 +59,12 @@ struct sym_info {
   sym_info(prec_t p, fix_t f) : prec(p), fix(f) { }
 };
 struct rule_info {
-  expr l;
+  exprl l;
   env e;
+};
+struct pat_rule_info {
+  exprl l;
+  rulel rl;
 };
 typedef pair<expr,expr> comp_clause;
 typedef list<comp_clause> comp_clause_list;
@@ -79,6 +83,7 @@ typedef list<comp_clause> comp_clause_list;
   rule   *rval;
   rulel  *rlval;
   rule_info *rinfo;
+  pat_rule_info *prinfo;
   list<string> *slval;
   comp_clause_list *clauselval;
   comp_clause *clauseval;
@@ -224,23 +229,24 @@ typedef list<comp_clause> comp_clause_list;
 %type  <slval>	ids names ctypes opt_ctypes
 %type  <info>	fixity
 %type  <xval>	expr cond simple app prim op qual
-%type  <xlval>	args
+%type  <xlval>	args lhs
 %type  <clauselval>  comp_clauses comp_clause_list
 %type  <clauseval>  comp_clause
-%type  <rval>	rule simple_rule
 %type  <rinfo>	rules rulel
-%type  <rlval>	pat_rules pat_rulel simple_rules simple_rulel
+%type  <prinfo>	pat_rules pat_rulel
+%type  <rval>	simple_rule
+%type  <rlval>	rule simple_rules simple_rulel
 
 %destructor { delete $$; } ID fixity expr cond simple app prim op
-  comp_clauses comp_clause_list args qual rules rulel rule pat_rules pat_rulel
-  simple_rules simple_rulel simple_rule ids names name
+  comp_clauses comp_clause_list args lhs qual rules rulel rule
+  pat_rules pat_rulel simple_rules simple_rulel simple_rule ids names name
   optalias opt_ctypes ctypes ctype
 %destructor { mpz_clear(*$$); free($$); } BIGINT
 %destructor { free($$); } STR
 %printer { debug_stream() << *$$; } ID name optalias ctype expr cond simple app
-  prim op args qual rule pat_rules pat_rulel simple_rules simple_rulel
-  simple_rule
+  prim op args lhs qual rule simple_rules simple_rulel simple_rule
 %printer { debug_stream() << $$->e; } rules rulel
+%printer { debug_stream() << $$->rl; } pat_rules pat_rulel
 %printer { debug_stream() << $$; }  INT DBL STR
 %printer { char *s = mpz_get_str(NULL, 10, *$$);
            debug_stream() << s; free(s); }  BIGINT
@@ -269,7 +275,8 @@ item
 | LET simple_rule
 { action(interp.define($2), delete $2); }
 | rule
-{ action(interp.add_rule(interp.globenv, interp.last, $1, true), delete $1); }
+{ rulel *rl = interp.default_lhs(interp.last, $1);
+  action(interp.add_rules(interp.globenv, rl, true), delete rl); }
 | fixity
 /* Lexical tie-in: We need to tell the lexer that we're defining new operator
    symbols (interp.declare_op = true) instead of searching for existing ones
@@ -361,7 +368,7 @@ expr
 { try { $$ = interp.mklambda_expr($2, $4); }
   catch (err &e) { interp.error(yyloc, e.what()); $$ = new expr; } }
 | CASE cond OF pat_rules END
-{ $$ = interp.mkcase_expr($2, $4); }
+{ $$ = interp.mkcase_expr($2, new rulel($4->rl)); delete $4; }
 | expr WHEN simple_rules END
 { try { $$ = interp.mkwhen_expr($1, $3); }
   catch (err &e) { interp.error(yyloc, e.what()); $$ = new expr; } }
@@ -535,14 +542,25 @@ op
 
 /* Rewriting rule syntax. These generally take the form l = r [if g]; ... For
    convenience, we also allow a semicolon at the end of a rule list. Moreover,
-   the left-hand side may be omitted, in which case the left-hand side of the
-   previous rule is repeated. */
+   multiple left-hand sides are permitted (denoting a collection of rules for
+   the same right-hand side), and the left-hand side may also be omitted, in
+   which case the left-hand sides of the previous rule are repeated. */
 
 rule
-: expr '=' expr qual
-{ $$ = new rule(*$1, *$3, *$4); delete $1; delete $3; delete $4; }
+: lhs '=' expr qual
+{ $$ = new rulel;
+  for (exprl::iterator l = $1->begin(), end = $1->end(); l != end; l++)
+    $$->push_back(rule(*l, *$3, *$4));
+  delete $1; delete $3; delete $4; }
 | '=' expr qual
-{ $$ = new rule(expr(), *$2, *$3); delete $2; delete $3; }
+{ $$ = new rulel(1, rule(expr(), *$2, *$3)); delete $2; delete $3; }
+;
+
+lhs
+: expr
+{ $$ = new exprl; $$->push_back(*$1); delete $1; }
+| lhs '|' expr
+{ $$ = $1; $$->push_back(*$3); delete $3; }
 ;
 
 qual
@@ -558,11 +576,15 @@ rules
 
 rulel
 : rule
-{ $$ = new rule_info; try { interp.add_rule($$->e, $$->l, $1); }
-  catch (err &e) { interp.error(yyloc, e.what()); } }
+{ $$ = new rule_info;
+  rulel *rl = interp.default_lhs($$->l, $1);
+  try { interp.add_rules($$->e, rl); }
+  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
 | rulel ';' rule
-{ $$ = $1; try { interp.add_rule($$->e, $$->l, $3); }
-  catch (err &e) { interp.error(yyloc, e.what()); } }
+{ $$ = $1;
+  rulel *rl = interp.default_lhs($$->l, $3);
+  try { interp.add_rules($$->e, rl); }
+  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
 ;
 
 /* Same for pattern rules (pattern binding in 'case' clauses). */
@@ -574,11 +596,15 @@ pat_rules
 
 pat_rulel
 : rule
-{ $$ = new rulel; try { interp.add_rule(*$$, $1, true); }
-  catch (err &e) { interp.error(yyloc, e.what()); } }
+{ $$ = new pat_rule_info;
+  rulel *rl = interp.default_lhs($$->l, $1);
+  try { interp.add_rules($$->rl, rl, true); }
+  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
 | pat_rulel ';' rule
-{ $$ = $1; try { interp.add_rule(*$$, $3, true); }
-  catch (err &e) { interp.error(yyloc, e.what()); } }
+{ $$ = $1;
+  rulel *rl = interp.default_lhs($$->l, $3);
+  try { interp.add_rules($$->rl, rl, true); }
+  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
 ;
 
 /* Same for simple rules (pattern binding in 'when' clauses, no guards). */

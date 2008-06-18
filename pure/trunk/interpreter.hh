@@ -268,7 +268,7 @@ public:
   symtable symtab;   // the symbol table
   pure_expr *result; // last computed result
   clock_t clocks;    // last evaluation time, if stats is set
-  expr last;         // last processed lhs
+  exprl last;        // last processed lhs collection
   env globenv;       // global function and variable environment
   funset dirty;      // "dirty" function entries which need a recompile
   pure_mem *mem;     // runtime expression memory
@@ -352,8 +352,11 @@ public:
   void exec(expr *x);
   void clear(int32_t f = 0);
   void clearsym(int32_t f);
-  void add_rule(rulel &rl, rule *r, bool b);
-  void add_rule(env &e, expr &l, rule *r, bool toplevel = false);
+  rulel *default_lhs(exprl &l, rulel *rl);
+  void add_rules(rulel &rl, rulel *r, bool b);
+  void add_rules(env &e, rulel *r, bool toplevel = false);
+  void add_rule(rulel &rl, rule &r, bool b);
+  void add_rule(env &e, rule &r, bool toplevel = false);
   void add_simple_rule(rulel &rl, rule *r);
   void promote_ttags(expr f, expr x, expr u);
   void promote_ttags(expr f, expr x, expr u, expr v);
