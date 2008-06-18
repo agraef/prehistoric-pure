@@ -102,12 +102,12 @@ x::int>>y::int		= x>>y;
 
 x::int+y::int		= x+y;
 x::int-y::int		= x-y;
-x::int|y::int		= x|y;
 x::int*y::int		= x*y;
 x::int/y::int		= x/y;
-x::int&y::int		= x&y;
 x::int div y::int	= x div y;
 x::int mod y::int	= x mod y;
+x::int or y::int	= x or y;
+x::int and y::int	= x and y;
 
 x::int<y::int		= x<y;
 x::int>y::int		= x>y;
@@ -189,12 +189,12 @@ x::bigint>>y::int	= bigint_shr x y if y>=0;
 
 x::bigint+y::bigint	= bigint_add x y;
 x::bigint-y::bigint	= bigint_sub x y;
-x::bigint|y::bigint	= bigint_or x y;
 x::bigint*y::bigint	= bigint_mul x y;
 x::bigint/y::bigint	= double x / double y;
-x::bigint&y::bigint	= bigint_and x y;
 x::bigint div y::bigint	= bigint_div x y;
 x::bigint mod y::bigint	= bigint_mod x y;
+x::bigint or y::bigint	= bigint_or x y;
+x::bigint and y::bigint	= bigint_and x y;
 
 x::bigint<y::bigint	= bigint_cmp x y < 0;
 x::bigint>y::bigint	= bigint_cmp x y > 0;
@@ -207,12 +207,12 @@ x::bigint!=y::bigint	= bigint_cmp x y != 0;
 
 x::int+y::bigint	= bigint x+y;
 x::int-y::bigint	= bigint x-y;
-x::int|y::bigint	= bigint x|y;
 x::int*y::bigint	= bigint x*y;
 x::int/y::bigint	= double x/y;
-x::int&y::bigint	= bigint x&y;
 x::int div y::bigint	= bigint x div y;
 x::int mod y::bigint	= bigint x mod y;
+x::int or y::bigint	= bigint x or y;
+x::int and y::bigint	= bigint x and y;
 
 x::int<y::bigint	= bigint x<y;
 x::int>y::bigint	= bigint x>y;
@@ -223,12 +223,12 @@ x::int!=y::bigint	= bigint x!=y;
 
 x::bigint+y::int	= x+bigint y;
 x::bigint-y::int	= x-bigint y;
-x::bigint|y::int	= x|bigint y;
 x::bigint*y::int	= x*bigint y;
 x::bigint/y::int	= x/double y;
-x::bigint&y::int	= x&bigint y;
 x::bigint div y::int	= x div bigint y;
 x::bigint mod y::int	= x mod bigint y;
+x::bigint or y::int	= x or bigint y;
+x::bigint and y::int	= x and bigint y;
 
 x::bigint<y::int	= x<bigint y;
 x::bigint>y::int	= x>bigint y;
