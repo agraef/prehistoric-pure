@@ -1,5 +1,7 @@
 2008-06-19  Albert Graef  <Dr.Graef@t-online.de>
 
+	* 0.4 release.
+
 	* examples/symbolic.pure: Fix DNF example to accommodate changes
 	in the operator system.
 
