@@ -1,3 +1,13 @@
+2008-06-18  Albert Graef  <Dr.Graef@t-online.de>
+
+	* parser.yy, lexer.ll, interpreter.hh/cc: Add syntax for multiple
+	left-hand sides in function definitions and 'case' rules, as
+	requested by Jiri Spitz and discussed on the mailing list. See the
+	manual page for details.
+
+	* symtable.cc, lib/prelude.pure, lib/primitives.pure: Rename the
+	bitwise operators '&' and '|' to 'and' and 'or'.
+
 2008-06-16  Albert Graef  <Dr.Graef@t-online.de>
 
 	* etc/pure.lang: New language definition file for Andre Simon's
