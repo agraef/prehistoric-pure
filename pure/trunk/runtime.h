@@ -280,6 +280,11 @@ pure_expr *string_ord(const char *c);
 pure_expr *str(const pure_expr *x);
 pure_expr *eval(const char *s);
 
+/* Compute a 32 bit hash code of a Pure expression. This makes it possible to
+   use arbitary Pure values as keys in a hash table. */
+
+uint32_t hash(const pure_expr *x);
+
 /* Check whether two objects are the "same" (syntactically). */
 
 bool same(const pure_expr *x, const pure_expr *y);
