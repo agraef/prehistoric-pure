@@ -275,8 +275,9 @@ item
 | LET simple_rule
 { action(interp.define($2), delete $2); }
 | rule
-{ rulel *rl = interp.default_lhs(interp.last, $1);
-  action(interp.add_rules(interp.globenv, rl, true), delete rl); }
+{ rulel *rl = 0;
+  action(interp.add_rules(interp.globenv,
+  (rl = interp.default_lhs(interp.last, $1)), true), if (rl) delete rl); }
 | fixity
 /* Lexical tie-in: We need to tell the lexer that we're defining new operator
    symbols (interp.declare_op = true) instead of searching for existing ones
@@ -577,14 +578,20 @@ rules
 rulel
 : rule
 { $$ = new rule_info;
-  rulel *rl = interp.default_lhs($$->l, $1);
-  try { interp.add_rules($$->e, rl); }
-  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
+  rulel *rl = 0;
+  try {
+    rl = interp.default_lhs($$->l, $1);
+    interp.add_rules($$->e, rl);
+  }
+  catch (err &e) { if (rl) delete rl; interp.error(yyloc, e.what()); } }
 | rulel ';' rule
 { $$ = $1;
-  rulel *rl = interp.default_lhs($$->l, $3);
-  try { interp.add_rules($$->e, rl); }
-  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
+  rulel *rl = 0;
+  try {
+    rl = interp.default_lhs($$->l, $3);
+    interp.add_rules($$->e, rl);
+  }
+  catch (err &e) { if (rl) delete rl; interp.error(yyloc, e.what()); } }
 ;
 
 /* Same for pattern rules (pattern binding in 'case' clauses). */
@@ -597,14 +604,20 @@ pat_rules
 pat_rulel
 : rule
 { $$ = new pat_rule_info;
-  rulel *rl = interp.default_lhs($$->l, $1);
-  try { interp.add_rules($$->rl, rl, true); }
-  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
+  rulel *rl = 0;
+  try {
+    rl = interp.default_lhs($$->l, $1);
+    interp.add_rules($$->rl, rl, true);
+  }
+  catch (err &e) { if (rl) delete rl; interp.error(yyloc, e.what()); } }
 | pat_rulel ';' rule
 { $$ = $1;
-  rulel *rl = interp.default_lhs($$->l, $3);
-  try { interp.add_rules($$->rl, rl, true); }
-  catch (err &e) { delete rl; interp.error(yyloc, e.what()); } }
+  rulel *rl = 0;
+  try {
+    rl = interp.default_lhs($$->l, $3);
+    interp.add_rules($$->rl, rl, true);
+  }
+  catch (err &e) { if (rl) delete rl; interp.error(yyloc, e.what()); } }
 ;
 
 /* Same for simple rules (pattern binding in 'when' clauses, no guards). */
