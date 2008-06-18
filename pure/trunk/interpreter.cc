@@ -759,8 +759,9 @@ void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
     if (sym) {
       // crosscheck declarations
       if (sym->prec != prec || sym->fix != fix) {
+	string id = *it;
 	delete ids;
-	throw err("conflicting fixity declaration for symbol '"+*it+"'");
+	throw err("conflicting fixity declaration for symbol '"+id+"'");
       }
     } else
       symtab.sym(*it, prec, fix);
