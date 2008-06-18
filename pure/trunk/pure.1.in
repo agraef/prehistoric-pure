@@ -366,62 +366,6 @@ necessary because Pure, in contrast to Haskell, does not distinguish between
 defined functions and constructors and thus there is no magic to figure out
 whether an equation is meant as a function definition or a pattern binding.
 .PP
-At the toplevel, a Pure program basically consists of rules a.k.a. equations
-defining functions, variable definitions a.k.a. global ``pattern bindings'',
-and expressions to be evaluated.
-.TP
-.B Rules: \fIlhs\fR = \fIrhs\fR;
-The basic form can also be augmented with a condition \fBif\ \fIguard\fR
-tacked on to the end of the rule (which restricts the applicability of the
-rule to the case that the guard evaluates to a nonzero integer), or the
-keyword
-.B otherwise
-denoting an empty guard which is always true (this is nothing but syntactic
-sugar useful to point out the ``default'' case of a definition; the
-interpreter just treats
-.B otherwise
-as a comment, so it can always be omitted). Moreover, the left-hand side can
-be omitted if it is the same as for the previous rule. This provides a
-convenient means to write out a collection of equations for the same left-hand
-side which discriminates over different conditions:
-.sp
-.nf
-\fIlhs\fR       = \fIrhs\fB if \fIguard\fR;
-          = \fIrhs\fB if \fIguard\fR;
-          ...
-          = \fIrhs\fB otherwise\fR;
-.fi
-.sp
-Rules are used to define functions at the toplevel and in \fBwith\fP
-expressions, as well as inside \fBcase\fP and \fBwhen\fP expressions for the
-purpose of performing pattern bindings (however, for obvious reasons the forms
-without a left-hand side or including a guard are not permitted in \fBwhen\fP
-expressions). When matching against a function call or the subject term in a
-\fBcase\fP expression, the rules are always considered in the order in which
-they are written, and the first matching rule (whose guard evaluates to a
-nonzero value, if applicable) is picked. (Again, the \fBwhen\fP construct is
-treated differently, because each rule is actually a separate pattern
-binding.)
-.sp
-In any case, the left-hand side pattern must not contain repeated variables
-(i.e., rules must be ``left-linear''), except for the ``anonymous'' variable
-`_' which matches an arbitrary value without binding a variable
-symbol. Moreover, a left-hand side variable may be followed by one of the
-special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP,
-to indicate that it can only match a constant value of the corresponding
-built-in type. (This is useful if you want to write rules matching \fIany\fP
-object of one of these types; note that there is no way to write out all
-``constructors'' for the built-in types, as there are infinitely many.)
-.TP
-.B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
-This binds every variable in the left-hand side pattern to the corresponding
-subterm of the evaluated right-hand side.
-.TP
-.B Toplevel expressions: \fIexpr\fR;
-A singleton expression at the toplevel, terminated with a semicolon, simply
-causes the given value to be evaluated (and the result to be printed, when
-running in interactive mode).
-.PP
 Expressions are parsed according to the following precedence rules: Lambda
 binds most weakly, followed by
 .BR when ,
@@ -436,8 +380,101 @@ their declarations (in the prelude or the user's program), and function
 application binds stronger than all operators. Parentheses can be used to
 override default precedences and associativities as usual.
 .PP
-For instance, here are two more function definitions showing most of these
-elements in action:
+At the toplevel, a Pure program basically consists of rules a.k.a. equations
+defining functions, variable definitions a.k.a. global ``pattern bindings'',
+and expressions to be evaluated.
+.TP
+.B Rules: \fIlhs\fR = \fIrhs\fR;
+The basic form can also be augmented with a condition \fBif\ \fIguard\fR
+tacked on to the end of the rule (which restricts the applicability of the
+rule to the case that the guard evaluates to a nonzero integer), or the
+keyword
+.B otherwise
+denoting an empty guard which is always true (this is nothing but syntactic
+sugar to point out the ``default'' case of a definition; the interpreter just
+treats this as a comment).
+.sp
+Pure also provides some abbreviations for factoring out common left-hand or
+right-hand sides in collections of rules; see below for details.
+.TP
+.B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
+This binds every variable in the left-hand side pattern to the corresponding
+subterm of the evaluated right-hand side.
+.TP
+.B Toplevel expressions: \fIexpr\fR;
+A singleton expression at the toplevel, terminated with a semicolon, simply
+causes the given value to be evaluated (and the result to be printed, when
+running in interactive mode).
+.PP
+Basically, the same rule syntax is used to define functions at the toplevel
+and in \fBwith\fP expressions, as well as inside \fBcase\fP and \fBwhen\fP
+expressions for the purpose of performing pattern bindings (however, for
+obvious reasons guards are not permitted in \fBwhen\fP expressions). When
+matching against a function call or the subject term in a \fBcase\fP
+expression, the rules are always considered in the order in which they are
+written, and the first matching rule (whose guard evaluates to a nonzero
+value, if applicable) is picked. (Again, the \fBwhen\fP construct is treated
+differently, because each rule is actually a separate pattern binding.)
+.PP
+In any case, the left-hand side pattern must not contain repeated variables
+(i.e., rules must be ``left-linear''), except for the ``anonymous'' variable
+`_' which matches an arbitrary value without binding a variable
+symbol. Moreover, a left-hand side variable may be followed by one of the
+special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP,
+to indicate that it can only match a constant value of the corresponding
+built-in type. (This is useful if you want to write rules matching \fIany\fP
+object of one of these types; note that there is no way to write out all
+``constructors'' for the built-in types, as there are infinitely many.)
+.PP
+The left-hand side of a rule can be omitted if it is the same as for the
+previous rule. This provides a convenient means to write out a collection of
+equations for the same left-hand side which discriminates over different
+conditions:
+.sp
+.nf
+\fIlhs\fR       = \fIrhs\fB if \fIguard\fR;
+          = \fIrhs\fB if \fIguard\fR;
+          ...
+          = \fIrhs\fB otherwise\fR;
+.fi
+.PP
+Pure also allows a collection of rules with different left-hand sides but the
+same right-hand side(s) to be abbreviated as follows:
+.sp
+.nf
+\fIlhs\fR       |
+          ...
+\fIlhs\fR       = \fIrhs\fB;
+.fi
+.PP
+This is useful if you need different specializations of the same rule which
+use different type tags on the left-hand side variables. For instance:
+.sp
+.nf
+fact n::int    |
+fact n::double |
+fact n         = n*fact(n-1) \fBif\fP n>0;
+               = 1 \fBotherwise\fP;
+.fi
+.PP
+In fact, the left-hand sides don't have to be related at all, so that you can
+also write something like:
+.sp
+.nf
+foo x | bar y = x*y;
+.fi
+.PP
+The same works in
+.B case
+expressions, which is convenient if different cases should be mapped to the
+same value, e.g.:
+.sp
+.nf
+\fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
+.fi
+.PP
+Here are some more definitions showing most of the elements discussed above in
+action:
 .sp
 .nf
 fact n  = n*fact (n-1) \fBif\fP n>0;
@@ -454,7 +491,7 @@ fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
 facts; fibs;
 .fi
 .PP
-And here's a little list comprehension example: Erathosthenes' classical prime
+This is a little list comprehension example: Erathosthenes' classical prime
 sieve.
 .sp
 .nf
@@ -480,11 +517,11 @@ primes n = sieve (2..n) with sieve [] = []; sieve (p:qs) = p:sieve
 (catmap (\eq -> if q mod p then [q] else []) qs) end;
 .fi
 .PP
-List comprehensions are also a useful device to organize backtracking
-searches. For instance, here's an algorithm for the n queens problem, which
-returns the list of all placements of n queens on an n x n board (encoded as
-lists of n pairs (i,j) with i = 1..n), so that no two queens hold each other
-in check.
+We mention in passing that list comprehensions are also a useful device to
+organize backtracking searches. For instance, here's an algorithm for the n
+queens problem, which returns the list of all placements of n queens on an n x
+n board (encoded as lists of n pairs (i,j) with i = 1..n), so that no two
+queens hold each other in check.
 .sp
 .nf
 queens n        = search n 1 [] \fBwith\fP
