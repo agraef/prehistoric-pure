@@ -400,7 +400,9 @@ pure_expr* interpreter::run(const string &s, bool check)
     parser.set_debug_level((verbose&verbosity::parser) != 0);
     // parse
     if (result) pure_free(result); result = 0;
+    last.clear();
     parser.parse();
+    last.clear();
     // finalize
     lex_end();
   }
