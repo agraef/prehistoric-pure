@@ -1474,6 +1474,82 @@ pure_expr *eval(const char *s)
   return res;
 }
 
+static uint32_t mpz_hash(const mpz_t z)
+{
+  uint32_t h = 0;
+  int i, len = z->_mp_size;
+  if (len < 0) len = -len;
+  if (sizeof(mp_limb_t) == 8) {
+    for (i=0; i<len; i++) {
+      h ^= (uint32_t)(uint64_t)z->_mp_d[i];
+      h ^= (uint32_t)(((uint64_t)z->_mp_d[i])>>32);
+    }
+  } else {
+    for (i=0; i<len; i++)
+      h ^= z->_mp_d[i];
+  }
+  if (z->_mp_size < 0)
+    h = -h;
+  return h;
+}
+
+static uint32_t double_hash(double d)
+{
+  uint32_t h;
+  char *c;
+  size_t i;
+  c = (char*)&d;
+  for (h=0, i=0; i<sizeof(double); i++) {
+    h += c[i] * 971;
+  }
+  return h;
+}
+
+static uint32_t string_hash(char *s)
+{
+  uint32_t h = 0, g;
+  while (*s) {
+    h = (h<<4)+*(s++);
+    if ((g = (h & 0xf0000000)))	{
+      h = h^(g>>24);
+      h = h^g;
+    }
+  }
+  return h;
+}
+
+extern "C"
+uint32_t hash(const pure_expr *x)
+{
+  char test;
+  switch (x->tag) {
+  case EXPR::INT:
+    return (uint32_t)x->data.i;
+  case EXPR::BIGINT:
+    return mpz_hash(x->data.z);
+  case EXPR::DBL:
+    return double_hash(x->data.d);
+  case EXPR::STR:
+    return string_hash(x->data.s);
+  case EXPR::PTR:
+#if SIZEOF_VOID_P==8
+    return ((uint32_t)(uint64_t)x->data.p) ^ ((uint32_t)(((uint64_t)p)>>32));
+#else
+    return (uint32_t)x->data.p;
+#endif
+  case EXPR::APP: {
+    checkstk(test);
+    int h;
+    h = hash(x->data.x[0]);
+    h = (h<<1) | (h<0 ? 1 : 0);
+    h ^= hash(x->data.x[1]);
+    return (uint32_t)h;
+  }
+  default:
+    return (uint32_t)x->tag;
+  }
+}
+
 extern "C"
 bool same(const pure_expr *x, const pure_expr *y)
 {

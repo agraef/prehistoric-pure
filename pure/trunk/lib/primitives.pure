@@ -65,6 +65,10 @@ tuplep _	= 0 otherwise;
 
 extern expr* fun(expr*), expr* arg(expr*);
 
+/* Compute a 32 bit hash code of a Pure expression. */
+
+extern int hash(expr*);
+
 /* Conversions between the different numeric and pointer types. */
 
 extern expr* pure_intval(expr*), expr* pure_dblval(expr*),
