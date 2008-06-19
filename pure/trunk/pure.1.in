@@ -983,7 +983,7 @@ variable symbols along with their current values (using the ``long format''):
 argc     var  argc = 0;
 argv     var  argv = [];
 sysinfo  var  sysinfo = "i686-pc-linux-gnu";
-version  var  version = "0.1";
+version  var  version = "@version@";
 4 variables
 .fi
 .PP
