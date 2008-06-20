@@ -273,22 +273,28 @@ main(int argc, char *argv[])
   interp.symtab.init_builtins();
   // enter the interactive command loop
   interp.interactive = true;
-  if (isatty(fileno(stdin))) {
-    // connected to a terminal, print sign-on and initialize readline
+  if (isatty(fileno(stdin)) || force_interactive) {
+    // We're connected to a terminal (or pretend that we are), print the
+    // sign-on message.
     if (!quiet) {
       cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
 	   << COPYRIGHT << endl << LICENSE;
       if (have_prelude)
 	cout << "Loaded prelude from " << prelude << ".\n\n";
     }
+    interp.compile();
+    interp.ttymode = true;
+  }
+  if (isatty(fileno(stdin))) {
+    // initialize readline
+    extern bool using_readline;
+    using_readline = true;
     rl_readline_name = "Pure";
     rl_attempted_completion_function = pure_completion;
     using_history();
     read_history(interp.histfile.c_str());
     stifle_history(600);
     histfile = strdup(interp.histfile.c_str());
-    interp.compile();
-    interp.ttymode = true;
   }
   interp.temp = 1;
   interp.run("");
