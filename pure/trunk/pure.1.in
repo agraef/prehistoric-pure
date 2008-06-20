@@ -432,19 +432,19 @@ equations for the same left-hand side which discriminates over different
 conditions:
 .sp
 .nf
-\fIlhs\fR       = \fIrhs\fB if \fIguard\fR;
-          = \fIrhs\fB if \fIguard\fR;
+\fIlhs\fR       = \fIrhs\fP \fBif\fP \fIguard\fP;
+          = \fIrhs\fP \fBif\fP \fIguard\fP;
           ...
-          = \fIrhs\fB otherwise\fR;
+          = \fIrhs\fP \fBotherwise\fP;
 .fi
 .PP
 Pure also allows a collection of rules with different left-hand sides but the
 same right-hand side(s) to be abbreviated as follows:
 .sp
 .nf
-\fIlhs\fR       |
+\fIlhs\fP       |
           ...
-\fIlhs\fR       = \fIrhs\fB;
+\fIlhs\fP       = \fIrhs\fP;
 .fi
 .PP
 This is useful if you need different specializations of the same rule which
@@ -513,8 +513,8 @@ expression the comprehension expanded to:
 .sp
 .nf
 > list primes
-primes n = sieve (2..n) with sieve [] = []; sieve (p:qs) = p:sieve
-(catmap (\eq -> if q mod p then [q] else []) qs) end;
+primes n = sieve (2..n) \fBwith\fP sieve [] = []; sieve (p:qs) = p:sieve
+(catmap (\eq -> if q mod p then [q] else []) qs) \fBend\fP;
 .fi
 .PP
 We mention in passing that list comprehensions are also a useful device to
