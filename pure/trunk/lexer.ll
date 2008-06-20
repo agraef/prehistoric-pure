@@ -824,18 +824,41 @@ interpreter::lex_end()
 static char *my_buf = NULL, *my_bufptr = NULL;
 static int len = 0;
 
+bool using_readline = false;
+
 void my_readline(const char *prompt, char *buf, int &result, int max_size)
 {
   if (!my_buf) {
-    // read a new line using readline()
-    my_bufptr = my_buf = readline(prompt);
-    if (!my_buf) {
-      // EOF, bail out
-      result = 0;
-      return;
+    if (using_readline) {
+      // read a new line using readline()
+      my_bufptr = my_buf = readline(prompt);
+      if (!my_buf) {
+	// EOF, bail out
+	result = 0;
+	return;
+      }
+      add_history(my_buf);
+    } else {
+      // read a new line from stdin
+      char s[10000];
+      fputs(prompt, stdout); fflush(stdout);
+      if (!fgets(s, 10000, stdin)) {
+	// EOF, bail out
+	result = 0;
+	return;
+      }
+      // get rid of the trailing newline
+      size_t l = strlen(s);
+      if (l>0 && s[l-1] == '\n')
+	s[l-1] = 0;
+      my_bufptr = my_buf = strdup(s);
+      if (!my_buf) {
+	// memory allocation error, bail out
+	result = 0;
+	return;
+      }
     }
     len = strlen(my_buf);
-    add_history(my_buf);
   }
   // how many chars we got
   int l = len-(my_bufptr-my_buf);
