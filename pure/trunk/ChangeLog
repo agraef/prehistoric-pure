@@ -1,6 +1,13 @@
-2008-06-19  Albert Graef  <Dr.Graef@t-online.de>
+2008-06-20  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.4 release.
+
+	* pure.cc, lexer.ll: Fake interactive mode when we're not
+	connected to a terminal but -i is specified. Thus sign-on message
+	and command prompts will be printed as usual. This is needed, in
+	particular, to make Emacs Pure-Eval mode work on Windows.
+
+2008-06-19  Albert Graef  <Dr.Graef@t-online.de>
 
 	* examples/symbolic.pure: Fix DNF example to accommodate changes
 	in the operator system.
