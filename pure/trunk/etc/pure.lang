@@ -1,4 +1,4 @@
-# Pure language definition file for highlight (http:/www.andre-simon.de/).
+# Pure language definition file for highlight (http://www.andre-simon.de/).
 # Copy this to your /usr/share/highlight/langDefs directory.
 
 $DESCRIPTION=Pure
