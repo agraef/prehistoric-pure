@@ -1,0 +1,74 @@
+
+** Pure 0.4 2008-06-19
+
+This release features some more bug and portability fixes, a cleanup of the
+source tree and an overhaul of the build system, see the ChangeLog for
+details. Building a separate runtime lib on x86-64 works now (but requires a
+patched LLVM, see the INSTALL file for details). Moreover, it is now possible
+to install different Pure versions in parallel.
+
+An Emacs mode for Pure and support for executing Pure scripts using "shebangs"
+has been added. Paging of the 'list' command is now implemented using the
+program specified with the PURE_MORE environment variable. This allows you to
+disable this option (if PURE_MORE is undefined) or choose any pager program
+and options that you prefer. Define PURE_MORE=more in your shell startup files
+to get back the old behaviour of piping 'list' output through 'more'.
+
+There's also a new syntax for multiple left-hand sides in function definitions
+and 'case' rules, as suggested by Jiri Spitz and discussed on the mailing
+list. Please refer to the manual page for details. To accommodate this change,
+the bitwise operators '&' and '|' were renamed to 'and' and 'or',
+respectively.
+
+** Pure 0.3 2008-06-06
+
+This release sports a lot of improvements as well as bug and portability
+fixes, see the ChangeLog for details. Many memory leaks have been plugged, and
+tail call elimination has been improved a lot. The build system has gone
+through a major overhaul, adding autoconf support. 64 bit support has been
+improved as well, and Pure now builds and runs fine on MS Windows. Many
+library functions have been rewritten to make them tail-recursive, and some
+new functions have been added. Last but not least, the runtime support is now
+implemented as a separate shared library which makes it possible to link
+external modules against the runtime, and reduces the memory footprint when
+multiple instances of the interpreter are run as different processes.
+
+Special thanks to Tim Haynes, John Lunney, Eddie Rucker, Ryan Schmidt, Libor
+Spacek and Jiri Spitz for contributions, suggestions and bug reports.
+
+** Pure 0.2 2008-05-04
+
+On the heels of Pure 0.1 comes the first bugfix release which addresses a
+couple of bugs, misfeatures and Mac OSX compatibility issues, please refer to
+the ChangeLog for details. I also added a more detailed INSTALL guide (thanks
+are due to Eddie Rucker who wrote most of the new material in this guide) and
+updated the manpage with a few minor corrections and some remarks about issues
+raised on the Pure mailing list.
+
+Please note that there are still some issues with Pure on 64 bit systems (as
+well as on Ubuntu running on PowerPC) which are still on my TODO list, these
+will hopefully be fixed in the next release.
+
+Thanks to all who sent in bug reports and patches, in particular: Chris
+Double, Tim Haynes, Eddie Rucker, Ryan Schmidt and Libor Spacek. (I hope I
+didn't forget anyone.)
+
+** Pure 0.1 2008-04-29
+
+The much-awaited initial release. ;-) The interpreter is already fully
+functional, but of course there's still a lot to be done (see the TODO file
+for details). Please note that this is a preliminary, "beta" release, so
+expect some bugs (and please report them to the author!).
+
+The Pure project is now hosted at SourceForge, see http://pure-lang.sf.net. A
+mailing list should soon be available, too.
+
+See the INSTALLATION section in the README file to get up and running quickly.
+After Pure is installed, read the Pure manual page (also available in various
+formats from the Pure website) and have a look at the stuff in the examples
+subdir, especially hello.pure, and review the standard library modules
+(lib/*.pure).
+
+Enjoy!
+
+Albert Graef <Dr.Graef@t-online.de>
