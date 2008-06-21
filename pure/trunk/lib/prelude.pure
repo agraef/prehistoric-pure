@@ -252,7 +252,7 @@ foldr f a (x:xs)
 		= f x (foldl (flip f) a (reverse xs));
 
 foldr1 f [x]	= x;
-foldr1 f (x:xs)	= foldr f x xs;
+foldr1 f (x:xs)	= f x (foldl1 (flip f) (reverse xs));
 
 head (x:xs)	= x;
 

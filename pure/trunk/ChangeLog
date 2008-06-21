@@ -1,3 +1,8 @@
+2008-06-21  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/prelude.pure: Fixed a glitch in the definition of foldr1
+	which caused list elements to be processed in the wrong order.
+
 2008-06-20  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.4 release.
