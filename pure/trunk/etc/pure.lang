@@ -7,6 +7,9 @@ $DESCRIPTION=Pure
 $KW_LIST(kwa)=infix infixl infixr prefix postfix nullary case else end extern
 if let of otherwise then using when with
 
+# These aren't really keywords but we want them to stick out anyway.
+$KW_LIST(kwb)=catch throw
+
 # Type identifiers used as tags and in extern declarations.
 $KW_LIST(kwc)=bigint bool char short int long double expr string pointer void
 
