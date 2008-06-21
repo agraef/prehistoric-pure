@@ -22,6 +22,10 @@
       <item> when </item>
       <item> with </item>
     </list>
+    <list name="special">
+      <item> catch </item>
+      <item> throw </item>
+    </list>
     <list name="types">
       <item> bigint </item>
       <item> bool </item>
@@ -38,7 +42,8 @@
     <contexts>
       <context attribute="Normal Text" lineEndContext="#stay" name="Normal">
         <keyword attribute="Keyword" context="#stay" String="keywords"/>
-        <keyword attribute="Conid" context="#stay" String="types"/>
+        <keyword attribute="Function" context="#stay" String="special"/>
+        <keyword attribute="Type" context="#stay" String="types"/>
         <RegExpr attribute="Normal Text" context="#stay" String="[A-Za-z_][A-Za-z0-9_]*"/>
         <RegExpr attribute="Number" context="#stay" String="0x[A-Za-z0-9]+"/>
         <Float attribute="Number" context="#stay"/>
@@ -59,7 +64,8 @@
     <itemDatas>
       <itemData name="Normal Text" defStyleNum="dsNormal" />
       <itemData name="Keyword"     defStyleNum="dsKeyword" />
-      <itemData name="Conid"       defStyleNum="dsDataType"/>
+      <itemData name="Function"    defStyleNum="dsFunction"/>
+      <itemData name="Type"        defStyleNum="dsDataType"/>
       <itemData name="Number"      defStyleNum="dsDecVal" />
       <itemData name="String"      defStyleNum="dsString" />
       <itemData name="Comment"     defStyleNum="dsComment" />

@@ -1,5 +1,8 @@
 2008-06-21  Albert Graef  <Dr.Graef@t-online.de>
 
+	* etc/pure-mode.el.in, etc/pure.vim, etc/pure.xml, etc/pure.lang:
+	Cosmetic changes, all modes now highlight catch/throw.
+
 	* lib/prelude.pure: Fixed a glitch in the definition of foldr1
 	which caused list elements to be processed in the wrong order.
 
