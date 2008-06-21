@@ -67,9 +67,9 @@
 
 	* pure.cc: Added new -q (quiet) and -x (execute) options. The
 	former is used in pure-mode.el to suppress the sign-on message of
-	the interpreter. The latter can be used in conjuction with the new
-	#! comment syntax to add shebangs to your script, see the manpage
-	for details.
+	the interpreter. The latter can be used in conjunction with the
+	new #! comment syntax to add shebangs to your script, see the
+	manpage for details.
 
 	* pure-mode.el.in: Added new Emacs Pure mode. This is a quick and
 	dirty hack of Q mode and still needs some work (in particular,
