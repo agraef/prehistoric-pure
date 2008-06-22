@@ -1075,7 +1075,7 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
     if (sym.s != "_") {
       if (sym.prec < 10 || sym.fix == nullary)
 	throw err("error in pattern (bad variable symbol '"+sym.s+"')");
-      if (p.len() == 0 && !b)
+      if (p.len() == 0 && !b || x.tag() > 0 && p.len() > 0 && p.last() == 0)
 	throw err("error in pattern (misplaced variable '"+sym.s+"')");
       env::iterator it = vars.find(sym.f);
       if (it != vars.end()) {
