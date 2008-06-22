@@ -671,6 +671,10 @@ uint32_t count_args(expr x, expr& f)
 void interpreter::build_env(env& vars, expr x)
 {
   assert(!x.is_null());
+  if (x.astag() > 0) {
+    const symbol& sym = symtab.sym(x.astag());
+    if (sym.s != "_") vars[sym.f] = env_info(0, x.aspath());
+  }
   switch (x.tag()) {
   case EXPR::VAR: {
     const symbol& sym = symtab.sym(x.vtag());
@@ -999,6 +1003,7 @@ void interpreter::closure(rule& r, bool b)
 expr interpreter::bind(env& vars, expr x, bool b, path p)
 {
   assert(!x.is_null());
+  expr y;
   switch (x.tag()) {
   case EXPR::VAR: {
     // previously bound variable (successor rule)
@@ -1007,7 +1012,8 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
       assert(p == x.vpath());
       vars[sym.f] = env_info(x.ttag(), p);
     }
-    return x;
+    y = x;
+    break;
   }
   // constants:
   case EXPR::FVAR:
@@ -1016,26 +1022,33 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
   case EXPR::DBL:
   case EXPR::STR:
   case EXPR::PTR:
-    return x;
+    y = x;
+    break;
   // application:
   case EXPR::APP: {
     if (p.len() >= MAXDEPTH)
       throw err("error in pattern (nesting too deep)");
     expr u = bind(vars, x.xval1(), 1, path(p, 0)),
       v = bind(vars, x.xval2(), 1, path(p, 1));
-    return expr(u, v);
+    y = expr(u, v);
+    break;
   }
   // these must not occur on the lhs:
   case EXPR::LAMBDA:
     throw err("lambda expression not permitted in pattern");
+    break;
   case EXPR::COND:
     throw err("conditional expression not permitted in pattern");
+    break;
   case EXPR::CASE:
     throw err("case expression not permitted in pattern");
+    break;
   case EXPR::WHEN:
     throw err("when expression not permitted in pattern");
+    break;
   case EXPR::WITH:
     throw err("with expression not permitted in pattern");
+    break;
   default:
     assert(x.tag() > 0);
     const symbol& sym = symtab.sym(x.tag());
@@ -1043,17 +1056,37 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
 	p.len() > 0 && p.last() == 0) {
       // constant or constructor
       if (x.ttag() != 0)
-	throw err("error in expression (misplaced type tag)");
-      return x;
+	throw err("error in pattern (misplaced type tag)");
+      y = x;
+    } else {
+      env::iterator it = vars.find(sym.f);
+      if (sym.s != "_") { // '_' = anonymous variable
+	if (it != vars.end())
+	  throw err("error in pattern (repeated variable '"+sym.s+"')");
+	vars[sym.f] = env_info(x.ttag(), p);
+      }
+      y = expr(EXPR::VAR, sym.f, 0, x.ttag(), p);
     }
-    env::iterator it = vars.find(sym.f);
-    if (sym.s != "_") { // '_' = anonymous variable
-      if (it != vars.end())
-	throw err("error in pattern (repeated variable '"+sym.s+"')");
-      vars[sym.f] = env_info(x.ttag(), p);
-    }
-    return expr(EXPR::VAR, sym.f, 0, x.ttag(), p);
+    break;
   }
+  // check for "as" patterns
+  if (x.astag() > 0) {
+    const symbol& sym = symtab.sym(x.astag());
+    if (sym.s != "_") {
+      if (sym.prec < 10 || sym.fix == nullary)
+	throw err("error in pattern (bad variable symbol '"+sym.s+"')");
+      if (p.len() == 0 && !b)
+	throw err("error in pattern (misplaced variable '"+sym.s+"')");
+      env::iterator it = vars.find(sym.f);
+      if (it != vars.end()) {
+	throw err("error in pattern (repeated variable '"+sym.s+"')");
+      }
+      vars[sym.f] = env_info(0, p);
+      y.set_astag(x.astag());
+      y.set_aspath(p);
+    }
+  }
+  return y;
 }
 
 void interpreter::promote_ttags(expr f, expr x, expr u)
@@ -1124,6 +1157,8 @@ void interpreter::promote_ttags(expr f, expr x, expr u, expr v)
 expr interpreter::subst(const env& vars, expr x, uint8_t idx)
 {
   if (x.is_null()) return x;
+  if (x.astag() > 0)
+    throw err("error in expression (misplaced \"as\" pattern)");
   switch (x.tag()) {
   // constants:
   case EXPR::VAR:
@@ -1373,7 +1408,12 @@ expr *interpreter::mksym_expr(string *s, int8_t tag)
   expr *x;
   const symbol &sym = symtab.sym(*s);
   if (tag == 0)
-    x = new expr(sym.x);
+    if (*s == "_")
+      // Return a new instance here, since the anonymous variable may have
+      // multiple occurrences on the lhs.
+      x = new expr(sym.f);
+    else
+      x = new expr(sym.x);
   else if (sym.f <= 0 || sym.prec < 10 || sym.fix == nullary)
     throw err("error in expression (misplaced type tag)");
   else {
@@ -1381,6 +1421,22 @@ expr *interpreter::mksym_expr(string *s, int8_t tag)
     // record type tag:
     x->set_ttag(tag);
   }
+  delete s;
+  return x;
+}
+
+expr *interpreter::mkas_expr(string *s, expr *x)
+{
+  const symbol &sym = symtab.sym(*s);
+  if (sym.f <= 0 || sym.prec < 10 || sym.fix == nullary)
+    throw err("error in pattern (bad variable symbol '"+sym.s+"')");
+  if (x->tag() > 0) {
+    // Avoid globbering cached function symbols.
+    expr *y = new expr(x->tag());
+    delete x;
+    x = y;
+  }
+  x->set_astag(sym.f);
   delete s;
   return x;
 }

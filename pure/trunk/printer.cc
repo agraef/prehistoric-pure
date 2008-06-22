@@ -53,9 +53,9 @@ static prec_t sym_nprec(int32_t f)
   }
 }
 
-static prec_t expr_nprec(expr x)
+static prec_t expr_nprec(expr x, bool aspat = true)
 {
-  if (x.is_null()) return 100;
+  if (x.is_null() || aspat && x.astag()>0) return 100;
   switch (x.tag()) {
   case EXPR::VAR:
   case EXPR::STR:
@@ -119,7 +119,8 @@ struct pattern {
     : x(_x), pat(_pat) { }
 };
 
-static ostream& printx(ostream& os, const expr& x, bool pat);
+static ostream& printx(ostream& os, const expr& x, bool pat,
+		       bool aspat = true);
 
 ostream& operator << (ostream& os, const pattern& p)
 {
@@ -162,11 +163,23 @@ static inline ostream& print_ttag(ostream& os, int8_t ttag)
   }
 }
 
-static ostream& printx(ostream& os, const expr& x, bool pat)
+static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
 {
   char buf[64];
   if (x.is_null()) return os << "<<NULL>>";
   //os << "{" << x.refc() << "}";
+  // handle "as" patterns
+  if (aspat && x.astag()>0) {
+    const symbol& sym = interpreter::g_interp->symtab.sym(x.astag());
+    if (expr_nprec(x, false) < 100) {
+      os << sym.s << "@(";
+      printx(os, x, pat, false);
+      return os << ")";
+    } else {
+      os << sym.s << "@";
+      return printx(os, x, pat, false);
+    }
+  }
   switch (x.tag()) {
   case EXPR::VAR: {
     const symbol& sym = interpreter::g_interp->symtab.sym(x.vtag());

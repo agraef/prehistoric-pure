@@ -755,7 +755,7 @@ using	   return token::USING;
     return token::ID;
   }
 }
-[=|;()\[\]\\] return yy::parser::token_type(yytext[0]);
+[@=|;()\[\]\\] return yy::parser::token_type(yytext[0]);
 "->"       return token::MAPSTO;
 [[:punct:]]+  {
   if (yytext[0] == '/' && yytext[1] == '*') REJECT; // comment starter

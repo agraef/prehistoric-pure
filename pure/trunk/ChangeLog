@@ -1,3 +1,8 @@
+2008-06-22  Albert Graef  <Dr.Graef@t-online.de>
+
+	* expr.cc, interpreter.cc, parser.yy, lexer.ll: Implement
+	Haskell-like "as" patterns.
+
 2008-06-21  Albert Graef  <Dr.Graef@t-online.de>
 
 	* etc/pure-mode.el.in, etc/pure.vim, etc/pure.xml, etc/pure.lang:
