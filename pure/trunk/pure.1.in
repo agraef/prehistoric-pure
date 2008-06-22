@@ -392,10 +392,9 @@ keyword
 .B otherwise
 denoting an empty guard which is always true (this is nothing but syntactic
 sugar to point out the ``default'' case of a definition; the interpreter just
-treats this as a comment).
-.sp
-Pure also provides some abbreviations for factoring out common left-hand or
-right-hand sides in collections of rules; see below for details.
+treats this as a comment). Pure also provides some abbreviations for factoring
+out common left-hand or right-hand sides in collections of rules; see section
+RULE SYNTAX below for details.
 .TP
 .B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
 This binds every variable in the left-hand side pattern to the corresponding
@@ -405,26 +404,45 @@ subterm of the evaluated right-hand side.
 A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
-.PP
+.SH RULE SYNTAX
 Basically, the same rule syntax is used to define functions at the toplevel
-and in \fBwith\fP expressions, as well as inside \fBcase\fP and \fBwhen\fP
-expressions for the purpose of performing pattern bindings (however, for
-obvious reasons guards are not permitted in \fBwhen\fP expressions). When
-matching against a function call or the subject term in a \fBcase\fP
-expression, the rules are always considered in the order in which they are
-written, and the first matching rule (whose guard evaluates to a nonzero
-value, if applicable) is picked. (Again, the \fBwhen\fP construct is treated
-differently, because each rule is actually a separate pattern binding.)
+and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP and
+\fBlet\fP expressions for the purpose of performing pattern bindings (however,
+for obvious reasons guards are not permitted in \fBwhen\fP and \fBlet\fP
+expressions). When matching against a function call or the subject term in a
+\fBcase\fP expression, the rules are always considered in the order in which
+they are written, and the first matching rule (whose guard evaluates to a
+nonzero value, if applicable) is picked. (Again, the \fBwhen\fP construct is
+treated differently, because each rule is actually a separate pattern
+binding.)
 .PP
 In any case, the left-hand side pattern must not contain repeated variables
 (i.e., rules must be ``left-linear''), except for the ``anonymous'' variable
 `_' which matches an arbitrary value without binding a variable
-symbol. Moreover, a left-hand side variable may be followed by one of the
-special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP,
-to indicate that it can only match a constant value of the corresponding
-built-in type. (This is useful if you want to write rules matching \fIany\fP
-object of one of these types; note that there is no way to write out all
-``constructors'' for the built-in types, as there are infinitely many.)
+symbol.
+.PP
+A left-hand side variable may be followed by one of the special type tags
+\fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP, to indicate that
+it can only match a constant value of the corresponding built-in type. (This
+is useful if you want to write rules matching \fIany\fP object of one of these
+types; note that there is no way to write out all ``constructors'' for the
+built-in types, as there are infinitely many.)
+.PP
+Pure also supports Haskell-style ``as'' patterns of the form
+.IB variable @ pattern
+which binds the given variable to the expression matched by the subpattern
+.I pattern
+(in addition to the variables bound by
+.I pattern
+itself). This is convenient if the value matched by the subpattern is to be
+used on the right-hand side of an equation. Syntactically, `as'' patterns are
+primary expressions; if the subpattern is not a primary expression, it must be
+parenthesized. For instance, the following function duplicates the head
+element of a list:
+.sp
+.nf
+foo xs@(x:_) = x:xs;
+.fi
 .PP
 The left-hand side of a rule can be omitted if it is the same as for the
 previous rule. This provides a convenient means to write out a collection of
@@ -436,6 +454,13 @@ conditions:
           = \fIrhs\fP \fBif\fP \fIguard\fP;
           ...
           = \fIrhs\fP \fBotherwise\fP;
+.fi
+.PP
+For instance:
+.sp
+.nf
+fact n  = n*fact (n-1) \fBif\fP n>0;
+        = 1 \fBotherwise\fP;
 .fi
 .PP
 Pure also allows a collection of rules with different left-hand sides but the
@@ -464,7 +489,19 @@ also write something like:
 foo x | bar y = x*y;
 .fi
 .PP
-The same works in
+However, this is most useful when using an ``as'' pattern to bind a common
+variable to a parameter value
+.I after
+checking that it matches one of several possible argument patterns (which is
+slightly more efficient than using an equivalent type-checking guard). E.g.,
+the following definition binds the xs variable to the parameter of foo, if it
+is either the empty list or a list starting with an integer:
+.sp
+.nf
+foo xs@[] | foo xs@(_::int:_) = ... xs ...;
+.fi
+.PP
+The same construct also works in
 .B case
 expressions, which is convenient if different cases should be mapped to the
 same value, e.g.:
@@ -473,13 +510,11 @@ same value, e.g.:
 \fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
 .fi
 .PP
-Here are some more definitions showing most of the elements discussed above in
-action:
+Here are a few more examples of rules illustrating some of the constructs
+introduced above and in the previous section. The first one is a definition of
+a function which generates the Fibonacci numbers:
 .sp
 .nf
-fact n  = n*fact (n-1) \fBif\fP n>0;
-        = 1 \fBotherwise\fP;
-
 fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
              \fBwith\fP fibs n = 0, 1 \fBif\fP n<=0;
                          = \fBcase\fP fibs (n-1) \fBof\fP
@@ -487,12 +522,11 @@ fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
                            \fBend\fP;
              \fBend\fP;
 
-\fBlet\fP facts = map fact (1..10); \fBlet\fP fibs = map fib (1..100);
-facts; fibs;
+\fBlet\fP fibs = map fib (1..100);
+fibs;
 .fi
 .PP
-This is a little list comprehension example: Erathosthenes' classical prime
-sieve.
+A little list comprehension example (Erathosthenes' classical prime sieve):
 .sp
 .nf
 primes n        = sieve (2..n) \fBwith\fP
