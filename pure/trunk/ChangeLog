@@ -1,7 +1,7 @@
 2008-06-22  Albert Graef  <Dr.Graef@t-online.de>
 
-	* expr.cc, interpreter.cc, parser.yy, lexer.ll: Implement
-	Haskell-like "as" patterns.
+	* expr.cc, interpreter.cc, parser.yy, lexer.ll, printer.cc:
+	Implement Haskell-like "as" patterns.
 
 2008-06-21  Albert Graef  <Dr.Graef@t-online.de>
 
