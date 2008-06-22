@@ -146,60 +146,64 @@ struct EXPR {
   // extra built-in type tag used in code generation:
   int8_t ttag;
 
+  // "as" patterns:
+  int32_t astag;
+  path *aspath;
+
   EXPR *incref() { refc++; return this; }
   uint32_t decref() { if (refc > 0) --refc; return refc; }
   void del() { if (decref() == 0) delete this; }
   static EXPR *newref(EXPR *x) { return x?x->incref():0; }
 
   EXPR(int32_t _tag) :
-    refc(0), tag(_tag), m(0), ttag(0) { }
+    refc(0), tag(_tag), m(0), ttag(0), astag(0), aspath(0) { }
   EXPR(int32_t _tag, int32_t _vtag, uint8_t _idx,
        int8_t _ttag = 0, const path& _p = path()) :
-    refc(0), tag(_tag), m(0), ttag(_ttag)
+    refc(0), tag(_tag), m(0), ttag(_ttag), astag(0), aspath(0)
   { assert(_tag == VAR || _tag == FVAR);
     data.v.vtag = _vtag; data.v.idx = _idx;
     data.v.p = (_tag == VAR)?new path(_p):0; }
   EXPR(int32_t _tag, int32_t _i) :
-    refc(0), tag(_tag), m(0), ttag(_tag)
+    refc(0), tag(_tag), m(0), ttag(_tag), astag(0), aspath(0)
   { assert(_tag == INT); data.i = _i; }
   EXPR(int32_t _tag, mpz_t _z) :
-    refc(0), tag(_tag), m(0), ttag(_tag)
+    refc(0), tag(_tag), m(0), ttag(_tag), astag(0), aspath(0)
   { assert(_tag == BIGINT); mpz_init_set(data.z, _z); mpz_clear(_z); }
   EXPR(int32_t _tag, double _d) :
-    refc(0), tag(_tag), m(0), ttag(_tag)
+    refc(0), tag(_tag), m(0), ttag(_tag), astag(0), aspath(0)
   { assert(_tag == DBL); data.d = _d; }
   explicit EXPR(int32_t _tag, char *_s) :
-    refc(0), tag(_tag), m(0), ttag(_tag)
+    refc(0), tag(_tag), m(0), ttag(_tag), astag(0), aspath(0)
   { assert(_tag == STR); data.s = _s; }
   explicit EXPR(int32_t _tag, void *_p) :
-    refc(0), tag(_tag), m(0), ttag(_tag)
+    refc(0), tag(_tag), m(0), ttag(_tag), astag(0), aspath(0)
   { assert(_tag == PTR); data.p = _p; }
   EXPR(int32_t _tag, EXPR *_arg1, EXPR *_arg2, EXPR *_arg3) :
-    refc(0), tag(_tag), m(0), ttag(0)
+    refc(0), tag(_tag), m(0), ttag(0), astag(0), aspath(0)
   { assert(_tag == COND);
     data.x[0] = newref(_arg1); data.x[1] = newref(_arg2);
     data.x[2] = newref(_arg3); }
   EXPR(int32_t _tag, EXPR *_arg, EXPR *_body) :
-    refc(0), tag(_tag), m(0), ttag(0)
+    refc(0), tag(_tag), m(0), ttag(0), astag(0), aspath(0)
   { assert(_tag == LAMBDA);
     data.x[0] = newref(_arg); data.x[1] = newref(_body); }
   EXPR(int32_t _tag, EXPR *_arg, rulel *_rules) :
-    refc(0), tag(_tag), m(0), ttag(0)
+    refc(0), tag(_tag), m(0), ttag(0), astag(0), aspath(0)
   { assert(_tag == CASE || _tag == WHEN);
     data.c.x = newref(_arg); data.c.r = _rules; }
   EXPR(int32_t _tag, EXPR *_arg, env *_e) :
-    refc(0), tag(_tag), m(0), ttag(0)
+    refc(0), tag(_tag), m(0), ttag(0), astag(0), aspath(0)
   { assert(_tag == WITH);
     data.c.x = newref(_arg); data.c.e = _e; }
   EXPR(EXPR *_fun, EXPR *_arg) :
-    refc(0), tag(APP), m(0), ttag(0)
+    refc(0), tag(APP), m(0), ttag(0), astag(0), aspath(0)
   { data.x[0] = newref(_fun); data.x[1] = newref(_arg); }
   EXPR(EXPR *_fun, EXPR *_arg1, EXPR *_arg2) :
-    refc(0), tag(APP), m(0), ttag(0)
+    refc(0), tag(APP), m(0), ttag(0), astag(0), aspath(0)
   { data.x[0] = new EXPR(_fun, _arg1);
     data.x[0]->incref(); data.x[1] = newref(_arg2); }
   EXPR(EXPR *_fun, EXPR *_arg1, EXPR *_arg2, EXPR *_arg3) :
-    refc(0), tag(APP), m(0), ttag(0)
+    refc(0), tag(APP), m(0), ttag(0), astag(0), aspath(0)
   { data.x[0] = new EXPR(_fun, _arg1, _arg2);
     data.x[0]->incref(); data.x[1] = newref(_arg3); }
 
@@ -333,8 +337,13 @@ public:
 				  p->tag == EXPR::CASE ||
 				  p->tag == EXPR::WHEN);
                            return p->m; }
+  int32_t  astag() const { return p->astag; }
+  path   &aspath() const { assert(p->aspath); return *p->aspath; }
 
   void set_ttag(int8_t tag) { p->ttag = tag; }
+  void set_astag(int32_t tag) { p->astag = tag; }
+  void set_aspath(const path& _p)
+  { if (p->aspath) delete p->aspath; p->aspath = new path(_p); }
 
   bool is_null()   const { return p==0; }
   bool is_fun()    const { return p->tag > 0; }

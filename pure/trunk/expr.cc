@@ -44,6 +44,7 @@ EXPR::~EXPR()
     if (data.c.e) delete data.c.e;
     break;
   }
+  if (aspath) delete aspath;
 }
 
 map<EXPR*,uint32_t> expr::h;

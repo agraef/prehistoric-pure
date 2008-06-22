@@ -369,6 +369,7 @@ public:
   expr *mkexpr(expr *x, expr *y);
   expr *mkexpr(expr *x, expr *y, expr *z);
   expr *mksym_expr(string *s, int8_t tag = 0);
+  expr *mkas_expr(string *s, expr *x);
   expr *mkcond_expr(expr *x, expr *y, expr *z);
   expr *mklambda_expr(exprl *args, expr *body);
   expr *mkcase_expr(expr *x, rulel *rules);

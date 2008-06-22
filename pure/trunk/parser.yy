@@ -498,6 +498,11 @@ prim
 			    interp.error(yyloc, e.what());
 			    $$ = interp.mksym_expr($1);
 			  } }
+| ID '@' prim		{ try { $$ = interp.mkas_expr($1, $3); }
+			  catch (err &e) {
+			    interp.error(yyloc, e.what());
+			    $$ = $3;
+			  } }
 | INT			{ $$ = new expr(EXPR::INT, $1); }
 | BIGINT		{ $$ = new expr(EXPR::BIGINT, *$1); free($1); }
 | DBL			{ $$ = new expr(EXPR::DBL, $1); }
