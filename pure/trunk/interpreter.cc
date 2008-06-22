@@ -1028,7 +1028,7 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
   case EXPR::APP: {
     if (p.len() >= MAXDEPTH)
       throw err("error in pattern (nesting too deep)");
-    expr u = bind(vars, x.xval1(), 1, path(p, 0)),
+    expr u = bind(vars, x.xval1(), b, path(p, 0)),
       v = bind(vars, x.xval2(), 1, path(p, 1));
     y = expr(u, v);
     break;
@@ -1075,7 +1075,10 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
     if (sym.s != "_") {
       if (sym.prec < 10 || sym.fix == nullary)
 	throw err("error in pattern (bad variable symbol '"+sym.s+"')");
-      if (p.len() == 0 && !b || x.tag() > 0 && p.len() > 0 && p.last() == 0)
+      // Unless we're doing a pattern binding, subterms at the spine of a
+      // function application won't be available at runtime, so we forbid
+      // placing an "as" pattern there.
+      if (!b)
 	throw err("error in pattern (misplaced variable '"+sym.s+"')");
       env::iterator it = vars.find(sym.f);
       if (it != vars.end()) {
