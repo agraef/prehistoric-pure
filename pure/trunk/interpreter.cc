@@ -1052,8 +1052,9 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
   default:
     assert(x.tag() > 0);
     const symbol& sym = symtab.sym(x.tag());
-    if (sym.prec < 10 || sym.fix == nullary || p.len() == 0 && !b ||
-	p.len() > 0 && p.last() == 0) {
+    if (sym.s != "_" &&
+	(sym.prec < 10 || sym.fix == nullary || p.len() == 0 && !b ||
+	 p.len() > 0 && p.last() == 0)) {
       // constant or constructor
       if (x.ttag() != 0)
 	throw err("error in pattern (misplaced type tag)");
