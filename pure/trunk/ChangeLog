@@ -1,3 +1,7 @@
+2008-06-23  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.h, runtime.cc: Make pure_invoke() callable from C.
+
 2008-06-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* expr.cc, interpreter.cc, parser.yy, lexer.ll, printer.cc:

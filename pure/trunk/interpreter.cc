@@ -2743,7 +2743,7 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   assert(f.fp);
   e = 0;
   clock_t t0 = clock();
-  pure_expr *res = pure_invoke(f.fp, e);
+  pure_expr *res = pure_invoke(f.fp, &e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
@@ -2829,7 +2829,7 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   assert(f.fp);
   e = 0;
   clock_t t0 = clock();
-  pure_expr *res = pure_invoke(f.fp, e);
+  pure_expr *res = pure_invoke(f.fp, &e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
