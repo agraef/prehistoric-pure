@@ -178,8 +178,8 @@ interactively in the interpreter:
 .sp
 .nf
 > // my first Pure example
-> fact 1 = 1;
-> fact n::int = n*fact (n-1) \fBif\fP n>1;
+> fact 0 = 1;
+> fact n::int = n*fact (n-1) \fBif\fP n>0;
 > \fBlet\fP x = fact 10; x;
 3628800
 .fi
@@ -215,21 +215,30 @@ Also, due to its term rewriting semantics, Pure can do symbolic evaluations:
 (a+b)*(a+b)
 .fi
 .PP
+In fact, all the Pure interpreter does is evaluating expressions in a symbolic
+fashion, rewriting expressions using the equations supplied by the programmer,
+until no more equations are applicable. The result of this process is called a
+.I "normal form"
+which represents the ``value'' of the original expression. Keeping with the
+tradition of term rewriting, there's no distinction between ``defined'' and
+``constructor'' function symbols in Pure; any function symbol (or operator)
+also acts as a constructor if it happens to occur in a normal form term.
+.PP
+Expressions are generally evaluated from left to right, innermost expressions
+first, i.e., using
+.I "call by value"
+semantics. Pure also has a few built-in special forms (most notably,
+conditional expressions and the short-circuit logical connectives && and ||)
+which take some of their arguments using
+.I "call by name"
+semantics.
+.PP
 The Pure language provides built-in support for machine integers (32 bit),
 bigints (implemented using GMP), floating point values (double precision
 IEEE), character strings (UTF-8 encoded) and generic C pointers (these don't
 have a syntactic representation in Pure, though, so they need to be created
 with external C functions). Truth values are encoded as machine integers (as
 you might expect, zero denotes ``false'' and any non-zero value ``true'').
-.PP
-Expressions are generally evaluated from left to right, innermost expressions
-first, i.e., using
-.I call by value
-semantics. Pure also has a few built-in special forms (most notably,
-conditional expressions and the short-circuit logical connectives && and ||)
-which take some of their arguments using
-.I call by name
-semantics.
 .PP
 Expressions consist of the following elements:
 .TP
@@ -266,18 +275,18 @@ Thus, e.g., \(dq\e&copy;\(dq denotes the copyright character (code point
 .TP
 .B Function and variable symbols: \fRfoo, foo_bar, BAR, bar2
 These consist of the usual sequence of ASCII letters (including the
-underscore) and digits, starting with a letter. Case is significant, but it
-doesn't carry any meaning (that's in contrast to languages like Prolog and Q,
-where variables must be capitalized). Pure simply distinguishes function and
-variable symbols on the left-hand side of an equation by the ``head =
-function'' rule: Any symbol which occurs as the head symbol of a function
+underscore) and digits, starting with a letter. The `_' symbol, when occurring
+on the left-hand side of an equation, is special; it denotes the
+.IR "anonymous variable" .
+The case of identifiers is significant, but it doesn't carry any meaning
+(that's in contrast to languages like Prolog and Q, where variables must be
+capitalized). Instead, Pure distinguishes function and variable symbols on the
+left-hand side of an equation by the ``head = function'' rule: Any symbol
+(except the anonymous variable) which occurs as the head symbol of a function
 application is a function symbol, all other symbols are variables -- except
 symbols explicitly declared as ``constant'' a.k.a.
 .B nullary
-symbols, see below. Another important thing to know is that in Pure, keeping
-with the tradition of term rewriting, there's no distinction between
-``defined'' and ``constructor'' function symbols; any function symbol can also
-act as a constructor if it happens to occur in a normal form term.
+symbols, see below.
 .TP
 .B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x
 As indicated, these take the form of an identifier or a sequence of ASCII
@@ -417,9 +426,8 @@ treated differently, because each rule is actually a separate pattern
 binding.)
 .PP
 In any case, the left-hand side pattern must not contain repeated variables
-(i.e., rules must be ``left-linear''), except for the ``anonymous'' variable
-`_' which matches an arbitrary value without binding a variable
-symbol.
+(i.e., rules must be ``left-linear''), except for the anonymous variable `_'
+which matches an arbitrary value without binding a variable symbol.
 .PP
 A left-hand side variable may be followed by one of the special type tags
 \fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP, to indicate that
@@ -1180,22 +1188,19 @@ The ``head = function'' rule means that the head symbol f of an application f
 x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
 binding, or pattern-matching lambda expression, is always interpreted as a
 literal function symbol (not a variable). This implies that you cannot match
-the ``function'' component of an application against a variable, and thus you
-cannot directly define a generic function which operates on arbitrary function
-applications. As a remedy, the prelude provides three operations to handle
-such objects:
-.BR applp ,
-a predicate which checks whether a given expression is a function application,
-and
-.B fun
-and
-.BR arg ,
-which determine the function and argument parts of such an expression,
-respectively. (This may seem a little awkward, but as a matter of fact the
-``head = function'' rule is quite convenient since it covers the common cases
-without forcing the programmer to declare ``constructor'' symbols (except
-nullary symbols). Also note that in standard term rewriting you do not have
-rules parameterizing over the head symbol of a function application either.)
+the ``function'' component of an application against a variable, at least not
+directly. However, an anonymous ``as'' pattern like f@_ will do the trick,
+since the anonymous variable is always recognized, even if it occurs as the
+head symbol of a function application.
+.PP
+This may seem a little awkward, but as a matter of fact the ``head =
+function'' rule is quite useful since it covers the common cases without
+forcing the programmer to declare ``constructor'' symbols (except nullary
+symbols). On the other hand, generic rules operating on arbitrary function
+applications are not all that common, so having to ``escape'' a variable using
+the anonymous ``as'' pattern trick is a small price to pay for that
+convenience. Moreover, the prelude also provides operations to recognize and
+decompose function applications.
 .PP
 .B Numeric types.
 If possible, you should always decorate numeric variables on the left-hand
@@ -1204,7 +1209,17 @@ sides of function definitions with the appropriate type tags, like
 or
 .BR ::double .
 This often helps the compiler to generate better code and makes your programs
-run faster.
+run faster. The `|' syntax makes it easy to add the necessary specializations
+of existing rules to your program. E.g., taking the polymorphic implementation
+of the factorial as an example, you only have to add a left-hand side with the
+appropriate type tag to make that definition go as fast as possible for the
+special case of machine integers:
+.sp
+.nf
+fact n::int    |
+fact n         = n*fact(n-1) \fBif\fP n>0;
+               = 1 \fBotherwise\fP;
+.fi
 .PP
 Talking about the built-in types, please note that
 .B int
