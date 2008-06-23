@@ -1,7 +1,9 @@
 2008-06-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* expr.cc, interpreter.cc, parser.yy, lexer.ll, printer.cc:
-	Implement Haskell-like "as" patterns.
+	Implement Haskell-style "as" patterns. Also make sure that '_' on
+	the lhs is always treated as the anonymous variable, even if it
+	occurs as the head symbol in a function application.
 
 2008-06-21  Albert Graef  <Dr.Graef@t-online.de>
 
