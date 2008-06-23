@@ -1185,6 +1185,28 @@ special forms in direct (saturated) calls. They can still be used if you pass
 them around as function values or partial applications, but in this case they
 lose all their special call-by-name argument processing.
 .PP
+.B ``As'' patterns.
+In the current implementation, ``as'' patterns cannot be placed on the
+``spine'' of a function definition. Thus rules like the following, which have
+the pattern somewhere in the head of the left-hand side, will all provoke an
+error message from the compiler:
+.sp
+.nf
+a@foo x y   = a,x,y;
+a@(foo x) y = a,x,y;
+a@(foo x y) = a,x,y;
+.fi
+.PP
+This is because the spine of a function application is not available when the
+function is called at runtime. ``As'' patterns in pattern bindings are not
+affected by this restriction since the entire value to be matched is available
+at runtime. For instance:
+.sp
+.nf
+> \fBcase\fP bar 99 \fBof\fP y@(bar x) = y,x+1; \fBend\fP;
+bar 99,100
+.fi
+.PP
 .B Manipulating function applications.
 The ``head = function'' rule means that the head symbol f of an application f
 x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
