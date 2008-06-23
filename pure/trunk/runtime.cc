@@ -298,50 +298,16 @@ static inline pure_expr* stack_exception()
   return pure_const(interpreter::g_interp->symtab.segfault_sym().f);
 }
 
-extern "C"
-pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
-		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...)
-{
-  // Parameterless closures are always thunked, otherwise they would already
-  // have been executed.
-  if (n==0) thunked = true;
-  pure_expr *x = new_expr();
-  x->tag = tag;
-  x->data.clos = new pure_closure;
-  x->data.clos->local = local;
-  x->data.clos->thunked = thunked;
-  x->data.clos->n = n;
-  x->data.clos->m = m;
-  x->data.clos->fp = f;
-  x->data.clos->ep = e;
-  if (e) ((Env*)e)->refc++;
-  if (m == 0)
-    x->data.clos->env = 0;
-  else {
-    x->data.clos->env = new pure_expr*[m];
-    va_list ap;
-    va_start(ap, m);
-    for (size_t i = 0; i < m; i++) {
-      x->data.clos->env[i] = va_arg(ap, pure_expr*);
-      assert(x->data.clos->env[i]->refc > 0);
-    }
-    va_end(ap);
-  }
-  MEMDEBUG_NEW(x)
-  return x;
-}
+/* PUBLIC API. **************************************************************/
 
-extern "C"
-pure_expr *pure_const(int32_t tag)
-{
-  // XXXFIXME: We should cache these on a per interpreter basis, so that only
-  // a single expression node exists for each symbol.
-  pure_expr *x = new_expr();
-  x->tag = tag;
-  x->data.clos = 0;
-  MEMDEBUG_NEW(x)
-  return x;
-}
+// XXXTODO
+
+int32_t pure_sym(const char *s);
+int32_t pure_getsym(const char *s);
+const char *pure_sym_pname(int32_t sym);
+int8_t pure_sym_nprec(int32_t sym);
+
+pure_expr *pure_symbol(int32_t sym);
 
 extern "C"
 pure_expr *pure_int(int32_t i)
@@ -369,7 +335,7 @@ pure_expr *pure_long(int64_t l)
   }
 }
 
-static void make_bigint(mpz_t z, int32_t size, limb_t *limbs)
+static void make_bigint(mpz_t z, int32_t size, const limb_t *limbs)
 {
   // FIXME: For efficiency, we poke directly into the mpz struct here, this
   // might need to be reviewed for future GMP revisions.
@@ -385,7 +351,7 @@ static void make_bigint(mpz_t z, int32_t size, limb_t *limbs)
 }
 
 extern "C"
-pure_expr *pure_bigint(int32_t size, limb_t *limbs)
+pure_expr *pure_bigint(int32_t size, const limb_t *limbs)
 {
   pure_expr *x = new_expr();
   x->tag = EXPR::BIGINT;
@@ -395,7 +361,7 @@ pure_expr *pure_bigint(int32_t size, limb_t *limbs)
 }
 
 extern "C"
-pure_expr *pure_mpz(mpz_t z)
+pure_expr *pure_mpz(const mpz_t z)
 {
   pure_expr *x = new_expr();
   x->tag = EXPR::BIGINT;
@@ -466,8 +432,112 @@ pure_expr *pure_cstring(char *s)
   return x;
 }
 
+// XXXTODO
+
+pure_expr *pure_app(pure_expr *fun, pure_expr *arg);
+
+pure_expr *pure_listl(size_t size, ...);
+pure_expr *pure_listv(size_t size, pure_expr **elems);
+pure_expr *pure_tuplel(size_t size, ...);
+pure_expr *pure_tuplev(size_t size, pure_expr **elems);
+
+bool pure_is_symbol(const pure_expr *x, int32_t *sym);
+bool pure_is_int(const pure_expr *x, int32_t *i);
+bool pure_is_long(const pure_expr *x, int64_t *l);
+bool pure_is_bigint(const pure_expr *x, int32_t *size, limb_t **limbs);
+bool pure_is_mpz(const pure_expr *x, mpz_t *z);
+bool pure_is_double(const pure_expr *x, double *d);
+bool pure_is_pointer(const pure_expr *x, void **p);
+
+bool pure_is_string(const pure_expr *x, const char **sym);
+bool pure_is_string_dup(const pure_expr *x, char **sym);
+bool pure_is_cstring_dup(const pure_expr *x, char **sym);
+
+bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg);
+
+bool pure_is_listv(const pure_expr *x, size_t *size, pure_expr ***elems);
+bool pure_is_tuplev(const pure_expr *x, size_t *size, pure_expr ***elems);
+
 extern "C"
-int32_t pure_cmp_bigint(pure_expr *x, int32_t size, limb_t *limbs)
+pure_expr *pure_new(pure_expr *x)
+{
+  return pure_new_internal(x);
+}
+
+extern "C"
+void pure_free(pure_expr *x)
+{
+  pure_free_internal(x);
+}
+
+extern "C"
+void pure_freenew(pure_expr *x)
+{
+  if (x->refc == 0)
+    pure_free_internal(pure_new_internal(x));
+}
+
+extern "C"
+void pure_ref(pure_expr *x)
+{
+  x->refc++;
+}
+
+extern "C"
+void pure_unref(pure_expr *x)
+{
+  pure_unref_internal(x);
+}
+
+/* END OF PUBLIC API. *******************************************************/
+
+extern "C"
+pure_expr *pure_const(int32_t tag)
+{
+  // XXXFIXME: We should cache these on a per interpreter basis, so that only
+  // a single expression node exists for each symbol.
+  pure_expr *x = new_expr();
+  x->tag = tag;
+  x->data.clos = 0;
+  MEMDEBUG_NEW(x)
+  return x;
+}
+
+extern "C"
+pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
+		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...)
+{
+  // Parameterless closures are always thunked, otherwise they would already
+  // have been executed.
+  if (n==0) thunked = true;
+  pure_expr *x = new_expr();
+  x->tag = tag;
+  x->data.clos = new pure_closure;
+  x->data.clos->local = local;
+  x->data.clos->thunked = thunked;
+  x->data.clos->n = n;
+  x->data.clos->m = m;
+  x->data.clos->fp = f;
+  x->data.clos->ep = e;
+  if (e) ((Env*)e)->refc++;
+  if (m == 0)
+    x->data.clos->env = 0;
+  else {
+    x->data.clos->env = new pure_expr*[m];
+    va_list ap;
+    va_start(ap, m);
+    for (size_t i = 0; i < m; i++) {
+      x->data.clos->env[i] = va_arg(ap, pure_expr*);
+      assert(x->data.clos->env[i]->refc > 0);
+    }
+    va_end(ap);
+  }
+  MEMDEBUG_NEW(x)
+  return x;
+}
+
+extern "C"
+int32_t pure_cmp_bigint(pure_expr *x, int32_t size, const limb_t *limbs)
 {
   assert(x && x->tag == EXPR::BIGINT);
   mpz_t z;
@@ -812,37 +882,6 @@ pure_expr *pure_invoke(void *f, pure_expr** _e)
 }
 
 extern "C"
-pure_expr *pure_new(pure_expr *x)
-{
-  return pure_new_internal(x);
-}
-
-extern "C"
-void pure_free(pure_expr *x)
-{
-  pure_free_internal(x);
-}
-
-extern "C"
-void pure_freenew(pure_expr *x)
-{
-  if (x->refc == 0)
-    pure_free_internal(pure_new_internal(x));
-}
-
-extern "C"
-void pure_ref(pure_expr *x)
-{
-  x->refc++;
-}
-
-extern "C"
-void pure_unref(pure_expr *x)
-{
-  pure_unref_internal(x);
-}
-
-extern "C"
 void pure_new_args(uint32_t n, ...)
 {
   va_list ap;
@@ -1066,6 +1105,8 @@ void pure_debug(int32_t tag, const char *format, ...)
   if (!bail_out && !cin.good()) bail_out = true;
   if (bail_out) exit(0);
 }
+
+/* LIBRARY API. *************************************************************/
 
 extern "C"
 pure_expr *pure_byte_string(const char *s)
