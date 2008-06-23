@@ -17,7 +17,7 @@ $KW_LIST(kwc)=bigint bool char short int long double expr string pointer void
 $DIGIT=regex(0[xX][0-9a-fA-F]+L?|\d+(?:\.\d+)?(?:[eE][\-\+]\d+)?L?)
 
 # Other special symbols (lambda, parens, list brackets, type tags).
-$SYMBOLS= \ ( ) [ ] ::
+$SYMBOLS= \ ( ) [ ] :: @
 
 # Double-quoted strings and escapes.
 $STRINGDELIMITERS="
