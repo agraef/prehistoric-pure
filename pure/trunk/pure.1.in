@@ -679,8 +679,10 @@ operators. For instance:
 \fBinfixl\fP 7 * / div mod ;
 .fi
 .sp
-Moreover, constant symbols are introduced using a declaration of
-the form:
+Note that to declare multiple symbols in a single declaration, you just list
+them all with whitespace in between.
+.sp
+Similarly, constant symbols are introduced using a declaration of the form:
 .sp
 .nf
 \fBnullary \fIsymbol\fR ...;
