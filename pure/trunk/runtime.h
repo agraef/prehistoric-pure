@@ -127,12 +127,9 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x);
 /* Run a Pure function and catch exceptions. If everything goes normal,
    pure_invoke returns the return value of the executed function. Otherwise it
    returns 0 and sets e to the exception value, as given by pure_throw().
-   XXXFIXME: This only works with C++ and only supports parameterless
-   functions right now. */
+   XXXFIXME: This only supports parameterless functions right now. */
 
-#ifdef __cplusplus
-pure_expr *pure_invoke(void *f, pure_expr*& e);
-#endif
+pure_expr *pure_invoke(void *f, pure_expr** e);
 
 /* Count a new reference to an expression. This should be called whenever you
    want to store an expression somewhere, in order to prevent it from being

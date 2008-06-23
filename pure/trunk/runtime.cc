@@ -755,8 +755,10 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 }
 
 extern "C"
-pure_expr *pure_invoke(void *f, pure_expr*& e)
+pure_expr *pure_invoke(void *f, pure_expr** _e)
 {
+  assert(_e);
+  pure_expr*& e = *_e;
   interpreter& interp = *interpreter::g_interp;
   // Cast the function pointer to the right type (takes no arguments, returns
   // a pure_expr*), so we can call it as a native function.
