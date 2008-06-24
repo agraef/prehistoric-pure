@@ -1,5 +1,8 @@
 2008-06-24  Albert Graef  <Dr.Graef@t-online.de>
 
+	* pure.cc, lexer.ll: Bugfix: include external symbols in command
+	completion.
+
 	* interpreter.cc/h, runtime.cc/h, lib/strings.pure: Add error
 	reporting to the eval() routine.
 
