@@ -250,9 +250,9 @@ void pure_unref(pure_expr *x);
    the library API (see below) to first unparse the expression in the source
    interpreter and then reparse it in the target interpreter. */
 
-typedef struct pure_interp; // Pure interpreter handles (opaque).
+typedef struct _pure_interp pure_interp; // Pure interpreter handles (opaque).
 
-pure_interp *pure_create_interp(int argc, const char *argv[]);
+pure_interp *pure_create_interp(int argc, char *argv[]);
 void pure_delete_interp(pure_interp *interp);
 void pure_switch_interp(pure_interp *interp);
 
@@ -444,11 +444,18 @@ pure_expr *string_ord(const char *c);
 /* Convert a Pure expression to a string and vice versa. Note that eval() will
    actually parse and execute any Pure source, so it can be used, e.g., to add
    new rules to the executing program at runtime. The result of eval() is the
-   last computed expression (NULL if none). The result of str() is a malloc'ed
-   string in the system encoding which must be freed by the caller. */
+   last computed expression, NULL if none; in the latter case you can inspect
+   the result of lasterr() below to determine whether there were any errors.
+   The result of str() is a malloc'ed string in the system encoding which must
+   be freed by the caller. */
 
 char *str(const pure_expr *x);
 pure_expr *eval(const char *s);
+
+/* After an invokation of eval(), this returns error messages from the
+   interpreter (an empty string if none). */
+
+const char *lasterr();
 
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */

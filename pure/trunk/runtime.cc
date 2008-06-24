@@ -814,7 +814,7 @@ void pure_unref(pure_expr *x)
 #include <llvm/Target/TargetOptions.h>
 
 extern "C"
-pure_interp *pure_create_interp(int argc, const char *argv[])
+pure_interp *pure_create_interp(int argc, char *argv[])
 {
   // This is pretty much the same as pure.cc:main(), except that some options
   // are ignored and there's no user interaction.
@@ -847,7 +847,7 @@ pure_interp *pure_create_interp(int argc, const char *argv[])
 #endif
   // scan the command line options
   list<string> myargs;
-  for (const char **args = ++argv; *args; ++args)
+  for (char **args = ++argv; *args; ++args)
     if (*args == string("-h"))
       /* ignored */;
     else if (*args == string("-i"))
@@ -1984,10 +1984,18 @@ pure_expr *eval(const char *s)
 {
   assert(s);
   interpreter& interp = *interpreter::g_interp;
+  interp.errmsg.clear();
   pure_expr *res = interp.runstr(string(s)+";");
   interp.result = 0;
   if (res) pure_unref_internal(res);
   return res;
+}
+
+extern "C"
+const char *lasterr()
+{
+  interpreter& interp = *interpreter::g_interp;
+  return interp.errmsg.c_str();
 }
 
 static uint32_t mpz_hash(const mpz_t z)
