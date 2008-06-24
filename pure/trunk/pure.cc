@@ -54,19 +54,25 @@ static const char *commands[] = {
 
 /* Generator functions for command completion. */
 
+typedef map<int32_t,ExternInfo> extmap;
+
 static char *
 command_generator(const char *text, int state)
 {
   static int list_index, len;
   static env::iterator it, end;
+  static extmap::iterator xit, xend;
   const char *name;
+  assert(interpreter::g_interp);
+  interpreter& interp = *interpreter::g_interp;
 
   /* New match. */
   if (!state) {
     list_index = 0;
-    assert(interpreter::g_interp);
-    it = interpreter::g_interp->globenv.begin();
-    end = interpreter::g_interp->globenv.end();
+    it = interp.globenv.begin();
+    end = interp.globenv.end();
+    xit = interp.externals.begin();
+    xend = interp.externals.end();
     len = strlen(text);
   }
 
@@ -82,8 +88,17 @@ command_generator(const char *text, int state)
      symbol list. */
   while (it != end) {
     assert(it->first > 0);
-    symbol& sym = interpreter::g_interp->symtab.sym(it->first);
+    symbol& sym = interp.symtab.sym(it->first);
     it++;
+    if (strncmp(sym.s.c_str(), text, len) == 0)
+      return strdup(sym.s.c_str());
+  }
+
+  /* Also process the declared externals which don't have any rules yet. */
+  while (xit != xend) {
+    assert(xit->first > 0);
+    symbol& sym = interp.symtab.sym(xit->first);
+    xit++;
     if (strncmp(sym.s.c_str(), text, len) == 0)
       return strdup(sym.s.c_str());
   }
@@ -97,12 +112,16 @@ symbol_generator(const char *text, int state)
 {
   static int len;
   static env::iterator it, end;
+  static extmap::iterator xit, xend;
+  assert(interpreter::g_interp);
+  interpreter& interp = *interpreter::g_interp;
 
   /* New match. */
   if (!state) {
-    assert(interpreter::g_interp);
-    it = interpreter::g_interp->globenv.begin();
-    end = interpreter::g_interp->globenv.end();
+    it = interp.globenv.begin();
+    end = interp.globenv.end();
+    xit = interp.externals.begin();
+    xend = interp.externals.end();
     len = strlen(text);
   }
 
@@ -110,8 +129,17 @@ symbol_generator(const char *text, int state)
      symbol list. */
   while (it != end) {
     assert(it->first > 0);
-    symbol& sym = interpreter::g_interp->symtab.sym(it->first);
+    symbol& sym = interp.symtab.sym(it->first);
     it++;
+    if (strncmp(sym.s.c_str(), text, len) == 0)
+      return strdup(sym.s.c_str());
+  }
+
+  /* Also process the declared externals which don't have any rules yet. */
+  while (xit != xend) {
+    assert(xit->first > 0);
+    symbol& sym = interp.symtab.sym(xit->first);
+    xit++;
     if (strncmp(sym.s.c_str(), text, len) == 0)
       return strdup(sym.s.c_str());
   }
