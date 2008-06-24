@@ -400,9 +400,10 @@ pure_expr *string_ord(const char *c);
 /* Convert a Pure expression to a string and vice versa. Note that eval() will
    actually parse and execute any Pure source, so it can be used, e.g., to add
    new rules to the executing program at runtime. The result of eval() is the
-   last computed expression (NULL if none). */
+   last computed expression (NULL if none). The result of str() is a malloc'ed
+   string in the system encoding which must be freed by the caller. */
 
-pure_expr *str(const pure_expr *x);
+char *str(const pure_expr *x);
 pure_expr *eval(const char *s);
 
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to

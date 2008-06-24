@@ -22,11 +22,13 @@
    the print representation of an expression in Pure syntax, as a string. The
    eval function does the opposite, by parsing and returning the value of an
    expression specified as a string in Pure syntax. (In fact, eval goes well
-   beyond this, as it can parse and execute arbitrary Pure code. But in that
-   case you will not always get a result expression.) */
+   beyond this, as it can parse and execute arbitrary Pure code. In that case
+   it will return the last computed expression, if any.) */
 
-extern expr* str(expr*);
+extern void* str(expr*) = pure_str;
 extern expr* eval(char*); // IMPURE!
+
+str x			= cstring (pure_str x);
 
 /* Convert between Unicode character codes and single character strings. */
 
