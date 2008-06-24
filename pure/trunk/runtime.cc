@@ -801,6 +801,144 @@ void pure_unref(pure_expr *x)
   pure_unref_internal(x);
 }
 
+#ifndef HOST
+#define HOST "unknown"
+#endif
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.0"
+#endif
+#ifndef PURELIB
+#define PURELIB "/usr/local/lib/pure-" PACKAGE_VERSION
+#endif
+
+#include <llvm/Target/TargetOptions.h>
+
+extern "C"
+pure_interp *pure_create_interp(int argc, const char *argv[])
+{
+  // This is pretty much the same as pure.cc:main(), except that some options
+  // are ignored and there's no user interaction.
+  char base;
+  interpreter *_interp = new interpreter, &interp = *_interp;
+  int count = 0;
+  bool want_prelude = true, have_prelude = false;
+  // This is used in advisory stack checks.
+  if (!interpreter::baseptr) interpreter::baseptr = &base;
+  // get some settings from the environment
+  const char *env;
+  if ((env = getenv("HOME")))
+    interp.histfile = string(env)+"/.pure_history";
+  if ((env = getenv("PURE_PS")))
+    interp.ps = string(env);
+  if ((env = getenv("PURE_STACK"))) {
+    char *end;
+    size_t n = strtoul(env, &end, 0);
+    if (!*end) interpreter::stackmax = n*1024;
+  }
+  if ((env = getenv("PURELIB")))
+    interp.lib = string(env)+"/";
+  else
+    interp.lib = string(PURELIB)+"/";
+  string prelude = interp.lib+string("prelude.pure");
+#if USE_FASTCC
+  // This global option is needed to get tail call optimization (you'll also
+  // need to have USE_FASTCC in interpreter.hh enabled).
+  llvm::PerformTailCallOpt = true;
+#endif
+  // scan the command line options
+  list<string> myargs;
+  for (const char **args = ++argv; *args; ++args)
+    if (*args == string("-h"))
+      /* ignored */;
+    else if (*args == string("-i"))
+      /* ignored */;
+    else if (*args == string("-n"))
+      want_prelude = false;
+    else if (*args == string("-q"))
+      /* ignored */;
+    else if (string(*args).substr(0,2) == "-v") {
+      string s = string(*args).substr(2);
+      if (s.empty()) continue;
+      char *end;
+      strtoul(s.c_str(), &end, 0);
+      if (*end) {
+	cerr << "pure_create_interp: invalid option " << *args << endl;
+	delete _interp;
+	return 0;
+      }
+    } else if (*args == string("-x")) {
+      while (*++args) myargs.push_back(*args);
+      break;
+    } else if (*args == string("--")) {
+      while (*++args) myargs.push_back(*args);
+      break;
+    } else if (**args == '-') {
+      cerr << "pure_create_interp: invalid option " << *args << endl;
+      delete _interp;
+      return 0;
+    }
+  interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
+  if (want_prelude) {
+    // load the prelude if we can find it
+    FILE *fp = fopen("prelude.pure", "r");
+    if (fp)
+      prelude = "prelude.pure";
+    else
+      // try again in the PURELIB directory
+      fp = fopen(prelude.c_str(), "r");
+    if (fp) {
+      fclose(fp);
+      have_prelude = true;
+      interp.run(prelude);
+      interp.compile();
+    }
+  }
+  // load scripts specified on the command line
+  for (; *argv; ++argv)
+    if (string(*argv).substr(0,2) == "-v") {
+      uint8_t level = 1;
+      string s = string(*argv).substr(2);
+      if (!s.empty()) level = (uint8_t)strtoul(s.c_str(), 0, 0);
+      interp.verbose = level;
+    } else if (*argv == string("-x")) {
+      if (*++argv) {
+	count++; interp.modname = *argv;
+	interp.run(*argv);
+      } else {
+	cerr << "pure_create_interp: missing script name\n";
+	delete _interp;
+	return 0;
+      }
+      break;
+    } else if (*argv == string("--"))
+      break;
+    else if (**argv == '-')
+      ;
+    else if (**argv) {
+      if (count++ == 0) interp.modname = *argv;
+      interp.run(*argv);
+    }
+  interp.symtab.init_builtins();
+  return (pure_interp*)_interp;
+}
+
+extern "C"
+void pure_delete_interp(pure_interp *interp)
+{
+  assert(interp);
+  interpreter *_interp = (interpreter*)interp;
+  if (interpreter::g_interp == _interp)
+    interpreter::g_interp = 0;
+  delete _interp;
+}
+
+extern "C"
+void pure_switch_interp(pure_interp *interp)
+{
+  assert(interp);
+  interpreter::g_interp = (interpreter*)interp;
+}
+
 /* END OF PUBLIC API. *******************************************************/
 
 extern "C"
