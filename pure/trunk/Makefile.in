@@ -205,13 +205,8 @@ depend: $(SOURCE) $(EXTRA_SOURCE)
 
 # regenerate configure et al
 
-config: configure config.h.in
-
-configure: configure.ac config/aclocal.m4
-	autoconf -I config
-
-config.h.in: configure.ac config/aclocal.m4
-	autoheader -I config
+config:
+	autoconf -I config && autoheader -I config
 
 # installation
 
