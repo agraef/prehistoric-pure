@@ -83,33 +83,16 @@ int32_t pure_getsym(const char *s);
 const char *pure_sym_pname(int32_t sym);
 int8_t pure_sym_nprec(int32_t sym);
 
-/* Expression constructors. Atomic objects are constructed with the following
-   routines:
-
-   - pure_symbol: Takes the integer code of a symbol and returns that symbol
-     as a Pure value. If the symbol is a global variable or parameterless
-     function then it is evaluated, giving the value of the variable or the
-     return value of the function as the result.
-
-   - pure_int: Constructs a Pure machine int from a 32 bit integer value.
-
-   - pure_long: Constructs a Pure bigint from a 64 bit integer value.
-
-   - pure_bigint: Constructs a Pure bigint from a vector of limbs. The size
-     argument may be negative to denote a negative number, its absolute value
-     is the number of elements in the limbs vector (the vector is owned by the
-     caller and won't be be freed).
-
-   - pure_mpz: Constructs a Pure bigint from a (copy of a) GMP mpz_t.
-
-   - pure_double: Constructs a Pure floating point number from a double value.
-
-   - pure_pointer: Constructs a Pure pointer from a C pointer (void*). */
+/* Expression constructors. pure_symbol takes the integer code of a symbol and
+   returns that symbol as a Pure value. If the symbol is a global variable
+   bound to a value then that value is returned, if it's a parameterless
+   function then it is evaluated, giving the return value of the function as
+   the result. pure_int, pure_mpz, pure_double and pure_pointer construct a
+   Pure machine int, bigint, floating point value and pointer from a 32 bit
+   integer, (copy of a) GMP mpz_t, double and C pointer, respectively. */
 
 pure_expr *pure_symbol(int32_t sym);
 pure_expr *pure_int(int32_t i);
-pure_expr *pure_long(int64_t l);
-pure_expr *pure_bigint(int32_t size, const limb_t *limbs);
 pure_expr *pure_mpz(const mpz_t z);
 pure_expr *pure_double(double d);
 pure_expr *pure_pointer(void *p);
@@ -144,40 +127,40 @@ pure_expr *pure_listv(size_t size, pure_expr **elems);
 pure_expr *pure_tuplel(size_t size, ...);
 pure_expr *pure_tuplev(size_t size, pure_expr **elems);
 
-/* Expression deconstructors for all the expression types above. These all
+/* Expression deconstructors for all of the expression types above. These
    return a bool value indicating whether the given expression is of the
-   corresponding type and, if so, set the remaining parameter pointers to the
+   corresponding type and, if so, set the remaining pointers to the
    corresponding values. Parameter pointers may be NULL in which case they are
-   not set and only the result of the type check is returned.
+   not set.
 
-   NOTES: pure_is_symbol will return true not only for constant and unbound
-   variable symbols, but also for arbitrary closures including local and
-   anonymous functions. In the case of an anonymous closure, the returned
-   symbol will be 0. You can check whether an expression actually represents a
-   named or anonymous closure using the funp and lambdap predicates from the
-   library API (see below).
+   Notes:
 
-   pure_is_long checks whether the result actually fits into a 64 bit integer.
-   pure_is_bigint mallocs the returned limb vector (if limbs!=NULL); the
-   caller is responsible for freeing it. */
+   - pure_is_mpz takes a pointer to an uninitialized mpz_t and initializes it
+     with a copy of the Pure bigint.
+
+   - pure_is_symbol will return true not only for (constant and unbound
+     variable) symbols, but also for arbitrary closures including local and
+     anonymous functions. In the case of an anonymous closure, the returned
+     symbol will be 0. You can check whether an expression actually represents
+     a named or anonymous closure using the funp and lambdap predicates from
+     the library API (see below). */
 
 bool pure_is_symbol(const pure_expr *x, int32_t *sym);
 bool pure_is_int(const pure_expr *x, int32_t *i);
-bool pure_is_long(const pure_expr *x, int64_t *l);
-bool pure_is_bigint(const pure_expr *x, int32_t *size, limb_t **limbs);
 bool pure_is_mpz(const pure_expr *x, mpz_t *z);
 bool pure_is_double(const pure_expr *x, double *d);
 bool pure_is_pointer(const pure_expr *x, void **p);
 
-/* String results are copied with the _dup routines (it is then the caller's
-   responsibility to free them when appropriate). pure_is_cstring_dup also
-   converts the string to the system encoding. The string value returned by
-   pure_is_string points directly to the string data in the Pure expression
-   and must not be changed by the caller. */
+/* String deconstructors. Here the string results are copied if using the _dup
+   routines (it is then the caller's responsibility to free them when
+   appropriate). pure_is_cstring_dup also converts the string to the system
+   encoding. The string value returned by pure_is_string points directly to
+   the string data in the Pure expression and must not be changed by the
+   caller. */
 
-bool pure_is_string(const pure_expr *x, const char **sym);
-bool pure_is_string_dup(const pure_expr *x, char **sym);
-bool pure_is_cstring_dup(const pure_expr *x, char **sym);
+bool pure_is_string(const pure_expr *x, const char **s);
+bool pure_is_string_dup(const pure_expr *x, char **s);
+bool pure_is_cstring_dup(const pure_expr *x, char **s);
 
 /* Deconstruct literal applications. */
 
@@ -227,6 +210,11 @@ void pure_unref(pure_expr *x);
 pure_expr *pure_const(int32_t tag);
 pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
 		     void *f, void *e, uint32_t m, /* m x pure_expr* */ ...);
+
+/* Additional bigint constructors. */
+
+pure_expr *pure_long(int64_t l);
+pure_expr *pure_bigint(int32_t size, const limb_t *limbs);
 
 /* Compare a bigint or string expression against a constant value. This is
    used by the pattern matching code. */

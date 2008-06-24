@@ -300,14 +300,75 @@ static inline pure_expr* stack_exception()
 
 /* PUBLIC API. **************************************************************/
 
-// XXXTODO
+extern "C"
+int32_t pure_sym(const char *s)
+{
+  assert(s);
+  interpreter& interp = *interpreter::g_interp;
+  const symbol& sym = interp.symtab.sym(s);
+  return sym.f;
+}
 
-int32_t pure_sym(const char *s);
-int32_t pure_getsym(const char *s);
-const char *pure_sym_pname(int32_t sym);
-int8_t pure_sym_nprec(int32_t sym);
+extern "C"
+int32_t pure_getsym(const char *s)
+{
+  assert(s);
+  interpreter& interp = *interpreter::g_interp;
+  const symbol* sym = interp.symtab.lookup(s);
+  if (sym)
+    return sym->f;
+  else
+    return 0;
+}
 
-pure_expr *pure_symbol(int32_t sym);
+extern "C"
+const char *pure_sym_pname(int32_t tag)
+{
+  assert(tag>0);
+  interpreter& interp = *interpreter::g_interp;
+  const symbol& sym = interp.symtab.sym(tag);
+  return sym.s.c_str();
+}
+
+extern "C"
+int8_t pure_sym_nprec(int32_t tag)
+{
+  assert(tag>0);
+  interpreter& interp = *interpreter::g_interp;
+  const symbol& sym = interp.symtab.sym(tag);
+  return nprec(sym.prec, sym.fix);
+}
+
+extern "C"
+pure_expr *pure_symbol(int32_t tag)
+{
+  assert(tag>0);
+  interpreter& interp = *interpreter::g_interp;
+  const symbol& sym = interp.symtab.sym(tag);
+  // Check for an existing global variable for this symbol.
+  GlobalVar& v = interp.globalvars[tag];
+  if (!v.v) {
+    // The variable doesn't exist yet (we have a new symbol), create it.
+    string lab;
+    // Create a name for the variable (cf. interpreter::mkvarlabel).
+    if (sym.prec < 10 || sym.fix == nullary)
+      lab = "$("+sym.s+")";
+    else
+      lab = "$"+sym.s;
+    // Create a global variable bound to the symbol for now.
+    v.v = new llvm::GlobalVariable
+      (interp.ExprPtrTy, false, llvm::GlobalVariable::InternalLinkage, 0,
+       lab.c_str(), interp.module);
+    interp.JIT->addGlobalMapping(v.v, &v.x);
+    v.x = pure_new(pure_const(tag));
+    // Since we just created this variable, it doesn't have any closure bound
+    // to it yet, so it's safe to just return the symbol as is.
+    return v.x;
+  } else
+    // The symbol already exists, so there might be a parameterless closure
+    // bound to it and thus we need to evaluate it.
+    return pure_call(v.x);
+}
 
 extern "C"
 pure_expr *pure_int(int32_t i)
@@ -315,47 +376,6 @@ pure_expr *pure_int(int32_t i)
   pure_expr *x = new_expr();
   x->tag = EXPR::INT;
   x->data.i = i;
-  MEMDEBUG_NEW(x)
-  return x;
-}
-
-extern "C"
-pure_expr *pure_long(int64_t l)
-{
-  int sgn = (l>0)?1:(l<0)?-1:0;
-  uint64_t v = (uint64_t)(l>=0?l:-l);
-  if (sizeof(mp_limb_t) == 8) {
-    // 8 byte limbs, value fits in a single limb.
-    limb_t u[1] = { v };
-    return pure_bigint(sgn, u);
-  } else {
-    // 4 byte limbs, put least significant word in the first limb.
-    limb_t u[2] = { (uint32_t)v, (uint32_t)(v>>32) };
-    return pure_bigint(sgn+sgn, u);
-  }
-}
-
-static void make_bigint(mpz_t z, int32_t size, const limb_t *limbs)
-{
-  // FIXME: For efficiency, we poke directly into the mpz struct here, this
-  // might need to be reviewed for future GMP revisions.
-  int sz = size>=0?size:-size, sgn = size>0?1:size<0?-1:0, sz0 = 0;
-  // normalize: the most significant limb should be nonzero
-  for (int i = 0; i < sz; i++) if (limbs[i] != 0) sz0 = i+1;
-  sz = sz0; size = sgn*sz;
-  mpz_init(z);
-  if (sz > 0) _mpz_realloc(z, sz);
-  assert(sz == 0 || z->_mp_d);
-  for (int i = 0; i < sz; i++) z->_mp_d[i] = limbs[i];
-  z->_mp_size = size;
-}
-
-extern "C"
-pure_expr *pure_bigint(int32_t size, const limb_t *limbs)
-{
-  pure_expr *x = new_expr();
-  x->tag = EXPR::BIGINT;
-  make_bigint(x->data.z, size, limbs);
   MEMDEBUG_NEW(x)
   return x;
 }
@@ -432,28 +452,111 @@ pure_expr *pure_cstring(char *s)
   return x;
 }
 
-// XXXTODO
+extern "C"
+pure_expr *pure_app(pure_expr *fun, pure_expr *arg)
+{
+  return pure_apply2(fun, arg);
+}
 
-pure_expr *pure_app(pure_expr *fun, pure_expr *arg);
+// XXXTODO
 
 pure_expr *pure_listl(size_t size, ...);
 pure_expr *pure_listv(size_t size, pure_expr **elems);
 pure_expr *pure_tuplel(size_t size, ...);
 pure_expr *pure_tuplev(size_t size, pure_expr **elems);
 
-bool pure_is_symbol(const pure_expr *x, int32_t *sym);
-bool pure_is_int(const pure_expr *x, int32_t *i);
-bool pure_is_long(const pure_expr *x, int64_t *l);
-bool pure_is_bigint(const pure_expr *x, int32_t *size, limb_t **limbs);
-bool pure_is_mpz(const pure_expr *x, mpz_t *z);
-bool pure_is_double(const pure_expr *x, double *d);
-bool pure_is_pointer(const pure_expr *x, void **p);
+bool pure_is_symbol(const pure_expr *x, int32_t *sym)
+{
+  assert(x);
+  if (x->tag >= 0) {
+    if (sym) *sym = x->tag;
+    return true;
+  } else
+    return false;
+}
 
-bool pure_is_string(const pure_expr *x, const char **sym);
-bool pure_is_string_dup(const pure_expr *x, char **sym);
-bool pure_is_cstring_dup(const pure_expr *x, char **sym);
+bool pure_is_int(const pure_expr *x, int32_t *i)
+{
+  assert(x);
+  if (x->tag == EXPR::INT) {
+    if (i) *i = x->data.i;
+    return true;
+  } else
+    return false;
+}
 
-bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg);
+bool pure_is_mpz(const pure_expr *x, mpz_t *z)
+{
+  assert(x);
+  if (x->tag == EXPR::BIGINT) {
+    if (z) mpz_init_set(*z, x->data.z);
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_double(const pure_expr *x, double *d)
+{
+  assert(x);
+  if (x->tag == EXPR::DBL) {
+    if (d) *d = x->data.d;
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_pointer(const pure_expr *x, void **p)
+{
+  assert(x);
+  if (x->tag == EXPR::PTR) {
+    if (p) *p = x->data.p;
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_string(const pure_expr *x, const char **s)
+{
+  assert(x);
+  if (x->tag == EXPR::STR) {
+    if (s) *s = x->data.s;
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_string_dup(const pure_expr *x, char **s)
+{
+  assert(x);
+  if (x->tag == EXPR::STR) {
+    if (s) *s = strdup(x->data.s);
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_cstring_dup(const pure_expr *x, char **s)
+{
+  assert(x);
+  if (x->tag == EXPR::STR) {
+    if (s) *s = fromutf8(x->data.s);
+    return true;
+  } else
+    return false;
+}
+
+bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg)
+{
+  assert(x);
+  if (x->tag == EXPR::APP) {
+    if (fun) *fun = x->data.x[0];
+    if (arg) *arg = x->data.x[1];
+    return true;
+  } else
+    return false;
+}
+
+// XXXTODO
 
 bool pure_is_listv(const pure_expr *x, size_t *size, pure_expr ***elems);
 bool pure_is_tuplev(const pure_expr *x, size_t *size, pure_expr ***elems);
@@ -532,6 +635,47 @@ pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
     }
     va_end(ap);
   }
+  MEMDEBUG_NEW(x)
+  return x;
+}
+
+extern "C"
+pure_expr *pure_long(int64_t l)
+{
+  int sgn = (l>0)?1:(l<0)?-1:0;
+  uint64_t v = (uint64_t)(l>=0?l:-l);
+  if (sizeof(mp_limb_t) == 8) {
+    // 8 byte limbs, value fits in a single limb.
+    limb_t u[1] = { v };
+    return pure_bigint(sgn, u);
+  } else {
+    // 4 byte limbs, put least significant word in the first limb.
+    limb_t u[2] = { (uint32_t)v, (uint32_t)(v>>32) };
+    return pure_bigint(sgn+sgn, u);
+  }
+}
+
+static void make_bigint(mpz_t z, int32_t size, const limb_t *limbs)
+{
+  // FIXME: For efficiency, we poke directly into the mpz struct here, this
+  // might need to be reviewed for future GMP revisions.
+  int sz = size>=0?size:-size, sgn = size>0?1:size<0?-1:0, sz0 = 0;
+  // normalize: the most significant limb should be nonzero
+  for (int i = 0; i < sz; i++) if (limbs[i] != 0) sz0 = i+1;
+  sz = sz0; size = sgn*sz;
+  mpz_init(z);
+  if (sz > 0) _mpz_realloc(z, sz);
+  assert(sz == 0 || z->_mp_d);
+  for (int i = 0; i < sz; i++) z->_mp_d[i] = limbs[i];
+  z->_mp_size = size;
+}
+
+extern "C"
+pure_expr *pure_bigint(int32_t size, const limb_t *limbs)
+{
+  pure_expr *x = new_expr();
+  x->tag = EXPR::BIGINT;
+  make_bigint(x->data.z, size, limbs);
   MEMDEBUG_NEW(x)
   return x;
 }
