@@ -116,6 +116,14 @@ pure_expr *pure_cstring(char *s);
 
 pure_expr *pure_app(pure_expr *fun, pure_expr *arg);
 
+/* Convenience functions to construct an application of the given function to
+   a vector or varargs list of argument expressions. The vectors are owned by
+   the caller and won't be freed. References on the argument expressions are
+   counted automatically. */
+
+pure_expr *pure_appl(pure_expr *fun, size_t argc, ...);
+pure_expr *pure_appv(pure_expr *fun, size_t argc, pure_expr **args);
+
 /* Convenience functions to construct Pure list and tuple values from a vector
    or a varargs list of element expressions. (Internally these are actually
    represented as function applications.) The vectors are owned by the caller
@@ -166,10 +174,23 @@ bool pure_is_cstring_dup(const pure_expr *x, char **s);
 
 bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg);
 
-/* Convenience functions to deconstruct lists and tuples. Returned element
-   vectors are malloc'd and must be freed by the caller. Note that
+/* Convenience function to decompose a function application into a function
+   and a vector of argument expressions. The returned element vectors are
+   malloc'ed and must be freed by the caller (unless the number of arguments
+   is zero in which case the returned vector will be NULL). Note that this
+   function always yields true, since a singleton expression which is not an
+   application is considered to be a function applied to zero arguments. In
+   such a case you can check the returned function object with pure_is_symbol
+   to see whether it actually is a symbol or closure. */
+
+bool pure_is_appv(pure_expr *x, pure_expr **fun,
+		  size_t *argc, pure_expr ***args);
+
+/* Convenience functions to deconstruct lists and tuples. The returned element
+   vectors are malloc'ed and must be freed by the caller (unless the number of
+   elements is zero in which case the returned vector will be NULL). Note that
    pure_is_tuplev will always return true, since a singleton expression, which
-   is not either a pair or (), is considered a tuple of size 1. */
+   is not either a pair or (), is considered to be a tuple of size 1. */
 
 bool pure_is_listv(pure_expr *x, size_t *size, pure_expr ***elems);
 bool pure_is_tuplev(pure_expr *x, size_t *size, pure_expr ***elems);

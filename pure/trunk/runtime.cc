@@ -458,6 +458,27 @@ pure_expr *pure_app(pure_expr *fun, pure_expr *arg)
   return pure_apply2(fun, arg);
 }
 
+extern "C"
+pure_expr *pure_appl(pure_expr *fun, size_t argc, ...)
+{
+  if (argc == 0) return fun;
+  va_list ap;
+  va_start(ap, argc);
+  pure_expr **args = (pure_expr**)alloca(argc*sizeof(pure_expr*));
+  for (size_t i = 0; i < argc; i++)
+    args[i] = va_arg(ap, pure_expr*);
+  return pure_appv(fun, argc, args);
+}
+
+extern "C"
+pure_expr *pure_appv(pure_expr *fun, size_t argc, pure_expr **args)
+{
+  pure_expr *y = fun;
+  for (size_t i = 0; i < argc; i++)
+    y = pure_apply2(y, args[i]);
+  return y;
+}
+
 static inline pure_expr *mk_nil()
 {
   interpreter& interp = *interpreter::g_interp;
@@ -627,6 +648,35 @@ bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg)
     return false;
 }
 
+extern "C"
+bool pure_is_appv(pure_expr *x, pure_expr **_fun,
+		  size_t *_argc, pure_expr ***_args)
+{
+  assert(x);
+  pure_expr *u = x, *y, *z;
+  size_t argc = 0;
+  while (pure_is_app(u, &y, &z)) {
+    argc++;
+    u = y;
+  }
+  if (_fun) *_fun = u;
+  if (_argc) *_argc = argc;
+  if (_args)
+    if (argc > 0) {
+      pure_expr **args = (pure_expr**)malloc(argc*sizeof(pure_expr*));
+      assert(args);
+      size_t i = argc;
+      u = x;
+      while (pure_is_app(u, &y, &z)) {
+	args[--i] = z;
+	u = y;
+      }
+      *_args = args;
+    } else
+      *_args = 0;
+  return true;
+}
+
 static inline bool is_nil(pure_expr *x)
 {
   interpreter& interp = *interpreter::g_interp;
@@ -666,6 +716,7 @@ static inline bool is_pair(pure_expr *x, pure_expr*& y, pure_expr*& z)
 extern "C"
 bool pure_is_listv(pure_expr *x, size_t *_size, pure_expr ***_elems)
 {
+  assert(x);
   pure_expr *u = x, *y, *z;
   size_t size = 0;
   while (is_cons(u, y, z)) {
@@ -675,8 +726,9 @@ bool pure_is_listv(pure_expr *x, size_t *_size, pure_expr ***_elems)
   if (!is_nil(u)) return false;
   if (_size) *_size = size;
   if (_elems)
-    if (size>0) {
+    if (size > 0) {
       pure_expr **elems = (pure_expr**)malloc(size*sizeof(pure_expr*));
+      assert(elems);
       size_t i = 0;
       u = x;
       while (is_cons(u, y, z)) {
@@ -692,6 +744,7 @@ bool pure_is_listv(pure_expr *x, size_t *_size, pure_expr ***_elems)
 extern "C"
 bool pure_is_tuplev(pure_expr *x, size_t *_size, pure_expr ***_elems)
 {
+  assert(x);
   /* FIXME: This implementation assumes that tuples are right-recursive. If we
      change the tuple implementation in the prelude then this code has to be
      adapted accordingly. */
@@ -704,6 +757,7 @@ bool pure_is_tuplev(pure_expr *x, size_t *_size, pure_expr ***_elems)
   if (_size) *_size = size;
   if (_elems) {
     pure_expr **elems = (pure_expr**)malloc(size*sizeof(pure_expr*));
+    assert(elems);
     size_t i = 0;
     u = x;
     while (is_pair(u, y, z)) {
