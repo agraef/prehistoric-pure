@@ -1,3 +1,10 @@
+2008-06-25  Albert Graef  <Dr.Graef@t-online.de>
+
+	* examples/sort.c: Add another example for the runtime API.
+	This one shows how to implement a C function in a module to be
+	loaded by the Pure interpreter, which in turn calls other C and
+	Pure functions.
+
 2008-06-24  Albert Graef  <Dr.Graef@t-online.de>
 
 	* configure.ac: Bump version number.
@@ -6,6 +13,8 @@
 	completion.
 
 	* examples/poor.c: Add an example for the new public runtime API.
+	Shows how to interface to the Pure interpreter in a standalone C
+	application.
 
 	* interpreter.cc/h, runtime.cc/h, lib/strings.pure: Add error
 	reporting to the eval() routine.
