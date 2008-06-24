@@ -1,5 +1,11 @@
 2008-06-24  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc/h, runtime.cc/h, lib/strings.pure: Add error
+	reporting to the eval() routine.
+
+	* interpreter.cc: Bugfix to make recursive source file parses work
+	inside eval().
+
 	* runtime.h, runtime.cc: Refactored the runtime library to provide
 	a semantically complete public API for module writers.
 
