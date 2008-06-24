@@ -398,6 +398,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   string l_source = source;
   int l_nerrs = nerrs;
   uint8_t l_temp = temp;
+  const char *l_source_s = source_s;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -408,6 +409,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   // initialize
   nerrs = 0;
   source = s; declare_op = false;
+  source_s = 0;
   errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin();
@@ -432,6 +434,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   source = l_source;
   nerrs = l_nerrs;
   temp = l_temp;
+  source_s = l_source_s;
   // return last computed result, if any
   return result;
 }
@@ -449,6 +452,7 @@ pure_expr *interpreter::runstr(const string& s)
   bool l_interactive = interactive;
   string l_source = source;
   int l_nerrs = nerrs;
+  const char *l_source_s = source_s;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -479,6 +483,7 @@ pure_expr *interpreter::runstr(const string& s)
   source = l_source;
   source_s = 0;
   nerrs = l_nerrs;
+  source_s = l_source_s;
   // return last computed result, if any
   return result;
 }
