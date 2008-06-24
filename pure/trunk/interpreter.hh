@@ -262,6 +262,7 @@ public:
 
   // Interpreter state. For internal use only.
   int nerrs;	     // current error count
+  string errmsg;     // last reported error (runstr)
   string source;     // the source being parsed
   const char *source_s; // source pointer if input comes from a string
   set<string> sources; // the list of all scripts which have been loaded
@@ -293,7 +294,9 @@ public:
   pure_expr *run(const list<string>& sources, bool check = true);
 
   /* This works like run() above, but takes the source directly from a
-     string. */
+     string. No error messages will be printed, instead any errors reported
+     during the most recent invokation of this method are available in
+     errmsg. */
   pure_expr *runstr(const string& source);
 
   /* Evaluate a (compile time) expression and return the (runtime expression)

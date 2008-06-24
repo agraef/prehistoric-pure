@@ -333,30 +333,46 @@ void
 interpreter::error(const yy::location& l, const string& m)
 {
   nerrs++;
-  cout.flush();
-  if (!source_s) cerr << l << ": " << m << endl;
+  if (source_s) {
+    ostringstream msg;
+    msg << l << ": " << m << endl;
+    errmsg += msg.str();
+  } else {
+    cout.flush();
+    cerr << l << ": " << m << endl;
+  }
 }
 
 void
 interpreter::error(const string& m)
 {
   nerrs++;
-  cout.flush();
-  if (!source_s) cerr << m << endl;
+  if (source_s) {
+    ostringstream msg;
+    msg << m << endl;
+    errmsg += msg.str();
+  } else {
+    cout.flush();
+    cerr << m << endl;
+  }
 }
 
 void
 interpreter::warning(const yy::location& l, const string& m)
 {
-  cout.flush();
-  if (!source_s) cerr << l << ": " << m << endl;
+  if (!source_s) {
+    cout.flush();
+    cerr << l << ": " << m << endl;
+  }
 }
 
 void
 interpreter::warning(const string& m)
 {
-  cout.flush();
-  if (!source_s) cerr << m << endl;
+  if (!source_s) {
+    cout.flush();
+    cerr << m << endl;
+  }
 }
 
 // Run the interpreter on a source file, collection of source files, or on
@@ -392,6 +408,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   // initialize
   nerrs = 0;
   source = s; declare_op = false;
+  errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin();
   if (ok) {
@@ -443,6 +460,7 @@ pure_expr *interpreter::runstr(const string& s)
   nerrs = 0;
   source = ""; declare_op = false;
   source_s = s.c_str();
+  errmsg.clear();
   bool ok = lex_begin();
   if (ok) {
     yy::parser parser(*this);
