@@ -1,5 +1,7 @@
 2008-06-24  Albert Graef  <Dr.Graef@t-online.de>
 
+	* configure.ac: Bump version number.
+
 	* pure.cc, lexer.ll: Bugfix: include external symbols in command
 	completion.
 
