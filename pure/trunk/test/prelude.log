@@ -235,6 +235,7 @@ put_double x/*0:01*/ y/*0:1*/::double = pointer_put_double x/*0:01*/ y/*0:1*/;
 put_string x/*0:01*/ y/*0:1*/::string = pointer_put_string x/*0:01*/ y/*0:1*/;
 put_pointer x/*0:01*/ y/*0:1*/::string = pointer_put_pointer x/*0:01*/ y/*0:1*/;
 put_pointer x/*0:01*/ y/*0:1*/ = pointer_put_pointer x/*0:01*/ y/*0:1*/;
+str x/*0:1*/ = cstring (pure_str x/*0:1*/);
 chr n/*0:1*/::int = string_chr n/*0:1*/ if n/*0:1*/>0;
 ord s/*0:1*/::string = string_ord s/*0:1*/ if #s/*0:1*/==1;
 string s/*0:1*/ = pure_string s/*0:1*/;

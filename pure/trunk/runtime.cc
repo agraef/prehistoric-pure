@@ -1494,13 +1494,13 @@ int32_t string_index(const char* s, const char *t)
 }
 
 extern "C"
-pure_expr *str(const pure_expr *x)
+char *str(const pure_expr *x)
 {
   assert(x);
   ostringstream os;
   try {
     os << x;
-    return pure_string_dup(os.str().c_str());
+    return strdup(os.str().c_str());
   } catch (err &e) {
     return 0;
   }
