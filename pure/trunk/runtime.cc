@@ -458,13 +458,76 @@ pure_expr *pure_app(pure_expr *fun, pure_expr *arg)
   return pure_apply2(fun, arg);
 }
 
-// XXXTODO
+static inline pure_expr *mk_nil()
+{
+  interpreter& interp = *interpreter::g_interp;
+  return pure_const(interp.symtab.nil_sym().f);
+}
 
-pure_expr *pure_listl(size_t size, ...);
-pure_expr *pure_listv(size_t size, pure_expr **elems);
-pure_expr *pure_tuplel(size_t size, ...);
-pure_expr *pure_tuplev(size_t size, pure_expr **elems);
+static inline pure_expr *mk_cons(pure_expr *x, pure_expr *y)
+{
+  interpreter& interp = *interpreter::g_interp;
+  pure_expr *f = pure_const(interp.symtab.cons_sym().f);
+  return pure_apply2(pure_apply2(f, x), y);
+}
 
+static inline pure_expr *mk_void()
+{
+  interpreter& interp = *interpreter::g_interp;
+  return pure_const(interp.symtab.void_sym().f);
+}
+
+static inline pure_expr *mk_pair(pure_expr *x, pure_expr *y)
+{
+  interpreter& interp = *interpreter::g_interp;
+  pure_expr *f = pure_const(interp.symtab.pair_sym().f);
+  return pure_apply2(pure_apply2(f, x), y);
+}
+
+extern "C"
+pure_expr *pure_listl(size_t size, ...)
+{
+  if (size == 0) return mk_nil();
+  va_list ap;
+  va_start(ap, size);
+  pure_expr **elems = (pure_expr**)alloca(size*sizeof(pure_expr*));
+  for (size_t i = 0; i < size; i++)
+    elems[i] = va_arg(ap, pure_expr*);
+  return pure_listv(size, elems);
+}
+
+extern "C"
+pure_expr *pure_listv(size_t size, pure_expr **elems)
+{
+  pure_expr *y = mk_nil();
+  for (size_t i = size; i-- > 0; )
+    y = mk_cons(elems[i], y);
+  return y;
+}
+
+extern "C"
+pure_expr *pure_tuplel(size_t size, ...)
+{
+  if (size == 0) return mk_void();
+  va_list ap;
+  va_start(ap, size);
+  pure_expr **elems = (pure_expr**)alloca(size*sizeof(pure_expr*));
+  for (size_t i = 0; i < size; i++)
+    elems[i] = va_arg(ap, pure_expr*);
+  return pure_tuplev(size, elems);
+}
+
+extern "C"
+pure_expr *pure_tuplev(size_t size, pure_expr **elems)
+{
+  if (size == 0) return mk_void();
+  pure_expr *y = elems[--size];
+  for (size_t i = size; i-- > 0; )
+    y = mk_pair(elems[i], y);
+  return y;
+}
+
+extern "C"
 bool pure_is_symbol(const pure_expr *x, int32_t *sym)
 {
   assert(x);
@@ -475,6 +538,7 @@ bool pure_is_symbol(const pure_expr *x, int32_t *sym)
     return false;
 }
 
+extern "C"
 bool pure_is_int(const pure_expr *x, int32_t *i)
 {
   assert(x);
@@ -485,6 +549,7 @@ bool pure_is_int(const pure_expr *x, int32_t *i)
     return false;
 }
 
+extern "C"
 bool pure_is_mpz(const pure_expr *x, mpz_t *z)
 {
   assert(x);
@@ -495,6 +560,7 @@ bool pure_is_mpz(const pure_expr *x, mpz_t *z)
     return false;
 }
 
+extern "C"
 bool pure_is_double(const pure_expr *x, double *d)
 {
   assert(x);
@@ -505,6 +571,7 @@ bool pure_is_double(const pure_expr *x, double *d)
     return false;
 }
 
+extern "C"
 bool pure_is_pointer(const pure_expr *x, void **p)
 {
   assert(x);
@@ -515,6 +582,7 @@ bool pure_is_pointer(const pure_expr *x, void **p)
     return false;
 }
 
+extern "C"
 bool pure_is_string(const pure_expr *x, const char **s)
 {
   assert(x);
@@ -525,6 +593,7 @@ bool pure_is_string(const pure_expr *x, const char **s)
     return false;
 }
 
+extern "C"
 bool pure_is_string_dup(const pure_expr *x, char **s)
 {
   assert(x);
@@ -535,6 +604,7 @@ bool pure_is_string_dup(const pure_expr *x, char **s)
     return false;
 }
 
+extern "C"
 bool pure_is_cstring_dup(const pure_expr *x, char **s)
 {
   assert(x);
@@ -545,6 +615,7 @@ bool pure_is_cstring_dup(const pure_expr *x, char **s)
     return false;
 }
 
+extern "C"
 bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg)
 {
   assert(x);
@@ -556,10 +627,94 @@ bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg)
     return false;
 }
 
-// XXXTODO
+static inline bool is_nil(pure_expr *x)
+{
+  interpreter& interp = *interpreter::g_interp;
+  return x->tag == interp.symtab.nil_sym().f;
+}
 
-bool pure_is_listv(const pure_expr *x, size_t *size, pure_expr ***elems);
-bool pure_is_tuplev(const pure_expr *x, size_t *size, pure_expr ***elems);
+static inline bool is_cons(pure_expr *x, pure_expr*& y, pure_expr*& z)
+{
+  interpreter& interp = *interpreter::g_interp;
+  if (x->tag == EXPR::APP && x->data.x[0]->tag == EXPR::APP &&
+      x->data.x[0]->data.x[0]->tag == interp.symtab.cons_sym().f) {
+    y = x->data.x[0]->data.x[1];
+    z = x->data.x[1];
+    return true;
+  } else
+    return false;
+}
+
+static inline bool is_void(pure_expr *x)
+{
+  interpreter& interp = *interpreter::g_interp;
+  return x->tag == interp.symtab.void_sym().f;
+}
+
+static inline bool is_pair(pure_expr *x, pure_expr*& y, pure_expr*& z)
+{
+  interpreter& interp = *interpreter::g_interp;
+  if (x->tag == EXPR::APP && x->data.x[0]->tag == EXPR::APP &&
+      x->data.x[0]->data.x[0]->tag == interp.symtab.pair_sym().f) {
+    y = x->data.x[0]->data.x[1];
+    z = x->data.x[1];
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
+bool pure_is_listv(pure_expr *x, size_t *_size, pure_expr ***_elems)
+{
+  pure_expr *u = x, *y, *z;
+  size_t size = 0;
+  while (is_cons(u, y, z)) {
+    size++;
+    u = z;
+  }
+  if (!is_nil(u)) return false;
+  if (_size) *_size = size;
+  if (_elems)
+    if (size>0) {
+      pure_expr **elems = (pure_expr**)malloc(size*sizeof(pure_expr*));
+      size_t i = 0;
+      u = x;
+      while (is_cons(u, y, z)) {
+	elems[i++] = y;
+	u = z;
+      }
+      *_elems = elems;
+    } else
+      *_elems = 0;
+  return true;
+}
+
+extern "C"
+bool pure_is_tuplev(pure_expr *x, size_t *_size, pure_expr ***_elems)
+{
+  /* FIXME: This implementation assumes that tuples are right-recursive. If we
+     change the tuple implementation in the prelude then this code has to be
+     adapted accordingly. */
+  pure_expr *u = x, *y, *z;
+  size_t size = 1;
+  while (is_pair(u, y, z)) {
+    size++;
+    u = z;
+  }
+  if (_size) *_size = size;
+  if (_elems) {
+    pure_expr **elems = (pure_expr**)malloc(size*sizeof(pure_expr*));
+    size_t i = 0;
+    u = x;
+    while (is_pair(u, y, z)) {
+      elems[i++] = y;
+      u = z;
+    }
+    elems[i++] = u;
+    *_elems = elems;
+  }
+  return true;
+}
 
 extern "C"
 pure_expr *pure_new(pure_expr *x)
@@ -1562,24 +1717,6 @@ pure_expr *string_concat(const char* s, const char *t)
   x->data.s = buf;
   MEMDEBUG_NEW(x)
   return x;
-}
-
-static inline bool is_nil(pure_expr *xs)
-{
-  interpreter& interp = *interpreter::g_interp;
-  return xs->tag == interp.symtab.nil_sym().f;
-}
-
-static inline bool is_cons(pure_expr *xs, pure_expr*& y, pure_expr*& ys)
-{
-  interpreter& interp = *interpreter::g_interp;
-  if (xs->tag == EXPR::APP && xs->data.x[0]->tag == EXPR::APP &&
-      xs->data.x[0]->data.x[0]->tag == interp.symtab.cons_sym().f) {
-    y = xs->data.x[0]->data.x[1];
-    ys = xs->data.x[1];
-    return true;
-  } else
-    return false;
 }
 
 extern "C"
