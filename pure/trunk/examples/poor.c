@@ -33,8 +33,9 @@ int main(int argc, char *argv[])
   while (fgets(buf, sizeof(buf), stdin)) {
     pure_expr *x = eval(buf);
     if (x) {
-      printf("%s\n", str(x));
-      pure_freenew(x);
+      char *s = str(x);
+      printf("%s\n", s);
+      pure_freenew(x); free(s);
     } else if (lasterr())
       fputs(lasterr(), stderr);
     fputs("? ", stdout); fflush(stdout);
