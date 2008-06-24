@@ -1,3 +1,15 @@
+2008-06-24  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.h, runtime.cc: Refactored the runtime library to provide
+	a semantically complete public API for module writers.
+
+	These operations are meant to be used by client modules or
+	standalone applications which need to create their own Pure
+	interpreters and/or require direct access to Pure expression
+	data. See the PUBLIC API section in runtime.h for details. Modules
+	created with this API must be linked against the runtime library
+	(libpure.so).
+
 2008-06-23  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.h, runtime.cc: Make pure_invoke() callable from C.
