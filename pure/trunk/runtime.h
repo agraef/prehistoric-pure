@@ -171,8 +171,8 @@ bool pure_is_app(const pure_expr *x, pure_expr **fun, pure_expr **arg);
    pure_is_tuplev will always return true, since a singleton expression, which
    is not either a pair or (), is considered a tuple of size 1. */
 
-bool pure_is_listv(const pure_expr *x, size_t *size, pure_expr ***elems);
-bool pure_is_tuplev(const pure_expr *x, size_t *size, pure_expr ***elems);
+bool pure_is_listv(pure_expr *x, size_t *size, pure_expr ***elems);
+bool pure_is_tuplev(pure_expr *x, size_t *size, pure_expr ***elems);
 
 /* Memory management. */
 
