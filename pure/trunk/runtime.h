@@ -221,6 +221,41 @@ void pure_freenew(pure_expr *x);
 void pure_ref(pure_expr *x);
 void pure_unref(pure_expr *x);
 
+/* The following routines provide standalone C/C++ applications with fully
+   initialized interpreter instances which can be used together with the
+   operations listed above. This is only needed for modules which are not to
+   be loaded by the command line version of the interpreter.
+
+   The argc, argv parameters passed to pure_create_interp specify the command
+   line arguments of the interpreter instance. This includes any scripts that
+   are to be loaded on startup as well as any other options understood by the
+   command line version of the interpreter (options like -i and -q won't have
+   any effect, though, and the interpreter will always be in non-interactive
+   mode). The argv vector must be NULL-terminated, and argv[0] should be set
+   to the name of the hosting application (usually the main program of the
+   application).
+
+   An application may use multiple interpreter instances, but only a single
+   instance can be active at any one time. By default, the first created
+   instance will be active, but you can switch between different instances
+   with the pure_switch_interp function. The pure_delete_interp routine
+   destroys an interpreter instance; if the destroyed instance is currently
+   active, the active instance will be undefined afterwards, so you'll have to
+   either create or switch to another instance before calling any other
+   operations.
+
+   Note that when using different interpreter instances in concert, it is
+   *not* possible to pass pure_expr* values created with one interpreter
+   instance to another. Instead, you can use the str and eval functions from
+   the library API (see below) to first unparse the expression in the source
+   interpreter and then reparse it in the target interpreter. */
+
+typedef struct pure_interp; // Pure interpreter handles (opaque).
+
+pure_interp *pure_create_interp(int argc, const char *argv[]);
+void pure_delete_interp(pure_interp *interp);
+void pure_switch_interp(pure_interp *interp);
+
 /* END OF PUBLIC API. *******************************************************/
 
 /* Stuff below this line is for internal use by the Pure interpreter. Don't
