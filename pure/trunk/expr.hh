@@ -485,7 +485,7 @@ struct rule {
 /* Environment entries. */
 
 struct env_info {
-  enum { none, lvar, fvar, fun } t;
+  enum { none, lvar, cvar, fvar, fun } t;
   uint8_t temp;
   union {
     // local variable binding (lvar):
@@ -493,6 +493,8 @@ struct env_info {
       int8_t ttag;
       path *p;
     };
+    // constant definition (cvar):
+    expr *cval;
     // free variable definition (fvar):
     void *val; // pointer to memory location holding a runtime expression
     // function definition (fun):
@@ -505,6 +507,8 @@ struct env_info {
   env_info() : t(none) { }
   env_info(int8_t _ttag, path _p, uint8_t _temp = 0)
     : t(lvar), temp(_temp), ttag(_ttag), p(new path(_p)) { }
+  env_info(expr x, uint8_t _temp = 0)
+    : t(cvar), temp(_temp), cval(new expr) { *cval = x; }
   env_info(void *v, uint8_t _temp = 0)
     : t(fvar), temp(_temp), val(v) { }
   env_info(uint32_t c, rulel r, uint8_t _temp = 0)

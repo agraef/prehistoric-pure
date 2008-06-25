@@ -537,7 +537,10 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
     int32_t f = it->first;
     const symbol& sym = symtab.sym(f);
     env::const_iterator jt = globenv.find(f);
-    if (jt != globenv.end() && jt->second.t == env_info::fun) {
+    if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a constant");
+    } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
       restore_globals(g);
       throw err("symbol '"+sym.s+"' is already defined as a function");
     } else if (externals.find(f) != externals.end()) {
@@ -557,6 +560,139 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
   }
   restore_globals(g);
   return res;
+}
+
+// Define global constants (macro definitions).
+
+pure_expr *interpreter::const_defn(expr pat, expr x)
+{
+  globals g;
+  save_globals(g);
+  pure_expr *e, *res = const_defn(pat, x, e);
+  if (!res && e) pure_free(e);
+  restore_globals(g);
+  return res;
+}
+
+static expr pure_expr_to_expr(pure_expr *x)
+{
+  // FIXME: We might want to do stack checks here.
+  switch (x->tag) {
+  case EXPR::APP:
+    return expr(pure_expr_to_expr(x->data.x[0]),
+		pure_expr_to_expr(x->data.x[1]));
+  case EXPR::INT:
+    return expr(EXPR::INT, x->data.i);
+  case EXPR::BIGINT: {
+    // The expr constructor globbers its mpz_t argument, so take a copy.
+    mpz_t z;
+    mpz_init_set(z, x->data.z);
+    return expr(EXPR::BIGINT, z);
+  }
+  case EXPR::DBL:
+    return expr(EXPR::DBL, x->data.d);
+  case EXPR::STR:
+    return expr(EXPR::STR, x->data.s);
+  case EXPR::PTR:
+    if (x->data.p != 0)
+      // Only null pointer constants permitted right now.
+      throw err("pointer must be null in constant definition");
+    return expr(EXPR::PTR, x->data.p);
+  default:
+    assert(x->tag > 0);
+    if (x->data.clos && x->data.clos->local)
+      // There's no way we can capture a local function in a compile time
+      // expression right now, so we have to forbid this, too.
+      throw err("anonymous closure not permitted in constant definition");
+    return expr(x->tag);
+  }
+}
+
+static expr subterm(expr x, const path& p)
+{
+  for (size_t i = 0, n = p.len(); i < n; i++) {
+    assert(x.tag() == EXPR::APP);
+    x = p[i]?x.xval2():x.xval1();
+  }
+  return x;
+}
+
+pure_expr *interpreter::const_defn(expr pat, expr x, pure_expr*& e)
+{
+  globals g;
+  save_globals(g);
+  compile();
+  env vars;
+  expr lhs = bind(vars, pat), rhs = x;
+  build_env(vars, lhs);
+  for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+    int32_t f = it->first;
+    const symbol& sym = symtab.sym(f);
+    env::const_iterator jt = globenv.find(f);
+    if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a constant");
+    } else if (jt != globenv.end() && jt->second.t == env_info::fvar) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a variable");
+    } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a function");
+    } else if (externals.find(f) != externals.end()) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+
+		"' is already declared as an extern function");
+    }
+  }
+  compile(rhs);
+  pure_expr *res = doeval(rhs, e);
+  if (!res) return 0;
+  // convert the result back to a compile time expression
+  expr u = pure_expr_to_expr(res);
+  // match against the left-hand side
+  matcher m(rule(lhs, rhs));
+  if (m.match(u)) {
+    // bind variables accordingly
+    for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+      assert(it->second.t == env_info::lvar && it->second.p);
+      int32_t f = it->first;
+      expr v = subterm(u, *it->second.p);
+      globenv[f] = env_info(v, temp);
+    }
+  } else {
+    pure_freenew(res);
+    res = 0;
+  }
+  restore_globals(g);
+  return res;
+}
+
+void interpreter::const_defn(int32_t tag, pure_expr *x)
+{
+  assert(tag > 0 && x);
+  globals g;
+  save_globals(g);
+  symbol& sym = symtab.sym(tag);
+  env::const_iterator jt = globenv.find(tag);
+  if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a constant");
+  } else if (jt != globenv.end() && jt->second.t == env_info::fvar) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a variable");
+  } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a function");
+  } else if (externals.find(tag) != externals.end()) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+
+	      "' is already declared as an extern function");
+  }
+  // convert the value to a compile time expression
+  expr u = pure_expr_to_expr(x);
+  // bind the variable
+  globenv[tag] = env_info(u, temp);
+  restore_globals(g);
 }
 
 // Process pending fundefs.
@@ -844,6 +980,29 @@ void interpreter::define(rule *r)
     cout << ((double)clocks)/(double)CLOCKS_PER_SEC << "s\n";
 }
 
+void interpreter::define_const(rule *r)
+{
+  last.clear();
+  pure_expr *e, *res = const_defn(r->lhs, r->rhs, e);
+  if ((verbose&verbosity::defs) != 0)
+    cout << "def " << r->lhs << " = " << r->rhs << ";\n";
+  if (!res) {
+    ostringstream msg;
+    if (e) {
+      msg << "unhandled exception '" << e << "' while evaluating '"
+	  << "def " << r->lhs << " = " << r->rhs << "'";
+      pure_free(e);
+    } else
+      msg << "failed match while evaluating '"
+	  << "def " << r->lhs << " = " << r->rhs << "'";
+    throw err(msg.str());
+  }
+  delete r;
+  pure_freenew(res);
+  if (interactive && stats)
+    cout << ((double)clocks)/(double)CLOCKS_PER_SEC << "s\n";
+}
+
 void interpreter::clearsym(int32_t f)
 {
   // Check whether this symbol was already compiled; in that case
@@ -962,7 +1121,9 @@ void interpreter::add_rule(env &e, rule &r, bool toplevel)
   env::iterator it = e.find(f);
   const symbol& sym = symtab.sym(f);
   if (it != e.end()) {
-    if (it->second.t == env_info::fvar)
+    if (it->second.t == env_info::cvar)
+      throw err("symbol '"+sym.s+"' is already defined as a constant");
+    else if (it->second.t == env_info::fvar)
       throw err("symbol '"+sym.s+"' is already defined as a variable");
     else if (it->second.argc != argc) {
       ostringstream msg;
@@ -1288,7 +1449,12 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
       // not a bound variable
       if (x.ttag() != 0)
 	throw err("error in expression (misplaced type tag)");
-      return x;
+      it = globenv.find(sym.f);
+      if (it != globenv.end() && it->second.t == env_info::cvar)
+	// substitute constant value
+	return *it->second.cval;
+      else
+	return x;
     }
     const env_info& info = it->second;
     return expr(EXPR::VAR, sym.f, idx, info.ttag, *info.p);
@@ -1677,7 +1843,10 @@ void interpreter::defn(int32_t tag, pure_expr *x)
   save_globals(g);
   symbol& sym = symtab.sym(tag);
   env::const_iterator jt = globenv.find(tag);
-  if (jt != globenv.end() && jt->second.t == env_info::fun) {
+  if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a constant");
+  } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
     restore_globals(g);
     throw err("symbol '"+sym.s+"' is already defined as a function");
   } else if (externals.find(tag) != externals.end()) {
@@ -3427,7 +3596,9 @@ Value *interpreter::codegen(expr x)
   case EXPR::STR:
     return sbox(x.sval());
   case EXPR::PTR:
-    assert(0 && "not implemented");
+    // FIXME: Only null pointers are supported right now.
+    assert(x.pval() == 0);
+    return pbox(x.pval());
   // application:
   case EXPR::APP:
     if (x.ttag() != 0) {
@@ -3764,6 +3935,11 @@ Value *interpreter::sbox(const char *s)
   return call("pure_string_dup", s);
 }
 
+Value *interpreter::pbox(void *p)
+{
+  return call("pure_pointer", p);
+}
+
 // Variable access.
 
 static uint32_t argno(uint32_t n, path &p)
@@ -3985,6 +4161,12 @@ Value *interpreter::call(string name, const char *s)
   // "cast" the char array to a char*
   Value *p = e.CreateGEP(v, Zero, Zero);
   return call(name, p);
+}
+
+Value *interpreter::call(string name, void *p)
+{
+  assert(p==0);
+  return call(name, ConstantPointerNull::get(VoidPtrTy));
 }
 
 Value *interpreter::call(string name, Value *x, const char *s)

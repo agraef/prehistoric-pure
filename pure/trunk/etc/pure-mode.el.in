@@ -164,8 +164,8 @@ For instance, add `turn-on-font-lock' to enable syntax highlighting."
    (list "\\<\\(catch\\|throw\\)\\>" 0 'font-lock-builtin-face)
    (list
     (concat "\\<\\("
-	    "case\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|let\\|"
-	    "nullary\\|o\\(f\\|therwise\\)\\|p\\(refix\\|ostfix\\)\\|"
+	    "case\\|def\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|"
+	    "let\\|nullary\\|o\\(f\\|therwise\\)\\|p\\(refix\\|ostfix\\)\\|"
 	    "then\\|using\\|w\\(hen\\|ith\\)"
 	    "\\)\\>")
     0 'font-lock-keyword-face))
@@ -178,8 +178,8 @@ For instance, add `turn-on-font-lock' to enable syntax highlighting."
    (list "\\<\\(catch\\|throw\\)\\>" 0 'font-lock-builtin-face)
    (list
     (concat "\\<\\("
-	    "case\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|let\\|"
-	    "nullary\\|o\\(f\\|therwise\\)\\|p\\(refix\\|ostfix\\)\\|"
+	    "case\\|def\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|"
+	    "let\\|nullary\\|o\\(f\\|therwise\\)\\|p\\(refix\\|ostfix\\)\\|"
 	    "then\\|using\\|w\\(hen\\|ith\\)"
 	    "\\)\\>")
     0 'font-lock-keyword-face))
