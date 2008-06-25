@@ -1,3 +1,13 @@
+2008-06-26  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc et al: Implement constant definitions, as
+	discussed on the mailing list. These work like variable
+	definitions (using the new 'def' keyword in lieu of 'let'), but
+	constants cannot be redefined (unless you first clear an existing
+	definition), and constant values are directly substituted into the
+	right-hand sides of equations rather than being evaluated at
+	runtime.
+
 2008-06-25  Albert Graef  <Dr.Graef@t-online.de>
 
 	* examples/sort.c: Add another example for the runtime API.

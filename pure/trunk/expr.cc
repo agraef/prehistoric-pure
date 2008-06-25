@@ -234,6 +234,10 @@ env_info::env_info(const env_info& e) : t(e.t), temp(e.temp) {
     ttag = e.ttag;
     p = new path(*e.p);
     break;
+  case cvar:
+    cval = new expr;
+    *cval = *e.cval;
+    break;
   case fvar:
     val = e.val;
     break;
@@ -256,6 +260,9 @@ env_info& env_info::operator= (const env_info& e)
   case lvar:
     delete p;
     break;
+  case cvar:
+    delete cval;
+    break;
   case fvar:
     break;
   case fun:
@@ -271,6 +278,10 @@ env_info& env_info::operator= (const env_info& e)
   case lvar:
     ttag = e.ttag;
     p = new path(*e.p);
+    break;
+  case cvar:
+    cval = new expr;
+    *cval = *e.cval;
     break;
   case fvar:
     val = e.val;
@@ -293,6 +304,9 @@ env_info::~env_info() {
     break;
   case lvar:
     delete p;
+    break;
+  case cvar:
+    delete cval;
     break;
   case fvar:
     break;

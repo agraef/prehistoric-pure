@@ -421,6 +421,9 @@ ostream& operator << (ostream& os, const env& e)
       }
       break;
     }
+    case env_info::cvar:
+      os << "def " << sym.s << " = " << *info.cval;
+      break;
     case env_info::fvar:
       os << "let " << sym.s << " = " << *(pure_expr**)info.val;
       break;
@@ -628,8 +631,6 @@ ostream& operator << (ostream& os, const pure_expr *x)
   assert(x);
   //os << "{" << x->refc << "}";
   switch (x->tag) {
-  case 0:
-    return os << "<<anonymous closure " << (void*)x << ">>";
   case EXPR::INT:
     return os << x->data.i;
   case EXPR::BIGINT: {
@@ -744,8 +745,11 @@ ostream& operator << (ostream& os, const pure_expr *x)
       return os << pure_paren(95, u) << " " << pure_paren(100, v);
   }
   default: {
-    assert(x->tag > 0);
+    if (x->tag == 0)
+      return os << "<<closure " << (void*)x << ">>";
     const symbol& sym = interpreter::g_interp->symtab.sym(x->tag);
+    if (x->data.clos && x->data.clos->local)
+      return os << "<<closure " << sym.s << ">>";
     if (sym.prec < 10)
       return os << '(' << sym.s << ')';
     else

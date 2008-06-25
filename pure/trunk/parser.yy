@@ -98,6 +98,7 @@ typedef list<comp_clause> comp_clause_list;
 %token		NULLARY	"nullary"
 %token <fix>	FIX	"fixity"
 
+%token		DEF	"def"
 %token		LET	"let"
 %token		CASE	"case"
 %token		OF	"of"
@@ -274,6 +275,8 @@ item
 { action(interp.exec($1), delete $1); }
 | LET simple_rule
 { action(interp.define($2), delete $2); }
+| DEF simple_rule
+{ action(interp.define_const($2), delete $2); }
 | rule
 { rulel *rl = 0;
   action(interp.add_rules(interp.globenv,

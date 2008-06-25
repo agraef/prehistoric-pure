@@ -4,6 +4,7 @@
   <highlighting>
     <list name="keywords">
       <item> case </item>
+      <item> def </item>
       <item> else </item>
       <item> end </item>
       <item> extern </item>

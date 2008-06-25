@@ -131,9 +131,9 @@ static bool env_compare(env_sym s, env_sym t)
    now. */
 
 static const char *commands[] = {
-  "cd", "clear", "extern", "help", "infix", "infixl", "infixr", "let", "list",
-  "ls", "nullary", "override", "postfix", "prefix", "pwd", "quit", "run",
-  "save", "stats", "underride", "using", 0
+  "cd", "clear", "def", "extern", "help", "infix", "infixl", "infixr", "let",
+  "list", "ls", "nullary", "override", "postfix", "prefix", "pwd", "quit",
+  "run", "save", "stats", "underride", "using", 0
 };
 
 static char *
@@ -399,7 +399,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       int32_t f = it->first;
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
-      if (!((e.t == env_info::fvar)?vflag:fflag)) continue;
+      if (!((e.t == env_info::fun)?fflag:vflag)) continue;
       bool matches = e.temp >= tflag;
       if (!matches && !sflag && args.l.empty() &&
 	  e.t == env_info::fun && fflag) {
@@ -485,6 +485,17 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  sout << endl;
 	} else
 	  sout << "let " << sym.s << " = " << *(pure_expr**)jt->second.val
+	       << ";\n";
+      } else if (jt->second.t == env_info::cvar) {
+	nvars++;
+	if (sflag) {
+	  sout << sym.s << string(maxsize-sym.s.size(), ' ')
+	       << "  cst";
+	  if (lflag) sout << "  " << sym.s << " = "
+			  << *jt->second.cval << ";";
+	  sout << endl;
+	} else
+	  sout << "def " << sym.s << " = " << *jt->second.cval
 	       << ";\n";
       } else {
 	if (xt != interp.externals.end()) {
@@ -743,6 +754,7 @@ infixr     yylval->fix = infixr; return token::FIX;
 prefix     yylval->fix = prefix; return token::FIX;
 postfix    yylval->fix = postfix; return token::FIX;
 nullary    return token::NULLARY;
+def        return token::DEF;
 let        return token::LET;
 case	   return token::CASE;
 of	   return token::OF;

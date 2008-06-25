@@ -310,24 +310,39 @@ public:
   /* Evaluate an expression and define global variables. This works like
      eval() above, but also binds the variables in pat to the corresponding
      values. Also, these routines throw a C++ exception of the err type if any
-     of the variable symbols to be defined is already bound to a function.
-     Otherwise the result is the evaluated expression to be matched. Returns a
-     null pointer if an exception occurred during the evaluation or if the
-     pattern failed to match. Both the result and the exception value (if any)
-     are to be freed by the caller. */
+     of the variable symbols to be defined is already bound to a different
+     kind of symbol. Otherwise the result is the evaluated expression to be
+     matched. Returns a null pointer if an exception occurred during the
+     evaluation or if the pattern failed to match. Both the result and the
+     exception value (if any) are to be freed by the caller. */
   pure_expr *defn(expr pat, expr x);
   pure_expr *defn(expr pat, expr x, pure_expr*& e);
 
   /* Bind a global variable to a given value. This binds the given variable
      symbol directly to the given value, without matching and evaluating
-     anything. It is still checked whether the variable symbol is already
-     bound to a function, in which case an err exception is thrown. */
+     anything. It is still checked that the variable symbol is not already
+     bound to a different kind of symbol, otherwise an err exception is
+     thrown. */
   void defn(int32_t tag, pure_expr *x);
   void defn(const char *varname, pure_expr *x)
   { defn(symtab.sym(varname).f, x); }
 
+  /* Constant definitions. These work like the variable definition methods
+     above, but define constant symbols which are directly substituted into
+     the right-hand sides of equations rather than being evaluated at
+     runtime. The right-hand side expression is evaluated and matched against
+     the left-hand side pattern as usual. Unlike variables, existing constant
+     symbols cannot be redefined, so they have to be cleared before you can
+     give them new values. */
+
+  pure_expr *const_defn(expr pat, expr x);
+  pure_expr *const_defn(expr pat, expr x, pure_expr*& e);
+  void const_defn(int32_t tag, pure_expr *x);
+  void const_defn(const char *varname, pure_expr *x)
+  { const_defn(symtab.sym(varname).f, x); }
+
   /* Process pending compilations of function definitions. This is also done
-     automatically when eval() or defn() is invoked. */
+     automatically when eval() or defn()/const_defn() is invoked. */
   void compile();
 
   /* Errors and warnings. These are for various types of messages from the
@@ -352,6 +367,7 @@ public:
   void compile(expr x);
   void declare(prec_t prec, fix_t fix, list<string> *ids);
   void define(rule *r);
+  void define_const(rule *r);
   void exec(expr *x);
   void clear(int32_t f = 0);
   void clearsym(int32_t f);
@@ -466,6 +482,7 @@ private:
   llvm::Value *call(string name, const mpz_t& z);
   llvm::Value *call(string name, double d);
   llvm::Value *call(string name, const char *s);
+  llvm::Value *call(string name, void *p);
   llvm::Value *call(string name, llvm::Value *x, const mpz_t& z);
   llvm::Value *call(string name, llvm::Value *x, const char *s);
   void make_bigint(const mpz_t& z, llvm::Value*& sz, llvm::Value*& ptr);
