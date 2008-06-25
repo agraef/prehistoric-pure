@@ -2745,9 +2745,7 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   // expression.
   /* NOTE: The environment is allocated dynamically, so that its child
      environments survive for the entire lifetime of any embedded closures,
-     which might still be called at a later time. XXXFIXME: This leaks memory
-     right now. How do we keep track of environments that might still be
-     needed? */
+     which might still be called at a later time. */
   Env *save_fptr = fptr;
   fptr = new Env(0, 0, x, false); fptr->refc = 1;
   Env &f = *fptr;
