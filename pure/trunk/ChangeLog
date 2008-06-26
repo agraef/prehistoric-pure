@@ -1,5 +1,9 @@
 2008-06-26  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll: Fix up list command to properly deal with the new
+	constant symbol category. -c now lists constant symbols, the
+	previous -c option (print matching automata) was renamed to -a.
+
 	* interpreter.cc et al: Implement constant definitions, as
 	discussed on the mailing list. These work like variable
 	definitions (using the new 'def' keyword in lieu of 'let'), but
