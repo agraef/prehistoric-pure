@@ -331,8 +331,9 @@ ptrtag  ::{blank}*pointer
   if (!interp.interactive) REJECT;
   uint8_t s_verbose = interpreter::g_verbose;
   uint8_t tflag = 0;
-  bool cflag = false, dflag = false, eflag = false, gflag = false;
-  bool fflag = false, vflag = false, lflag = false, sflag = false;
+  bool aflag = false, dflag = false, eflag = false;
+  bool cflag = false, fflag = false, vflag = false;
+  bool gflag = false, lflag = false, sflag = false;
   const char *s = yytext+4;
   if (*s && !isspace(*s)) REJECT;
   yylloc->step();
@@ -345,6 +346,7 @@ ptrtag  ::{blank}*pointer
     if (s[0] != '-' || !s[1] || !strchr("cdefghlstv", s[1])) break;
     while (*++s) {
       switch (*s) {
+      case 'a': aflag = true; break;
       case 'c': cflag = true; break;
       case 'd': dflag = true; break;
       case 'e': eflag = true; break;
@@ -363,13 +365,13 @@ ptrtag  ::{blank}*pointer
       case 'h':
 	cout << "list command help: list [options ...] [symbol ...]\n\
 Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
--c  Annotate printed definitions with compiled code snippets. Useful\n\
-    for debugging purposes.\n\
+-a  Disassembles pattern matching automata. Useful for debugging purposes.\n\
+-c  Print information about constant symbols.\n\
 -d  Disassembles LLVM IR, showing the generated LLVM assembler code of a\n\
-    function.\n\
+    function. Useful for debugging purposes.\n\
 -e  Annotate printed definitions with lexical environment information\n\
     (de Bruijn indices, subterm paths). Useful for debugging purposes.\n\
--f  Print information about function symbols only.\n\
+-f  Print information about function symbols.\n\
 -g  Indicates that the following symbols are actually shell glob patterns\n\
     and that all matching symbols should be listed.\n\
 -h  Print this list.\n\
@@ -379,7 +381,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -t[level] List only symbols and definitions at the given temporary level\n\
     (the current level by default) or above. Level 1 denotes all temporary\n\
     definitions, level 0 *all* definitions (the default if -t is omitted).\n\
--v  Print information about variable symbols only.\n";
+-v  Print information about variable symbols.\n";
 	goto out;
       default:
 	cerr << "list: invalid option character '" << *s << "'\n";
@@ -389,19 +391,22 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   }
   args.l.erase(args.l.begin(), arg);
   if (eflag) interpreter::g_verbose |= verbosity::envs;
-  if (cflag) interpreter::g_verbose |= verbosity::code;
+  if (aflag) interpreter::g_verbose |= verbosity::code;
   if (dflag) interpreter::g_verbose |= verbosity::dump;
-  if (!fflag && !vflag) fflag = vflag = true;
+  if (!cflag && !fflag && !vflag) cflag = fflag = vflag = true;
   if (lflag) sflag = true;
   {
-    size_t maxsize = 0, nfuns = 0, nvars = 0, nrules = 0;
+    size_t maxsize = 0, nfuns = 0, nvars = 0, ncsts = 0, nrules = 0;
     list<env_sym> l; set<int32_t> syms;
     for (env::const_iterator it = interp.globenv.begin();
 	 it != interp.globenv.end(); ++it) {
       int32_t f = it->first;
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
-      if (!((e.t == env_info::fun)?fflag:vflag)) continue;
+      if (!((e.t == env_info::fun)?fflag:
+	    (e.t == env_info::cvar)?cflag:
+	    (e.t == env_info::fvar)?vflag:0))
+	continue;
       bool matches = e.temp >= tflag;
       if (!matches && !sflag && args.l.empty() &&
 	  e.t == env_info::fun && fflag) {
@@ -456,7 +461,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       }
     }
     l.sort(env_compare);
-    if (!l.empty() && (cflag||dflag)) interp.compile();
+    if (!l.empty() && (aflag||dflag)) interp.compile();
     // we first dump the entire listing into a string and then output that
     // string through more
     ostringstream sout;
@@ -489,7 +494,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  sout << "let " << sym.s << " = " << *(pure_expr**)jt->second.val
 	       << ";\n";
       } else if (jt->second.t == env_info::cvar) {
-	nvars++;
+	ncsts++;
 	if (sflag) {
 	  sout << sym.s << string(maxsize-sym.s.size(), ' ')
 	       << "  cst";
@@ -517,7 +522,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  sout << sym.s << string(maxsize-sym.s.size(), ' ') << "  fun";
 	  if (lflag) {
 	    sout << "  " << rules << ";";
-	    if (cflag && m) sout << endl << *m;
+	    if (aflag && m) sout << endl << *m;
 	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
 	      interp.print_defs(sout, fenv->second);
 	  } else {
@@ -534,7 +539,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	    }
 	  }
 	  if (n > 0) {
-	    if (cflag && m) sout << *m << endl;
+	    if (aflag && m) sout << *m << endl;
 	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
 	      interp.print_defs(sout, fenv->second);
 	    nrules += n;
@@ -544,12 +549,22 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       }
     }
     if (sflag) {
-      if (fflag && vflag)
+      if (fflag && vflag && cflag)
+	sout << ncsts << " constants, " << nvars << " variables, "
+	     << nfuns << " functions, " << nrules << " rules\n";
+      else if (fflag && cflag)
+	sout << ncsts << " constants, " << nfuns << " functions, "
+	     << nrules << " rules\n";
+      else if (fflag && vflag)
 	sout << nvars << " variables, " << nfuns << " functions, "
 	     << nrules << " rules\n";
+      else if (cflag && vflag)
+	sout << ncsts << " constants, " << nvars << " variables\n";
+      else if (cflag)
+	sout << ncsts << " constants\n";
       else if (vflag)
 	sout << nvars << " variables\n";
-      else
+      else if (fflag)
 	sout << nfuns << " functions, " << nrules << " rules\n";
     }
     FILE *fp;
