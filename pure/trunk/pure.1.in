@@ -134,8 +134,9 @@ adds special annotations concerning local bindings (de Bruijn indices, subterm
 paths; this can be helpful to debug tricky variable binding issues);
 .TP
 .B 4 (0x4)
-adds abstract code snippets (matching automata etc.; you probably want to see
-this only when working on the guts of the interpreter).
+adds descriptions of the matching automata for the left-hand sides of
+equations (you probably want to see this only when working on the guts of the
+interpreter).
 .TP
 .B 8 (0x8)
 dumps the ``real'' output code (LLVM assembler, which is as close to the
@@ -952,11 +953,13 @@ command can be used to obtain information about defined symbols in various
 formats. This command recognizes the following options. Options may be
 combined, thus, e.g., \fBlist\fP -tvl is the same as \fBlist\fP -t -v -l.
 .TP
-.B -c
-Annotate printed definitions with compiled code (matching automata). Works
-like the
+.B -a
+Disassembles pattern matching automata. Works like the
 .B -v4
 option of the interpreter.
+.TP
+.B -c
+Print information about constant symbols.
 .TP
 .B -d
 Disassembles LLVM IR, showing the generated LLVM assembler code of a
@@ -971,7 +974,7 @@ indices, subterm paths). Works like the
 option of the interpreter.
 .TP
 .B -f
-Print information about function symbols only.
+Print information about function symbols.
 .TP
 .B -g
 Indicates that the following symbols are actually shell glob patterns and that
@@ -997,10 +1000,19 @@ OVERRIDE MODE\fP section below for information about the notion of temporary
 definition levels.
 .TP
 .B -v
-Print information about variable symbols only.
+Print information about variable symbols.
+.PP
+If none of the
+.BR -c ,
+.B -f
+and
+.B -v
+options are specified, then all kinds of symbols (constants, functions,
+variables) are printed, otherwise only the specified categories will be
+listed.
 .PP
 Note that some of the options (in particular,
-.B -c
+.B -a
 and
 .BR -d )
 may produce excessive amounts of information. By setting the
