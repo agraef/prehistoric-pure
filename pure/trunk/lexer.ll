@@ -365,6 +365,8 @@ ptrtag  ::{blank}*pointer
 Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -c  Annotate printed definitions with compiled code snippets. Useful\n\
     for debugging purposes.\n\
+-d  Disassembles LLVM IR, showing the generated LLVM assembler code of a\n\
+    function.\n\
 -e  Annotate printed definitions with lexical environment information\n\
     (de Bruijn indices, subterm paths). Useful for debugging purposes.\n\
 -f  Print information about function symbols only.\n\
