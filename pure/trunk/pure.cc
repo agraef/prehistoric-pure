@@ -89,7 +89,8 @@ command_generator(const char *text, int state)
   while (it != end) {
     int32_t f = it->second.f;
     /* Skip non-toplevel symbols. */
-    if (interp.globalvars.find(f) == interp.globalvars.end() &&
+    if (interp.globenv.find(f) == interp.globenv.end() &&
+	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
       it++;
       continue;
@@ -127,7 +128,8 @@ symbol_generator(const char *text, int state)
   while (it != end) {
     int32_t f = it->second.f;
     /* Skip non-toplevel symbols. */
-    if (interp.globalvars.find(f) == interp.globalvars.end() &&
+    if (interp.globenv.find(f) == interp.globenv.end() &&
+	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
       it++;
       continue;
