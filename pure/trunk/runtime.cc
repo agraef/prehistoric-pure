@@ -801,6 +801,63 @@ void pure_unref(pure_expr *x)
   pure_unref_internal(x);
 }
 
+extern "C"
+bool pure_let(int32_t sym, pure_expr *x)
+{
+  if (sym <= 0 || !x) return false;
+  try {
+    interpreter& interp = *interpreter::g_interp;
+    interp.defn(sym, x);
+    return true;
+  } catch (err &e) {
+    return false;
+  }
+}
+
+extern "C"
+bool pure_def(int32_t sym, pure_expr *x)
+{
+  if (sym <= 0 || !x) return false;
+  try {
+    interpreter& interp = *interpreter::g_interp;
+    interp.const_defn(sym, x);
+    return true;
+  } catch (err &e) {
+    return false;
+  }
+}
+
+extern "C"
+bool pure_clear(int32_t sym)
+{
+  if (sym > 0) {
+    interpreter& interp = *interpreter::g_interp;
+    interp.clear();
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
+uint8_t pure_save()
+{
+  interpreter& interp = *interpreter::g_interp;
+  if (interp.temp < 0xff)
+    return ++interp.temp;
+  else
+    return 0;
+}
+
+extern "C"
+uint8_t pure_restore()
+{
+  interpreter& interp = *interpreter::g_interp;
+  uint8_t level = interp.temp;
+  interp.clear();
+  if (level > 0 && interp.temp > level-1) --interp.temp;
+  return interp.temp;
+}
+
 #ifndef HOST
 #define HOST "unknown"
 #endif
@@ -937,6 +994,12 @@ void pure_switch_interp(pure_interp *interp)
 {
   assert(interp);
   interpreter::g_interp = (interpreter*)interp;
+}
+
+extern "C"
+pure_interp *pure_current_interp()
+{
+  return (pure_interp*)interpreter::g_interp;
 }
 
 /* END OF PUBLIC API. *******************************************************/
