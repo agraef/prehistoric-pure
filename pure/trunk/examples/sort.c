@@ -10,11 +10,12 @@
    called from Pure which in turn calls other Pure functions, and takes
    generic pure_expr* values as arguments and returns them as results. */
 
-/* To compile (Linux): 'gcc -shared -o sort.so sort.c -lpure'. This will
-   create a dynamic library ready to be loaded by the Pure interpreter.
-   (Replace .so with .dylib or .dll on OSX and Windows, respectively. On OSX,
-   you also have to replace -shared with -dynamiclib. On Windows you might
-   wish to add the '-Wl,--enable-auto-import' linker option.)
+/* To compile (Linux): 'gcc -shared -o sort.so sort.c -lpure' (add -fPIC on 64
+   bit systems). This will create a dynamic library ready to be loaded by the
+   Pure interpreter. (On OSX and Windows, replace .so with .dylib or .dll,
+   respectively. On OSX, you also have to replace -shared with -dynamiclib.
+   On Windows you might wish to add the '-Wl,--enable-auto-import' linker
+   option.)
 
    I suggest that you also set up your LD_LIBRARY_PATH environment variable
    (DYLD_LIBRARY_PATH on OSX) so that the dynamic loader finds sort.so without
