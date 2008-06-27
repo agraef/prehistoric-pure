@@ -926,8 +926,21 @@ void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
 	delete ids;
 	throw err("conflicting fixity declaration for symbol '"+id+"'");
       }
-    } else
-      symtab.sym(*it, prec, fix);
+    } else {
+      int32_t tag = symtab.sym(*it, prec, fix).f;
+      /* KLUDGE: Already create a globalvars entry here, so that the symbol is
+	 properly recognized by the completion routines. */
+      pure_expr *cv = pure_const(tag);
+      assert(JIT);
+      GlobalVar& v = globalvars[tag];
+      if (!v.v) {
+	v.v = new llvm::GlobalVariable
+	  (ExprPtrTy, false, llvm::GlobalVariable::InternalLinkage, 0,
+	   mkvarlabel(tag), module);
+	JIT->addGlobalMapping(v.v, &v.x);
+      }
+      if (v.x) pure_free(v.x); v.x = pure_new(cv);
+    }
   }
   delete ids;
 }

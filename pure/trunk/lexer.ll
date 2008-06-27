@@ -136,12 +136,13 @@ static const char *commands[] = {
   "run", "save", "stats", "underride", "using", 0
 };
 
+typedef map<string, symbol> symbol_map;
+
 static char *
 command_generator(const char *text, int state)
 {
   static int list_index, len;
-  static env::iterator it, end;
-  static extmap::iterator xit, xend;
+  static symbol_map::iterator it, end;
   const char *name;
   assert(interpreter::g_interp);
   interpreter& interp = *interpreter::g_interp;
@@ -149,10 +150,11 @@ command_generator(const char *text, int state)
   /* New match. */
   if (!state) {
     list_index = 0;
-    it = interp.globenv.begin();
-    end = interp.globenv.end();
-    xit = interp.externals.begin();
-    xend = interp.externals.end();
+    /* Must do this here, so that symbols are entered into the globalvars
+       table. */
+    interp.compile();
+    it = interp.symtab.tab.begin();
+    end = interp.symtab.tab.end();
     len = strlen(text);
   }
 
@@ -167,20 +169,17 @@ command_generator(const char *text, int state)
   /* Return the next name which partially matches from the
      symbol list. */
   while (it != end) {
-    assert(it->first > 0);
-    symbol& sym = interp.symtab.sym(it->first);
+    int32_t f = it->second.f;
+    /* Skip non-toplevel symbols. */
+    if (interp.globalvars.find(f) == interp.globalvars.end() &&
+	interp.externals.find(f) == interp.externals.end()) {
+      it++;
+      continue;
+    }
+    const string& s = it->first;
     it++;
-    if (strncmp(sym.s.c_str(), text, len) == 0)
-      return strdup(sym.s.c_str());
-  }
-
-  /* Also process the declared externals which don't have any rules yet. */
-  while (xit != xend) {
-    assert(xit->first > 0);
-    symbol& sym = interp.symtab.sym(xit->first);
-    xit++;
-    if (strncmp(sym.s.c_str(), text, len) == 0)
-      return strdup(sym.s.c_str());
+    if (strncmp(s.c_str(), text, len) == 0)
+      return strdup(s.c_str());
   }
 
   /* If no names matched, then return NULL. */
