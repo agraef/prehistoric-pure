@@ -591,14 +591,14 @@ tuple (x/*0:101*/:xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*
   state 12: #0 #2
   state 13: #1 #2
 } end;
-xs/*0:01*/![] = [];
-xs/*0:01*/!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] (n/*1:101*/:ns/*1:11*/) with accum ys/*0:01*/ [] = reverse ys/*0:01*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ ns/*0:1*/ = reverse ys/*0:01*/+xs/*2:01*/!ns/*0:1*/ {
+xs/*0:01*/!![] = [];
+xs/*0:01*/!!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] (n/*1:101*/:ns/*1:11*/) with accum ys/*0:01*/ [] = reverse ys/*0:01*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ ns/*0:1*/ = reverse ys/*0:01*/+xs/*2:01*/!!ns/*0:1*/ {
   rule #0: accum ys [] = reverse ys
   rule #1: accum ys (n::int:ns) = accum (xs!n:ys) ns if n>=0&&n<m
   rule #2: accum ys (n::int:ns) = accum ys ns
   rule #3: accum ys (n:ns) = accum (xs!n:ys) ns if n>=0&&n<m
   rule #4: accum ys (n:ns) = accum ys ns
-  rule #5: accum ys ns = reverse ys+xs!ns
+  rule #5: accum ys ns = reverse ys+xs!!ns
   state 0: #0 #1 #2 #3 #4 #5
 	<var> state 1
   state 1: #0 #1 #2 #3 #4 #5
