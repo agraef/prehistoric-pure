@@ -2,7 +2,9 @@
 
 	* lib/prelude.pure: Using xs!ns for slicing conflicts with more
 	general indexing of containers with arbitrary keys. Use !! for
-	slicing instead. Reported by Jiri Spitz.
+	slicing instead, as suggested by Jiri Spitz. Also make slicing
+	fail if indices aren't machine ints, and throw a bad_list_value
+	exception if computing the size of the container fails.
 
 	* runtime.cc/h: Added pure_current_interp(), variable and constant
 	definitions, management of temporary definition levels.

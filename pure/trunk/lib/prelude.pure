@@ -187,18 +187,22 @@ end;
 
 /* Slicing. xs!!ns returns the list of xs!n for all members n of the index
    list ns which are in the range 0..#xs-1. This works on any data structure
-   with zero-based indices and thus, in particular, on the list and tuple
-   structures defined above. */
+   with zero-based indices and a contiguous index range. This includes, in
+   particular, the list and tuple structures defined above. Note that this
+   definition requires that the indices be machine ints, otherwise the
+   operation will fail. Also, you'll get a 'bad_list_value' exception if we
+   can't determine the size of xs using the # operator. */
 
 xs!![]		= [];
-xs!!(n:ns)	= accum [] (n:ns) with
+xs!!(n::int:ns)	= accum [] (n:ns) with
   accum ys []		= reverse ys;
   accum ys (n::int:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
 			= accum ys ns otherwise;
-  accum ys (n:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
-			= accum ys ns otherwise;
+  accum ys (n:ns)	= reverse ys+xs!!(n:ns);
   accum ys ns		= reverse ys+xs!!ns;
-end when m::int = #xs end;
+end when
+  m::int = case #xs of m::int = m; _ = throw (bad_list_value xs) end;
+end;
 
 /* Arithmetic sequences. */
 
