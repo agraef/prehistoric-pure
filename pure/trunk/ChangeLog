@@ -1,10 +1,12 @@
-2008-06-27  Albert Graef  <Dr.Graef@t-online.de>
+2008-06-28  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/prelude.pure: Using xs!ns for slicing conflicts with more
 	general indexing of containers with arbitrary keys. Use !! for
-	slicing instead, as suggested by Jiri Spitz. Also make slicing
-	fail if indices aren't machine ints, and throw a bad_list_value
-	exception if computing the size of the container fails.
+	slicing instead. Restrict the definition to lists and tuples, and
+	simplify it by using a list comprehension. Suggested by Jiri
+	Spitz.
+
+2008-06-27  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc/h: Added pure_current_interp(), variable and constant
 	definitions, management of temporary definition levels.
