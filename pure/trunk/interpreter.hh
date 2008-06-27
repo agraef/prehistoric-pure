@@ -334,12 +334,18 @@ public:
      the left-hand side pattern as usual. Unlike variables, existing constant
      symbols cannot be redefined, so they have to be cleared before you can
      give them new values. */
-
   pure_expr *const_defn(expr pat, expr x);
   pure_expr *const_defn(expr pat, expr x, pure_expr*& e);
+
+  /* Directly bind a given constant symbol to a given value. */
   void const_defn(int32_t tag, pure_expr *x);
   void const_defn(const char *varname, pure_expr *x)
   { const_defn(symtab.sym(varname).f, x); }
+
+  /* Purge the definition of a (global constant, variable or function)
+     symbol. If the given symbol is zero, pops the most most recent temporary
+     definitions level, removing all definitions in that level. */
+  void clear(int32_t tag = 0);
 
   /* Process pending compilations of function definitions. This is also done
      automatically when eval() or defn()/const_defn() is invoked. */
@@ -369,7 +375,6 @@ public:
   void define(rule *r);
   void define_const(rule *r);
   void exec(expr *x);
-  void clear(int32_t f = 0);
   void clearsym(int32_t f);
   rulel *default_lhs(exprl &l, rulel *rl);
   void add_rules(rulel &rl, rulel *r, bool b);
