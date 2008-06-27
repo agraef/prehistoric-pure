@@ -1,3 +1,9 @@
+2008-06-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* pure.cc, interpreter.cc, lexer.ll: Fix up completion support,
+	second attempt (constructor symbols without any rules were
+	still missing).
+
 2008-06-26  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lexer.ll: Fix up list command to properly deal with the new

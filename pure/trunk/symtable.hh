@@ -32,9 +32,9 @@ public:
 
 class symtable {
   int32_t fno;
+public:
   map<string, symbol> tab;
   vector<symbol*> rtab;
-public:
   symtable();
   // add default declarations for the builtin constants and operators (to be
   // invoked *after* possibly reading the prelude)
