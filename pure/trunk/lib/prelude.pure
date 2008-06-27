@@ -59,7 +59,7 @@ infixl 7   * / div mod and ;	// multiplication, bitwise and
 prefix 7   ~ ;			// bitwise not
 infixr 8   ^ ;			// exponentiation
 prefix 8   # ;			// size operator
-infixl 9   ! ;			// indexing
+infixl 9   ! !! ;		// indexing, slicing
 infixr 9   . ;			// function composition
 
 /* Pull in the primitives (arithmetic etc.) and the standard string functions.
@@ -185,19 +185,19 @@ tuple (x:xs)	= accum x xs with
   accum	ys xs		= ys,xs;
 end;
 
-/* Slicing. xs!ns returns the list of xs!n for all members n of the index list
-   ns which are in the range 0..#xs-1. This works on any data structure with
-   zero-based indices and thus, in particular, on the list and tuple
+/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
+   list ns which are in the range 0..#xs-1. This works on any data structure
+   with zero-based indices and thus, in particular, on the list and tuple
    structures defined above. */
 
-xs![]		= [];
-xs!(n:ns)	= accum [] (n:ns) with
+xs!![]		= [];
+xs!!(n:ns)	= accum [] (n:ns) with
   accum ys []		= reverse ys;
   accum ys (n::int:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
 			= accum ys ns otherwise;
   accum ys (n:ns)	= accum (xs!n:ys) ns if n>=0 && n<m;
 			= accum ys ns otherwise;
-  accum ys ns		= reverse ys+xs!ns;
+  accum ys ns		= reverse ys+xs!!ns;
 end when m::int = #xs end;
 
 /* Arithmetic sequences. */

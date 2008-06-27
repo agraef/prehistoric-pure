@@ -1,5 +1,9 @@
 2008-06-27  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/prelude.pure: Using xs!ns for slicing conflicts with more
+	general indexing of containers with arbitrary keys. Use !! for
+	slicing instead. Reported by Jiri Spitz.
+
 	* runtime.cc/h: Added pure_current_interp(), variable and constant
 	definitions, management of temporary definition levels.
 
