@@ -1,5 +1,8 @@
 2008-06-27  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc/h: Added pure_current_interp(), variable and constant
+	definitions, management of temporary definition levels.
+
 	* pure.cc, interpreter.cc, lexer.ll: Fix up completion support,
 	second attempt (constructor symbols without any rules were
 	still missing).

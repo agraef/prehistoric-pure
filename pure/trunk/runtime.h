@@ -141,17 +141,13 @@ pure_expr *pure_tuplev(size_t size, pure_expr **elems);
    corresponding values. Parameter pointers may be NULL in which case they are
    not set.
 
-   Notes:
-
-   - pure_is_mpz takes a pointer to an uninitialized mpz_t and initializes it
-     with a copy of the Pure bigint.
-
-   - pure_is_symbol will return true not only for (constant and unbound
-     variable) symbols, but also for arbitrary closures including local and
-     anonymous functions. In the case of an anonymous closure, the returned
-     symbol will be 0. You can check whether an expression actually represents
-     a named or anonymous closure using the funp and lambdap predicates from
-     the library API (see below). */
+   NOTES: pure_is_mpz takes a pointer to an uninitialized mpz_t and
+   initializes it with a copy of the Pure bigint. pure_is_symbol will return
+   true not only for (constant and unbound variable) symbols, but also for
+   arbitrary closures including local and anonymous functions. In the case of
+   an anonymous closure, the returned symbol will be 0. You can check whether
+   an expression actually represents a named or anonymous closure using the
+   funp and lambdap predicates from the library API (see below). */
 
 bool pure_is_symbol(const pure_expr *x, int32_t *sym);
 bool pure_is_int(const pure_expr *x, int32_t *i);
@@ -221,19 +217,53 @@ void pure_freenew(pure_expr *x);
 void pure_ref(pure_expr *x);
 void pure_unref(pure_expr *x);
 
+/* Variable and constant definitions. These allow you to directly bind
+   variable and constant symbols to pure_expr* values, as the 'let' and 'def'
+   constructs do in the Pure language. The functions return true if
+   successful, false otherwise. */
+
+bool pure_let(int32_t sym, pure_expr *x);
+bool pure_def(int32_t sym, pure_expr *x);
+
+/* Purge the definition of a global (constant, variable or function) symbol. */
+
+bool pure_clear(int32_t sym);
+
+/* Manage temporary definition levels (see the Pure manual for details).
+   pure_save starts a new level, pure_restore returns to the previous level,
+   removing all definitions of the current level. In either case the new level
+   is returned. A zero return value of pure_save indicates an error condition,
+   most likely because the maximum number of levels was exceeded.
+
+   Note that the command line version of the interpreter starts at temporary
+   level 1, while the standalone interpreters created with the public API (see
+   below) start at level 0. Hence in the latter case you first need to invoke
+   pure_save before you can define temporaries. */
+
+uint8_t pure_save();
+uint8_t pure_restore();
+
 /* The following routines provide standalone C/C++ applications with fully
    initialized interpreter instances which can be used together with the
    operations listed above. This is only needed for modules which are not to
-   be loaded by the command line version of the interpreter.
+   be loaded by the command line version of the interpreter. */
 
-   The argc, argv parameters passed to pure_create_interp specify the command
-   line arguments of the interpreter instance. This includes any scripts that
-   are to be loaded on startup as well as any other options understood by the
-   command line version of the interpreter (options like -i and -q won't have
-   any effect, though, and the interpreter will always be in non-interactive
-   mode). The argv vector must be NULL-terminated, and argv[0] should be set
-   to the name of the hosting application (usually the main program of the
-   application).
+/* The pure_interp type serves as a C proxy for Pure interpreters. Pointers
+   to these are used as C handles for the real Pure interpreter objects (which
+   are actually implemented by a C++ class). If your application needs more
+   elaborate control over interpreters as provided by this API, pure_interp*
+   can be cast to interpreter* (cf. interpreter.hh in the Pure sources). */
+
+typedef struct _pure_interp pure_interp;
+
+/* Manage interpreter instances. The argc, argv parameters passed to
+   pure_create_interp specify the command line arguments of the interpreter
+   instance. This includes any scripts that are to be loaded on startup as
+   well as any other options understood by the command line version of the
+   interpreter. (Options like -i and -q won't have any effect, though, and the
+   interpreter will always be in non-interactive mode.) The argv vector must
+   be NULL-terminated, and argv[0] should be set to the name of the hosting
+   application (usually the main program of the application).
 
    An application may use multiple interpreter instances, but only a single
    instance can be active at any one time. By default, the first created
@@ -242,7 +272,10 @@ void pure_unref(pure_expr *x);
    destroys an interpreter instance; if the destroyed instance is currently
    active, the active instance will be undefined afterwards, so you'll have to
    either create or switch to another instance before calling any other
-   operations.
+   operations. The pure_current_interp returns the currently active
+   instance. If the application is hosted by the command line interpreter,
+   this will return a handle to the command line interpreter if it is invoked
+   before switching to any other interpreter instance.
 
    Note that when using different interpreter instances in concert, it is
    *not* possible to pass pure_expr* values created with one interpreter
@@ -250,11 +283,10 @@ void pure_unref(pure_expr *x);
    the library API (see below) to first unparse the expression in the source
    interpreter and then reparse it in the target interpreter. */
 
-typedef struct _pure_interp pure_interp; // Pure interpreter handles (opaque).
-
 pure_interp *pure_create_interp(int argc, char *argv[]);
 void pure_delete_interp(pure_interp *interp);
 void pure_switch_interp(pure_interp *interp);
+pure_interp *pure_current_interp();
 
 /* END OF PUBLIC API. *******************************************************/
 
