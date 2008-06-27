@@ -592,46 +592,53 @@ tuple (x/*0:101*/:xs/*0:11*/) = accum/*0*/ x/*0:101*/ xs/*0:11*/ with accum ys/*
   state 13: #1 #2
 } end;
 xs/*0:01*/!![] = [];
-xs/*0:01*/!!(n/*0:101*/:ns/*0:11*/) = accum/*0*/ [] (n/*1:101*/:ns/*1:11*/) with accum ys/*0:01*/ [] = reverse ys/*0:01*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ ns/*0:1*/ = reverse ys/*0:01*/+xs/*2:01*/!!ns/*0:1*/ {
+xs/*0:01*/!!(n/*0:101*/::int:ns/*0:11*/) = accum/*0*/ [] (n/*1:101*/:ns/*1:11*/) with accum ys/*0:01*/ [] = reverse ys/*0:01*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ (xs/*2:01*/!n/*0:101*/:ys/*0:01*/) ns/*0:11*/ if n/*0:101*/>=0&&n/*0:101*/<m/*1:*/; accum ys/*0:01*/ (n/*0:101*/::int:ns/*0:11*/) = accum/*1*/ ys/*0:01*/ ns/*0:11*/; accum ys/*0:01*/ (n/*0:101*/:ns/*0:11*/) = reverse ys/*0:01*/+xs/*2:01*/!!(n/*0:101*/:ns/*0:11*/); accum ys/*0:01*/ ns/*0:1*/ = reverse ys/*0:01*/+xs/*2:01*/!!ns/*0:1*/ {
   rule #0: accum ys [] = reverse ys
   rule #1: accum ys (n::int:ns) = accum (xs!n:ys) ns if n>=0&&n<m
   rule #2: accum ys (n::int:ns) = accum ys ns
-  rule #3: accum ys (n:ns) = accum (xs!n:ys) ns if n>=0&&n<m
-  rule #4: accum ys (n:ns) = accum ys ns
-  rule #5: accum ys ns = reverse ys+xs!!ns
-  state 0: #0 #1 #2 #3 #4 #5
+  rule #3: accum ys (n:ns) = reverse ys+xs!!(n:ns)
+  rule #4: accum ys ns = reverse ys+xs!!ns
+  state 0: #0 #1 #2 #3 #4
 	<var> state 1
-  state 1: #0 #1 #2 #3 #4 #5
+  state 1: #0 #1 #2 #3 #4
 	<var> state 2
 	[] state 3
 	<app> state 4
-  state 2: #5
-  state 3: #0 #5
-  state 4: #1 #2 #3 #4 #5
+  state 2: #4
+  state 3: #0 #4
+  state 4: #1 #2 #3 #4
 	<var> state 5
 	<app> state 7
-  state 5: #5
+  state 5: #4
 	<var> state 6
-  state 6: #5
-  state 7: #1 #2 #3 #4 #5
+  state 6: #4
+  state 7: #1 #2 #3 #4
 	<var> state 8
 	: state 11
-  state 8: #5
+  state 8: #4
 	<var> state 9
-  state 9: #5
+  state 9: #4
 	<var> state 10
-  state 10: #5
-  state 11: #1 #2 #3 #4 #5
+  state 10: #4
+  state 11: #1 #2 #3 #4
 	<var> state 12
 	<var>::int state 14
-  state 12: #3 #4 #5
+  state 12: #3 #4
 	<var> state 13
-  state 13: #3 #4 #5
-  state 14: #1 #2 #3 #4 #5
+  state 13: #3 #4
+  state 14: #1 #2 #3 #4
 	<var> state 15
-  state 15: #1 #2 #3 #4 #5
-} end when m/*0:*/::int = #xs/*0:01*/ {
-  rule #0: m::int = #xs
+  state 15: #1 #2 #3 #4
+} end when m/*0:*/::int = case #xs/*0:01*/ of m/*0:*/::int = m/*0:*/; _/*0:*/ = throw (bad_list_value xs/*1:01*/) {
+  rule #0: m::int = m
+  rule #1: _ = throw (bad_list_value xs)
+  state 0: #0 #1
+	<var> state 1
+	<var>::int state 2
+  state 1: #1
+  state 2: #0 #1
+} end {
+  rule #0: m::int = case #xs of m::int = m; _ = throw (bad_list_value xs) end
   state 0: #0
 	<var>::int state 1
   state 1: #0
