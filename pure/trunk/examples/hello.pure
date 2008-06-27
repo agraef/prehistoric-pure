@@ -47,6 +47,12 @@ let x = square 5; x;
 // Pattern matching definition with 'let'.
 let x, y = square x, square (x+2); x; y;
 
+// We also have constant definitions using 'def' in lieu of 'let'. These
+// cannot be redefined and are substituted directly into other definitions.
+// Try something like 'foo x = pi*x;' and then 'list foo' to see the
+// difference.
+def pi = 3.14159265358979;
+
 /* Variations on a theme: The factorial. This illustrates various different
    ways to define a simple recursive function. */
 
