@@ -1,0 +1,1131 @@
+/* Pure's data container types (cdt) based on AVL trees. */
+
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure programming language and system.
+
+   Pure is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   The used algorithm of AVL trees has its origin in the SWI-Prolog
+   implementation of association lists. The original file was created by
+   R. A. O'Keefe and updated for the SWI-Prolog by Jan Wielemaker. For the
+   original file see http://www.swi-prolog.org.
+
+   The port from SWI-Prolog and the deletion stuff (rmfirst, rmlast, delete)
+   missing in the original file was provided by Jiri Spitz
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*****************************************************************************/
+/*                                                                           */
+/*                     DIFFERENCES VERSUS Q LANGUAGE                         */
+/*                                                                           */
+/******************************************************************************
+
+1. The "pure man's tuples" are not suitable for holding key - value pairs.
+   Therefore, the key - value pairs are denoted as lists [Key, Value] in Pure.
+
+2. Views are not currently available in Pure and so the data structures are
+   displayed as they really are. To view the data as lists you should call
+   the function "members".
+
+******************************************************************************/
+
+
+/*** some declarations ***/
+
+using primitives;
+
+// tree constructors
+nullary nil bin;
+
+// symbolic constants for better readibility
+nullary islt iseq isgt;
+nullary left right;
+nullary false true;
+
+// symbolic constants identifying the data structures
+nullary tset tbag tdict thdict;
+nullary cdt;
+
+
+/*** some stuff from Q's stdlib which is missing in Pure now ***/
+
+fst (X:_) = X;
+fst (X,_) = X;
+
+snd (_:X:_) = X;
+snd (_,X,_) = X;
+
+
+/******************************************************************************/
+/*                                                                            */
+/*                               PUBLIC FUNCTIONS                             */
+/*                                                                            */
+/******************************************************************************/
+
+/*** The following functions represent the user's interface to the module ***/
+
+
+// data structure type checks
+
+isbag (cdt tbag _)	= 1;
+isbag _			= 0;
+
+isset (cdt tset _)	= 1;
+isset _			= 0;
+
+isdict (cdt tdict _)	= 1;
+isdict _		= 0;
+
+ishdict (cdt thdict _)	= 1;
+ishdict _		= 0;
+
+
+// create an empty data structure
+
+emptyset	= cdt tset   nil;
+emptybag	= cdt tbag   nil;
+emptydict	= cdt tdict  nil;
+emptyhdict	= cdt thdict nil;
+
+
+// create data structure from a list
+
+set   Xs	= foldl insert emptyset   Xs  if listp Xs;
+bag   Xs	= foldl insert emptybag   Xs  if listp Xs;
+dict  XYs	= foldl insert emptydict  XYs if listp XYs;
+hdict XYs	= foldl insert emptyhdict XYs if listp XYs;
+
+
+// insert a new member into the data structure
+
+insert (cdt tset M) Y::int |
+insert (cdt tset M) Y::string |
+insert (cdt tset M) Y
+	= cdt tset (fst (insert_set_a M Y));
+
+insert (cdt tbag M) Y::int |
+insert (cdt tbag M) Y::string |
+insert (cdt tbag M) Y
+	= cdt tbag (fst (insert_bag_a M Y));
+
+insert (cdt tdict D) [X::int,Y] |
+insert (cdt tdict D) [X::string,Y] |
+insert (cdt tdict D) [X, Y]
+	= cdt tdict (fst (insert_dict_a D X Y));
+
+insert (cdt thdict D) [X,Y]
+	= cdt thdict (fst (insert_hdict_a D (hash X) X Y));
+
+
+// delete a meber by key from the data structure 
+
+delete (cdt tset M) Y::int |
+delete (cdt tset M) Y::string |
+delete (cdt tset M) Y
+	= cdt tset (fst (delete_set_bag_a M Y));
+
+delete (cdt tbag M) Y::int |
+delete (cdt tbag M) Y::string |
+delete (cdt tbag M) Y
+	= cdt tbag (fst (delete_set_bag_a M Y));
+
+delete (cdt tdict D) X::int |
+delete (cdt tdict D) X::string |
+delete (cdt tdict D) X
+	= cdt tdict (fst (delete_dict_a D X));
+
+delete (cdt thdict D) X
+	= cdt thdict (fst (delete_hdict_a D (hash X) X));
+
+
+// create dict or hdict from a list of keys and a constant value
+
+mkdict  Y Xs	= dict  (zip Xs (repeat (#Xs) Y)) if listp Xs;
+mkhdict Y Xs	= hdict (zip Xs (repeat (#Xs) Y)) if listp Xs;
+
+
+// check for the empty data structure
+
+null (cdt tset nil)	= 1;
+null (cdt tset _)	= 0;
+
+null (cdt tbag nil)	= 1;
+null (cdt tbag _)	= 0;
+
+null (cdt tdict nil)	= 1;
+null (cdt tdict _)	= 0;
+
+null (cdt thdict nil)	= 1;
+null (cdt thdict _)	= 0;
+
+
+// get a number of members in data structure
+
+#(cdt tset   M)		= size_set_bag M;
+#(cdt tbag   M)		= size_set_bag M;
+#(cdt tdict  D)		= size_dict D;
+#(cdt thdict D)		= size_hdict D;
+
+
+// check whether a key exists in data structure
+
+member (cdt tset M) K::int |
+member (cdt tset M) K::string |
+member (cdt tset M) K
+	= member_set_bag M K;
+
+member (cdt tbag M) K::int |
+member (cdt tbag M) K::string |
+member (cdt tbag M) K
+	= member_set_bag M K;
+
+member (cdt tdict D) K::int |
+member (cdt tdict D) K::string |
+member (cdt tdict D) K
+	= member_dict D K;
+
+member (cdt thdict D) K::int |
+member (cdt thdict D) K::string |
+member (cdt thdict D) K
+	= member_hdict D K;
+
+
+// get all members of data structure as a list
+
+members (cdt tset   M)	= members_set_bag M;
+members (cdt tbag   M)	= members_set_bag M;
+members (cdt tdict  D)	= members_dict    D;
+members (cdt thdict D)	= members_hdict   D;
+
+
+// get the first member of an ordered data structure
+
+first (cdt tset  M)	= first_set_bag M;
+first (cdt tbag  M)	= first_set_bag M;
+first (cdt tdict D)	= first_dict    D;
+
+
+// get the last member of an ordered data structure
+
+last (cdt tset  M)	= last_set_bag M;
+last (cdt tbag  M)	= last_set_bag M;
+last (cdt tdict D)	= last_dict    D;
+
+
+// remove the first member from an ordered data structure
+
+rmfirst (cdt tset  M)	= cdt tset  (fst (rmfirst_set_bag_a M));
+rmfirst (cdt tbag  M)	= cdt tbag  (fst (rmfirst_set_bag_a M));
+rmfirst (cdt tdict D)	= cdt tdict (fst (rmfirst_dict_a    D));
+
+
+// remove the last member from an ordered data structure
+
+rmlast (cdt tset  M)	= cdt tset  (fst (rmlast_set_bag_a M));
+rmlast (cdt tbag  M)	= cdt tbag  (fst (rmlast_set_bag_a M));
+rmlast (cdt tdict D)	= cdt tdict (fst (rmlast_dict_a    D));
+
+
+// get a list of all keys from dict or hdict
+
+keys (cdt tdict  D)	= keys_dict  D;
+keys (cdt thdict D)	= keys_hdict D;
+
+
+// get a list of all values from dict or hdict
+
+vals (cdt tdict  D)	= vals_dict  D;
+vals (cdt thdict D)	= vals_hdict D;
+
+
+// get a value by key from dict or hdict
+
+(cdt tdict D)!K::int |
+(cdt tdict D)!K::string |
+(cdt tdict D)!K
+	= key2val_dict D K;
+
+(cdt thdict D)!K		= lookup_hdict D (hash K) K;
+
+
+// curried version of insert for dict and hdict
+
+update (cdt tdict D) X::int Y |
+update (cdt tdict D) X::string Y |
+update (cdt tdict D) X Y
+	= (cdt tdict (fst (insert_dict D X Y)));
+
+update (cdt thdict D) X::int Y |
+update (cdt thdict D) X::string Y |
+update (cdt thdict D) X Y
+	= (cdt thdict (fst (insert_hdict D (hash X) X Y)));
+
+
+// equality checks for data structures
+
+(cdt tset   M1) == (cdt tset   M2)	= eq_set_bag_dict M1 M2;
+(cdt tbag   M1) == (cdt tbag   M2)	= eq_set_bag_dict M1 M2;
+(cdt tdict  D1) == (cdt tdict  D2)	= eq_set_bag_dict D1 D2;
+(cdt thdict D1) == (cdt thdict D2)	= eq_hdict        D1 D2;
+
+
+// inequality checks for data structures
+
+(cdt tset   M1) != (cdt tset   M2)	= neq_set_bag_dict M1 M2;
+(cdt tbag   M1) != (cdt tbag   M2)	= neq_set_bag_dict M1 M2;
+(cdt tdict  D1) != (cdt tdict  D2)	= neq_set_bag_dict D1 D2;
+(cdt thdict D1) != (cdt thdict D2)	= neq_hdict        D1 D2;
+
+
+// set and bag relations
+
+(cdt tset M1) <= (cdt tset M2)	= leq_set M1 M2;
+(cdt tbag M1) <= (cdt tbag M2)	= leq_bag M1 M2;
+
+(cdt tset M1) >= (cdt tset M2)	= geq_set M1 M2;
+(cdt tbag M1) >= (cdt tbag M2)	= geq_bag M1 M2;
+
+(cdt tset M1) < (cdt tset M2)	= lt_set M1 M2;
+(cdt tbag M1) < (cdt tbag M2)	= lt_bag M1 M2;
+
+(cdt tset M1) > (cdt tset M2)	= gt_set M1 M2;
+(cdt tbag M1) > (cdt tbag M2)	= gt_bag M1 M2;
+
+
+// set and bag union
+
+(cdt tset M1) + (cdt tset M2)	= union_set M1 M2;
+(cdt tbag M1) + (cdt tbag M2)	= union_bag M1 M2;
+
+
+// set and bag difference
+
+(cdt tset M1) - (cdt tset M2)	= diff_set_bag M1 M2;
+(cdt tbag M1) - (cdt tbag M2)	= diff_set_bag M1 M2;
+
+
+// set and bag intersection
+
+(cdt tset M1) * (cdt tset M2) 	= intersect_set_bag M1 M2;
+(cdt tbag M1) * (cdt tbag M2)	= intersect_set_bag M1 M2;
+
+
+/******************************************************************************/
+/*                                                                            */
+/*                              PRIVATE FUNCTIONS                             */
+/*                                                                            */
+/******************************************************************************/
+
+/*** The following functions shouldn't be directly used by users ***/
+
+
+/*****
+Tree for set and bag is either:
+-  nil  (empty tree) or
+-  bin Key Balance Left Right  (Left, Right: trees)
+
+Tree for dict and hdict is either:
+-  nil  (empty tree) or
+-  bin Key Value Balance Left Right  (Left, Right: trees)
+
+Balance: islt, iseq, or isgt denoting |L|-|R| = 1, 0, or -1, respectively
+*****/
+
+/*** set stuff ***/
+
+insert_set_a nil Key::int |
+insert_set_a nil Key::string |
+insert_set_a nil Key
+	= [(bin Key iseq nil nil), true];
+
+insert_set_a (bin K::int B L R) Key::int |
+insert_set_a (bin K::string B L R) Key::string |
+insert_set_a (bin K B L R) Key
+	= [(bin Key B L R), false] if Key == K;
+
+insert_set_a (bin K::int B L R) Key::int |
+insert_set_a (bin K::string B L R) Key::string |
+insert_set_a (bin K B L R) Key
+	= adjusti_set_bag LeftHasChanged (bin K B NewL R) left
+		when [NewL, LeftHasChanged] = insert_set_a L Key end if Key < K;
+
+insert_set_a (bin K::int B L R) Key::int |
+insert_set_a (bin K::string B L R) Key::string |
+insert_set_a (bin K B L R) Key
+	= adjusti_set_bag RightHasChanged (bin K B L NewR) right
+		when [NewR, RightHasChanged] = insert_set_a R Key end if Key > K;
+
+
+/*** bag stuff ***/
+
+insert_bag_a nil Key::int |
+insert_bag_a nil Key::string |
+insert_bag_a nil Key
+	= [(bin Key iseq nil nil), true];
+
+insert_bag_a (bin K::int B L R) Key::int |
+insert_bag_a (bin K::string B L R) Key::string |
+insert_bag_a (bin K B L R) Key
+	= adjusti_set_bag LeftHasChanged (bin K B NewL R) left
+		when [NewL, LeftHasChanged] = insert_bag_a L Key end if Key < K;
+
+insert_bag_a (bin K::int B L R) Key::int |
+insert_bag_a (bin K::string B L R) Key::string |
+insert_bag_a (bin K B L R) Key
+	= adjusti_set_bag RightHasChanged (bin K B L NewR) right
+		when [NewR, RightHasChanged] = insert_bag_a R Key end if Key >= K;
+
+
+/*** set and bag stuff ***/
+
+rmfirst_set_bag_a nil
+	= [nil, false];
+
+rmfirst_set_bag_a (bin _ _ nil R)
+	= [R, true];
+
+rmfirst_set_bag_a (bin K B L   R)
+	= adjustd_set_bag LeftHasChanged (bin K B NewL R) left
+		when [NewL, LeftHasChanged] = rmfirst_set_bag_a L end;
+
+rmlast_set_bag_a nil
+	= [nil false];
+
+rmlast_set_bag_a (bin _ _ L nil)
+	= [L, true];
+
+rmlast_set_bag_a (bin K B L   R)
+	= adjustd_set_bag RightHasChanged (bin K B L NewR) right
+		when [NewR, RightHasChanged] = rmlast_set_bag_a R end;
+
+
+delete_set_bag_a nil _
+	= [nil, false];
+
+
+delete_set_bag_a (bin K::int _ nil R  ) Key::int |
+delete_set_bag_a (bin K::string _ nil R  ) Key::string |
+delete_set_bag_a (bin K _ nil R  ) Key
+	= [R, true] if Key == K;
+
+delete_set_bag_a (bin K::int _ L   nil) Key::int |
+delete_set_bag_a (bin K::string _ L   nil) Key::string |
+delete_set_bag_a (bin K _ L   nil) Key
+	= [L, true] if Key == K;
+
+delete_set_bag_a (bin K::int B (bin KL::int BL RL LL) R) Key::int |
+delete_set_bag_a (bin K::string B (bin KL::string BL RL LL) R) Key::string |
+delete_set_bag_a (bin K B (bin KL BL RL LL) R) Key
+	= adjustd_set_bag LeftHasChanged (bin LK B NewL R) left
+		when
+			LK = last_set_bag (bin KL BL RL LL);
+			[NewL, LeftHasChanged]
+				= rmlast_set_bag_a (bin KL BL RL LL)
+		end
+		if Key == K;
+
+delete_set_bag_a (bin K::int B L R) Key::int |
+delete_set_bag_a (bin K::string B L R) Key::string |
+delete_set_bag_a (bin K B L R) Key
+	= adjustd_set_bag LeftHasChanged (bin K B NewL R) left
+		when
+			[NewL, LeftHasChanged] = delete_set_bag_a L Key
+		end
+		if Key < K;
+
+
+delete_set_bag_a (bin K::int B L R) Key::int |
+delete_set_bag_a (bin K::string B L R) Key::string |
+delete_set_bag_a (bin K B L R) Key
+		= adjustd_set_bag RightHasChanged (bin K B L NewR) right
+		    when
+		      [NewR, RightHasChanged] = delete_set_bag_a R Key
+                    end
+                  if Key > K;
+
+
+// The insertions and deletions are dealt with separately.
+
+// Insertions
+
+adjusti_set_bag false OldTree _
+	= [OldTree, false];
+
+adjusti_set_bag true (bin Key::int B0 L R) LoR |
+adjusti_set_bag true (bin Key::string B0 L R) LoR |
+adjusti_set_bag true (bin Key B0 L R) LoR
+	= [rebali_set_bag ToBeRebalanced (bin Key B0 L R) B1, WhatHasChanged]
+		when
+			[B1, WhatHasChanged, ToBeRebalanced] = tablei B0 LoR
+		end;
+
+rebali_set_bag false (bin K::int _ L R) B |
+rebali_set_bag false (bin K::string _ L R) B |
+rebali_set_bag false (bin K _ L R) B
+	= bin K B L R;
+
+
+rebali_set_bag true  OldTree _
+	= fst (avl_geq_set_bag OldTree);
+
+
+// Deletions
+
+adjustd_set_bag false OldTree _
+	= [OldTree, false];
+
+adjustd_set_bag true (bin Key::int B0 L R) LoR |
+adjustd_set_bag true (bin Key::string B0 L R) LoR |
+adjustd_set_bag true (bin Key B0 L R) LoR
+	= rebald_set_bag ToBeRebalanced (bin Key B0 L R) B1 WhatHasChanged
+		when
+			[B1, WhatHasChanged, ToBeRebalanced] = tabled B0 LoR
+		end;
+
+
+/*
+   Note that rebali and rebald are not symmetrical. With insertions it is
+   sufficient to know the original balance and insertion side in order to
+   decide whether the whole tree increases. With deletions it is sometimes not
+   sufficient and we need to know which kind of tree rotation took place.
+*/
+rebald_set_bag false (bin K::int _ L R) B WhatHasChanged |
+rebald_set_bag false (bin K::string _ L R) B WhatHasChanged |
+rebald_set_bag false (bin K _ L R) B WhatHasChanged
+	= [bin K B L R, WhatHasChanged];
+
+
+rebald_set_bag true  OldTree _ _
+	= avl_geq_set_bag OldTree;
+
+// Single and double tree rotations - these are common for insert and delete
+/*
+  The patterns isgt-isgt, isgt-islt, islt-islt and islt-isgt on the LHS always
+  change the tree height and these are the only patterns which can happen
+  after an insertion. That's the reason why we can use tablei only to decide
+  the needed changes.
+  The patterns isgt-iseq and islt-iseq do not change the tree height. After a
+  deletion any pattern can occur and so we return true or false as a flag of
+  a height change.
+*/
+
+avl_geq_set_bag (bin A::int isgt Alpha (bin B::int isgt Beta Gamma)) |
+avl_geq_set_bag (bin A::string isgt Alpha (bin B::string isgt Beta Gamma)) |
+avl_geq_set_bag (bin A isgt Alpha (bin B isgt Beta Gamma))
+	= [bin B iseq (bin A iseq Alpha Beta) Gamma, true];
+
+avl_geq_set_bag (bin A::int isgt Alpha (bin B::int iseq Beta Gamma)) |
+avl_geq_set_bag (bin A::string isgt Alpha (bin B::string iseq Beta Gamma)) |
+avl_geq_set_bag (bin A isgt Alpha (bin B iseq Beta Gamma))
+	= [bin B islt (bin A isgt Alpha Beta) Gamma, false];
+		// the tree doesn't decrease with this pattern
+
+avl_geq_set_bag (bin A::int isgt Alpha
+		 (bin B::int islt (bin X::int B1 Beta Gamma) Delta)) |
+avl_geq_set_bag (bin A::string isgt Alpha
+		 (bin B::string islt (bin X::string B1 Beta Gamma) Delta)) |
+avl_geq_set_bag (bin A isgt Alpha (bin B islt (bin X B1 Beta Gamma) Delta))
+	= [bin X iseq (bin A B2 Alpha Beta)
+	   (bin B B3 Gamma Delta), true]
+		when
+			[B2, B3] = table2 B1
+		end;
+
+avl_geq_set_bag (bin B::int islt (bin A::int islt Alpha Beta) Gamma) |
+avl_geq_set_bag (bin B::string islt (bin A::string islt Alpha Beta) Gamma) |
+avl_geq_set_bag (bin B islt (bin A islt Alpha Beta) Gamma)
+	= [bin A iseq Alpha (bin B iseq Beta  Gamma), true];
+
+avl_geq_set_bag (bin B::int islt (bin A::int iseq Alpha Beta) Gamma) |
+avl_geq_set_bag (bin B::string islt (bin A::string iseq Alpha Beta) Gamma) |
+avl_geq_set_bag (bin B islt (bin A iseq Alpha Beta) Gamma)
+	= [bin A isgt Alpha (bin B islt Beta  Gamma), false];
+		// the tree doesn't decrease with this pattern
+
+
+avl_geq_set_bag (bin B::int islt
+		 (bin A::int isgt Alpha (bin X::int B1 Beta Gamma)) Delta) |
+avl_geq_set_bag (bin B::string islt
+		 (bin A::string isgt Alpha (bin X::string B1 Beta Gamma)) Delta) |
+avl_geq_set_bag (bin B islt (bin A isgt Alpha (bin X B1 Beta Gamma)) Delta)
+	= [bin X iseq (bin A B2 Alpha Beta)
+	   (bin B B3 Gamma Delta), true]
+		when
+			[B2, B3] = table2 B1
+		end;
+
+
+/*** dict stuff ***/
+
+insert_dict_a nil Key::int Val |
+insert_dict_a nil Key::string Val |
+insert_dict_a nil Key Val
+	= [(bin Key Val iseq nil nil), true];
+
+insert_dict_a (bin K::int _ B L R) Key::int Val |
+insert_dict_a (bin K::string _ B L R) Key::string Val |
+insert_dict_a (bin K _ B L R) Key Val
+	= [(bin Key Val B L R), false] if Key == K;
+
+insert_dict_a (bin K::int V B L R) Key::int Val |
+insert_dict_a (bin K::string V B L R) Key::string Val |
+insert_dict_a (bin K V B L R) Key Val
+	= adjusti_dict_hdict LeftHasChanged (bin K V B NewL R) left
+		when
+			[NewL, LeftHasChanged] = insert_dict_a L Key Val
+		end
+		if Key < K;
+
+insert_dict_a (bin K::int V B L R) Key::int Val |
+insert_dict_a (bin K::string V B L R) Key::string Val |
+insert_dict_a (bin K V B L R) Key Val
+	= adjusti_dict_hdict RightHasChanged (bin K V B L NewR) right
+		when
+			[NewR, RightHasChanged] = insert_dict_a R Key Val
+		end
+		if Key > K;
+
+rmfirst_dict_a nil
+	= [nil, false];
+
+rmfirst_dict_a (bin _ _ _ nil R)
+	= [R, true];
+
+rmfirst_dict_a (bin K V B L   R)
+	= adjustd_dict_hdict LeftHasChanged (bin K V B NewL R) left
+		when
+			[NewL, LeftHasChanged] = rmfirst_dict_a L
+		end;
+
+
+rmlast_dict_a nil
+	= [nil false];
+
+rmlast_dict_a (bin _ _ _ L nil)
+	= [L, true];
+
+rmlast_dict_a (bin K V B L   R)
+	= adjustd_dict_hdict RightHasChanged (bin K V B L NewR) right
+		when
+			[NewR, RightHasChanged] = rmlast_dict_a R
+		end;
+
+delete_dict_a nil _
+	= [nil, false];
+
+delete_dict_a (bin K::int _ _ nil R  ) Key::int |
+delete_dict_a (bin K::string _ _ nil R  ) Key::string |
+delete_dict_a (bin K _ _ nil R  ) Key
+	= [R, true] if Key == K;
+
+delete_dict_a (bin K::int _ _ L   nil) Key::int |
+delete_dict_a (bin K::string _ _ L   nil) Key::string |
+delete_dict_a (bin K _ _ L   nil) Key
+	= [L, true] if Key == K;
+
+
+delete_dict_a (bin K::int _ B (bin KL::int VL BL RL LL) R  ) Key::int |
+delete_dict_a (bin K::string _ B (bin KL::string VL BL RL LL) R  ) Key::string |
+delete_dict_a (bin K _ B (bin KL VL BL RL LL) R  ) Key
+	= adjustd_dict_hdict LeftHasChanged (bin LastK LastV B NewL R) left
+		when
+			[LastK, LastV]
+				= last_dict (bin KL VL BL RL LL);
+			[NewL, LeftHasChanged]
+				= rmlast_dict_a (bin KL VL BL RL LL)
+		end
+ 		if Key == K;
+
+delete_dict_a (bin K::int V B L R) Key::int |
+delete_dict_a (bin K::string V B L R) Key::string |
+delete_dict_a (bin K V B L R) Key
+	= adjustd_dict_hdict LeftHasChanged (bin K V B NewL R) left
+		when
+			[NewL, LeftHasChanged] = delete_dict_a L Key
+		end
+ 		if Key < K;
+
+delete_dict_a (bin K::int V B L R) Key::int |
+delete_dict_a (bin K::string V B L R) Key::string |
+delete_dict_a (bin K V B L R) Key
+	= adjustd_dict_hdict RightHasChanged (bin K V B L NewR) right
+		when
+			[NewR, RightHasChanged] = delete_dict_a R Key
+		end
+		if Key > K;
+
+
+/*** hdict stuff ***/
+
+lookup_hdict nil _ _
+	= throw out_of_bounds;
+lookup_hdict (bin K::int XYs _ D1 D2) K1::int X1
+	= lookup_hdict D1 K1 X1 if K > K1;
+	= lookup_hdict D2 K1 X1 if K < K1;
+	= lookup2 XYs X1
+		with
+			lookup2 []	    _	= throw out_of_bounds;
+			lookup2 ([XA,Y]:  _) XB	= Y if XA === XB;
+			lookup2 (    _:XYs) X	= lookup2 XYs X
+		end;
+
+
+memberk_hdict nil _ _
+	= 0;
+memberk_hdict (bin K::int XYs _ D1 D2) K1::int X1
+	= memberk_hdict D1 K1 X1 if K > K1;
+	= memberk_hdict D2 K1 X1 if K < K1;
+	= memberk2 XYs X1
+		with
+			memberk2 [] _	 		= 0;
+			memberk2 ([MXA,MY]  :_) MXB	= 1 if MXA === MXB;
+			memberk2 (    _:MXYs) MX	= memberk2 MXYs MX
+		end;
+
+insert_hdict_a nil K::int X Y
+	= [(bin K [[X, Y]] iseq nil nil), true];
+
+insert_hdict_a (bin K::int V B L R) Key::int X Y
+	= [(bin K (inserta2 V X Y) B L R), false]
+		with
+			inserta2 []	     IX  IY	= [IX, IY]:[];
+			inserta2 ([IXA,IY]:IXYs) IXB  IY1
+				= ([IXA,IY1]:IXYs) if IXA === IXB;
+			inserta2 ([IX,IY]:IXYs) IX1 IY1
+				= ([IX,IY]:(inserta2 IXYs IX1 IY1));
+		end
+		if K == Key;
+
+insert_hdict_a (bin K::int V B L R) Key::int X Y
+	= adjusti_dict_hdict LeftHasChanged (bin K V B NewL R) left
+		when
+			[NewL, LeftHasChanged] = insert_hdict_a L Key X Y
+		end
+		if Key < K;
+
+insert_hdict_a (bin K::int V B L R) Key::int X Y
+	= adjusti_dict_hdict RightHasChanged (bin K V B L NewR) right
+		when
+			[NewR, RightHasChanged] = insert_hdict_a R Key X Y
+		end
+		if Key > K;
+
+
+delete_hdict_a nil _ _
+	= [nil, false];
+
+delete_hdict_a (bin K::int XYs B nil R  ) Key::int X
+	= (if (NewXYs == [])
+	  then [R, true]
+	  else [bin K NewXYs B nil R, false])
+		when
+			NewXYs = delete_hdict_a2 XYs X
+		end
+	if K == Key;
+  
+delete_hdict_a (bin K::int XYs B L   nil) Key::int X
+	= (if (NewXYs == [])
+	  then [L, true]
+	  else [bin K NewXYs B L nil, false])
+		when
+			NewXYs = delete_hdict_a2 XYs X
+		end
+	if K == Key;
+
+delete_hdict_a (bin K::int XYs B (bin KL VL BL RL LL) R) Key::int X
+	= adjustd_dict_hdict LeftHasChanged (bin LastK LastV B NewL R) left
+		when
+			[LastK, LastV]	= last_dict (bin KL VL BL RL LL);
+			[NewL, LeftHasChanged]	= rmlast_dict_a (bin KL VL BL RL LL)
+		end
+	if (K == Key) && ((delete_hdict_a2 XYs X) == []);
+
+delete_hdict_a (bin K::int XYs B L R) Key::int X
+	= [bin Key (delete_hdict_a2 XYs X) B L R, false]
+	if K == Key;
+
+delete_hdict_a (bin K::int V B L R) Key::int X
+	= adjustd_dict_hdict LeftHasChanged (bin K V B NewL R) left
+		when
+			[NewL, LeftHasChanged] = delete_hdict_a L Key X
+		end
+		if Key < K;
+
+delete_hdict_a (bin K::int V B L R) Key::int X
+	= adjustd_dict_hdict RightHasChanged (bin K V B L NewR) right
+		when
+			[NewR, RightHasChanged] = delete_hdict_a R Key X
+		end
+		if Key > K;
+
+delete_hdict_a2 [] _			= [];
+delete_hdict_a2 ([X1,_]:XYs) X2		= XYs if X1 === X2;
+delete_hdict_a2 ([X,Y]:XYs) X1		= [X,Y]:(delete_hdict_a2 XYs X1);
+
+
+
+
+/*** dict and hdict stuff ***/
+
+// The insertions and deletions are dealt with separately.
+
+// Insertions
+
+adjusti_dict_hdict false OldTree _		= [OldTree, false];
+
+adjusti_dict_hdict true (bin Key::int Val B0 L R) LoR |
+adjusti_dict_hdict true (bin Key::string Val B0 L R) LoR |
+adjusti_dict_hdict true (bin Key Val B0 L R) LoR
+	= [rebali_dict_hdict ToBeRebalanced (bin Key Val B0 L R) B1,
+	   WhatHasChanged]
+		when
+			[B1, WhatHasChanged, ToBeRebalanced] = tablei B0 LoR
+		end;
+
+rebali_dict_hdict false (bin K::int V _ L R) B |
+rebali_dict_hdict false (bin K::string V _ L R) B |
+rebali_dict_hdict false (bin K V _ L R) B
+	= bin K V B L R;
+
+rebali_dict_hdict true  OldTree _
+	= fst (avl_geq_dict_hdict OldTree);
+
+
+// Deletions
+adjustd_dict_hdict false OldTree _
+	= [OldTree, false];
+
+adjustd_dict_hdict true (bin Key::int Val B0 L R) LoR |
+adjustd_dict_hdict true (bin Key::string Val B0 L R) LoR |
+adjustd_dict_hdict true (bin Key Val B0 L R) LoR
+	= rebald_dict_hdict ToBeRebalanced (bin Key Val B0 L R) B1
+			    WhatHasChanged
+		when
+			[B1, WhatHasChanged, ToBeRebalanced] = tabled B0 LoR
+		end;
+
+
+rebald_dict_hdict false (bin K::int V _ L R) B WhatHasChanged |
+rebald_dict_hdict false (bin K::string V _ L R) B WhatHasChanged |
+rebald_dict_hdict false (bin K V _ L R) B WhatHasChanged
+	= [bin K V B L R, WhatHasChanged];
+
+
+rebald_dict_hdict true  OldTree _ _
+	= avl_geq_dict_hdict OldTree;
+
+// Single and double tree rotations - these are common for insert and delete
+/*
+  The patterns isgt-isgt, isgt-islt, islt-islt and islt-isgt on the LHS always
+  change the tree height and these are the only patterns which can happen
+  after an insertion. That's the reason why we can use tablei only to decide
+  the needed changes.
+  The patterns isgt-iseq and islt-iseq do not change the tree height. After a
+  deletion any pattern can occur and so we return true or false as a flag of
+  a height change.
+*/
+
+avl_geq_dict_hdict (bin A::int VA isgt Alpha (bin B::int VB isgt Beta Gamma)) |
+avl_geq_dict_hdict (bin A::string VA isgt Alpha
+		    (bin B::string VB isgt Beta Gamma)) |
+avl_geq_dict_hdict (bin A VA isgt Alpha (bin B VB isgt Beta Gamma))
+	= [bin B VB iseq (bin A VA iseq Alpha Beta) Gamma, true];
+
+
+avl_geq_dict_hdict (bin A::int VA isgt Alpha (bin B::int VB iseq Beta Gamma)) |
+avl_geq_dict_hdict (bin A::string VA isgt Alpha
+		    (bin B::string VB iseq Beta Gamma)) |
+avl_geq_dict_hdict (bin A VA isgt Alpha (bin B VB iseq Beta Gamma))
+	= [bin B VB islt (bin A VA isgt Alpha Beta) Gamma, false];
+		// the tree doesn't decrease with this pattern
+
+avl_geq_dict_hdict (bin A::int VA isgt Alpha
+		    (bin B::int VB islt (bin X::int VX B1 Beta Gamma) Delta)) |
+avl_geq_dict_hdict (bin A::string VA isgt Alpha
+		    (bin B::string VB islt
+		    (bin X::string VX B1 Beta Gamma) Delta)) |
+avl_geq_dict_hdict (bin A VA isgt Alpha
+		    (bin B VB islt (bin X VX B1 Beta Gamma) Delta))
+	= [bin X VX iseq (bin A VA B2 Alpha Beta)
+	   (bin B VB B3 Gamma Delta), true]
+		when
+			[B2, B3] = table2 B1
+		end;
+
+
+avl_geq_dict_hdict (bin B::int VB islt (bin A::int VA islt Alpha Beta) Gamma) |
+avl_geq_dict_hdict (bin B::string VB islt
+		    (bin A::string VA islt Alpha Beta) Gamma) |
+avl_geq_dict_hdict (bin B VB islt (bin A VA islt Alpha Beta) Gamma)
+	= [bin A VA iseq Alpha (bin B VB iseq Beta  Gamma), true];
+
+avl_geq_dict_hdict (bin B::int VB islt (bin A::int VA iseq Alpha Beta) Gamma) |
+avl_geq_dict_hdict (bin B::string VB islt
+		    (bin A::string VA iseq Alpha Beta) Gamma) |
+avl_geq_dict_hdict (bin B VB islt (bin A VA iseq Alpha Beta) Gamma)
+	= [bin A VA isgt Alpha (bin B VB islt Beta  Gamma), false];
+			// the tree doesn't decrease with this pattern
+
+avl_geq_dict_hdict (bin B::int VB islt
+		    (bin A::int VA isgt Alpha
+		    (bin X::int VX B1 Beta Gamma)) Delta) |
+avl_geq_dict_hdict (bin B::string VB islt
+		    (bin A::string VA isgt Alpha
+		    (bin X::string VX B1 Beta Gamma)) Delta) |
+avl_geq_dict_hdict (bin B VB islt
+		    (bin A VA isgt Alpha (bin X VX B1 Beta Gamma)) Delta)
+	= [bin X VX iseq (bin A VA B2 Alpha Beta)
+	   (bin B VB B3 Gamma Delta), true]
+		when
+			[B2, B3] = table2 B1
+		end;
+
+
+/*** set, bag, dict and hdict stuff ***/
+
+// Balance rules for insertions
+//	balance	where		balance	  whole tree	to be
+//	before	inserted	after	  increased	rebalanced
+tablei	iseq	left		= [islt,  true,		false];
+tablei	iseq	right		= [isgt,  true,		false];
+tablei	islt	left		= [iseq,  false,	true];
+tablei	islt	right		= [iseq,  false,	false];
+tablei	isgt	left		= [iseq,  false,	false];
+tablei	isgt	right		= [iseq,  false,	true];
+
+// Balance rules for deletions
+//	balance	where		balance	  whole tree	to be
+//	before	deleted		after	  decreased	rebalanced
+tabled	iseq	right		= [islt,  false,	false];
+tabled	iseq	left		= [isgt,  false,	false];
+tabled	islt	right		= [iseq,  true,		true];
+//					  ^^^^
+// It depends on the tree pattern in avl_geq whether it really decreases
+
+tabled	islt	left		= [iseq,  true, 	false];
+tabled	isgt	right		= [iseq,  true,		false];
+tabled	isgt	left		= [iseq,  true,		true];
+//					  ^^^^
+// It depends on the tree pattern in avl_geq whether it really decreases
+
+
+table2 islt			= [iseq, isgt];
+table2 isgt			= [islt, iseq];
+table2 iseq			= [iseq, iseq];
+
+
+/*** auxilliary stuff and interfaces between AVL trees and public functions ***/
+
+size_set_bag nil
+	= 0;
+size_set_bag (bin _ _ M1 M2)
+	= (size_set_bag M1) + (size_set_bag M2) + 1;
+
+
+size_dict nil
+	= 0;
+size_dict (bin _ _ _ D1 D2)
+	= (size_dict D1) + (size_dict D2) + 1;
+
+
+size_hdict nil
+	= 0;
+size_hdict (bin _ XYs _ D1 D2)
+	= (size_hdict D1) + (size_hdict D2) + #XYs;
+
+
+member_set_bag nil _
+	= 0;
+
+member_set_bag (bin X _ M1 M2) Y::int |
+member_set_bag (bin X _ M1 M2) Y::string |
+member_set_bag (bin X _ M1 M2) Y
+	= member_set_bag M1 Y if X > Y;
+	= member_set_bag M2 Y if X < Y;
+	= 1 if X == Y;
+
+
+member_dict nil _
+	= 0;
+
+member_dict (bin X _ _ M1 M2) Y::int |
+member_dict (bin X _ _ M1 M2) Y::string |
+member_dict (bin X _ _ M1 M2) Y
+	= member_dict M1 Y if X > Y;
+	= member_dict M2 Y if X < Y;
+	= 1 if X == Y;
+
+
+member_hdict D X
+	= memberk_hdict D (hash X) X;
+
+
+members_set_bag nil
+	= [];
+
+members_set_bag (bin X::int _ M1 M2) |
+members_set_bag (bin X::string _ M1 M2) |
+members_set_bag (bin X _ M1 M2)
+	= (members_set_bag M1) + (X : (members_set_bag M2));
+
+
+members_dict nil
+	= [];
+
+members_dict (bin X::int Y _ M1 M2) |
+members_dict (bin X::string Y _ M1 M2) |
+members_dict (bin X Y _ M1 M2)
+	= (members_dict M1) + ([X, Y] : (members_dict M2));
+
+
+members_hdict nil
+	= [];
+
+members_hdict (bin _ XYs _ D1 D2)
+	= members_hdict D1 + XYs + members_hdict D2;
+
+
+keys_dict nil
+	= [];
+
+keys_dict (bin X::int _ _ M1 M2) |
+keys_dict (bin X::string _ _ M1 M2) |
+keys_dict (bin X _ _ M1 M2)
+	= (keys_dict M1) + (X : (keys_dict M2));
+
+
+keys_hdict nil
+	= [];
+
+keys_hdict (bin _ XYs _ D1 D2)
+	= keys_hdict D1 + map fst XYs + keys_hdict D2;
+
+
+vals_dict nil
+	= [];
+
+vals_dict (bin _ Y _ M1 M2)
+	= (vals_dict M1) + (Y : (vals_dict M2));
+
+
+vals_hdict nil
+	= [];
+
+vals_hdict (bin _ XYs _ D1 D2)
+	= vals_hdict D1 + map snd XYs + vals_hdict D2;
+
+
+first_set_bag (bin X _ nil _)
+	= X;
+
+first_set_bag (bin _ _ M1 _)
+	= first_set_bag M1;
+
+
+first_dict (bin X Y _ nil _)
+	= [X, Y];
+
+first_dict (bin _ _ _ D1 _)
+	= first_dict D1;
+
+
+last_set_bag (bin X _ _ nil)
+	= X;
+
+last_set_bag (bin _ _ _ M2)
+	= last_set_bag M2;
+
+
+last_dict (bin X Y _ _ nil)
+	= [X, Y];
+
+last_dict (bin _ _ _ _ D2)
+	= last_dict D2;
+
+
+key2val_dict nil _
+	= throw out_of_bounds;
+
+key2val_dict (bin X::int Y _ D1 D2) X1::int |
+key2val_dict (bin X::string Y _ D1 D2) X1::string |
+key2val_dict (bin X Y _ D1 D2) X1
+	= key2val_dict D1 X1 if X1 < X;
+	= key2val_dict D2 X1 if X1 > X;
+	= Y;
+
+
+eq_set_bag M1 M2
+	= members_set_bag M1 == members_set_bag M2;
+
+eq_dict D1 D2
+	= members_dict D1 == members_dict D2;
+
+
+eq_hdict D1 D2
+		= if (all (member_hdict D1) (keys_hdict D2))
+		  then
+			if (all (member_hdict D2) (keys_hdict D1))
+			then (vals_hdict D1) == (map ((!)D2) (keys D1))
+			else 0
+		  else 0;
+
+neq_set_bag M1 M2
+	= members_set_bag M1 != members_set_bag M2;
+
+neq_dict D1 D2
+	= members_dict D1 != members_dict D2;
+
+neq_hdict D1 D2
+	= not (D1 == D2);
+
+
+leq_set M1 M2
+	= all (member_set_bag M2) (members_set_bag M1);
+
+leq_bag M1 M2
+	= (diff_set_bag M1 M2) == nil;
+
+geq_set M1 M2
+	= all (member_set_bag M1) (members_set_bag M2);
+
+geq_bag M1 M2
+	= (diff_set_bag M2 M1) == nil;
+
+lt_set M1 M2
+	= if (leq_set M1 M2) then (neq_set_bag M1 M2) else 0;
+
+lt_bag M1 M2
+	= if (leq_bag M1 M2) then (neq_set_bag M1 M2) else 0;
+
+gt_set M1 M2
+	= if (geq_set M1 M2) then (neq_bag_set M1 M2) else 0;
+
+gt_bag M1 M2
+	= if (geq_bag M1 M2) then (neq_bag_set M1 M2) else 0;
+
+
+union_set M1 M2
+	= foldl ins_set M1 (members_set_bag M2);
+
+union_bag M1 M2
+	= foldl ins_bag M1 (members_set_bag M2);
+
+diff_set_bag M1 M2
+	= foldl del_set_bag M1 (members_set_bag M2);
+
+intersect_set_bag M1 M2
+	= diff_set_bag M1 (diff_set_bag M1 M2);
