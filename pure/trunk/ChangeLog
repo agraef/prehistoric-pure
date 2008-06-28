@@ -1,5 +1,8 @@
 2008-06-28  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc: Promote type tags and substitute constants on
+	the rhs of variable and constant definitions.
+
 	* lib/prelude.pure: Using xs!ns for slicing conflicts with more
 	general indexing of containers with arbitrary keys. Use !! for
 	slicing instead. Restrict the definition to lists and tuples, and
