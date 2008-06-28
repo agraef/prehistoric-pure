@@ -75,24 +75,24 @@ extern expr* pure_intval(expr*), expr* pure_dblval(expr*),
   expr* pure_bigintval(expr*), expr* pure_pointerval(expr*);
 
 int x::int		= x;
-int x::bigint		= pure_intval x;
-int x::double		= pure_intval x;
+int x::bigint		|
+int x::double		|
 int x::pointer		= pure_intval x;
 
-bigint x::int		= pure_bigintval x;
 bigint x::bigint	= x;
-bigint x::double	= pure_bigintval x;
+bigint x::int		|
+bigint x::double	|
 bigint x::pointer	= pure_bigintval x;
 
-double x::int		= pure_dblval x;
-double x::bigint	= pure_dblval x;
 double x::double	= x;
+double x::int		|
+double x::bigint	= pure_dblval x;
 
-pointer x::int		= pure_pointerval x;
-pointer x::bigint	= pure_pointerval x;
-pointer x::double	= pure_pointerval x;
-pointer x::string	= pure_pointerval x;
 pointer x::pointer	= x;
+pointer x::int		|
+pointer x::bigint	|
+pointer x::double	|
+pointer x::string	= pure_pointerval x;
 
 /* Basic int and double arithmetic. The Pure compiler already knows how to
    handle these, we just need to supply rules with the right type tags. */
@@ -272,7 +272,7 @@ x::double!=y::bigint	= x!=double y;
 
 extern double sqrt(double) = c_sqrt;
 
-sqrt x::int		= c_sqrt (double x) if x>=0;
+sqrt x::int		|
 sqrt x::bigint		= c_sqrt (double x) if x>=0;
 sqrt x::double		= c_sqrt x if x>=0;
 
@@ -291,22 +291,22 @@ pow x::int y::bigint	= bigint_pow (bigint x) (int y) if y>=0;
 pow x::bigint y::int	= bigint_pow x y if y>=0;
 
 // mixed double/int/bigint
-pow x::double y::int	= c_pow x (double y);
+pow x::double y::int	|
 pow x::double y::bigint	= c_pow x (double y);
-pow x::int y::double	= c_pow (double x) y if x>=0 || int y==y;
+pow x::int y::double	|
 pow x::bigint y::double	= c_pow (double x) y if x>=0 || int y==y;
 
 /* The ^ operator. Works like pow, but always promotes its operands to double
    and returns a double result. */
 
 x::double^y::double	= c_pow x y if x>=0 || int y==y;
-x::int^y::int		= c_pow (double x) (double y);
-x::bigint^y::bigint	= c_pow (double x) (double y);
-x::int^y::bigint	= c_pow (double x) (double y);
+x::int^y::int		|
+x::bigint^y::bigint	|
+x::int^y::bigint	|
 x::bigint^y::int	= c_pow (double x) (double y);
-x::double^y::int	= c_pow x (double y);
+x::double^y::int	|
 x::double^y::bigint	= c_pow x (double y);
-x::int^y::double	= c_pow (double x) y if x>=0 || int y==y;
+x::int^y::double	|
 x::bigint^y::double	= c_pow (double x) y if x>=0 || int y==y;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
