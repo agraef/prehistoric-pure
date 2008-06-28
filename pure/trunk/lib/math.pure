@@ -65,6 +65,8 @@ atan2 x::bigint y::int | atan2 x::int y::bigint = atan2 (double x) (double y);
 atan2 x::int y::double | atan2 x::bigint y::double = atan2 (double x) y;
 atan2 x::double y::int | atan2 x::double y::bigint = atan2 x (double y);
 
+def pi = 4.0*atan 1.0;
+
 /* Exponential function and logarithms. */
 
 extern double exp(double), double log(double) = c_log;
