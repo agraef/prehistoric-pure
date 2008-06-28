@@ -1,0 +1,93 @@
+
+/* Pure basic math routines. */
+
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure programming language and system.
+
+   Pure is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* IEEE floating point infinities and NaNs. */
+
+def inf = 1.0e307 * 1.0e307; def nan = inf-inf;
+
+/* Absolute value and sign of a number. */
+
+abs x::int | abs x::bigint | abs x::double
+		= if x>=0 then x else -x;
+sgn x::int | sgn x::bigint | sgn x::double
+		= if x>0 then 1 else if x<0 then -1 else 0;
+
+/* Generic min and max functions. */
+
+min x y		= if x<=y then x else y;
+max x y		= if x>=y then x else y;
+
+/* Generic succ and pred functions. */
+
+succ x		= x+1;
+pred x		= x-1;
+
+/* Floor and ceil functions. */
+
+extern double floor(double), double ceil(double);
+
+floor x::int | floor x::bigint = x;
+ceil x::int | ceil x::bigint = x;
+
+/* Trigonometric functions. */
+
+extern double sin(double), double cos(double), double tan(double);
+extern double asin(double), double acos(double), double atan(double);
+extern double atan2(double,double);
+
+sin x::int | sin x::bigint = sin (double x);
+cos x::int | cos x::bigint = cos (double x);
+tan x::int | tan x::bigint = tan (double x);
+
+asin x::int | asin x::bigint = asin (double x);
+acos x::int | acos x::bigint = acos (double x);
+atan x::int | atan x::bigint = atan (double x);
+
+atan2 x::int y::int | atan2 x::bigint y::bigint |
+atan2 x::bigint y::int | atan2 x::int y::bigint = atan2 (double x) (double y);
+atan2 x::int y::double | atan2 x::bigint y::double = atan2 (double x) y;
+atan2 x::double y::int | atan2 x::double y::bigint = atan2 x (double y);
+
+/* Exponential function and logarithms. */
+
+extern double exp(double), double log(double) = c_log;
+
+ln x::double = c_log x if x>=0.0;
+log x::double = c_log x/c_log 10.0 if x>=0.0;
+
+exp x::int | exp x::bigint = exp (double x);
+ln x::int | ln x::bigint = ln (double x);
+log x::int | log x::bigint = log (double x);
+
+/* Hyperbolic functions. */
+
+extern double sinh(double), double cosh(double), double tanh(double);
+extern double asinh(double);
+extern double acosh(double) = c_acosh, double atanh(double) = c_atanh;
+
+acosh x::double = c_acosh x if x>=1.0;
+atanh x::double = c_atanh x if abs x<=1.0;
+
+sinh x::int | sinh x::bigint = sinh (double x);
+cosh x::int | cosh x::bigint = cosh (double x);
+tanh x::int | tanh x::bigint = tanh (double x);
+asinh x::int | asinh x::bigint = asinh (double x);
+acosh x::int | acosh x::bigint = acosh (double x);
+atanh x::int | atanh x::bigint = atanh (double x);
