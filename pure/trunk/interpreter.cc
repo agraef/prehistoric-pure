@@ -490,7 +490,7 @@ pure_expr *interpreter::runstr(const string& s)
 
 // Evaluate an expression.
 
-pure_expr *interpreter::eval(expr x)
+pure_expr *interpreter::eval(expr& x)
 {
   globals g;
   save_globals(g);
@@ -500,14 +500,15 @@ pure_expr *interpreter::eval(expr x)
   return res;
 }
 
-pure_expr *interpreter::eval(expr x, pure_expr*& e)
+pure_expr *interpreter::eval(expr& x, pure_expr*& e)
 {
   globals g;
   save_globals(g);
   compile();
-  // promote type tags:
+  // promote type tags and substitute constants:
   env vars; expr u = subst(vars, x);
   compile(u);
+  x = u;
   pure_expr *res = doeval(u, e);
   restore_globals(g);
   return res;
@@ -515,7 +516,7 @@ pure_expr *interpreter::eval(expr x, pure_expr*& e)
 
 // Define global variables.
 
-pure_expr *interpreter::defn(expr pat, expr x)
+pure_expr *interpreter::defn(expr pat, expr& x)
 {
   globals g;
   save_globals(g);
@@ -525,13 +526,15 @@ pure_expr *interpreter::defn(expr pat, expr x)
   return res;
 }
 
-pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
+pure_expr *interpreter::defn(expr pat, expr& x, pure_expr*& e)
 {
   globals g;
   save_globals(g);
   compile();
   env vars;
-  expr lhs = bind(vars, pat), rhs = x;
+  // promote type tags and substitute constants:
+  expr rhs = subst(vars, x);
+  expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
     int32_t f = it->first;
@@ -550,6 +553,7 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
     }
   }
   compile(rhs);
+  x = rhs;
   pure_expr *res = dodefn(vars, lhs, rhs, e);
   if (!res) return 0;
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -564,7 +568,7 @@ pure_expr *interpreter::defn(expr pat, expr x, pure_expr*& e)
 
 // Define global constants (macro definitions).
 
-pure_expr *interpreter::const_defn(expr pat, expr x)
+pure_expr *interpreter::const_defn(expr pat, expr& x)
 {
   globals g;
   save_globals(g);
@@ -617,13 +621,15 @@ static expr subterm(expr x, const path& p)
   return x;
 }
 
-pure_expr *interpreter::const_defn(expr pat, expr x, pure_expr*& e)
+pure_expr *interpreter::const_defn(expr pat, expr& x, pure_expr*& e)
 {
   globals g;
   save_globals(g);
   compile();
   env vars;
-  expr lhs = bind(vars, pat), rhs = x;
+  // promote type tags and substitute constants:
+  expr rhs = subst(vars, x);
+  expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
     int32_t f = it->first;
@@ -645,6 +651,7 @@ pure_expr *interpreter::const_defn(expr pat, expr x, pure_expr*& e)
     }
   }
   compile(rhs);
+  x = rhs;
   pure_expr *res = doeval(rhs, e);
   if (!res) return 0;
   // convert the result back to a compile time expression

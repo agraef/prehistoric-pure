@@ -304,8 +304,8 @@ public:
      evaluation. In such a case, the variant with the extra e parameter
      returns the runtime expression thrown by the exception, if any. Both the
      result and the exception value (if any) are to be freed by the caller. */
-  pure_expr *eval(expr x);
-  pure_expr *eval(expr x, pure_expr*& e);
+  pure_expr *eval(expr& x);
+  pure_expr *eval(expr& x, pure_expr*& e);
 
   /* Evaluate an expression and define global variables. This works like
      eval() above, but also binds the variables in pat to the corresponding
@@ -315,8 +315,8 @@ public:
      matched. Returns a null pointer if an exception occurred during the
      evaluation or if the pattern failed to match. Both the result and the
      exception value (if any) are to be freed by the caller. */
-  pure_expr *defn(expr pat, expr x);
-  pure_expr *defn(expr pat, expr x, pure_expr*& e);
+  pure_expr *defn(expr pat, expr& x);
+  pure_expr *defn(expr pat, expr& x, pure_expr*& e);
 
   /* Bind a global variable to a given value. This binds the given variable
      symbol directly to the given value, without matching and evaluating
@@ -334,8 +334,8 @@ public:
      the left-hand side pattern as usual. Unlike variables, existing constant
      symbols cannot be redefined, so they have to be cleared before you can
      give them new values. */
-  pure_expr *const_defn(expr pat, expr x);
-  pure_expr *const_defn(expr pat, expr x, pure_expr*& e);
+  pure_expr *const_defn(expr pat, expr& x);
+  pure_expr *const_defn(expr pat, expr& x, pure_expr*& e);
 
   /* Directly bind a given constant symbol to a given value. */
   void const_defn(int32_t tag, pure_expr *x);
