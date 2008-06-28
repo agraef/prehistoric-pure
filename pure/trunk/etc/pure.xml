@@ -49,12 +49,14 @@
         <RegExpr attribute="Number" context="#stay" String="0x[A-Za-z0-9]+"/>
         <Float attribute="Number" context="#stay"/>
         <Int attribute="Number" context="#stay"/>
+        <HlCChar attribute="Char" context="#stay"/>
         <DetectChar attribute="String" context="String" char="&quot;"/>
         <Detect2Chars attribute="Comment" context="Comment1" char="/" char1="*" />
         <Detect2Chars attribute="Comment" context="Comment2" char="/" char1="/"/>
       </context>
-      <context attribute="String" lineEndContext="#stay" name="String">
-        <RegExp attribute="String" context="#stay" String="\\."/>
+      <context attribute="String" lineEndContext="#pop" name="String">
+        <LineContinue attribute="String" context="#stay"/>
+        <HlCStringChar attribute="String Char" context="#stay"/>
         <DetectChar attribute="String" context="#pop" char="&quot;"/>
       </context>
       <context attribute="Comment" lineEndContext="#stay" name="Comment1">
@@ -69,6 +71,7 @@
       <itemData name="Type"        defStyleNum="dsDataType"/>
       <itemData name="Number"      defStyleNum="dsDecVal" />
       <itemData name="String"      defStyleNum="dsString" />
+      <itemData name="String Char" defStyleNum="dsChar"/>
       <itemData name="Comment"     defStyleNum="dsComment" />
     </itemDatas>
   </highlighting>
