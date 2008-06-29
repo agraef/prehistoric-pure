@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language SYSTEM "language.dtd">
-<language name="Pure" version="1.01" kateversion="2.1" section="Sources" extensions="*.pure">
+<language name="Pure" version="1.2" kateversion="2.4" section="Sources" extensions="*.pure">
   <highlighting>
-    <list name="keywords">
+    <list name="blockstarters">
       <item> case </item>
+      <item> when </item>
+      <item> with </item>
+    </list>
+    <list name="blockenders">
+      <item> end </item>
+    </list>
+    <list name="keywords">
       <item> def </item>
       <item> else </item>
-      <item> end </item>
       <item> extern </item>
       <item> if </item>
       <item> infix </item>
@@ -20,8 +26,6 @@
       <item> postfix </item>
       <item> then </item>
       <item> using </item>
-      <item> when </item>
-      <item> with </item>
     </list>
     <list name="special">
       <item> catch </item>
@@ -42,6 +46,9 @@
     </list>
     <contexts>
       <context attribute="Normal Text" lineEndContext="#stay" name="Normal">
+        <DetectSpaces />
+        <keyword attribute="Keyword" context="#stay" String="blockstarters" beginRegion="Block" />
+        <keyword attribute="Keyword" context="#stay" String="blockenders" endRegion="Block" />
         <keyword attribute="Keyword" context="#stay" String="keywords"/>
         <keyword attribute="Function" context="#stay" String="special"/>
         <keyword attribute="Type" context="#stay" String="types"/>
@@ -51,7 +58,7 @@
         <Int attribute="Number" context="#stay"/>
         <HlCChar attribute="Char" context="#stay"/>
         <DetectChar attribute="String" context="String" char="&quot;"/>
-        <Detect2Chars attribute="Comment" context="Comment1" char="/" char1="*" />
+        <Detect2Chars attribute="Comment" context="Comment1" char="/" char1="*" beginRegion="Comment" />
         <Detect2Chars attribute="Comment" context="Comment2" char="/" char1="/"/>
       </context>
       <context attribute="String" lineEndContext="#pop" name="String">
@@ -59,8 +66,10 @@
         <HlCStringChar attribute="String Char" context="#stay"/>
         <DetectChar attribute="String" context="#pop" char="&quot;"/>
       </context>
+      <context attribute="Region Marker" lineEndContext="#pop" name="Region Marker">
+      </context>
       <context attribute="Comment" lineEndContext="#stay" name="Comment1">
-        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="Comment"/>
       </context>
       <context attribute="Comment" lineEndContext="#pop" name="Comment2"/>
     </contexts>
