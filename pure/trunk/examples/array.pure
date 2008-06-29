@@ -45,11 +45,8 @@
 
 using primitives;
 
-// module name constructor
-nullary tarray;
-
-// tree constructors
-nullary nil bin tip;
+// empty tree constructor
+nullary nil;
 
 
 /******************************************************************************/
@@ -72,31 +69,55 @@ emptyarray			= tarray nil;
 
 
 // create an array from a list
-array Xs			= tarray (tarray_array Xs);
+array xs
+	= tarray (foldl tarray_append nil xs)
+		if listp xs;
 
 
 // create a two-dimensional array from a two-dimensional list
-array2 Xs			= array (map array Xs);
+array2 xs			= array (map array xs);
 
 
 // create an array of a given size filled with a constant value
-mkarray X N::int		= tarray (tarray_mkarray X N);
-
+mkarray x n::int
+	= tarray (mkarray_ x n)
+		with
+			mkarray_ x n::int	= nil if n <= 0;
+						= tip x if n == 1;
+						= tarray_mkbin (n mod 2)
+						  (mkarray_ x (n - n div 2))
+						  (mkarray_ x (n div 2))
+		end;
 
 // create two-dimensional array of given dimensions filled with a constant value
-mkarray2 X (N::int, M::int)	= mkarray (mkarray X M) N;
+mkarray2 x (n::int, m::int)	= mkarray (mkarray x m) n;
 
 
 // get array size
-#(tarray A)			= tarray_size A;
+#(tarray a)
+	= size a
+		with
+			size nil		= 0;
+			size (tip _)		= 1;
+			size (bin 0 a1 _)	= (size a1) * 2;
+			size (bin 1 a1 _)	= (size a1) * 2 - 1
+		end;
 
 
 // get value by index
-(tarray A)!I::int		= tarray_ith A I;
+(tarray a)!i::int
+	= ith a i
+		with
+			ith (tip x) 0	= x;
+			ith (bin _ a1 a2) i::int
+					= ith a1 (i div 2) if i mod 2 == 0;
+					= ith a2 (i div 2) if i mod 2 == 1;
+			ith _ _		= throw out_of_bounds
+		end;
 
 
 // get value by indices from two-dimensional array
-X@(tarray A)!(I::int, J::int)	= (X!I)!J;
+x@(tarray _)!(i::int, j::int)	= (x!i)!j;
 
 
 // check for an empty array
@@ -105,53 +126,140 @@ null (tarray _)			= 0;
 
 
 // get all array members in a list form
-members (tarray A)		= tarray_members A;
+members (tarray a)
+	= members_ a
+		with
+			members_ nil		= [];
+			members_ (tip x)	= [x];
+			members_ (bin _ a1 a2)
+				= tarray_merge (members_ a1)
+					       (members_ a2)
+		end;
 
 
 // get all members of an two-dimensional array in a list form
-members2 X@(tarray A)		= map members (members X);
+members2 x@(tarray _)		= map members (members x);
 
 
 // get the first array member
-first (tarray A)		= tarray_first A;
+first (tarray a)
+	= tarray_first a
+		with
+			first_ (tip x)		= x;
+			first_ (bin _ a1 _)	= first_ a1
+		end;
 
 
 // get the last array member
-last (tarray A)			= tarray_last A;
+last (tarray a)
+	= last_ a
+		with
+			last_ (tip x)		= x;
+			last_ (bin 0 _ a2)	= last_ a2;
+			last_ (bin 1 a1 _)	= last_ a1
+		end;
 
 
 // remove the first member from an array
-rmfirst (tarray A)		= tarray (tarray_rmfirst A);
+rmfirst (tarray a)
+	= tarray (rmfirst_ a)
+		with
+			rmfirst_ (tip _)	= nil;
+			rmfirst_ (bin 0 a1 a2)
+				= tarray_mkbin 1 a2 (rmfirst_ a1);
+			rmfirst_ (bin 1 a1 a2)
+				= tarray_mkbin 0 a2 (rmfirst_ a1)
+		end;
 
 
 // remove the last member from an array
-rmlast (tarray A)		= tarray (tarray_rmlast A);
+rmlast (tarray a)
+	= tarray (rmlast_ a)
+		with
+			rmlast_ (tip _)		= nil;
+			rmlast_ (bin 0 a1 a2)
+				= tarray_mkbin 1 a1 (rmlast_ a2);
+			rmlast_ (bin 1 a1 a2)
+				= tarray_mkbin 0 (rmlast_ a1) a2
+		end;
 
 
 // insert a new member at the array beginning
-insert (tarray A) Y		= tarray (tarray_insert A Y);
+insert (tarray a) y
+	= tarray (insert_ a y)
+		with
+			insert_ nil y		= tip y;
+			insert_ (tip x) y	= bin 0 (tip y) (tip x);
+			insert_ (bin 0 a1 a2) y
+				= tarray_mkbin 1 (insert_ a2 y) a1;
+			insert_ (bin 1 a1 a2) y
+				= tarray_mkbin 0 (insert_ a2 y) a1
+		end;
 
 
 // append a new member at the array end
-append (tarray A) Y		= tarray (tarray_append A Y);
+append (tarray a) y
+	= tarray (tarray_append a y);
 
 
 //update a given array position with a new value
-update (tarray A) I::int Y	= tarray (tarray_update A I Y);
+update (tarray a) i::int y
+	= tarray (update_ a i y)
+		with
+			update_ (tip _) 0 y	= tip y;
+			update_ (bin b a1 a2) i::int y
+				= bin b (update_ a1 (i div 2) y) a2
+				      if i mod 2 == 0;
+				= bin b a1 (update_ a2 (i div 2) y)
+				      if i mod 2 == 1
+		end;
 
 
 //update a given position of a two-dimensional array with a new value
-update2 X@(tarray A) (I::int, J::int) Y
-				= update X I (update (X!I) J Y);
+update2 x@(tarray a) (i::int, j::int) y
+				= update x i (update (x!i) j y);
 
 
 /* test for equality of two arrays */
-(tarray A) == (tarray B)	= tarray_eq A B;
+(tarray a) == (tarray b)
+	= eq a b
+		with
+			eq nil nil			= 1;
+			eq nil  (tip _)			= 0;
+			eq nil  (bin _ _ _)		= 0;
+			eq (tip _) nil			= 0;
+			eq (tip x) (tip y)		= (x == y);
+			eq (tip _) (bin _ _ _)		= 0;
+			eq (bin _ _ _) nil		= 0;
+			eq (bin _ _ _) (tip _)		= 0;
+			eq (bin b1 a1 a2)  (bin b2 a3 a4)
+					= if (b1 != b2)
+						then 0
+						else if (a1 != a3)
+							then 0
+							else (a2 == a4)
+		end;
 
 
 /* test for inequality of two arrays */
-(tarray A) != (tarray B)	= tarray_neq A B;
-
+(tarray a) != (tarray b)
+	= neq a b
+		with
+			neq nil nil		= 0;
+			neq nil (tip _)		= 1;
+			neq nil (bin _ _ _)	= 1;
+			neq (tip _) nil		= 1;
+			neq (tip x) (tip y)	= (x != y);
+			neq (tip _) (bin _ _ _)	= 1;
+			neq (bin _ _ _) nil	= 1;
+			neq (bin _ _ _) (tip _)	= 1;
+			neq (bin b1 a1 a2) (bin b2 a3 a4)
+					= if (b1 != b2)
+						then 1
+						else if (a1 != a3)
+							then 1
+							else (a2 != a4)
+		end;
 
 
 /******************************************************************************/
@@ -165,123 +273,20 @@ update2 X@(tarray A) (I::int, J::int) Y
 
 // construct a binary array node
 
-tarray_mkbin _ nil A2		= A2;
-tarray_mkbin _ A1 nil		= A1;
-tarray_mkbin B A1 A2		= bin B A1 A2;
+tarray_mkbin _ nil a2		= a2;
+tarray_mkbin _ a1 nil		= a1;
+tarray_mkbin b a1 a2		= bin b a1 a2;
 
 
-// merge lists Xs (even elements) and Ys
+// merge lists xs (even elements) and ys
 // (odd elements)
 
-tarray_merge [] Ys		= Ys;
-tarray_merge (X:Xs) Ys		= (X:tarray_merge Ys Xs);
+tarray_merge [] ys		= ys;
+tarray_merge (x:xs) ys		= (x:tarray_merge ys xs);
 
+// append stuff - this is reused
 
-// array stuff
-tarray_array Xs			= foldl tarray_append nil Xs if listp Xs;
-
-
-// mkarray stuff
-tarray_mkarray X N::int		= nil if N <= 0;
-				= tip X if N == 1;
-				= tarray_mkbin (N mod 2)
-				  (tarray_mkarray X (N - N div 2))
-				  (tarray_mkarray X (N div 2));
-
-
-// array size stuff
-tarray_size nil			= 0;
-tarray_size (tip _)		= 1;
-tarray_size (bin 0 A1 _)	= (tarray_size A1) * 2;
-tarray_size (bin 1 A1 _)	= (tarray_size A1) * 2 - 1;
-
-
-// get value by index stuff
-tarray_ith (tip X) 0		= X;
-tarray_ith (bin _ A1 A2) I::int	= tarray_ith A1 (I div 2) if I mod 2 == 0;
-				= tarray_ith A2 (I div 2) if I mod 2 == 1;
-
-// members stuff
-tarray_members nil		= [];
-tarray_members (tip X)		= [X];
-tarray_members (bin _ A1 A2)	= tarray_merge (tarray_members A1)
-					       (tarray_members A2);
-
-
-// first stuff
-tarray_first (tip X)		= X;
-tarray_first (bin _ A1 _)	= tarray_first A1;
-
-
-// last stuff
-tarray_last (tip X)		= X;
-tarray_last (bin 0 _ A2)	= tarray_last A2;
-tarray_last (bin 1 A1 _)	= tarray_last A1;
-
-
-// remove first stuff
-tarray_rmfirst (tip _)		= nil;
-tarray_rmfirst (bin 0 A1 A2)	= tarray_mkbin 1 A2 (tarray_rmfirst A1);
-tarray_rmfirst (bin 1 A1 A2)	= tarray_mkbin 0 A2 (tarray_rmfirst A1);
-
-
-// remove last stuff
-tarray_rmlast (tip _)		= nil;
-tarray_rmlast (bin 0 A1 A2)	= tarray_mkbin 1 A1 (tarray_rmlast A2);
-tarray_rmlast (bin 1 A1 A2)	= tarray_mkbin 0 (tarray_rmlast A1) A2;
-
-
-// insert stuff
-tarray_insert nil Y		= tip Y;
-tarray_insert (tip X) Y		= bin 0 (tip Y) (tip X);
-tarray_insert (bin 0 A1 A2) Y	= tarray_mkbin 1 (tarray_insert A2 Y) A1;
-tarray_insert (bin 1 A1 A2) Y	= tarray_mkbin 0 (tarray_insert A2 Y) A1;
-
-
-// append stuff
-tarray_append nil Y		= tip Y;
-tarray_append (tip X) Y		= bin 0 (tip X) (tip Y);
-tarray_append (bin 0 A1 A2) Y	= tarray_mkbin 1 (tarray_append A1 Y) A2;
-tarray_append (bin 1 A1 A2) Y	= tarray_mkbin 0 A1 (tarray_append A2 Y);
-
-
-// update stuff
-tarray_update (tip _) 0 Y	= tip Y;
-tarray_update (bin B A1 A2) I::int Y
-				= bin B (tarray_update A1 (I div 2) Y) A2
-				      if I mod 2 == 0;
-				= bin B A1 (tarray_update A2 (I div 2) Y)
-				      if I mod 2 == 1;
-
-
-// equlity test stuff
-tarray_eq nil nil		= 1;
-tarray_eq nil  (tip _)		= 0;
-tarray_eq nil  (bin _ _ _)	= 0;
-tarray_eq (tip _) nil		= 0;
-tarray_eq (tip X) (tip Y)	= (X == Y);
-tarray_eq (tip _) (bin _ _ _)	= 0;
-tarray_eq (bin _ _ _) nil	= 0;
-tarray_eq (bin _ _ _) (tip _)	= 0;
-tarray_eq (bin B1 A1 A2)  (bin B2 A3 A4)
-				= if (B1 != B2)
-					then 0
-					else if (A1 != A3)
-						then 0
-						else (A2 == A4);
-
-//inequality test stuff
-tarray_neq nil nil		= 0;
-tarray_neq nil (tip _)		= 1;
-tarray_neq nil (bin _ _ _)	= 1;
-tarray_neq (tip _) nil		= 1;
-tarray_neq (tip X) (tip Y)	= (X != Y);
-tarray_neq (tip _) (bin _ _ _)	= 1;
-tarray_neq (bin _ _ _) nil	= 1;
-tarray_neq (bin _ _ _) (tip _)	= 1;
-tarray_neq (bin B1 A1 A2) (bin B2 A3 A4)
-				= if (B1 != B2)
-					then 1
-					else if (A1 != A3)
-						then 1
-						else (A2 != A4);
+tarray_append nil y		= tip y;
+tarray_append (tip x) y		= bin 0 (tip x) (tip y);
+tarray_append (bin 0 a1 a2) y	= tarray_mkbin 1 (tarray_append a1 y) a2;
+tarray_append (bin 1 a1 a2) y	= tarray_mkbin 0 a1 (tarray_append a2 y);
