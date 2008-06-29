@@ -1,3 +1,13 @@
+2008-06-29  Albert Graef  <Dr.Graef@t-online.de>
+
+	* etc/pure.xml: Improved syntax highlighting for Kate. Fixed up
+	highlighting of quoted string chars, as suggested by Eddie Rucker.
+	Also added folding support for comments and block structure
+	(case/with/when ... end).
+
+	* lib/math.pure: Started module with math operations (exp, ln,
+	trigonometric functions, etc.).
+
 2008-06-28  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc: Promote type tags and substitute constants on
