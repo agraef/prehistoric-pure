@@ -537,7 +537,7 @@ Entry to this mode runs the hooks on `comint-mode-hook' and
 	    (end-of-line))))
 ))
 
-;; run a Q script in a Q eval buffer
+;; run a Pure script in a Pure Eval buffer
 
 ;; make sure win32 XEmacs quotes arguments containing whitespace
 
@@ -845,7 +845,7 @@ window."
 	;; And let comint handle the rest
 	(comint-dynamic-simple-complete command pure-output-list))))
 
-;; send commands to the Q interpreter and digest their results
+;; send commands to the Pure interpreter and digest their results
 
 (defun pure-output-digest (proc string)
   (setq string (concat pure-output-string string))
