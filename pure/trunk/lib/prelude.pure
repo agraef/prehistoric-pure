@@ -62,9 +62,14 @@ prefix 8   # ;			// size operator
 infixl 9   ! !! ;		// indexing, slicing
 infixr 9   . ;			// function composition
 
+/* The truth values. These are just integers in Pure, but sometimes it's
+   convenient to refer to them using these symbolic constants. */
+
+def false = 0; def true = 1;
+
 /* Pull in the primitives (arithmetic etc.) and the standard string functions.
-   Note that the system module is *not* included here, so you have to do that
-   yourself if your program does any I/O or uses other system functions. */
+   Note that the math and system modules are *not* included here, so you have
+   to do that yourself if your program requires any of those operations. */
 
 using primitives strings;
 
