@@ -1228,7 +1228,7 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
 	assert(f0->data.clos->env[j]->refc > 0);
 	f0->data.clos->env[j]->refc++;
       }
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
       cerr << "++ stack: (sz = " << sz << ")\n";
       for (size_t i = 0; i < sz; i++) {
 	pure_expr *x = sstk[i];
@@ -1242,13 +1242,20 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
       interp.sstk_sz = sz;
     }
 #if DEBUG>1
-    cerr << "pure_apply: calling " << x << " (" << y << ") -> " << fp << endl;
+    cerr << "pure_apply: calling " << f0 << " -> " << fp << endl;
+    for (size_t j = 0; j < n; j++)
+      cerr << "arg#" << j << " = " << (pure_expr*)argv[j] << " -> " << argv[j] << ", refc = " << ((pure_expr*)argv[j])->refc << endl;
+    for (size_t j = 0; j < m; j++)
+      cerr << "env#" << j << " = " << f0->data.clos->env[j] << " -> " << (void*)f0->data.clos->env[j] << ", refc = " << f0->data.clos->env[j]->refc << endl;
 #endif
     checkstk(test);
     if (m>0)
       xfuncall(ret, fp, n, env, argv)
     else
       funcall(ret, fp, n, argv)
+#if DEBUG>1
+	cerr << "pure_apply: result " << f0 << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
+#endif
     pure_free_internal(f0);
     return ret;
   } else {
@@ -1300,7 +1307,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 	sstk[sz++] = x->data.clos->env[j];
 	assert(env[j]->refc > 0); env[j]->refc++;
       }
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
       cerr << "++ stack: (sz = " << sz << ")\n";
       for (size_t i = 0; i < sz; i++) {
 	pure_expr *x = sstk[i];
@@ -1583,7 +1590,7 @@ void pure_push_arg(pure_expr *x)
     x->refc++;
   else
     pure_new_internal(x);
-#if SSTK_DEBUG>1
+#if SSTK_DEBUG
   cerr << "++ stack: (sz = " << sz << ")\n";
   for (size_t i = 0; i < sz; i++) {
     pure_expr *x = sstk[i];
