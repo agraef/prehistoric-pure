@@ -2903,9 +2903,18 @@ Function *interpreter::declare_extern(string name, string restype,
   vector<Value*> myargs(2);
   for (size_t i = 0; i < n; ++i) {
     myargs[0] = b.CreateCall(module->getFunction("pure_new"), defaultv);
-    myargs[1] = args[i];
+    myargs[1] = b.CreateCall(module->getFunction("pure_new"), args[i]);
     defaultv = b.CreateCall(module->getFunction("pure_apply"),
 			    myargs.begin(), myargs.end());
+  }
+  if (n > 0) {
+    vector<Value*> freeargs(3);
+    freeargs[0] = defaultv;
+    freeargs[1] = UInt(n);
+    freeargs[2] = Zero;
+    b.CreateCall(module->getFunction("pure_pop_args"),
+		 freeargs.begin(), freeargs.end());
+    b.CreateCall(module->getFunction("pure_unref"), defaultv);
   }
   b.CreateRet(defaultv);
   verifyFunction(*f);
