@@ -1,3 +1,9 @@
+2008-06-30  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (declare_extern): Fix a segfault in external
+	wrapper routines, due to the shadow stack not being popped when
+	an external fails and thus the default rule gets used.
+
 2008-06-29  Albert Graef  <Dr.Graef@t-online.de>
 
 	* etc/pure.xml: Improved syntax highlighting for Kate. Fixed up
