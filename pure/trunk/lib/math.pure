@@ -70,6 +70,10 @@ exp x::int | exp x::bigint = exp (double x);
 ln x::int | ln x::bigint = ln (double x);
 log x::int | log x::bigint = log (double x);
 
+/* Euler's number. */
+
+def e = exp 1.0;
+
 /* Trigonometric functions. */
 
 extern double sin(double), double cos(double), double tan(double);
@@ -88,6 +92,8 @@ atan2 x::int y::int | atan2 x::bigint y::bigint |
 atan2 x::bigint y::int | atan2 x::int y::bigint = atan2 (double x) (double y);
 atan2 x::int y::double | atan2 x::bigint y::double = atan2 (double x) y;
 atan2 x::double y::int | atan2 x::double y::bigint = atan2 x (double y);
+
+/* Ludolph's number. */
 
 def pi = 4.0*atan 1.0;
 
