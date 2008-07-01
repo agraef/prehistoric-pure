@@ -1,3 +1,9 @@
+2008-07-01  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/math.pure: Added various bits and pieces, most notably the
+	complex numbers. Also moved sqrt function from primitives.pure to
+	math.pure.
+
 2008-06-30  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (declare_extern): Fix a segfault in external
