@@ -1,5 +1,8 @@
 2008-07-01  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll: 'list' command now also prints fixity and nullary
+	declarations of listed symbols.
+
 	* lib/math.pure: Added various bits and pieces, most notably the
 	complex numbers. Also moved sqrt function from primitives.pure to
 	math.pure.
