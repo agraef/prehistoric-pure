@@ -308,6 +308,7 @@ x::double^y::int	|
 x::double^y::bigint	= c_pow x (double y);
 x::int^y::double	|
 x::bigint^y::double	= c_pow (double x) y if x>=0 || int y==y;
+			= double x^y otherwise;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
    to 64 bit systems. */
