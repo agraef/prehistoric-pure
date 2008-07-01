@@ -39,12 +39,18 @@ max x y		= if x>=y then x else y;
 succ x		= x+1;
 pred x		= x-1;
 
-/* Floor and ceil functions. */
+/* Rounding functions. */
 
 extern double floor(double), double ceil(double);
+extern double round(double), double trunc(double);
 
 floor x::int | floor x::bigint = x;
 ceil x::int | ceil x::bigint = x;
+round x::int | round x::bigint = x;
+trunc x::int | trunc x::bigint = x;
+
+// Fractional part of x.
+frac x::int | frac x::bigint | frac x::double = x-trunc x;
 
 /* The sqrt function. */
 
