@@ -267,15 +267,6 @@ x::double>=y::bigint	= x>=double y;
 x::double==y::bigint	= x==double y;
 x::double!=y::bigint	= x!=double y;
 
-/* The sqrt function. Integer arguments get promoted to double and the result
-   is always a double. The argument must be nonnegative. */
-
-extern double sqrt(double) = c_sqrt;
-
-sqrt x::int		|
-sqrt x::bigint		= c_sqrt (double x) if x>=0;
-sqrt x::double		= c_sqrt x if x>=0;
-
 /* The pow function. Returns a bigint for integer arguments, double if one of
    the arguments is double (in the latter case, x may be negative only if y is
    integer). */

@@ -46,6 +46,24 @@ extern double floor(double), double ceil(double);
 floor x::int | floor x::bigint = x;
 ceil x::int | ceil x::bigint = x;
 
+/* The sqrt function. */
+
+extern double sqrt(double) = c_sqrt;
+
+sqrt x::double		= c_sqrt x if x>=0;
+sqrt x::int | sqrt x::bigint = sqrt (double x);
+
+/* Exponential function and logarithms. */
+
+extern double exp(double), double log(double) = c_log;
+
+ln x::double = c_log x if x>=0.0;
+log x::double = c_log x/c_log 10.0 if x>=0.0;
+
+exp x::int | exp x::bigint = exp (double x);
+ln x::int | ln x::bigint = ln (double x);
+log x::int | log x::bigint = log (double x);
+
 /* Trigonometric functions. */
 
 extern double sin(double), double cos(double), double tan(double);
@@ -66,17 +84,6 @@ atan2 x::int y::double | atan2 x::bigint y::double = atan2 (double x) y;
 atan2 x::double y::int | atan2 x::double y::bigint = atan2 x (double y);
 
 def pi = 4.0*atan 1.0;
-
-/* Exponential function and logarithms. */
-
-extern double exp(double), double log(double) = c_log;
-
-ln x::double = c_log x if x>=0.0;
-log x::double = c_log x/c_log 10.0 if x>=0.0;
-
-exp x::int | exp x::bigint = exp (double x);
-ln x::int | ln x::bigint = ln (double x);
-log x::int | log x::bigint = log (double x);
 
 /* Hyperbolic functions. */
 
@@ -194,8 +201,6 @@ sqrt (x+:y)	= sqrt (x*x+y*y) * (cos (t/2) +: sin (t/2));
 sqrt (r<:t)	= sqrt r <: t/2;
 
 // Complex square roots of negative reals.
-sqrt x::int	|
-sqrt x::bigint	|
 sqrt x::double	= 0.0 +: sqrt (-x) if x<0;
 
 /* Complex exponential and logarithms. */
