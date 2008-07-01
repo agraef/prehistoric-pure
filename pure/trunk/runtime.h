@@ -443,6 +443,9 @@ pure_expr *bigint_not(mpz_t x);
 pure_expr *bigint_and(mpz_t x, mpz_t y);
 pure_expr *bigint_or(mpz_t x, mpz_t y);
 
+pure_expr *bigint_gcd(mpz_t x, mpz_t y);
+pure_expr *bigint_lcm(mpz_t x, mpz_t y);
+
 int32_t bigint_cmp(mpz_t x, mpz_t y);
 
 /* String operations. In difference to the string operations from the C

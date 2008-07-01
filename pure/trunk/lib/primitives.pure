@@ -267,6 +267,23 @@ x::double>=y::bigint	= x>=double y;
 x::double==y::bigint	= x==double y;
 x::double!=y::bigint	= x!=double y;
 
+/* The gcd and lcm functions from the GMP library. These return a bigint if at
+   least one of the arguments is a bigint, a machine int otherwise. */
+
+extern expr* bigint_gcd(void*, void*);
+extern expr* bigint_lcm(void*, void*);
+
+gcd x::bigint y::bigint	= bigint_gcd x y;
+lcm x::bigint y::bigint	= bigint_lcm x y;
+
+gcd x::int y::bigint	= bigint_gcd (bigint x) y;
+gcd x::bigint y::int	= bigint_gcd x (bigint y);
+gcd x::int y::int	= int (bigint_gcd (bigint x) (bigint y));
+
+lcm x::int y::bigint	= bigint_lcm (bigint x) y;
+lcm x::bigint y::int	= bigint_lcm x (bigint y);
+lcm x::int y::int	= int (bigint_lcm (bigint x) (bigint y));
+
 /* The pow function. Returns a bigint for integer arguments, double if one of
    the arguments is double (in the latter case, x may be negative only if y is
    integer). */
