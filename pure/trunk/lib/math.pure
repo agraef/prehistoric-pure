@@ -357,3 +357,15 @@ x1==z2@(r2<:t2)	= (x1<:0) == z2;
 x1!=(x2+:y2)	= x1!=x2 || y2!=0;
 z1@(r1<:t1)!=x2	= z1 != (x2<:0);
 x1!=z2@(r2<:t2)	= (x1<:0) != z2;
+
+/* Additional number predicates. */
+
+realp x		= intp x || bigintp x || doublep x;
+complexp x	= case x of x+:y | x<:y = realp x && realp y; _ = 0 end;
+nump x		= realp x || complexp x;
+
+exactp x	= intp x || bigintp x ||
+		  complexp x && exactp (re x) && exactp (im x) if nump x;
+
+infp x::double	= not nanp x && nanp (x-x);
+nanp x::double	= x===nan;
