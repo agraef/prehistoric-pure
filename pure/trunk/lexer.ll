@@ -505,6 +505,25 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  sout << "def " << sym.s << " = " << *jt->second.cval
 	       << ";\n";
       } else {
+	if (sym.fix == nullary)
+	  sout << "nullary " << sym.s << ";\n";
+	else if (sym.prec < 10) {
+	  switch (sym.fix) {
+	  case infix:
+	    sout << "infix"; break;
+	  case infixl:
+	    sout << "infixl"; break;
+	  case infixr:
+	    sout << "infixr"; break;
+	  case prefix:
+	    sout << "prefix"; break;
+	  case postfix:
+	    sout << "postfix"; break;
+	  case nullary:
+	    assert(0 && "this can't happen"); break;
+	  }
+	  sout << " " << (int)sym.prec << " " << sym.s << ";\n";
+	}
 	if (xt != interp.externals.end()) {
 	  const ExternInfo& info = xt->second;
 	  sout << info << ";";
