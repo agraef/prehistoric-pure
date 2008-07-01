@@ -1894,6 +1894,24 @@ pure_expr *bigint_or(mpz_t x, mpz_t y)
 }
 
 extern "C"
+pure_expr *bigint_gcd(mpz_t x, mpz_t y)
+{
+  pure_expr *u = pure_bigint(0, 0);
+  mpz_t& z = u->data.z;
+  mpz_gcd(z, x, y);
+  return u;
+}
+
+extern "C"
+pure_expr *bigint_lcm(mpz_t x, mpz_t y)
+{
+  pure_expr *u = pure_bigint(0, 0);
+  mpz_t& z = u->data.z;
+  mpz_lcm(z, x, y);
+  return u;
+}
+
+extern "C"
 int32_t bigint_cmp(mpz_t x, mpz_t y)
 {
   return mpz_cmp(x, y);
