@@ -140,7 +140,7 @@ end;
 []==[]		= 1;
 (x:xs)==[]	= 0;
 []==(x:xs)	= 0;
-(x:xs)==(y:ys)	= if x==y then xs==ys else 1;
+(x:xs)==(y:ys)	= if x==y then xs==ys else 0;
 
 []!=[]		= 0;
 (x:xs)!=[]	= 1;
