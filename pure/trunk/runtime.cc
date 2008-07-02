@@ -1786,6 +1786,22 @@ pure_expr *pure_bigintval(pure_expr *x)
 }
 
 extern "C"
+pure_expr *pure_rational(double d)
+{
+  pure_expr *u = pure_bigint(0, 0);
+  pure_expr *v = pure_bigint(0, 0);
+  mpz_t& x = u->data.z;
+  mpz_t& y = v->data.z;
+  mpq_t q;
+  mpq_init(q);
+  mpq_set_d(q, d);
+  mpq_get_num(x, q);
+  mpq_get_den(y, q);
+  mpq_clear(q);
+  return pure_tuplel(2, u, v);
+}
+
+extern "C"
 pure_expr *bigint_neg(mpz_t x)
 {
   pure_expr *u = pure_bigint(0, 0);

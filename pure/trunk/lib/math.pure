@@ -418,12 +418,16 @@ x%y::double		= x/y;
 
 /* Conversions. */
 
+extern expr* pure_rational(double);
+
 rational x@(_%_)	= x;
 rational x::int		|
 rational x::bigint	= x%1;
 
-// TODO: Need to rationalize doubles here. Currently this is a no-op.
-rational x::double	= x;
+/* The conversion from double doesn't do any rounding, so it is guaranteed
+   that converting the resulting rational back to double reconstructs the
+   original value. */
+rational x::double	= n%d when n,d = pure_rational x end;
 
 rational (x+:y)	= rational x +: rational y;
 rational (x<:y)	= rational x <: rational y;
