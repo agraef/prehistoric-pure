@@ -1774,7 +1774,7 @@ pure_expr *pure_bigintval(pure_expr *x)
     return x;
   else if (x->tag == EXPR::PTR)
     return pointer_to_bigint(x->data.p);
-  else if (x->tag != EXPR::INT && x->tag == EXPR::DBL)
+  else if (x->tag != EXPR::INT && x->tag != EXPR::DBL)
     return 0;
   pure_expr *y = pure_bigint(0, 0);
   mpz_t& z = y->data.z;
