@@ -415,6 +415,11 @@ pure_expr *pure_dblval(pure_expr *x);
 pure_expr *pure_bigintval(pure_expr *x);
 pure_expr *pure_pointerval(pure_expr *x);
 
+/* Convert a double to a rational number, without rounding. Returns a pair n,d
+   of two bigint values, where n is the numerator and d the denominator. */
+
+pure_expr *pure_rational(double d);
+
 /* Construct a "byte string" from a string. The result is a raw pointer object
    pointing to the converted string. The original string is copied (and, in
    the case of pure_byte_cstring, converted to the system encoding). The
