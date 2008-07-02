@@ -602,7 +602,20 @@ x/*0:01*/%y/*0:1*/::double = x/*0:01*//y/*0:1*/;
 rational x@(_/*0:101*/%_/*0:11*/) = x/*0:1*/;
 rational x/*0:1*/::int = x/*0:1*/%1;
 rational x/*0:1*/::bigint = x/*0:1*/%1;
-rational x/*0:1*/::double = x/*0:1*/;
+rational x/*0:1*/::double = n/*0:01*/%d/*0:1*/ when n/*0:01*/,d/*0:1*/ = pure_rational x/*0:1*/ {
+  rule #0: n,d = pure_rational x
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} end;
 rational (x/*0:101*/+:y/*0:11*/) = rational x/*0:101*/+:rational y/*0:11*/;
 rational (x/*0:101*/<:y/*0:11*/) = rational x/*0:101*/<:rational y/*0:11*/;
 int x@(_/*0:101*/%_/*0:11*/) = int (bigint x/*0:1*/);
@@ -6083,7 +6096,7 @@ nanp x/*0:1*/::double = x/*0:1*/===nan;
   rule #0: rational x@(_%_) = x
   rule #1: rational x::int = x%1
   rule #2: rational x::bigint = x%1
-  rule #3: rational x::double = x
+  rule #3: rational x::double = n%d when n,d = pure_rational x end
   rule #4: rational (x+:y) = rational x+:rational y
   rule #5: rational (x<:y) = rational x<:rational y
   state 0: #0 #1 #2 #3 #4 #5
@@ -6271,7 +6284,7 @@ trunc (-22%7);
 frac (-22%7);
 (-1L)%7L
 rational (3/8);
-0.375
+3L%8L
 {
   rule #0: z = 1+(0+:1)*(1%2)
   state 0: #0
