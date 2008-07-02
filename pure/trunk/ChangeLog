@@ -1,3 +1,7 @@
+2008-07-02  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/math.pure: Added rational numbers.
+
 2008-07-01  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/primitives.pure, runtime.cc/h: Add the GMP gcd and lcm

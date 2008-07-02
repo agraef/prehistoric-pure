@@ -1,5 +1,5 @@
 
-/* Pure math routines. Also defines the complex numbers. */
+/* Pure math routines. Also defines complex and rational numbers. */
 
 /* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
 
@@ -370,13 +370,189 @@ x1!=(x2+:y2)	= x1!=x2 || y2!=0;
 z1@(r1<:t1)!=x2	= z1 != (x2<:0);
 x1!=z2@(r2<:t2)	= (x1<:0) != z2;
 
+/* Rational numbers. These are constructed with the exact division operator
+   '%' which has the same precedence and fixity as the other division
+   operators declared in the prelude. */
+
+infixl 7 % ;
+
+/* The '%' operator returns a rational or complex rational for any combination
+   of integer, rational and complex integer/rational arguments, provided that
+   the denominator is nonzero (otherwise it returns a floating point nan or
+   infinity, depending on the numerator). Machine int operands are always
+   promoted to bigints. For other numeric operands '%' works just like
+   '/'. Rational results are normalized so that the sign is always in the
+   numerator and numerator and denominator are relatively prime. Hence a
+   rational zero is always represented as 1L%0L. */
+
+x::bigint % 0L		= x/0;
+x::bigint % y::bigint	= (-x)%(-y) if y<0;
+			= (x div d) % (y div d) when d = gcd x y end
+			    if gcd x y > 1;
+
+// int/bigint operands
+x::int % y::bigint	= bigint x % y;
+x::bigint % y::int	= x % bigint y;
+x::int % y::int		= bigint x % bigint y;
+
+// rational operands
+(x1%y1)%(x2%y2)		= (x1*y2)%(y1*x2);
+(x1%y1)%x2		= x1%(y1*x2);
+x1%(x2%y2)		= (x1*y2)%x2;
+
+// complex operands (these must both use the same representation, otherwise
+// the result won't be exact)
+z1@(_+:_)%z2@(_<:_)	|
+z1@(_<:_)%z2@(_+:_)	= z1/z2;
+(x1+:y1)%(x2+:y2)	= (x1*x2+y1*y2)%d +: (y1*x2-x1*y2)%d
+			    when d = x2*x2+y2*y2 end;
+(x1+:y1)%x2		= (x1*x2)%d +: (y1*x2)%d when d = x2*x2 end;
+x1%(x2+:y2)		= (x1*x2)%d +: (-x1*y2)%d when d = x2*x2+y2*y2 end;
+(r1<:t1)%(r2<:t2)	= r1%r2 <: t1-t2;
+(r1<:t1)%x2		= r1%x2 <: t1;
+x1%(r2<:t2)		= x1%r2 <: -t2;
+
+// fall back to ordinary inexact division in all other cases
+x::double%y		|
+x%y::double		= x/y;
+
+/* Conversions. */
+
+rational x@(_%_)	= x;
+rational x::int		|
+rational x::bigint	= x%1;
+
+// TODO: Need to rationalize doubles here. Currently this is a no-op.
+rational x::double	= x;
+
+rational (x+:y)	= rational x +: rational y;
+rational (x<:y)	= rational x <: rational y;
+
+int x@(_%_)	= int (bigint x);
+bigint x@(_%_)	= trunc x;
+double (x%y)	= x/y;
+
+complex (x%y)	= x%y +: 0L%1L;
+rect (x%y)	= x%y +: 0L%1L;
+polar (x%y)	= x%y <: 0L%1L;
+
+/* Note that these normalization rules will yield inexact results when
+   triggered. Thus you have to take care that your polar representations stay
+   normalized if you want to do computations with exact complex rationals in
+   polar notation. */
+r@(_%_)<:t	= -r <: t+pi if r<0;
+r<:t@(_%_)	= r <: atan2 (sin t) (cos t) if t<-pi || t>pi;
+		= r <: pi if t==-pi;
+
+/* Numerator and denominator. */
+
+num (x%y)	= x;
+den (x%y)	= y;
+
+/* Absolute value and sign. */
+
+abs (x%y)	= abs x % y;
+sgn (x%y)	= sgn x;
+
+/* Rounding functions. These return exact results here. */
+
+floor x@(_%_)	= if n<=x then n else n-1 when n::bigint = trunc x end;
+ceil x@(_%_)	= -floor (-x);
+trunc (x%y)	= x div y;
+frac x@(_%_)	= x-trunc x;
+
+/* The pow function. Returns exact results for integer exponents. */
+
+pow (x%y) n::int	|
+pow (x%y) n::bigint	= pow x n % pow y n if n>0;
+			= pow y (-n) % pow x (-n) if n<0;
+			= 1L%1L otherwise;
+pow (x%y) n::double	= pow (x/y) n;
+pow (x%y) (n%m)		= pow (x/y) (n/m);
+
+/* Fallback rules for other functions (inexact results). */
+
+sqrt (x%y)	= sqrt (x/y);
+
+exp (x%y)	= exp (x/y);
+ln (x%y)	= ln (x/y);
+log (x%y)	= log (x/y);
+
+sin (x%y)	= sin (x/y);
+cos (x%y)	= cos (x/y);
+tan (x%y)	= tan (x/y);
+asin (x%y)	= asin (x/y);
+acos (x%y)	= acos (x/y);
+atan (x%y)	= atan (x/y);
+
+atan2 (x%y) z	= atan2 (x/y) z;
+atan2 x (y%z)	= atan2 x (y/z);
+
+sinh (x%y)	= sinh (x/y);
+cosh (x%y)	= cosh (x/y);
+tanh (x%y)	= tanh (x/y);
+asinh (x%y)	= asinh (x/y);
+acosh (x%y)	= acosh (x/y);
+atanh (x%y)	= atanh (x/y);
+
+/* Rational arithmetic. */
+
+-(x%y)		= (-x)%y;
+
+(x1%y1)+(x2%y2)	= (x1*y2+x2*y1) % (y1*y2);
+(x1%y1)-(x2%y2)	= (x1*y2-x2*y1) % (y1*y2);
+(x1%y1)*(x2%y2)	= (x1*x2) % (y1*y2);
+
+(x1%y1)+x2	= (x1+x2*y1) % y1;
+(x1%y1)-x2	= (x1-x2*y1) % y1;
+(x1%y1)*x2	= (x1*x2) % y1;
+
+x1+(x2%y2)	= (x1*y2+x2) % y2;
+x1-(x2%y2)	= (x1*y2-x2) % y2;
+x1*(x2%y2)	= (x1*x2) % y2;
+
+/* / and ^ yield inexact results. */
+
+(x1%y1)/(x2%y2)	= (x1*y2) / (y1*x2);
+(x1%y1)^(x2%y2)	= (x1/y1) ^ (x2/y2);
+
+(x1%y1)/x2	= x1 / (y1*x2);
+(x1%y1)^x2	= (x1/y1) ^ x2;
+
+x1/(x2%y2)	= (x1*y2) / x2;
+x1^(x2%y2)	= x1 ^ (x2/y2);
+
+/* Comparisons. */
+
+x1%y1 == x2%y2	= x1*y2 == x2*y1;
+x1%y1 != x2%y2	= x1*y2 != x2*y1;
+x1%y1 <  x2%y2	= x1*y2 <  x2*y1;
+x1%y1 <= x2%y2	= x1*y2 <= x2*y1;
+x1%y1 >  x2%y2	= x1*y2 >  x2*y1;
+x1%y1 >= x2%y2	= x1*y2 >= x2*y1;
+
+x1%y1 == x2	= x1 == x2*y1;
+x1%y1 != x2	= x1 != x2*y1;
+x1%y1 <  x2	= x1 <  x2*y1;
+x1%y1 <= x2	= x1 <= x2*y1;
+x1%y1 >  x2	= x1 >  x2*y1;
+x1%y1 >= x2	= x1 >= x2*y1;
+
+x1 == x2%y2	= x1*y2 == x2;
+x1 != x2%y2	= x1*y2 != x2;
+x1 <  x2%y2	= x1*y2 <  x2;
+x1 <= x2%y2	= x1*y2 <= x2;
+x1 >  x2%y2	= x1*y2 >  x2;
+x1 >= x2%y2	= x1*y2 >= x2;
+
 /* Additional number predicates. */
 
-realp x		= intp x || bigintp x || doublep x;
 complexp x	= case x of x+:y | x<:y = realp x && realp y; _ = 0 end;
+rationalp x	= case x of x%y = bigintp x && bigintp y; _ = 0 end;
+realp x		= intp x || bigintp x || doublep x || rationalp x;
 nump x		= realp x || complexp x;
 
-exactp x	= intp x || bigintp x ||
+exactp x	= intp x || bigintp x || rationalp ||
 		  complexp x && exactp (re x) && exactp (im x) if nump x;
 
 infp x::double	= not nanp x && nanp (x-x);
