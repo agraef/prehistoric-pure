@@ -299,15 +299,11 @@ m1@(Set _) != m2@(Set _) |
 m1@(Bag _) != m2@(Bag _)
 				= (members m1 != members m2);
 
-m1@(Set _) <= m2@(Set _)
-				= all (member m2) (members m1);
-m1@(Bag _) <= m2@(Bag _)
-				= (m1 - m2) == nil;
+m1@(Set _) <= m2@(Set _)	= all (member m2) (members m1);
+m1@(Bag _) <= m2@(Bag _)	= null (m1 - m2);
 
-m1@(Set _) >= m2@(Set _)
-				= all (member m1) (members m2);
-m1@(Bag _) >= m2@(Bag _)
-				= (m2 - m1) == nil;
+m1@(Set _) >= m2@(Set _)	= all (member m1) (members m2);
+m1@(Bag _) >= m2@(Bag _)	= null (m2 - m1);
 
 m1@(Set _) < m2@(Set _) |
 m1@(Bag _) < m2@(Bag _)
