@@ -1,6 +1,7 @@
 /* Pure's set and bag data types based on AVL trees. */
 
-/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>
+   and Jiri Spitz <jiri.spitz@bluetone.cz>.
 
    This file is part of the Pure programming language and system.
 
@@ -39,7 +40,7 @@ setp x, bagp x;			check whether x is a set or bag
 
 null m				tests whether m is the empty set or bag
 member m x			tests whether m contains x
-members m			list members of m in ascending order
+members m, list m		list members of m in ascending order
 
 first m, last m			return first and last member of m
 rmfirst m, rmlast m		remove first and last member from m
@@ -62,27 +63,27 @@ Balance: ( 1), ( 0), or (-1) denoting |L|-|R| = 1, 0, or -1, respectively
 *****/
 
 // set and bag type checks
-bagp (Set_bag _)		= 1;
+bagp (Bag _)		= 1;
 bagp _				= 0;
 
-setp (Set_set _)		= 1;
+setp (Set _)		= 1;
 setp _				= 0;
 
 // create an empty set or bag
-emptyset			= Set_set nil;
-emptybag			= Set_bag nil;
+emptyset			= Set nil;
+emptybag			= Bag nil;
 
 // create set or bag from a list
 set xs 				= foldl insert emptyset xs if listp xs;
 bag xs 				= foldl insert emptybag xs if listp xs;
 
 // insert a new member into a set or bag
-insert (t@Set_set m) y::int    |
-insert (t@Set_set m) y::string |
-insert (t@Set_set m) y         |
-insert (t@Set_bag m) y::int    |
-insert (t@Set_bag m) y::string |
-insert (t@Set_bag m) y		= t ((insert m y)!0)
+insert (t@Set m) y::int    |
+insert (t@Set m) y::string |
+insert (t@Set m) y         |
+insert (t@Bag m) y::int    |
+insert (t@Bag m) y::string |
+insert (t@Bag m) y		= t ((insert m y)!0)
 with
   insert nil key::int    |
   insert nil key::string |
@@ -92,7 +93,7 @@ with
   insert (bin k::int    b::int l r) key::int    |
   insert (bin k::string b::int l r) key::string |
   insert (bin k         b::int l r) key
-	= [(bin key b l r), 0] if (key == k) && (t === Set_set);
+	= [(bin key b l r), 0] if (key == k) && (t === Set);
 
   insert (bin k::int    b::int l r) key::int    |
   insert (bin k::string b::int l r) key::string |
@@ -105,7 +106,7 @@ with
   insert (bin k         b::int l r) key
 	= adjust rightHasChanged (bin k b l newR) ( 1)
 	when [newR, rightHasChanged] = insert r key end
-	if ((key > k) && (t === Set_set)) || ((key >= k) && (t === Set_bag));
+	if ((key > k) && (t === Set)) || ((key >= k) && (t === Bag));
 
   adjust 0 oldTree _
 	= [oldTree, 0];
@@ -138,12 +139,12 @@ table	(-1)	( 1)		= [( 0),	  0,		1];
 end;
 
 // delete a meber by key from the data structure
-delete (t@Set_set m) y::int    |
-delete (t@Set_set m) y::string |
-delete (t@Set_set m) y         |
-delete (t@Set_bag m) y::int    |
-delete (t@Set_bag m) y::string |
-delete (t@Set_bag m) y
+delete (t@Set m) y::int    |
+delete (t@Set m) y::string |
+delete (t@Set m) y         |
+delete (t@Bag m) y::int    |
+delete (t@Bag m) y::string |
+delete (t@Bag m) y
 = t ((delete m y)!0)
 with
   delete nil _			= [nil, 0];
@@ -197,27 +198,27 @@ with
 end;
 
 // check for the empty data structure
-null (Set_set nil)		= 1;
-null (Set_set _)		= 0;
+null (Set nil)		= 1;
+null (Set _)		= 0;
 
-null (Set_bag nil)		= 1;
-null (Set_bag _)		= 0;
+null (Bag nil)		= 1;
+null (Bag _)		= 0;
 
 // get a number of members in data structure
-#(Set_set m) |
-#(Set_bag m)			= #m
+#(Set m) |
+#(Bag m)			= #m
 with
   #nil 				= 0;
   #(bin _ _ m1 m2) 		= #m1 + #m2 + 1
 end;
 
 // check whether a key exists in data structure
-member (Set_set m) k::int |
-member (Set_set m) k::string |
-member (Set_set m) k |
-member (Set_bag m) k::int |
-member (Set_bag m) k::string |
-member (Set_bag m) k
+member (Set m) k::int |
+member (Set m) k::string |
+member (Set m) k |
+member (Bag m) k::int |
+member (Bag m) k::string |
+member (Bag m) k
 = member m k
 with
   member nil _			= 0;
@@ -231,8 +232,8 @@ with
 end;
 
 // get all members of data structure as a list
-members (Set_set m) |
-members (Set_bag m)
+members (Set m) |
+members (Bag m)
 = members m
 with
   members nil	= [];
@@ -243,9 +244,13 @@ with
 				= (members m1) + (x : (members m2))
 end;
 
+list m@(Set _) |
+list m@(Bag _)
+				= members m;
+
 // get the first member of an ordered data structure
-first (Set_set m) |
-first (Set_bag m)
+first (Set m) |
+first (Bag m)
 = first m
 with
   first (bin x _ nil _)		= x;
@@ -253,8 +258,8 @@ with
 end;
 
 // get the last member of an ordered data structure
-last (Set_set m) |
-last (Set_bag m)
+last (Set m) |
+last (Bag m)
 = last m
 with
   last (bin x _ _ nil)		= x;
@@ -262,8 +267,8 @@ with
 end;
 
 // remove the first member from an ordered data structure
-rmfirst (t@Set_set m) |
-rmfirst (t@Set_bag m)
+rmfirst (t@Set m) |
+rmfirst (t@Bag m)
 = t ((rmfirst m)!0)
 with
   rmfirst nil			= [nil, 0];
@@ -274,8 +279,8 @@ with
 end;
 
 // remove the last member from an ordered data structure
-rmlast (t@Set_set m) |
-rmlast (t@Set_bag m)
+rmlast (t@Set m) |
+rmlast (t@Bag m)
 = t ((rmlast m)!0)
 with
   rmlast nil			= [nil, 0];
@@ -286,45 +291,45 @@ with
 end;
 
 // set and bag relations
-m1@(Set_set _) == m2@(Set_set _) |
-m1@(Set_bag _) == m2@(Set_bag _)
+m1@(Set _) == m2@(Set _) |
+m1@(Bag _) == m2@(Bag _)
 				= (members m1 == members m2);
 
-m1@(Set_set _) != m2@(Set_set _) |
-m1@(Set_bag _) != m2@(Set_bag _)
+m1@(Set _) != m2@(Set _) |
+m1@(Bag _) != m2@(Bag _)
 				= (members m1 != members m2);
 
-m1@(Set_set _) <= m2@(Set_set _)
+m1@(Set _) <= m2@(Set _)
 				= all (member m2) (members m1);
-m1@(Set_bag _) <= m2@(Set_bag _)
+m1@(Bag _) <= m2@(Bag _)
 				= (m1 - m2) == nil;
 
-m1@(Set_set _) >= m2@(Set_set _)
+m1@(Set _) >= m2@(Set _)
 				= all (member m1) (members m2);
-m1@(Set_bag _) >= m2@(Set_bag _)
+m1@(Bag _) >= m2@(Bag _)
 				= (m2 - m1) == nil;
 
-m1@(Set_set _) < m2@(Set_set _) |
-m1@(Set_bag _) < m2@(Set_bag _)
+m1@(Set _) < m2@(Set _) |
+m1@(Bag _) < m2@(Bag _)
 				= if (m1 <= m2) then (m1 != m2) else 0;
 
-m1@(Set_set _) > m2@(Set_set _) |
-m1@(Set_bag _) > m2@(Set_bag _)
+m1@(Set _) > m2@(Set _) |
+m1@(Bag _) > m2@(Bag _)
 				= if (m1 >= m2) then (m1 != m2) else 0;
 
 // set and bag union
-m1@(Set_set _) + m2@(Set_set _) |
-m1@(Set_bag _) + m2@(Set_bag _)
+m1@(Set _) + m2@(Set _) |
+m1@(Bag _) + m2@(Bag _)
 				= foldl insert m1 (members m2);
 
 // set and bag difference
-m1@(Set_set _) - m2@(Set_set _) |
-m1@(Set_bag _) - m2@(Set_bag _)
+m1@(Set _) - m2@(Set _) |
+m1@(Bag _) - m2@(Bag _)
 				= foldl delete m1 (members m2);
 
 // set and bag intersection
-m1@(Set_set _) * m2@(Set_set _) |
-m1@(Set_bag _) * m2@(Set_bag _)
+m1@(Set _) * m2@(Set _) |
+m1@(Bag _) * m2@(Bag _)
 				= m1 -  (m1 - m2);
 
 
