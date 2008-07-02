@@ -138,7 +138,7 @@ table	(-1)	(-1)		= [( 0),	  0,		0];
 table	(-1)	( 1)		= [( 0),	  0,		1];
 end;
 
-// delete a meber by key from the data structure
+// delete a member by key from the data structure
 delete (t@Set m) y::int    |
 delete (t@Set m) y::string |
 delete (t@Set m) y         |
