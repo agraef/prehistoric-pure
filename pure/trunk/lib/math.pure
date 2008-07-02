@@ -550,10 +550,10 @@ x1 >= x2%y2	= x1*y2 >= x2;
 complexp x	= case x of x+:y | x<:y = realp x && realp y; _ = 0 end;
 rationalp x	= case x of x%y = bigintp x && bigintp y; _ = 0 end;
 realp x		= intp x || bigintp x || doublep x || rationalp x;
-nump x		= realp x || complexp x;
+numberp x	= realp x || complexp x;
 
 exactp x	= intp x || bigintp x || rationalp ||
-		  complexp x && exactp (re x) && exactp (im x) if nump x;
+		  complexp x && exactp (re x) && exactp (im x) if numberp x;
 
 infp x::double	= not nanp x && nanp (x-x);
 nanp x::double	= x===nan;
