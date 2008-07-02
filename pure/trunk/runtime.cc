@@ -1689,7 +1689,7 @@ pure_expr *pure_intval(pure_expr *x)
   assert(x);
   switch (x->tag) {
   case EXPR::INT:	return x;
-  case EXPR::BIGINT:	return pure_int(mpz_get_ui(x->data.z));
+  case EXPR::BIGINT:	return pure_int(mpz_get_si(x->data.z));
   case EXPR::DBL:	return pure_int((int32_t)x->data.d);
 #if SIZEOF_VOID_P==8
     // Must cast to 64 bit here first, since on 64 bit systems g++ gives an
