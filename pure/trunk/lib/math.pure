@@ -449,6 +449,12 @@ r<:t@(_%_)	= r <: atan2 (sin t) (cos t) if t<-pi || t>pi;
 num (x%y)	= x;
 den (x%y)	= y;
 
+num x::int	|
+num x::bigint	= x;
+
+den x::int	|
+den x::bigint	= 1;
+
 /* Absolute value and sign. */
 
 abs (x%y)	= abs x % y;
@@ -458,6 +464,9 @@ sgn (x%y)	= sgn x;
 
 floor x@(_%_)	= if n<=x then n else n-1 when n::bigint = trunc x end;
 ceil x@(_%_)	= -floor (-x);
+round (x%y)	= -round ((-x)%y) if x<0;
+		= x div 2 + 1 if y==2;
+		= (2*x+y) div (2*y) otherwise;
 trunc (x%y)	= x div y;
 frac x@(_%_)	= x-trunc x;
 
@@ -469,6 +478,12 @@ pow (x%y) n::bigint	= pow x n % pow y n if n>0;
 			= 1L%1L otherwise;
 pow (x%y) n::double	= pow (x/y) n;
 pow (x%y) (n%m)		= pow (x/y) (n/m);
+
+// Negative powers of integers.
+pow x::int n::int	|
+pow x::int n::bigint	|
+pow x::bigint n::int	|
+pow x::bigint n::bigint	= 1 % pow x (-n) if n<0;
 
 /* Fallback rules for other functions (inexact results). */
 
