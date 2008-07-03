@@ -77,8 +77,8 @@ thequeens n::int = case n of
       	halfn::int = n div 2;  // local variable halfn 
       	start::int = if (n mod 3) then (halfn-1) else 1;//(n mod 3) is special
        	start2::int = n-((start + 2*(halfn-1)) mod n)-1 // start reflections
-		end if (n mod 2) == 0; 			  // even sized boards finished
-     = 0:(map succ (thequeens (n-1))) // corner start 0: solves odd size boards!    
+		end if (n mod 2) == 0; 			 // even sized boards finished
+    = 0:(map succ (thequeens (n-1))) // corner start 0: solves odd size boards!   
 end; // end of case and thequeens
   
 

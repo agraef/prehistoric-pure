@@ -57,6 +57,7 @@ secs2dhms secs::double =
         d = h div 24 
    end;
    
-// an arbitrary binary operator applied to two days:hours:minutes:seconds 
+// an arbitrary binary operator applied to two (days,hours,minutes,seconds) 
 opdhms op (d1::int,h1::int,m1::int,s1)(d2::int,h2::int,m2::int,s2) =
    secs2dhms (op (dhms2secs (d1,h1,m1,s1)) (dhms2secs (d2,h2,m2,s2)));
+   

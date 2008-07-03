@@ -1,0 +1,57 @@
+// Mayan Calendar - Copyright (c) 2008 by Libor Spacek
+// Usage: pure -x date.pure [-h]]
+
+using system; 
+extern int time();
+
+puts "Mayan Calendar, Copyright (c) 2008 by Libor Spacek";
+
+def posixepoch = (12:17:16:7:5); // Mayan long count date of the posix epoch
+def epochday = mayan2days posixepoch; // Mayan day of the posix epoch
+def endofdays = 15695;    // posix days at the end of the cycle (13th baktun)
+def secsinday = 86400;    // number of seconds in a day
+def cycledays = mayan2days (13:0:0:0:0);
+   
+// time now in posix seconds converted to whole days
+posixdays = tm div secsinday when tm = time end; 
+
+// not used yet but could be: addmayan posixepoch (days2mayan posixdays)
+addmayan (baktun1::int:katun1::int:tun1::int:vinal1::int:kin1::int)
+   	   (baktun2::int:katun2::int:tun2::int:vinal2::int:kin2::int) =
+   baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(kin mod 20) 
+   when 
+   kin = kin1+kin2; vinal = vinal1+vinal2+(kin div 20); 
+   tun = tun1+tun2+(vinal div 18); katun = katun1+katun2+(tun div 20);
+   baktun = baktun1+baktun2+(katun div 20) 
+   end;
+   
+days2mayan d::int = baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(d mod 20)
+   when 
+   vinal =d div 20; tun =vinal div 18; katun =tun div 20; baktun =katun div 20
+   end;
+
+mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) = 
+   20*(18*(20*(20*baktun+katun)+tun)+vinal)+kin;
+
+// simple calculations to print
+daytoday = epochday + posixdays;
+mayantoday = days2mayan daytoday;
+daysleft = endofdays - posixdays;
+mayanleft = days2mayan daysleft;
+percentcomplete = 100.0 * daytoday / cycledays;
+
+usage = puts "Usage:  pure -x date.pure [anyarg]" $
+        puts "\tanyarg for help";
+
+case argc of 
+  1 = void (printf "Mayan long count today: %s = day %d of this cycle\n" 
+        ((str mayantoday), (mayan2days mayantoday))) $ 
+      void (printf "Mayan count down today:   %s = %d days left till the end\n" 
+        ((str mayanleft), daysleft)) $
+      void (printf "The Cycle is %f%% complete!\n" percentcomplete);
+  2 = void (puts "Mayan long count digits (and their range of values):") $
+      void (puts "Baktun(0-12):Katun(0-19):Tun(0-19):Vinal(0-17):Kin(0-19)")$
+      puts "Baktun=144000days:Katun=7200days:Tun=360days:Vinal=20days:Kin=1day"$
+      usage;
+  n = usage otherwise
+end;
