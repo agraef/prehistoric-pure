@@ -1,0 +1,56 @@
+// Some tests for set and bag data containers
+
+using set;
+
+// Create data structures
+
+let a = set (1..10);
+let b = set (6..10);
+ 
+let c = bag (1..10);
+let d = bag (6..10);
+
+let e = set (map str (1..10));
+let f = bag (map str (1..10));
+
+a; b; c; d; e; f;
+
+// Type tests
+
+setp a; setp c; bagp c; bagp a;
+
+// Tests for empty data sets
+
+null emptyset; null emptybag; null a; null c;
+
+// Remove the first and last member
+
+rmfirst a; rmfirst c; rmlast a; rmlast c;
+
+// Find the first and last member
+
+first a; last a; first c; last c;
+
+// Size of data set
+
+#a; #c;
+
+// Membership tests
+
+member a 5; member a 50; member c 5; member c 50;
+
+// Relations
+
+a == b; a != b; a < b; a <= b; a > b; a >= b;
+
+a == a; a != a; a < a; a <= a; a > a; a >= a;
+
+c == d; c != d; c < d; c <= d; c > d; c >= d;
+
+c == c; c != c; c < c; c <= c; c > c; c >= c;
+
+// Set operations
+
+a + b; a * b; a - b;
+
+c + d; c * d; c - d; (c + d) - d;
