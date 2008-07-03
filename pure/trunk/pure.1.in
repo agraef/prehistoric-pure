@@ -165,8 +165,10 @@ debug the prelude, use the
 .B -n
 option and specify the
 .B prelude.pure
-file explicitly on the command line. Alternatively, you can also use the
-interactive
+file explicitly on the command line. Verbose output is also suppressed for
+modules imported through a
+.B using
+clause. As a remedy, you can use the interactive
 .B list
 command (see the \fBINTERACTIVE USAGE\fP section below) to list definitions
 along with additional debugging information.
