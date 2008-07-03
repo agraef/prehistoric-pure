@@ -1,3 +1,9 @@
+2008-07-03  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (run): Temporarily suppress verbose output for
+	using clause. This also makes the some of the test logs much
+	smaller. Reported by Jiri Spitz.
+
 2008-07-02  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/math.pure: Added rational numbers.
