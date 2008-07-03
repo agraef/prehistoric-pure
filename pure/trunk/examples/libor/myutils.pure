@@ -1,31 +1,62 @@
-// Dr Libor Spacek, 21th May 2008
+/* General Utilities
+   Copyright (c) 2008 by Libor Spacek */
 
+//(1) Mathematics
 //General mathematical iterators over one and two indices
 MathIter1 op i1 i2 f = foldl1 op (map f (i1..i2));
+
 MathIter2 op i1 i2 j1 j2 f = 
 		foldl1 op (map (uncurry f) [x,y; x = i1..i2; y = j1..j2]);
+      
 //Examples on how to use the mathematical iterators
 Sigma i1 i2 f = MathIter1 (+) i1 i2 f;
+
 Pi i1 i2 f = MathIter1 (*) i1 i2 f;
+
 Factorial n = Pi 1L n id;
+
 //Binomial using (k, n-k) symmetry and bignum division
 Binomial n k = (Pi (k+1L) n id) div (Pi 2L (n-k) id) if n-k < k;
 	     = (Pi (n-k+1L) n id) div (Pi 2L k id);
-
+        
 // Euclid's recursive greatest common factor algorithm for ints and bignums
 Gcf x 0 | Gcf x 0L = x;
 Gcf x y = Gcf y (x mod y);
 
+//(2) List Processing
 // take the head of a list and put it at the end	
 rotate (h:t) = reverse (h:(reverse t));
-// protate = rotate n items from the front: use when n is positive: 0<=n<=#n
+
+// take n items from the front and put them at the end (n positive 0<=n<=#n)
 protate 0 l = l;
 protate n::int l = cat [(drop n l),(take n l)];
-// rotate n items, generalisation of "rotate the bits instruction"
-// example: head (nrotate (-33) (0..23)); 
-// what time is 33 hrs before midnight? 15 hrs. 
-// The clock was moved -33 mod 24 = -9 hours from midnight (0)
+
+// rotate n items, cf. "rotate n bits instruction" (n can now also be negative)
+// example applied to clocks: >head (nrotate (-33) (0..23)); 
+// what time is 33 hrs before midnight? Answer: 15 hrs.
 nrotate  n::int l = protate nm l when ll = #l; nm = ll + (n mod ll) end if n<0;
 	          = protate nm l when nm = n mod #l end;
 
+//(3) Time Calculations - seconds can be int or double or bigint. d,h,m are ints
+dhms2secs (d::int,h::int,m::int,s::int) |
+dhms2secs (d::int,h::int,m::int,s::double) |
+dhms2secs (d::int,h::int,m::int,s::bigint) = 60*(60*(24*d+h)+m)+s;
 
+secs2dhms secs::int | secs2dhms secs::bigint = 
+   (int d),(int (h mod 24)),(int (m mod 60)),(int (secs mod 60))
+   when 
+        m = secs div 60; 
+        h = m div 60; 
+        d = h div 24 
+   end;
+secs2dhms secs::double = 
+   (int d),(int (h mod 24)),(int (m mod 60)),(int (isecs mod 60))+(secs-isecs)
+   when isecs = (bigint secs); 
+        m = isecs div 60; 
+        h = m div 60; 
+        d = h div 24 
+   end;
+   
+// an arbitrary binary operator applied to two days:hours:minutes:seconds 
+opdhms op (d1::int,h1::int,m1::int,s1)(d2::int,h2::int,m2::int,s2) =
+   secs2dhms (op (dhms2secs (d1,h1,m1,s1)) (dhms2secs (d2,h2,m2,s2)));
