@@ -18,17 +18,19 @@ def epochday   = mayan2days posixepoch; // (mayan) day of the posix epoch
 def endofcycle = (13:0:0:0:0);   // The end of the cycle 
 def cycledays  = mayan2days endofcycle; // total days in 13 Baktuns
 def secsinday  = 86400.0;       // number of seconds in a day
-def trueyear =  31556941.0;// (in seconds) divisible by 13 = current true year
-def myyear   =  31556943.0;// div by 2277, secsinday compatible, 365.2424 days
-def gregyear =  31556952.0;// div by 40824, mean gregorian year, 365.2425 days
-
+def trueyear =  31556941;// (in seconds) divisible by 13 = current true year
+def myyear   =  31556943;// div by 2277, secsinday compatible, 365.2424 days
+def gregyear =  31556952;// div by 40824, mean gregorian year, 365.2425 days
+def lunarmonth = 2551443;  // lunar (synodic) month to the nearest second
+def newmoonsecs = dhms2secs(14063:2:19:0); // 3/July/08 in posix
+   
 // current posix time supplied by C time();
 posixsecsnow = time; // int -  each new call refreshes to the current second
 secsnow = posixsecsnow mod (int secsinday); // int seconds since midnight
 
 // first some simple conversions
-secs2days s::int | secs2days s::bigint = s div (int secsinday);
-secs2days s::double = s / secsinday; // this returns double days
+secs2days s::int | secs2days s::bigint = (s div (int secsinday));
+secs2days s::double = ( s / secsinday ); // this returns double days
 days2secs d::int = secsinday * d;
 days2hours d::int = 24*d;
 hours2days h::int = h div 24;
@@ -100,6 +102,8 @@ daysleft = cycledays - epochday - (secs2days (double posixsecsnow)); // double
 mayanleft = days2mayan ((int daysleft));
 timeleft = secs2htds ((int secsinday) - secsnow);
 percentcomplete = 100.0*(epochday+posixsecsnow/secsinday)/cycledays;
+   
+moonphase = 100.0*((int (posixsecsnow-newmoonsecs)) mod lunarmonth)/lunarmonth;
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
         puts "\tanyarg for help";
@@ -112,6 +116,7 @@ case argc of
          (daysleft, (str mayanleft), (str timeleft))) $
   void (printf "The Mayan cycle of over 5125 years is now %11.8f%% complete\n" 
          percentcomplete ) $
+  void (printf "Current Moonphase is %f%%\n" moonphase) $
   void (puts"****************************************************************");
   2 = 
   void(puts "Mayan long count digits (and their range of values):") $
@@ -120,7 +125,7 @@ case argc of
   void (puts "\nNew clock digits (and their range of values):") $
   void (puts "Hour(0-23) : Tre(0-19) : Dici(0-17) : Sec(0-9)")$
   puts "Hour=3600secs Tre=180secs Dici=10secs Sec=second\n"$
-  puts "Complete time count: Baktun:Katun:Tun:Vinal:Kin,Hour:Tre:Dici:Sec\n"
+  puts "Complete time count: Baktun:Katun:Tun:Vinal:Kin,Hour:Tre:Dici:Sec\n" $
   usage;
   n = usage otherwise
 end;
