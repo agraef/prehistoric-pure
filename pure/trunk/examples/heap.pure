@@ -86,17 +86,30 @@ with
   rmfirst (bin 0 _ h1  h2 )	= update (bin 1 (last h2) h1 (rmlast h2));
   rmfirst (bin 1 _ h1  h2 )	= update (bin 0 (last h1) (rmlast h1) h2);
 
-  last (bin 0 x nil nil)	= x;
+  last (bin 0 x::int    nil nil) |
+  last (bin 0 x::string nil nil) |
+  last (bin 0 x         nil nil)
+				= x;
   last (bin 0 _ _ h2)		= last h2;
   last (bin 1 _ h1 _)		= last h1;
 
-  update (bin 0 x nil nil)	= bin 0 x nil nil;
-  update (bin 1 x (bin b1 x1 h1 h2) nil)
+  update (bin 0 x::int    nil nil) |
+  update (bin 0 x::string nil nil) |
+  update (bin 0 x         nil nil)
+				= bin 0 x nil nil;
+  update (bin 1 x::int    (bin b1::int x1::int    h1 h2) nil) |
+  update (bin 1 x::string (bin b1::int x1::string h1 h2) nil) |
+  update (bin 1 x         (bin b1::int x1         h1 h2) nil)
 				= bin 1 x (bin b1 x1 h1 h2) nil
 				      if x <= x1;
 				= bin 1 x1 (update (bin b1 x h1 h2))
 				  nil otherwise;
-  update (bin b x (bin b1 x1 h1 h2) (bin b2 x2 h3 h4))
+  update (bin b::int x::int    (bin b1::int x1::int    h1 h2)
+					(bin b2::int x2::int    h3 h4)) |
+  update (bin b::int x::string (bin b1::int x1::string h1 h2)
+					(bin b2::int x2::string h3 h4)) |
+  update (bin b::int x         (bin b1::int x1         h1 h2)
+					(bin b2::int x2         h3 h4))
 				= bin b x (bin b1 x1 h1 h2) (bin b2 x2 h3 h4)
 				      if (x <= x1) && (x <= x2);
 				= bin b x1 (update (bin b1 x h1 h2))
@@ -112,12 +125,23 @@ with
 end;
 
 // insert a new member into a heap
+insert (Heap h) y::int    |
+insert (Heap h) y::string |
 insert (Heap h) y		= Heap (insert h y)
 with
+  insert nil y::int    |
+  insert nil y::string |
   insert nil y			= bin 0 y nil nil;
-  insert (bin 0 x h1 h2) y	= bin 1 x (insert h1 y) h2 if x <= y;
+
+  insert (bin 0 x::int    h1 h2) y::int    |
+  insert (bin 0 x::string h1 h2) y::string |
+  insert (bin 0 x         h1 h2) y
+				= bin 1 x (insert h1 y) h2 if x <= y;
 				= bin 1 y (insert h1 x) h2 otherwise;
-  insert (bin 1 x h1 h2) y	= bin 0 x h1 (insert h2 y) if x <= y;
+  insert (bin 1 x::int    h1 h2) y::int    |
+  insert (bin 1 x::string h1 h2) y::string |
+  insert (bin 1 x         h1 h2) y
+				= bin 0 x h1 (insert h2 y) if x <= y;
 				= bin 0 y h1 (insert h2 x) otherwise
 end;
 
@@ -127,7 +151,9 @@ with
   eq nil nil			= 1;
   eq nil (bin _ _ _ _)		= 0;
   eq (bin _ _ _ _) nil		= 0;
-  eq (bin b1 x1 h1 h2) (bin b2 x2 h3 h4)
+  eq (bin b1::int x1::int    h1 h2) (bin b2::int x2::int    h3 h4) |
+  eq (bin b1::int x1::string h1 h2) (bin b2::int x2::string h3 h4) |
+  eq (bin b1::int x1         h1 h2) (bin b2::int x2         h3 h4)
 				= if (b1 == b2)
 				  then if (x1 == x2)
 				       then if eq h1 h3
@@ -143,7 +169,9 @@ with
   neq nil nil			= 0;
   neq nil (bin _ _ _ _)		= 1;
   neq (bin _ _ _ _) nil		= 1;
-  neq (bin b1 x1 h1 h2) (bin b2 x2 h3 h4)
+  neq (bin b1::int x1::int    h1 h2) (bin b2::int x2::int    h3 h4) |
+  neq (bin b1::int x1::string h1 h2) (bin b2::int x2::string h3 h4) |
+  neq (bin b1::int x1         h1 h2) (bin b2::int x2         h3 h4)
 				= if (b1 != b2)
 				  then 1
 				  else if (x1 != x2)
