@@ -443,12 +443,16 @@ pure_expr* interpreter::run(const list<string> &sl, bool check)
 {
   uint8_t s_verbose = verbose;
   // Temporarily suppress verbose output for using clause.
-  compile();
-  verbose = 0;
+  if (verbose) {
+    compile();
+    verbose = 0;
+  }
   for (list<string>::const_iterator s = sl.begin(); s != sl.end(); s++)
     run(*s, check);
-  compile();
-  verbose = s_verbose;
+  if (s_verbose) {
+    compile();
+    verbose = s_verbose;
+  }
   return result;
 }
 
