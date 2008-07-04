@@ -22,15 +22,15 @@ def trueyear =  31556941;// (in seconds) divisible by 13 = current true year
 def myyear   =  31556943;// div by 2277, secsinday compatible, 365.2424 days
 def gregyear =  31556952;// div by 40824, mean gregorian year, 365.2425 days
 def lunarmonth = 2551443;  // lunar (synodic) month to the nearest second
-def newmoonsecs = dhms2secs(14063:2:19:0); // 3/July/08 in posix
+def newmoonsecs = dhms2secs(14063:2:19:0); // 3rd July 08 new moon in posix
    
-// current posix time supplied by C time();
+// current values in posix time supplied by C time();
 posixsecsnow = time; // int -  each new call refreshes to the current second
 secsnow = posixsecsnow mod (int secsinday); // int seconds since midnight
+moonphase = 100.0*((posixsecsnow-newmoonsecs) mod lunarmonth)/lunarmonth;
 
 // first some simple conversions
-secs2days s::int | secs2days s::bigint = (s div (int secsinday));
-secs2days s::double = ( s / secsinday ); // this returns double days
+secs2days s::int | secs2days s::bigint | secs2days s::double = (s / secsinday);
 days2secs d::int = secsinday * d;
 days2hours d::int = 24*d;
 hours2days h::int = h div 24;
@@ -39,7 +39,8 @@ hours2days h::int = h div 24;
 // seconds can be int or bigint or double. d,h,m are ints
 dhms2secs (d::int:h::int:m::int:s::int) |
 dhms2secs (d::int:h::int:m::int:s::bigint) |
-dhms2secs (d::int:h::int:m::int:s::double) = 60.0*(60*(24*d+h)+m)+s;
+dhms2secs (d::int:h::int:m::int:s::double) = 60*(60*(24*d+h)+m)+s;
+   
 secs2dhms secs::int | secs2dhms secs::bigint | secs2dhms secs::double =
    d:(h mod 24):(m mod 60):(secs-60*m)
    when 
@@ -47,6 +48,7 @@ secs2dhms secs::int | secs2dhms secs::bigint | secs2dhms secs::double =
         h::int = m div 60; 
         d::int = h div 24 
    end;
+   
 // an arbitrary binary operator applied to two (days:hours:minutes:seconds) 
 opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
    secs2dhms (op (dhms2secs (d1:h1:m1:s1)) (dhms2secs (d2:h2:m2:s2)));
@@ -55,7 +57,8 @@ opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
 // hours may be more than 24 but use d:h:m:s for longer periods of time
 hms2secs (h::int:m::int:s::int) |
 hms2secs (h::int:m::int:s::bigint) |
-hms2secs (h::int:m::int:s::double) = 60.0*(60*h+m)+s;
+hms2secs (h::int:m::int:s::double) = 60*(60*h+m)+s;
+   
 secs2hms secs::int | secs2hms secs::bigint | secs2hms secs::double = 
    h:(m mod 60):(secs-60*m)
    when 
@@ -68,7 +71,8 @@ secs2hms secs::int | secs2hms secs::bigint | secs2hms secs::double =
 // dicis:secs are easy to read: 6:0 means 60 seconds, 12:5 125 seconds etc.
 // tres - multiply by three to get traditional babylonian minutes
 // hours as usual (24 hour clock)
-htds2secs (h::int:t::int:d::int:s::int) = 10.0*(18*(20*h+t)+d)+s;
+htds2secs (h::int:t::int:d::int:s::int) = 10*(18*(20*h+t)+d)+s;
+   
 secs2htds secs::int | secs2htds secs::bigint | secs2htds secs::double =
    h:(t mod 20):(d mod 18):(secs-10*d)
    when 
@@ -97,26 +101,23 @@ mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) =
 
 // for now, let's just do some simple calculations to print
 daytoday = epochday + (secs2days posixsecsnow);  // mayan whole day count
-mayantoday = days2mayan daytoday; // as above but in mayan long count format
+mayantoday = days2mayan (int daytoday); // as above but in the long count format
 daysleft = cycledays - epochday - (secs2days (double posixsecsnow)); // double
 mayanleft = days2mayan ((int daysleft));
 timeleft = secs2htds ((int secsinday) - secsnow);
 percentcomplete = 100.0*(epochday+posixsecsnow/secsinday)/cycledays;
-   
-moonphase = 100.0*((int (posixsecsnow-newmoonsecs)) mod lunarmonth)/lunarmonth;
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
         puts "\tanyarg for help";
 
 case argc of 
-  1 = 
-  void (printf "Mayan day %d + UTC Time %s = %s,%s\n" (daytoday,
+  1 =  void (printf "\t\tThe moonphase now is: %7.4f%%\n" moonphase) $
+  void (printf "Mayan day %d + UTC Time %s = %s,%s\n" ((int daytoday),
          (str (secs2hms secsnow)),(str mayantoday),(str (secs2htds secsnow))))$ 
-  void (printf "Long countdown %f(days left) =  %s,%s\n" 
+  void (printf "Long countdown: %f days left =    %s,%s\n" 
          (daysleft, (str mayanleft), (str timeleft))) $
   void (printf "The Mayan cycle of over 5125 years is now %11.8f%% complete\n" 
          percentcomplete ) $
-  void (printf "Current Moonphase is %f%%\n" moonphase) $
   void (puts"****************************************************************");
   2 = 
   void(puts "Mayan long count digits (and their range of values):") $
