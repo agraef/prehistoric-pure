@@ -63,10 +63,10 @@ Balance: ( 1), ( 0), or (-1) denoting |L|-|R| = 1, 0, or -1, respectively
 *****/
 
 // set and bag type checks
-bagp (Bag _)		= 1;
+bagp (Bag _)			= 1;
 bagp _				= 0;
 
-setp (Set _)		= 1;
+setp (Set _)			= 1;
 setp _				= 0;
 
 // create an empty set or bag
@@ -197,14 +197,14 @@ with
   last (bin _ _ _ m2 )		= last m2
 end;
 
-// check for the empty data structure
+// check for the empty set or bag
 null (Set nil)		= 1;
 null (Set _)		= 0;
 
 null (Bag nil)		= 1;
 null (Bag _)		= 0;
 
-// get a number of members in data structure
+// get a number of members in set or bag
 #(Set m) |
 #(Bag m)			= #m
 with
@@ -212,7 +212,7 @@ with
   #(bin _ _ m1 m2) 		= #m1 + #m2 + 1
 end;
 
-// check whether a key exists in data structure
+// check whether a key exists in set or bag
 member (Set m) k::int |
 member (Set m) k::string |
 member (Set m) k |
@@ -231,7 +231,7 @@ with
 				= 1 if x == y
 end;
 
-// get all members of data structure as a list
+// get all members of set or bag as a list
 members (Set m) |
 members (Bag m)
 = members m
@@ -248,7 +248,7 @@ list m@(Set _) |
 list m@(Bag _)
 				= members m;
 
-// get the first member of an ordered data structure
+// get the first member of set or bag
 first (Set m) |
 first (Bag m)
 = first m
@@ -257,7 +257,7 @@ with
   first (bin _ _ m1  _)		= first m1
 end;
 
-// get the last member of an ordered data structure
+// get the last member of set or bag
 last (Set m) |
 last (Bag m)
 = last m
@@ -266,7 +266,7 @@ with
   last (bin _ _ _ m2 )		= last m2
 end;
 
-// remove the first member from an ordered data structure
+// remove the first member from set or bag
 rmfirst (t@Set m) |
 rmfirst (t@Bag m)
 = t ((rmfirst m)!0)
@@ -278,7 +278,7 @@ with
 	when [newL, leftHasChanged] = rmfirst l end
 end;
 
-// remove the last member from an ordered data structure
+// remove the last member from set or bag
 rmlast (t@Set m) |
 rmlast (t@Bag m)
 = t ((rmlast m)!0)
@@ -332,7 +332,7 @@ m1@(Bag _) * m2@(Bag _)
 /* Private functions, don't invoke these directly. */
 
 Set_adjustd ToF::int tree LoR::int
-= adjust ToF tree LoR
+				= adjust ToF tree LoR
 with
   adjust 0 oldTree _ 		= [oldTree, 0];
 
