@@ -1,5 +1,10 @@
-// Mayan Calendar - Copyright (c) 2008 by Libor Spacek
-// Usage: pure -x date.pure [-h]]
+/* Mayan Calendar - Copyright (c) 2008 by Libor Spacek
+
+   Usage: pure -x date.pure [-h]
+
+   Discrepancies with your local clock may occur when C library's time(); 
+   returns Posix time based on UTC (Universel Temps Coordonné) or TAI
+   (Temps Atomique Internacional) rather than local daylight saving time */
 
 using system; 
 extern int time();
@@ -11,11 +16,32 @@ def epochday = mayan2days posixepoch; // Mayan day of the posix epoch
 def endofdays = 15695;    // posix days at the end of the cycle (13th baktun)
 def secsinday = 86400;    // number of seconds in a day
 def cycledays = mayan2days (13:0:0:0:0);
+def year = 365.242374;
+def cycleyears = cycledays / year;
    
 // time now in posix seconds converted to whole days
-posixdays = tm div secsinday when tm = time end; 
+posixsecsnow = time;      // call posixsecsnow to refresh the current time
+posixdays = posixsecsnow div secsinday;
+secsnow = posixsecsnow mod secsinday; 
+   
+// time calculations on the usual days:hours:minutes:seconds format
+dhms2secs (d::int:h::int:m::int:s) = 60.0*(60*(24*d+h)+m)+s;
+// secs are usually double and can be int or bigint but d,h,m are always ints
+secs2dhms secs = 
+   d:(h mod 24):(m mod 60):(secs-60.0*m)
+   when 
+        m::int = int (secs / 60);
+        h::int = m div 60; 
+        d::int = h div 24 
+   end;
+   
+// an arbitrary binary operator applied to two (days,hours,minutes,seconds) 
+opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
+   secs2dhms (op (dhms2secs (d1:h1:m1:s1)) (dhms2secs (d2:h2:m2:s2)));
+   
+// Now follows the Mayan Calendar
 
-// not used yet but could be: addmayan posixepoch (days2mayan posixdays)
+// not used yet but could be, as in: addmayan posixepoch (days2mayan posixdays)
 addmayan (baktun1::int:katun1::int:tun1::int:vinal1::int:kin1::int)
    	   (baktun2::int:katun2::int:tun2::int:vinal2::int:kin2::int) =
    baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(kin mod 20) 
@@ -38,17 +64,20 @@ daytoday = epochday + posixdays;
 mayantoday = days2mayan daytoday;
 daysleft = endofdays - posixdays;
 mayanleft = days2mayan daysleft;
-percentcomplete = 100.0 * daytoday / cycledays;
+percentcomplete = 100.0*(epochday+posixsecsnow/secsinday)/cycledays;
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
         puts "\tanyarg for help";
 
 case argc of 
-  1 = void (printf "Mayan long count today: %s = day %d of this cycle\n" 
-        ((str mayantoday), (mayan2days mayantoday))) $ 
-      void (printf "Mayan count down today:   %s = %d days left till the end\n" 
-        ((str mayanleft), daysleft)) $
-      void (printf "The Cycle is %f%% complete!\n" percentcomplete);
+  1 = 
+  void (printf "Posix time now: %s\n" (str (secs2dhms posixsecsnow))) $ 
+  void (printf "Mayan long count date: %s = day %d\n" 
+       ((str mayantoday), (mayan2days mayantoday))) $ 
+  void (printf "Mayan countdown today:   %s = %d days till the cycle ends\n" 
+       ((str mayanleft), daysleft)) $
+  void (printf "The Mayan cycle of over %d years " (int cycleyears)) $
+  void (printf "is now %11.8f%% complete!\n" percentcomplete);
   2 = void (puts "Mayan long count digits (and their range of values):") $
       void (puts "Baktun(0-12):Katun(0-19):Tun(0-19):Vinal(0-17):Kin(0-19)")$
       puts "Baktun=144000days:Katun=7200days:Tun=360days:Vinal=20days:Kin=1day"$

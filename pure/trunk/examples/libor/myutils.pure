@@ -36,28 +36,3 @@ protate n::int l = cat [(drop n l),(take n l)];
 // what time is 33 hrs before midnight? Answer: 15 hrs.
 nrotate  n::int l = protate nm l when ll = #l; nm = ll + (n mod ll) end if n<0;
 	          = protate nm l when nm = n mod #l end;
-
-//(3) Time Calculations - seconds can be int or double or bigint. d,h,m are ints
-dhms2secs (d::int,h::int,m::int,s::int) |
-dhms2secs (d::int,h::int,m::int,s::double) |
-dhms2secs (d::int,h::int,m::int,s::bigint) = 60*(60*(24*d+h)+m)+s;
-
-secs2dhms secs::int | secs2dhms secs::bigint = 
-   (int d),(int (h mod 24)),(int (m mod 60)),(int (secs mod 60))
-   when 
-        m = secs div 60; 
-        h = m div 60; 
-        d = h div 24 
-   end;
-secs2dhms secs::double = 
-   (int d),(int (h mod 24)),(int (m mod 60)),(int (isecs mod 60))+(secs-isecs)
-   when isecs = (bigint secs); 
-        m = isecs div 60; 
-        h = m div 60; 
-        d = h div 24 
-   end;
-   
-// an arbitrary binary operator applied to two (days,hours,minutes,seconds) 
-opdhms op (d1::int,h1::int,m1::int,s1)(d2::int,h2::int,m2::int,s2) =
-   secs2dhms (op (dhms2secs (d1,h1,m1,s1)) (dhms2secs (d2,h2,m2,s2)));
-   
