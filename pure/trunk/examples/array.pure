@@ -182,31 +182,33 @@ update2 x@(Array a) (i::int, j::int) y
 				= update x i (update (x!i) j y);
 
 // compare two arrays for equality
-Array a == Array b		= a == b
+Array a == Array b		= eq a b
 with
-  nil == nil			= 1;
-  nil == tip _			= 0;
-  nil == bin _ _ _		= 0;
-  tip _ == nil			= 0;
-  tip x == tip y		= x == y;
-  tip _ == bin _ _ _		= 0;
-  bin _ _ _ == nil		= 0;
-  bin _ _ _ == tip _		= 0;
-  bin b1 a1 a2 == bin b2 a3 a4	= b1 == b2 && a1 == a3 && a2 == a4;
+  eq nil nil			= 1;
+  eq nil (tip _)		= 0;
+  eq nil (bin _ _ _)		= 0;
+  eq (tip _) nil		= 0;
+  eq (tip x) (tip y)		= x == y;
+  eq (tip _) (bin _ _ _)	= 0;
+  eq (bin _ _ _) nil		= 0;
+  eq (bin _ _ _) (tip _)	= 0;
+  eq (bin b1 a1 a2) (bin b2 a3 a4)
+				= b1 == b2 && eq a1 a3 && eq a2 a4;
 end;
 
 // compare two arrays for inequality
-Array a != Array b		= a != b
+Array a != Array b		= neq a b
 with
-  nil != nil			= 0;
-  nil != tip _			= 1;
-  nil != bin _ _ _		= 1;
-  tip _ != nil			= 1;
-  tip x != tip y		= x != y;
-  tip _ != bin _ _ _		= 1;
-  bin _ _ _ != nil		= 1;
-  bin _ _ _ != tip _		= 1;
-  bin b1 a1 a2 != bin b2 a3 a4	= b1 != b2 || a1 != a3 || a2 != a4;
+  neq nil nil			= 0;
+  neq nil (tip _)		= 1;
+  neq nil (bin _ _ _)		= 1;
+  neq (tip _) nil		= 1;
+  neq (tip x) (tip y)		= x != y;
+  neq (tip _) (bin _ _ _)	= 1;
+  neq (bin _ _ _) nil		= 1;
+  neq (bin _ _ _) (tip _)	= 1;
+  neq (bin b1 a1 a2) (bin b2 a3 a4)
+				= b1 != b2 || neq a1 a3 || neq a2 a4;
 end;
 
 /* Private functions, don't invoke these directly. */
