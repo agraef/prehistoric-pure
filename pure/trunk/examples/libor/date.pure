@@ -8,7 +8,7 @@
    (Temps Atomique International) rather than local daylight saving time */
 
 using system;      // this is needed just to get C printf
-extern int time(); // makes available the C function time();
+extern int time(int*) = c_time; // makes available the C function time();
 
 puts "****************************************************************";
 puts "*    New Calendar/Clock, Copyright (c) 2008 by Libor Spacek    *";
@@ -16,14 +16,14 @@ puts "****************************************************************";
 def posixepoch = (12:17:16:7:5); // Mayan long count date of the posix epoch
 def endofcycle = (13:0:0:0:0);   // The end of the cycle 
 def secsinday  = 86400;          // number of seconds in a day
-def trueyear =  31556941;// (in seconds) divisible by 13 = current true year
-def myyear   =  31556943;// div by 2277, secsinday compatible, 365.2424 days
-def gregyear =  31556952;// div by 40824, mean gregorian year, 365.2425 days
+def trueyear   = 31556941;// (in seconds) divisible by 13 = current true year
+def myyear     = 31556943;// div by 2277, secsinday compatible, 365.2424 days
+def gregyear   = 31556952;// div by 40824, mean gregorian year, 365.2425 days
 def lunarmonth = 2551443;  // lunar (synodic) month to the nearest second
-def newmoondhms = (14063:2:19:0); // 3rd July 08 new moon in posix dhms
+def newmoondhms= (14063:2:19:0); // 3rd July 08 new moon in posix dhms
    
 // current values in posix time supplied by C time();
-posixsecsnow = time; // int -  each new call refreshes to the current second
+posixsecsnow = c_time (pointer 0); // each call refreshes to the current second
 secsnow = posixsecsnow mod secsinday; // int seconds since midnight
 
 // first some simple conversions
@@ -113,7 +113,7 @@ timeleft = secs2htds (secsinday - secsnow);
 percentcomplete = 100.0*(epochday+posixsecsnow/secsinday)/cycledays;
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
-        puts "\tanyarg for help";
+        puts "\tanyarg for help\n";
 
 case argc of 
   1 = 
@@ -129,13 +129,13 @@ case argc of
          percentcomplete  $
    puts "****************************************************************";
   2 = 
-   puts "Mayan long count digits (and their range of values):" $
+   puts "Mayan long count digits and their ranges of values:" $
    puts "Baktun(0-12) : Katun(0-19) : Tun(0-19) : Vinal(0-17) : Kin(0-19)" $
    puts "Baktun=144000days Katun=7200days Tun=360days Vinal=20days Kin=day" $
-   puts "\nNew clock digits (and their range of values):" $
-   puts "Hour(0-23) : Tre(0-19) : Dici(0-17) : Sec(0-9)" $
-   puts "Hour=3600secs Tre=180secs Dici=10secs Sec=second\n" $
-   puts "Complete time count: Baktun:Katun:Tun:Vinal:Kin,Hour:Tre:Dici:Sec\n" $
+   puts "\nNew clock digits and their ranges of values:" $
+   puts "hour(0-23) : tre(0-19) : dici(0-17) : second(0-9)" $
+   puts "hour=3600s : tre=180s  : dici=10s   : s=second\n" $
+   puts "Full time spec: Baktun:Katun:Tun:Vinal:Kin hour:tre:dici:second\n" $
    usage;
   n = usage
 end;
