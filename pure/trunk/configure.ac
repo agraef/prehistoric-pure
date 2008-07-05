@@ -85,6 +85,8 @@ AM_ICONV
 AM_LANGINFO_CODESET
 dnl Determine how to get alloca.
 AC_FUNC_ALLOCA
+dnl Platform-dependent time functions.
+AC_CHECK_FUNCS(ftime gettimeofday nanosleep usleep)
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 

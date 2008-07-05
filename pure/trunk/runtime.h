@@ -546,6 +546,26 @@ void pure_sys_vars(void);
 int pure_errno(void);
 void pure_set_errno(int value);
 
+/* time() function. We provide an interface to this routine to account for
+   platform incompatibilities. The result is always int64_t, as time_t
+   nowadays is a 64 bit type on many OSes. We also provide wrappers for
+   ctime() and gmtime() which convert a time value to a string, using either
+   local or UTC time. */
+
+int64_t pure_time(void);
+char *pure_ctime(int64_t t);
+char *pure_gmtime(int64_t t);
+
+/* gettimeofday() interface. This may actually be implemented using different
+   system functions, depending on what's available on the host OS. */
+
+double pure_gettimeofday(void);
+
+/* nanosleep() interface. This may actually be implemented using different
+   system functions, depending on what's available on the host OS. */
+
+double pure_nanosleep(double t);
+
 #ifdef __MINGW32__
 /* Windows compatibility. */
 
