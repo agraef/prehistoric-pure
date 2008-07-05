@@ -25,6 +25,7 @@ char *alloca ();
 #include <readline/history.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <iostream>
 #include <sstream>
 
@@ -2340,6 +2341,111 @@ void pure_set_errno(int value)
   errno = value;
 }
 
+#include <time.h>
+
+extern "C"
+int64_t pure_time(void)
+{
+  return (int64_t)time(NULL);
+}
+
+extern "C"
+char *pure_ctime(int64_t t)
+{
+  time_t time = (time_t)t;
+  return ctime(&time);
+}
+
+extern "C"
+char *pure_gmtime(int64_t t)
+{
+  time_t time = (time_t)t;
+  return asctime(gmtime(&time));
+}
+
+#ifdef HAVE_GETTIMEOFDAY
+#include <sys/time.h>
+extern "C"
+double pure_gettimeofday(void)
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return ((double)tv.tv_sec)+((double)tv.tv_usec)*1e-6;
+}
+#else
+#ifdef HAVE_FTIME
+#include <sys/timeb.h>
+extern "C"
+double pure_gettimeofday(void)
+{
+  struct timeb tb;
+  ftime(&tb);
+  return ((double)tb.time)+((double)tb.millitm)*1e-3;
+}
+#else
+extern "C"
+double pure_gettimeofday(void)
+{
+  return (double)time(NULL);
+}
+#endif
+#endif
+
+#ifdef __MINGW32__
+#include <windows.h>
+double pure_nanosleep(double t)
+{
+  if (t > 0.0) {
+    unsigned long secs;
+    unsigned short msecs;
+    double ip, fp;
+    if (t > LONG_MAX) t = LONG_MAX;
+    fp = modf(t, &ip);
+    secs = (unsigned long)ip;
+    msecs = (unsigned short)(fp*1e3);
+    Sleep(secs*1000U+msecs);
+  }
+  return 0.0;
+}
+#else
+double pure_nanosleep(double t)
+{
+  if (t > 0.0) {
+    double ip, fp;
+    unsigned long secs;
+#ifdef HAVE_NANOSLEEP
+    unsigned long nsecs;
+    struct timespec req, rem;
+    fp = modf(t, &ip);
+    if (ip > LONG_MAX) { ip = (double)LONG_MAX; fp = 0.0; }
+    secs = (unsigned long)ip;
+    nsecs = (unsigned long)(fp*1e9);
+    req.tv_sec = secs; req.tv_nsec = nsecs;
+    if (nanosleep(&req, &rem))
+      return ((double)rem.tv_sec)+((double)rem.tv_nsec)*1e-9;
+    else
+      return 0.0;
+#else
+#ifdef HAVE_USLEEP
+    unsigned long usecs;
+    if (t > LONG_MAX) t = LONG_MAX;
+    fp = modf(t, &ip);
+    secs = (unsigned long)ip;
+    usecs = (unsigned long)(fp*1e6);
+    usleep(secs*1000000U+usecs);
+    return 0.0;
+#else
+    fp = modf(t, &ip);
+    if (ip > LONG_MAX) ip = (double)LONG_MAX;
+    secs = (unsigned long)ip;
+    return (double)sleep(secs);
+#endif
+#endif
+  } else
+    return 0.0;
+}
+#endif
+
 #ifdef __MINGW32__
 extern "C"
 FILE *popen(const char *command, const char *type)
@@ -2621,9 +2727,11 @@ void pure_sys_vars(void)
 {
   interpreter& interp = *interpreter::g_interp;
   // standard I/O streams
-  interp.defn("stdin",		pure_pointer(stdin));
+  interp.defn("stdin",	pure_pointer(stdin));
   interp.defn("stdout",	pure_pointer(stdout));
   interp.defn("stderr",	pure_pointer(stderr));
+  // clock
+  interp.defn("CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
   // fnmatch, glob
   interp.defn("FNM_NOESCAPE",	pure_int(FNM_NOESCAPE));
   interp.defn("FNM_PATHNAME",	pure_int(FNM_PATHNAME));

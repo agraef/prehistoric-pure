@@ -47,6 +47,48 @@ extern void perror(char*), char* strerror(int);
 errno			= pure_errno;
 set_errno val::int	= pure_set_errno val;
 
+/* Time functions. 'time' reports the current time in seconds since the
+   "epoch" a.k.a. 00:00:00 UTC, Jan 1 1970. The result is always a bigint (in
+   fact, the time value is already 64 bit on many OSes nowadays). The ctime
+   and gmtime functions convert a time value to a string in either local time
+   or UTC. (Note that the latter is actually a combination of the C gmtime()
+   and asctime() functions.) */
+
+extern long pure_time() = time;
+extern char* pure_ctime(long) = ctime;
+extern char* pure_gmtime(long) = gmtime;
+
+/* The gettimeofday function also returns wallclock time as seconds since the
+   epoch, but theoretically offers resolutions in the microsec range (actual
+   resolutions vary, but are usually in the msec range for contemporary
+   systems). The result is returned as a double value (which also limits
+   precision). This function may actually be implemented through different
+   system calls, depending on what's available on the host OS. */
+
+extern double pure_gettimeofday() = gettimeofday;
+
+/* The clock function returns the current CPU (not wallclock) time since an
+   arbitrary point in the past, as a machine int. The number of "ticks" per
+   second is given by the CLOCKS_PER_SEC constant. Note that this value will
+   wrap around approximately every 72 minutes.  */
+
+extern int clock();
+
+/* The sleep and nanosleep functions suspend execution for a given time
+   interval in seconds. 'sleep' takes integer (int/bigint) arguments only and
+   uses the sleep() system function. 'nanosleep' also accepts double arguments
+   and theoretically supports resolutions down to 1 nanosecond (again, actual
+   resolutions vary). This function may actually be implemented through
+   different system calls, depending on what's available on the host OS. Both
+   functions usually return zero, unless the sleep was interrupted by a
+   signal, in which case the time remaining to be slept is returned. */
+
+extern int sleep(int);
+extern double pure_nanosleep(double) = nanosleep;
+
+sleep t::bigint = sleep (int t);
+nanosleep t::int | nanosleep t::bigint = nanosleep (double t);
+
 /* Basic process operations: system executes a shell command, exit terminates
    the program with the given status code. */
 

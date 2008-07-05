@@ -1,3 +1,8 @@
+2008-07-06  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.cc/h, lib/system.pure: Added a few time functions to the
+	system interface.
+
 2008-07-03  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (run): Temporarily suppress verbose output for
