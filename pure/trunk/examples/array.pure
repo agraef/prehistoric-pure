@@ -171,7 +171,8 @@ end;
 update (Array a) i::int y	= Array (update a i y)
 with
   update (tip _) 0 y		= tip y;
-  update (bin b a1 a2) i::int y	= bin b (update a1 (i div 2) y) a2
+  update (bin b::int a1 a2) i::int y
+				= bin b (update a1 (i div 2) y) a2
 				    if i mod 2 == 0;
 				= bin b a1 (update a2 (i div 2) y)
 				    if i mod 2 == 1;
@@ -192,7 +193,7 @@ with
   eq (tip _) (bin _ _ _)	= 0;
   eq (bin _ _ _) nil		= 0;
   eq (bin _ _ _) (tip _)	= 0;
-  eq (bin b1 a1 a2) (bin b2 a3 a4)
+  eq (bin b1::int a1 a2) (bin b2::int a3 a4)
 				= b1 == b2 && eq a1 a3 && eq a2 a4;
 end;
 
@@ -207,7 +208,7 @@ with
   neq (tip _) (bin _ _ _)	= 1;
   neq (bin _ _ _) nil		= 1;
   neq (bin _ _ _) (tip _)	= 1;
-  neq (bin b1 a1 a2) (bin b2 a3 a4)
+  neq (bin b1::int a1 a2) (bin b2::int a3 a4)
 				= b1 != b2 || neq a1 a3 || neq a2 a4;
 end;
 
@@ -216,4 +217,4 @@ end;
 // construct a binary array node
 array_mkbin _ nil a2		= a2;
 array_mkbin _ a1 nil		= a1;
-array_mkbin b a1 a2		= bin b a1 a2;
+array_mkbin b::int a1 a2	= bin b a1 a2;
