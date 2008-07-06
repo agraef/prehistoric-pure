@@ -1,5 +1,8 @@
 /* New Calendar and Clock 
    Copyright (c) 2008 by Libor Spacek
+   
+   Acknowledgement: thanks to Dr Albert Graef for his "Q" code for the 
+   Gregorian date calculation 
 
    Usage: pure -x date.pure [-h]
 
@@ -8,13 +11,16 @@
    (Temps Atomique International) rather than local daylight saving time */
 
 using system;      // this is needed just to get C printf
-extern int time(int*) = c_time; // makes available the C function time();
+extern long time(long*) = c_time; // makes available the C function time();
 
 puts "****************************************************************";
 puts "*    New Calendar/Clock, Copyright (c) 2008 by Libor Spacek    *";
 puts "****************************************************************";
-def posixepoch = (12:17:16:7:5); // Mayan long count date of the posix epoch
-def endofcycle = (13:0:0:0:0);   // The end of the cycle 
+// def posixepoch = (12:17:16:7:5); // Mayan long count date of the posix epoch
+def mdayposix  = 1856305;        // Mayan day for the posix epoch Jan 1 1970
+def jdayposix  = 2440588;        // Julian day for the posix epoch
+// def endofcycle = (13:0:0:0:0);   // The end of the cycle
+def cycledays  = 1872000;        // Total days in 13 Baktuns
 def secsinday  = 86400;          // number of seconds in a day
 def trueyear   = 31556941;// (in seconds) divisible by 13 = current true year
 def myyear     = 31556943;// div by 2277, secsinday compatible, 365.2424 days
@@ -25,21 +31,33 @@ def newmoondhms= (14063:2:19:0); // 3rd July 08 new moon in posix dhms
 // current values in posix time supplied by C time();
 posixsecsnow = c_time (pointer 0); // each call refreshes to the current second
 secsnow = posixsecsnow mod secsinday; // int seconds since midnight
+   
+// either mayan or julian day (and time) as a day number (::double)
+mjday epoch::int secs::int |mjday epoch::int secs::bigint= epoch+secs/secsinday;
 
 // first some simple conversions
+jday2mday day::int | jday2mday day::double =  day - jdayposix + mdayposix;
+mday2jday day::int | mday2jday day::double =  day - mdayposix + jdayposix;  
+   
 secs2days s::int | secs2days s::bigint | secs2days s::double = (s / secsinday);
 days2secs d::int | days2secs d::bigint | deys2secs d::double = secsinday * d;
 days2hours d::int| days2hours d::bigint| days2hours d::double= 24*d;
 hours2days h::int = h / 24;
 
 // conversions from/to days:hours:minutes:seconds format
-// seconds can be int or bigint or double. d,h,m are ints
+// seconds can be int or double. d,h,m are ints
 dhms2secs (d::int:h::int:m::int:s::int) |
-dhms2secs (d::int:h::int:m::int:s::bigint) |
 dhms2secs (d::int:h::int:m::int:s::double) = 60*(60*(24*d+h)+m)+s;
    
-secs2dhms secs::int | secs2dhms secs::bigint | secs2dhms secs::double =
-   d:(h mod 24):(m mod 60):(secs-60*m)
+secs2dhms secs::int | secs2dhms secs::bigint  = 
+   d:(h mod 24):(m mod 60):(int (secs-60*m))
+   when 
+        m::int = int (secs / 60);
+        h::int = m div 60; 
+        d::int = h div 24 
+   end;      
+   
+secs2dhms secs::double =  d:(h mod 24):(m mod 60):(secs-60*m)
    when 
         m::int = int (secs / 60);
         h::int = m div 60; 
@@ -53,11 +71,14 @@ opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
 // conversions from/to hours:minutes:seconds format for displaying time of day.
 // hours may be more than 24 but use d:h:m:s for longer periods of time
 hms2secs (h::int:m::int:s::int) |
-hms2secs (h::int:m::int:s::bigint) |
 hms2secs (h::int:m::int:s::double) = 60*(60*h+m)+s;
    
-secs2hms secs::int | secs2hms secs::bigint | secs2hms secs::double = 
-   h:(m mod 60):(secs-60*m)
+secs2hms secs::int | secs2hms secs::bigint = h:(m mod 60):(int (secs-60*m))
+   when 
+        m::int = int (secs / 60);
+        h::int = m div 60; 
+   end;  
+secs2hms secs::double =  h:(m mod 60):(secs-60*m)
    when 
         m::int = int (secs / 60);
         h::int = m div 60; 
@@ -68,10 +89,18 @@ secs2hms secs::int | secs2hms secs::bigint | secs2hms secs::double =
 // dicis:secs are easy to read: 6:0 means 60 seconds, 12:5 125 seconds etc.
 // tres - multiply by three to get traditional babylonian minutes
 // hours as usual (24 hour clock)
-htds2secs (h::int:t::int:d::int:s::int) = 10*(18*(20*h+t)+d)+s;
+htds2secs (h::int:t::int:d::int:s::int)| 
+htds2secs (h::int:t::int:d::int:s::double) = 10*(18*(20*h+t)+d)+s;
    
-secs2htds secs::int | secs2htds secs::bigint | secs2htds secs::double =
-   h:(t mod 20):(d mod 18):(secs-10*d)
+secs2htds secs::int | secs2htds secs::bigint  =
+   h:(t mod 20):(d mod 18):(int (secs-10*d))
+   when 
+        d::int = int (secs / 10);
+        t::int = d div 18; 
+        h::int = t div 20 
+   end;
+
+secs2htds secs::double = h:(t mod 20):(d mod 18):(secs-10*d)
    when 
         d::int = int (secs / 10);
         t::int = d div 18; 
@@ -96,29 +125,39 @@ days2mayan d::int = baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(d mod 20)
 mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) = 
    20*(18*(20*(20*baktun+katun)+tun)+vinal)+kin;
    
-// moon calculations
-moonphase psecs::int=((psecs-(dhms2secs newmoondhms))mod lunarmonth)/lunarmonth;
-// full moon percentage at psecs posix seconds
-fullmoon psecs::int = if mf > 0.5 then 200.0*(1.0-mf) else 200.0*mf 
-   when mf = moonphase psecs end;
+/* Gregorian date for Julian day number. Please note that these dates are
+   historically correct only after the introduction of the Gregorian calendar
+   in 1582 (even much later in some countries). */
 
+date N::int  = (E-(153*M+2) div 5+1, M+3-12*(M div 10), 100*B+D-4800+M div 10)
+          when A = N+32044; B = (4*A+3) div 146097;
+            C = A-146097*B div 4; D = (4*C+3) div 1461;
+            E = C-1461*D div 4; M = (5*E+2) div 153 end;
+   
+   
+// moon calculations
+moonphase psecs::int | moonphase psecs::bigint =
+   ((psecs-(dhms2secs newmoondhms))mod lunarmonth)/lunarmonth;
+// full moon percentage at psecs posix seconds
+fullmoon psecs::int | fullmoon psecs::bigint = 
+   if mf > 0.5 then 200.0*(1.0-mf) else 200.0*mf when mf = moonphase psecs end;
+   
 // for now, let's just do some simple calculations to print
-def epochday   = mayan2days posixepoch; // (mayan) day of the posix epoch
-def cycledays  = mayan2days endofcycle; // total days in 13 Baktuns
-daytoday = epochday + (secs2days posixsecsnow);  // mayan whole day count
+daytoday = mjday mdayposix posixsecsnow; // mayan day (double)
 mayantoday = days2mayan (int daytoday); // as above but in the long count format
-daysleft = cycledays-epochday-(secs2days (double posixsecsnow)); // double
+daysleft = cycledays - daytoday;
 mayanleft = days2mayan ((int daysleft));
 timeleft = secs2htds (secsinday - secsnow);
-percentcomplete = 100.0*(epochday+posixsecsnow/secsinday)/cycledays;
+percentcomplete = 100.0*daytoday/cycledays;
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
         puts "\tanyarg for help\n";
 
 case argc of 
-  1 = 
-   printf "%s \tUTC Time in h:m:s\n"  (str (secs2hms secsnow)) $ 
-   printf "%s \tUTC Time in h:t:d:s\n"  (str (secs2htds (secsnow-1)))$ 
+  1 =
+   printf "%s \tToday's Gregorian Date\n"(str(date(mday2jday(int daytoday))))$
+   printf "%s  \tUTC Time in h:m:s\n"  (str (secs2hms secsnow)) $ 
+   printf "%s \tUTC Time in h:t:d:s\n"  (str (secs2htds secsnow))$ 
    printf "%7.4f %% \tFullness of the Moon\n" (fullmoon posixsecsnow) $
    printf "%d \tMayan day number\n" (int daytoday) $
    printf "%s \tMayan long count notation for this day\n" (str mayantoday) $
