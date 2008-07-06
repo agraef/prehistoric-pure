@@ -1,3 +1,8 @@
+2008-07-07  Albert Graef  <Dr.Graef@t-online.de>
+
+	* printer.cc: Add missing parens around low-precedence elements in
+	proper lists. Reported by Jiri Spitz.
+
 2008-07-06  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/prelude.pure: Added new "mapsto" constructor. Requested by
