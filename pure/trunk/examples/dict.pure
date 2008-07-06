@@ -33,6 +33,10 @@
 /* Empty tree constant, consider this private. */
 nullary nil;
 
+/* Definition of the mapsto operator used for key=>value pairs */
+infix 2 => ;
+
+
 /*****
 Tree for dict and hdict is either:
 -  nil  (empty tree) or
@@ -46,7 +50,7 @@ Balance: ( 1), ( 0), or (-1) denoting |L|-|R| = 1, 0, or -1, respectively
 
 emptydict, emptyhdict:		return the empty dict or bag
 dict xs, hdict xs;		create a dict or hdict from list xs
-dictp x, hdictp x;		check whether x is a dict or hdict
+dictp d, hdictp d;		check whether x is a dict or hdict
 mkdict y xs, mkhdixt y xs:	create dict or hdict from a list of keys and
 				a constant value
 
@@ -59,10 +63,11 @@ members d, list d		list members of d (in ascending order fo dict)
 keys d:				lists keys of d (in ascending order fo dict)
 values d:			list values of d
 
-first m, last m			return first and last member of dict
-rmfirst m, rmlast m		remove first and last member from dict
-insert m x			insert x into d (replace existing element)
-delete m x			remove x from d
+first d, last d			return first and last member of dict
+rmfirst d, rmlast d		remove first and last member from dict
+insert d xy			insert x into d (replace existing element)
+update d x y			fully curried version of insert
+delete d x			remove x from d
 
    *************************************************************************/
 
@@ -83,10 +88,10 @@ dict  xys			= foldl insert emptydict  xys if listp xys;
 hdict xys			= foldl insert emptyhdict xys if listp xys;
 
 // insert a new member into the dict or hdict
-insert (t@Dict  d) [x::int,    y] |
-insert (t@Dict  d) [x::string, y] |
-insert (t@Dict  d) [x,         y] |
-insert (t@Hdict d) [x,         y]
+insert (t@Dict  d) (x::int    => y) |
+insert (t@Dict  d) (x::string => y) |
+insert (t@Dict  d) (x         => y) |
+insert (t@Hdict d) (x         => y)
 	= if t === Dict
 		then t ((insertd d x y)!0)
 		else t ((inserth d (hash x) x y)!0)
@@ -119,7 +124,7 @@ with
 	end
 	if key > k;
 
-  inserth nil k::int x y	= [(bin k [[x, y]] ( 0) nil nil), 1];
+  inserth nil k::int x y	= [(bin k [x => y] ( 0) nil nil), 1];
 
   inserth (bin k::int v b l r) key::int x y
 		= [(bin k (inserth2 v x y) b l r), 0] if k == key;
@@ -138,9 +143,11 @@ with
 	end
 	if key > k;
 
-  inserth2 [] x  y		= [x, y]:[];
-  inserth2 ([x1, y] :xys) x2 y1	= ([x1, y1]:xys) if x1 === x2;
-  inserth2 ([x,  y] :xys) x1 y1	= ([x,  y]:(inserth2 xys x1 y1));
+  inserth2 [] x  y		= [x => y];
+  inserth2 ((x1 => y):xys) x2 y1
+				= ((x1 => y1):xys) if x1 === x2;
+  inserth2 ((x  => y):xys) x1 y1
+				= ((x  => y ):(inserth2 xys x1 y1));
 
   adjust 0 oldTree _		= [oldTree, 0];
 
@@ -267,8 +274,8 @@ with
 	if key > k;
 
   deleteh2 [] _			= [];
-  deleteh2 ([x1 ,_] : xys) x2	= xys if x1 === x2;
-  deleteh2 ([x,  y] : xys) x1	= [x, y] : (deleteh2 xys x1);
+  deleteh2 ((x1 => _) : xys) x2	= xys if x1 === x2;
+  deleteh2 ((x  => y) : xys) x1	= (x => y) : (deleteh2 xys x1);
 
   rmlast nil			= [nil, 0];
   rmlast (bin _ _ _      l nil)	= [l,   1];
@@ -329,8 +336,8 @@ with
 				= memberk xys x1;
 
   memberk [] _	 		= 0;
-  memberk ([x1, y]:_  ) x2	= 1 if x1 === x2;
-  memberk (      _:xys) x2	= memberk xys x2
+  memberk ((x1 => y):_  ) x2	= 1 if x1 === x2;
+  memberk (        _:xys) x2	= memberk xys x2
 end;;
 
 // get all members of dict or hdict
@@ -341,7 +348,7 @@ with
   members (bin x::int    y _ d1 d2) |
   members (bin x::string y _ d1 d2) |
   members (bin x         y _ d1 d2)
-				= members d1 + ([x, y] : (members d2))
+				= members d1 + ((x => y) : (members d2))
 end;
 
 members (Hdict d)		= members d
@@ -356,14 +363,14 @@ list d@(Hdict _)		= members d;
 // get the first member of a dict
 first (Dict d)			= first d
 with
-  first (bin x y _ nil _)	= [x, y];
+  first (bin x y _ nil _)	= (x => y);
   first (bin _ _ _ d1  _)	= first d1
 end;
 
 // get the last member of a dict
 last (Dict d)			= last d
 with
-  last (bin x y _ _ nil)	= [x, y];
+  last (bin x y _ _ nil)	= (x => y);
   last (bin _ _ _ _ d2 )	= last d2
 end;
 
@@ -405,7 +412,7 @@ end;
 keys (Hdict d)	= keys d
 with
   keys nil			= [];
-  keys (bin _ xys _ d1 d2)	= keys d1 + map (\d -> d!0) xys + keys d2
+  keys (bin _ xys _ d1 d2)	= keys d1 + map (\(key => _) -> key) xys + keys d2
 end;
 
 // get a list of all values from dict or hdict
@@ -418,7 +425,7 @@ end;
 vals (Hdict d)	= vals d
 with
   vals nil			= [];
-  vals (bin _ xys _ d1 d2)	= vals d1 + map (\d -> d!1) xys + vals d2
+  vals (bin _ xys _ d1 d2)	= vals d1 + map (\(_ => val) -> val) xys + vals d2
 end;
 
 // get a value by key from dict or hdict
@@ -446,8 +453,8 @@ with
 				= lookupk xys x1;
 
   lookupk []	       _	= throw out_of_bounds;
-  lookupk ([xa,y]:  _) xb	= y if xa === xb;
-  lookupk (    _ :xys) x	= lookupk xys x
+  lookupk ((xa => y):_  ) xb	= y if xa === xb;
+  lookupk (       _ :xys) x	= lookupk xys x
 end;
 
 // curried version of insert for dict and hdict
@@ -458,9 +465,20 @@ update d@(Hdict _) x         y
 				= insert d [x, y];
 
 // equality checks for dict and hdict
-(Dict  d1) == (Dict  d2)	= (members d1) == (members d2);
+d1@(Dict  _) == d2@(Dict  _)	= eq (members d1) (members d2)
+with
+  eq [] []			= 1;
+  eq (x:xs) []			= 0;
+  eq [] (x:xs)			= 0;
+  eq (x:xs) (y:ys)		= if eq x y then eq xs ys else 0;
 
-(Hdict d1) == (Hdict d2)
+  eq (x1::int    => y1)  (x2::int    => y2) |
+  eq (x1::string => y1)  (x2::string => y2) |
+  eq (x1         => y1)  (x2         => y2)
+				= x1 == x2 && y1 == y2
+end;
+
+d1@(Hdict _) == d2@(Hdict _)
 	= if (all (member d1) (keys d2))
   		then
 			if (all (member d2) (keys d1))
@@ -470,9 +488,20 @@ update d@(Hdict _) x         y
 
 
 // inequality checks for dict and hdict
-(Dict  d1) != (Dict  d2)	= (members d1) != (members d2);
-(Hdict d1) != (Hdict d2)	= not (d1 == d2);
+d1@(Dict  _) != d2@(Dict  _)	= neq (members d1) (members d2)
+with
+  neq [] []			= 0;
+  neq (x:xs) []			= 1;
+  neq [] (x:xs)			= 1;
+  neq (x:xs) (y:ys)		= if neq x y then 1 else neq xs ys;
 
+  neq (x1::int    => y1) (x2::int    => y2) |
+  neq (x1::string => y1) (x2::string => y2) |
+  neq (x1         => y1) (x2         => y2)
+				= x1 != x2 || y1 != y2
+end;
+
+d1@(Hdict _) != d2@(Hdict _)	= not (d1 == d2);
 
 /* Private functions, don't invoke these directly. */
 
