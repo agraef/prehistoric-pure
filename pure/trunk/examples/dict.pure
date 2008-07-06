@@ -33,10 +33,6 @@
 /* Empty tree constant, consider this private. */
 nullary nil;
 
-/* Definition of the mapsto operator used for key=>value pairs */
-infix 2 => ;
-
-
 /*****
 Tree for dict and hdict is either:
 -  nil  (empty tree) or
