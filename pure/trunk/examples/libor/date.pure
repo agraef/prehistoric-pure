@@ -10,8 +10,8 @@
    returns Posix time based on UTC (Universal Temps Coordinat) or TAI
    (Temps Atomique International) rather than local daylight saving time */
 
-using system;      // this is needed just to get C printf
-extern long time(long*) = c_time; // makes available the C function time();
+using system;      
+// extern long time(long*) = c_time; // Now replaced by time in system
 
 puts "****************************************************************";
 puts "*    New Calendar/Clock, Copyright (c) 2008 by Libor Spacek    *";
@@ -29,8 +29,7 @@ def lunarmonth = 2551443;  // lunar (synodic) month to the nearest second
 def newmoondhms= (14063:2:19:0); // 3rd July 08 new moon in posix dhms
    
 // current values in posix time supplied by C time();
-posixsecsnow = c_time (pointer 0); // each call refreshes to the current second
-secsnow = posixsecsnow mod secsinday; // int seconds since midnight
+secsnow = time mod secsinday; // int seconds since midnight
    
 // either mayan or julian day (and time) as a day number (::double)
 mjday epoch::int secs::int |mjday epoch::int secs::bigint= epoch+secs/secsinday;
@@ -143,7 +142,7 @@ fullmoon psecs::int | fullmoon psecs::bigint =
    if mf > 0.5 then 200.0*(1.0-mf) else 200.0*mf when mf = moonphase psecs end;
    
 // for now, let's just do some simple calculations to print
-daytoday = mjday mdayposix posixsecsnow; // mayan day (double)
+daytoday = mjday mdayposix time; // mayan day (double)
 mayantoday = days2mayan (int daytoday); // as above but in the long count format
 daysleft = cycledays - daytoday;
 mayanleft = days2mayan ((int daysleft));
@@ -158,7 +157,7 @@ case argc of
    printf "%s \tToday's Gregorian Date\n"(str(date(mday2jday(int daytoday))))$
    printf "%s  \tUTC Time in h:m:s\n"  (str (secs2hms secsnow)) $ 
    printf "%s \tUTC Time in h:t:d:s\n"  (str (secs2htds secsnow))$ 
-   printf "%7.4f %% \tFullness of the Moon\n" (fullmoon posixsecsnow) $
+   printf "%7.4f %% \tFullness of the Moon\n" (fullmoon time) $
    printf "%d \tMayan day number\n" (int daytoday) $
    printf "%s \tMayan long count notation for this day\n" (str mayantoday) $
    printf "%s \tLong countdown of days to the end of this cycle\n" 
