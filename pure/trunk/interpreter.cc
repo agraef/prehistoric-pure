@@ -606,7 +606,7 @@ static expr pure_expr_to_expr(pure_expr *x)
   case EXPR::DBL:
     return expr(EXPR::DBL, x->data.d);
   case EXPR::STR:
-    return expr(EXPR::STR, x->data.s);
+    return expr(EXPR::STR, strdup(x->data.s));
   case EXPR::PTR:
     if (x->data.p != 0)
       // Only null pointer constants permitted right now.
