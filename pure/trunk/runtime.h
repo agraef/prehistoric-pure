@@ -550,11 +550,16 @@ void pure_set_errno(int value);
    platform incompatibilities. The result is always int64_t, as time_t
    nowadays is a 64 bit type on many OSes. We also provide wrappers for
    ctime() and gmtime() which convert a time value to a string, using either
-   local or UTC time. */
+   the local timezone or UTC. */
 
 int64_t pure_time(void);
+
+/* The following routines allow you to convert a time value to a string, using
+   different formats. See ctime(3), gmtime(3) and strftime(3) for details. */
+
 char *pure_ctime(int64_t t);
 char *pure_gmtime(int64_t t);
+char *pure_strftime(const char *format, int64_t t);
 
 /* gettimeofday() interface. This may actually be implemented using different
    system functions, depending on what's available on the host OS. */

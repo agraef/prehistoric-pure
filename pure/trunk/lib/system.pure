@@ -49,14 +49,19 @@ set_errno val::int	= pure_set_errno val;
 
 /* Time functions. 'time' reports the current time in seconds since the
    "epoch" a.k.a. 00:00:00 UTC, Jan 1 1970. The result is always a bigint (in
-   fact, the time value is already 64 bit on many OSes nowadays). The ctime
-   and gmtime functions convert a time value to a string in either local time
-   or UTC. (Note that the latter is actually a combination of the C gmtime()
-   and asctime() functions.) */
+   fact, the time value is already 64 bit on many OSes nowadays). */
 
 extern long pure_time() = time;
+
+/* Functions to format a time value as a string. The ctime and gmtime
+   functions convert a time value to a string in either local time or UTC.
+   The strftime function also formats a time value as local time, using a
+   format specification supplied by the user. See ctime(3), gmtime(3) and
+   strftime(3) for details. */
+
 extern char* pure_ctime(long) = ctime;
 extern char* pure_gmtime(long) = gmtime;
+extern char* pure_strftime(char* format, long t) = strftime;
 
 /* The gettimeofday function also returns wallclock time as seconds since the
    epoch, but theoretically offers resolutions in the microsec range (actual
