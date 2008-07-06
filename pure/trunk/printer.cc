@@ -250,11 +250,21 @@ static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
     prec_t p;
     if (x.is_list(xs)) {
       // proper list value
+      size_t n = xs.size();
       os << "[";
-      for (exprl::const_iterator it = xs.begin(); it != xs.end(); ) {
-	printx(os, *it, pat);
-	if (++it != xs.end()) os << ",";
-      }
+      if (n>1) {
+	// list elements at a precedence not larger than ',' have to be
+	// parenthesized
+	p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
+	for (exprl::const_iterator it = xs.begin(); it != xs.end(); ) {
+	  os << paren(p, *it, pat);
+	  if (++it != xs.end()) os << ",";
+	}
+      } else
+	for (exprl::const_iterator it = xs.begin(); it != xs.end(); ) {
+	  printx(os, *it, pat);
+	  if (++it != xs.end()) os << ",";
+	}
       return os << "]";
     } else if (x.is_app(u, v)) {
       if (u.ftag() > 0 && (p = sym_nprec(u.ftag())) < 100 && p%10 >= 3) {
@@ -669,12 +679,23 @@ ostream& operator << (ostream& os, const pure_expr *x)
     prec_t p;
     if (pure_is_list(x, xs)) {
       // proper list value
+      size_t n = xs.size();
       os << "[";
-      for (list<const pure_expr*>::const_iterator it = xs.begin();
-	   it != xs.end(); ) {
-	os << *it;
-	if (++it != xs.end()) os << ",";
-      }
+      if (n>1) {
+	// list elements at a precedence not larger than ',' have to be
+	// parenthesized
+	p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
+	for (list<const pure_expr*>::const_iterator it = xs.begin();
+	     it != xs.end(); ) {
+	  os << pure_paren(p, *it);
+	  if (++it != xs.end()) os << ",";
+	}
+      } else
+	for (list<const pure_expr*>::const_iterator it = xs.begin();
+	     it != xs.end(); ) {
+	  os << *it;
+	  if (++it != xs.end()) os << ",";
+	}
       return os << "]";
     }
     const pure_expr *u = x->data.x[0], *v = x->data.x[1], *w, *y;
