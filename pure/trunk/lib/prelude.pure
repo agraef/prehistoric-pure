@@ -47,6 +47,7 @@ nullary    [] ();		// empty list and tuple
 
 infixr 0   $ ;			// right-associative application
 infixr 1   , ;			// pair (tuple)
+infix  2   => ;			// mapsto constructor
 infixr 2   || ;			// logical or (short-circuit)
 infixr 3   && ;			// logical and (short-circuit)
 prefix 3   not ;		// logical negation
@@ -88,6 +89,13 @@ curry3 f x y z	= f (x,y,z);
 uncurry f (x,y)	= f x y;
 uncurry3 f (x,y,z)
 		= f x y z;
+
+/* "Mapsto" operator. This constructor is declared here so that it can be used
+   in other standard library modules to denote special kind of pairs which map
+   keys to values. Here we only define equality of such pairs. */
+
+(x=>v)==(y=>w)	= if x==y then v==w else 0;
+(x=>v)!=(y=>w)	= if x!=y then 1 else v!=w;
 
 /* Poor man's tuples(TM). These are constructed with the pairing operator ',',
    are always flat and associate to the right. The empty tuple, denoted (), is
