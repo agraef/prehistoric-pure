@@ -285,8 +285,8 @@ end;
 
 
 // create dict or hdict from a list of keys and a constant value
-mkdict  y xs			= dict  (zip xs (repeat (#xs) y)) if listp xs;
-mkhdict y xs			= hdict (zip xs (repeat (#xs) y)) if listp xs;
+mkdict  y xs			= dict  (zipwith (=>) xs (repeat (#xs) y)) if listp xs;
+mkhdict y xs			= hdict (zipwith (=>) xs (repeat (#xs) y)) if listp xs;
 
 // check for the empty dict or hdict
 null (Dict nil)			= 1;
@@ -458,7 +458,7 @@ update d@(Dict  _) x::int    y |
 update d@(Dict  _) x::string y |
 update d@(Dict  _) x         y |
 update d@(Hdict _) x         y
-				= insert d [x, y];
+				= insert d (x => y);
 
 // equality checks for dict and hdict
 d1@(Dict  _) == d2@(Dict  _)	= (members d1) == (members d2);
