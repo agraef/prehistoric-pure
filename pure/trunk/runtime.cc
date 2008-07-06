@@ -2349,6 +2349,9 @@ int64_t pure_time(void)
   return (int64_t)time(NULL);
 }
 
+/* Note that the following are not thread-safe as they use statically
+   allocated buffers. */
+
 extern "C"
 char *pure_ctime(int64_t t)
 {
@@ -2361,6 +2364,20 @@ char *pure_gmtime(int64_t t)
 {
   time_t time = (time_t)t;
   return asctime(gmtime(&time));
+}
+
+extern "C"
+char *pure_strftime(const char *format, int64_t t)
+{
+  time_t time = (time_t)t;
+  static char buf[1024];
+  if (!strftime(buf, 1024, format, localtime(&time)))
+    /* The interface to strftime is rather brain-damaged since it returns zero
+       both in case of a buffer overflow and when the resulting string is
+       empty. We just pretend that there cannot be any errors and return an
+       empty string in both cases. */
+    buf[0] = 0;
+  return buf;
 }
 
 #ifdef HAVE_GETTIMEOFDAY
