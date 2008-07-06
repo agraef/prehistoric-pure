@@ -47,7 +47,7 @@ Balance: ( 1), ( 0), or (-1) denoting |L|-|R| = 1, 0, or -1, respectively
 emptydict, emptyhdict:		return the empty dict or bag
 dict xs, hdict xs;		create a dict or hdict from list xs
 dictp d, hdictp d;		check whether x is a dict or hdict
-mkdict y xs, mkhdixt y xs:	create dict or hdict from a list of keys and
+mkdict y xs, mkhdict y xs:	create dict or hdict from a list of keys and
 				a constant value
 
 #d				size of dict or hdict d
@@ -461,18 +461,7 @@ update d@(Hdict _) x         y
 				= insert d [x, y];
 
 // equality checks for dict and hdict
-d1@(Dict  _) == d2@(Dict  _)	= eq (members d1) (members d2)
-with
-  eq [] []			= 1;
-  eq (x:xs) []			= 0;
-  eq [] (x:xs)			= 0;
-  eq (x:xs) (y:ys)		= if eq x y then eq xs ys else 0;
-
-  eq (x1::int    => y1)  (x2::int    => y2) |
-  eq (x1::string => y1)  (x2::string => y2) |
-  eq (x1         => y1)  (x2         => y2)
-				= x1 == x2 && y1 == y2
-end;
+d1@(Dict  _) == d2@(Dict  _)	= (members d1) == (members d2);
 
 d1@(Hdict _) == d2@(Hdict _)
 	= if (all (member d1) (keys d2))
@@ -484,19 +473,7 @@ d1@(Hdict _) == d2@(Hdict _)
 
 
 // inequality checks for dict and hdict
-d1@(Dict  _) != d2@(Dict  _)	= neq (members d1) (members d2)
-with
-  neq [] []			= 0;
-  neq (x:xs) []			= 1;
-  neq [] (x:xs)			= 1;
-  neq (x:xs) (y:ys)		= if neq x y then 1 else neq xs ys;
-
-  neq (x1::int    => y1) (x2::int    => y2) |
-  neq (x1::string => y1) (x2::string => y2) |
-  neq (x1         => y1) (x2         => y2)
-				= x1 != x2 || y1 != y2
-end;
-
+d1@(Dict  _) != d2@(Dict  _)	= (members d1) != (members d2);
 d1@(Hdict _) != d2@(Hdict _)	= not (d1 == d2);
 
 /* Private functions, don't invoke these directly. */
