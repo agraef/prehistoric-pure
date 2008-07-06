@@ -2722,56 +2722,75 @@ pure_expr *reglist(const regex_t *preg, const char *s,
   return x;
 }
 
+static inline void
+df(interpreter& interp, const char* s, pure_expr *x)
+{
+  try {
+    interp.defn(s, x);
+  } catch (err &e) {
+    cerr << "warning: " << e.what() << endl;
+  }
+}
+
+static inline void
+cdf(interpreter& interp, const char* s, pure_expr *x)
+{
+  try {
+    interp.const_defn(s, x);
+  } catch (err &e) {
+    cerr << "warning: " << e.what() << endl;
+  }
+}
+
 extern "C"
 void pure_sys_vars(void)
 {
   interpreter& interp = *interpreter::g_interp;
   // standard I/O streams
-  interp.defn("stdin",	pure_pointer(stdin));
-  interp.defn("stdout",	pure_pointer(stdout));
-  interp.defn("stderr",	pure_pointer(stderr));
+  df(interp, "stdin",	pure_pointer(stdin));
+  df(interp, "stdout",	pure_pointer(stdout));
+  df(interp, "stderr",	pure_pointer(stderr));
   // clock
-  interp.defn("CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
+  cdf(interp, "CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
   // fnmatch, glob
-  interp.defn("FNM_NOESCAPE",	pure_int(FNM_NOESCAPE));
-  interp.defn("FNM_PATHNAME",	pure_int(FNM_PATHNAME));
-  interp.defn("FNM_PERIOD",	pure_int(FNM_PERIOD));
-  interp.defn("FNM_CASEFOLD",	pure_int(FNM_CASEFOLD));
-  interp.defn("GLOB_SIZE",	pure_int(sizeof(glob_t))); // not in POSIX
-  interp.defn("GLOB_ERR",	pure_int(GLOB_ERR));
-  interp.defn("GLOB_MARK",	pure_int(GLOB_MARK));
-  interp.defn("GLOB_NOSORT",	pure_int(GLOB_NOSORT));
-  interp.defn("GLOB_NOCHECK",	pure_int(GLOB_NOCHECK));
-  interp.defn("GLOB_NOESCAPE",	pure_int(GLOB_NOESCAPE));
+  cdf(interp, "FNM_NOESCAPE",	pure_int(FNM_NOESCAPE));
+  cdf(interp, "FNM_PATHNAME",	pure_int(FNM_PATHNAME));
+  cdf(interp, "FNM_PERIOD",	pure_int(FNM_PERIOD));
+  cdf(interp, "FNM_CASEFOLD",	pure_int(FNM_CASEFOLD));
+  cdf(interp, "GLOB_SIZE",	pure_int(sizeof(glob_t))); // not in POSIX
+  cdf(interp, "GLOB_ERR",	pure_int(GLOB_ERR));
+  cdf(interp, "GLOB_MARK",	pure_int(GLOB_MARK));
+  cdf(interp, "GLOB_NOSORT",	pure_int(GLOB_NOSORT));
+  cdf(interp, "GLOB_NOCHECK",	pure_int(GLOB_NOCHECK));
+  cdf(interp, "GLOB_NOESCAPE",	pure_int(GLOB_NOESCAPE));
 #ifndef __APPLE__
-  interp.defn("GLOB_PERIOD",	pure_int(GLOB_PERIOD));
-  interp.defn("GLOB_ONLYDIR",	pure_int(GLOB_ONLYDIR));
+  cdf(interp, "GLOB_PERIOD",	pure_int(GLOB_PERIOD));
+  cdf(interp, "GLOB_ONLYDIR",	pure_int(GLOB_ONLYDIR));
 #endif
-  interp.defn("GLOB_BRACE",	pure_int(GLOB_BRACE));
-  interp.defn("GLOB_NOMAGIC",	pure_int(GLOB_NOMAGIC));
-  interp.defn("GLOB_TILDE",	pure_int(GLOB_TILDE));
+  cdf(interp, "GLOB_BRACE",	pure_int(GLOB_BRACE));
+  cdf(interp, "GLOB_NOMAGIC",	pure_int(GLOB_NOMAGIC));
+  cdf(interp, "GLOB_TILDE",	pure_int(GLOB_TILDE));
   // regex stuff
-  interp.defn("REG_SIZE",	pure_int(sizeof(regex_t))); // not in POSIX
-  interp.defn("REG_EXTENDED",	pure_int(REG_EXTENDED));
-  interp.defn("REG_ICASE",	pure_int(REG_ICASE));
-  interp.defn("REG_NOSUB",	pure_int(REG_NOSUB));
-  interp.defn("REG_NEWLINE",	pure_int(REG_NEWLINE));
-  interp.defn("REG_NOTBOL",	pure_int(REG_NOTBOL));
-  interp.defn("REG_NOTEOL",	pure_int(REG_NOTEOL));
+  cdf(interp, "REG_SIZE",	pure_int(sizeof(regex_t))); // not in POSIX
+  cdf(interp, "REG_EXTENDED",	pure_int(REG_EXTENDED));
+  cdf(interp, "REG_ICASE",	pure_int(REG_ICASE));
+  cdf(interp, "REG_NOSUB",	pure_int(REG_NOSUB));
+  cdf(interp, "REG_NEWLINE",	pure_int(REG_NEWLINE));
+  cdf(interp, "REG_NOTBOL",	pure_int(REG_NOTBOL));
+  cdf(interp, "REG_NOTEOL",	pure_int(REG_NOTEOL));
   // regcomp error codes
-  interp.defn("REG_BADBR",	pure_int(REG_BADBR));
-  interp.defn("REG_BADPAT",	pure_int(REG_BADPAT));
-  interp.defn("REG_BADRPT",	pure_int(REG_BADRPT));
-  interp.defn("REG_ECOLLATE",	pure_int(REG_ECOLLATE));
-  interp.defn("REG_ECTYPE",	pure_int(REG_ECTYPE));
-  interp.defn("REG_EESCAPE",	pure_int(REG_EESCAPE));
-  interp.defn("REG_ESUBREG",	pure_int(REG_ESUBREG));
-  interp.defn("REG_EBRACK",	pure_int(REG_EBRACK));
-  interp.defn("REG_EPAREN",	pure_int(REG_EPAREN));
-  interp.defn("REG_EBRACE",	pure_int(REG_EBRACE));
-  interp.defn("REG_ERANGE",	pure_int(REG_ERANGE));
-  interp.defn("REG_ESPACE",	pure_int(REG_ESPACE));
+  cdf(interp, "REG_BADBR",	pure_int(REG_BADBR));
+  cdf(interp, "REG_BADPAT",	pure_int(REG_BADPAT));
+  cdf(interp, "REG_BADRPT",	pure_int(REG_BADRPT));
+  cdf(interp, "REG_ECOLLATE",	pure_int(REG_ECOLLATE));
+  cdf(interp, "REG_ECTYPE",	pure_int(REG_ECTYPE));
+  cdf(interp, "REG_EESCAPE",	pure_int(REG_EESCAPE));
+  cdf(interp, "REG_ESUBREG",	pure_int(REG_ESUBREG));
+  cdf(interp, "REG_EBRACK",	pure_int(REG_EBRACK));
+  cdf(interp, "REG_EPAREN",	pure_int(REG_EPAREN));
+  cdf(interp, "REG_EBRACE",	pure_int(REG_EBRACE));
+  cdf(interp, "REG_ERANGE",	pure_int(REG_ERANGE));
+  cdf(interp, "REG_ESPACE",	pure_int(REG_ESPACE));
   // regexec error codes
-  interp.defn("REG_NOMATCH",	pure_int(REG_NOMATCH));
-  interp.defn("REG_ESPACE",	pure_int(REG_ESPACE));
+  cdf(interp, "REG_NOMATCH",	pure_int(REG_NOMATCH));
 }

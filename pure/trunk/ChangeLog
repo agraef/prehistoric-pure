@@ -1,5 +1,8 @@
 2008-07-06  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (pure_sys_vars): Turn system constants into real
+	constant definitions.
+
 	* runtime.cc/h, lib/system.pure: Added a few time functions to the
 	system interface.
 
