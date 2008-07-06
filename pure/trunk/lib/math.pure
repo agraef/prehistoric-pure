@@ -237,9 +237,9 @@ cos (x+:y)	= cos x*cosh y +: -sin x*sinh y;
 tan (x+:y)	= (sin (2*x) +: sinh (2*y)) / (cos (2*x)+cosh (2*y));
 
 // These are best computed in rect and then converted back to polar.
-sin z@(r<:t)	= polar $ sin $ rect z;
-cos z@(r<:t)	= polar $ cos $ rect z;
-tan z@(r<:t)	= polar $ tan $ rect z;
+sin z@(r<:t)	= polar (sin (rect z));
+cos z@(r<:t)	= polar (cos (rect z));
+tan z@(r<:t)	= polar (tan (rect z));
 
 // Use complex logarithms for the inverses.
 asin z@(x+:y)	|
@@ -257,9 +257,9 @@ sinh (x+:y)	= sinh x*cos y +: cosh x*sin y;
 cosh (x+:y)	= cosh x*cos y +: sinh x*sin y;
 tanh (x+:y)	= (sinh (2*x) +: sin (2*y)) / (cosh (2*x)+cos (2*y));
 
-sinh z@(r<:t)	= polar $ sinh $ rect z;
-cosh z@(r<:t)	= polar $ cosh $ rect z;
-tanh z@(r<:t)	= polar $ tanh $ rect z;
+sinh z@(r<:t)	= polar (sinh (rect z));
+cosh z@(r<:t)	= polar (cosh (rect z));
+tanh z@(r<:t)	= polar (tanh (rect z));
 
 asinh z@(x+:y)	|
 asinh z@(r<:t)	= ln (z+sqrt (z*z+1));
@@ -280,10 +280,10 @@ atanh x::double	= atanh (x+:0);
 -(r<:t)		= r <: t+pi;
 
 (x1+:y1) + (x2+:y2)	= x1+x2 +: y1+y2;
-z1@(r1<:t1)+z2@(r2<:t2)	= polar $ rect z1 + rect z2;
+z1@(r1<:t1)+z2@(r2<:t2)	= polar (rect z1 + rect z2);
 
 (x1+:y1) - (x2+:y2)	= x1-x2 +: y1-y2;
-z1@(r1<:t1)-z2@(r2<:t2)	= polar $ rect z1 - rect z2;
+z1@(r1<:t1)-z2@(r2<:t2)	= polar (rect z1 - rect z2);
 
 (x1+:y1) * (x2+:y2)	= x1*x2-y1*y2 +: x1*y2+y1*x2;
 (r1<:t1) * (r2<:t2)	= r1*r2 <: t1+t2;
