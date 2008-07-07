@@ -35,7 +35,7 @@ def venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
 secsnow = time mod secsinday; // int seconds since midnight
 
 // strip the inconvenient \n off strings given by ctime, gmtime
-stripnl s::string = reverse (tail (reverse s));
+stripnl s::string = init s;
    
 // either mayan or julian posix epoch (and posix time) as a mjday number
 mjday epoch::int secs::int |mjday epoch::int secs::bigint= epoch+secs/secsinday;
