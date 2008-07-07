@@ -1,3 +1,8 @@
+2008-07-08  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/: Jiri Spitz' port of the Q container types were added to
+	the library (array.pure, dict.pure, heap.pure, set.pure).
+
 2008-07-07  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/strings.pure: Make slicing work with strings.
