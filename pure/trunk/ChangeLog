@@ -1,5 +1,10 @@
 2008-07-07  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/prelude.pure: Fixed a bug in init function. Reported by
+	Libor Spacek.
+
+	* runtime.cc/h, lib/system.pure: Added strftime function.
+
 	* printer.cc: Add missing parens around low-precedence elements in
 	proper lists. Reported by Jiri Spitz.
 
