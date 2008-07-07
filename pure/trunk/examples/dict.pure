@@ -52,6 +52,8 @@ mkdict y xs, mkhdict y xs:	create dict or hdict from a list of keys and
 
 #d				size of dict or hdict d
 d!x:				get value from d by key x
+d!!xs				slicing (get a list of values
+				from a list of keys)
 
 null d				tests whether d is the empty dict or hdict
 member d x			tests whether d contains member with key x
@@ -421,7 +423,9 @@ end;
 vals (Hdict d)	= vals d
 with
   vals nil			= [];
-  vals (bin _ xys _ d1 d2)	= vals d1 + map (\(_ => val) -> val) xys + vals d2
+  vals (bin _ xys _ d1 d2)	= vals d1 +
+				  map (\(_ => val) -> val) xys +
+				  vals d2
 end;
 
 // get a value by key from dict or hdict
@@ -450,6 +454,47 @@ with
 
   lookupk []	       _	= throw out_of_bounds;
   lookupk ((xa => y):_  ) xb	= y if xa === xb;
+  lookupk (       _ :xys) x	= lookupk xys x
+end;
+
+// slicing (get list of values from list of keys)
+(Dict d)!!xs			= slice d [] xs
+with
+  slice d ys (x:xs)		= slice d
+					(case mbr of nil = ys;
+					            (nonil y) = (y:ys) end) xs
+					when
+						mbr = d!x
+					end;
+  slice d ys []			= reverse ys;
+
+  nil!_				= nil;
+  (bin x::int    y _ d1 d2)!x1::int    |
+  (bin x::string y _ d1 d2)!x1::string |
+  (bin x         y _ d1 d2)!x1
+				= d1!x1 if x1 < x;
+				= d2!x1 if x1 > x;
+				= nonil y
+end;
+
+(Hdict d)!!xs			= slice d [] xs
+with
+  slice d ys (x:xs)		= slice d
+					(case mbr of nil = ys;
+					            (nonil y) = (y:ys) end) xs
+					when
+						mbr = lookup d (hash x) x
+					end;
+  slice d ys []			= reverse ys;
+
+  lookup nil _ _		= nil;
+  lookup (bin k::int xys _ d1 d2) k1::int x1
+				= lookup d1 k1 x1 if k > k1;
+				= lookup d2 k1 x1 if k < k1;
+				= lookupk xys x1;
+
+  lookupk []	       _	= nil;
+  lookupk ((xa => y):_  ) xb	= nonil y if xa === xb;
   lookupk (       _ :xys) x	= lookupk xys x
 end;
 
