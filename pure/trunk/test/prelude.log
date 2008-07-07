@@ -355,37 +355,37 @@ foldr1 f/*0:01*/ [x/*0:101*/] = x/*0:101*/;
 foldr1 f/*0:01*/ (x/*0:101*/:xs/*0:11*/) = f/*0:01*/ x/*0:101*/ (foldl1 (flip f/*0:01*/) (reverse xs/*0:11*/));
 head (x/*0:101*/:xs/*0:11*/) = x/*0:101*/;
 init [x/*0:101*/] = [];
-init (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [x/*0:101*/] xs/*0:11*/ with accum ys/*0:01*/ [] = reverse ys/*0:01*/; accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ xs/*0:1*/ = reverse ys/*0:01*/+init xs/*0:1*/ {
-  rule #0: accum ys [] = reverse ys
+init (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [x/*0:101*/] xs/*0:11*/ with accum ys/*0:01*/ [x/*0:101*/] = reverse ys/*0:01*/; accum ys/*0:01*/ (x/*0:101*/:xs/*0:11*/) = accum/*1*/ (x/*0:101*/:ys/*0:01*/) xs/*0:11*/; accum ys/*0:01*/ xs/*0:1*/ = reverse ys/*0:01*/+init xs/*0:1*/ {
+  rule #0: accum ys [x] = reverse ys
   rule #1: accum ys (x:xs) = accum (x:ys) xs
   rule #2: accum ys xs = reverse ys+init xs
   state 0: #0 #1 #2
 	<var> state 1
   state 1: #0 #1 #2
 	<var> state 2
-	[] state 3
-	<app> state 4
+	<app> state 3
   state 2: #2
-  state 3: #0 #2
-  state 4: #1 #2
+  state 3: #0 #1 #2
+	<var> state 4
+	<app> state 6
+  state 4: #2
 	<var> state 5
-	<app> state 7
   state 5: #2
-	<var> state 6
-  state 6: #2
-  state 7: #1 #2
+  state 6: #0 #1 #2
+	<var> state 7
+	: state 10
+  state 7: #2
 	<var> state 8
-	: state 11
   state 8: #2
 	<var> state 9
   state 9: #2
-	<var> state 10
-  state 10: #2
-  state 11: #1 #2
+  state 10: #0 #1 #2
+	<var> state 11
+  state 11: #0 #1 #2
 	<var> state 12
+	[] state 13
   state 12: #1 #2
-	<var> state 13
-  state 13: #1 #2
+  state 13: #0 #1 #2
 } end;
 last [x/*0:101*/] = x/*0:101*/;
 last (x/*0:101*/:xs/*0:11*/) = last xs/*0:11*/;

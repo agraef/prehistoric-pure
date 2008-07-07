@@ -263,7 +263,7 @@ head (x:xs)	= x;
 
 init [x]	= [];
 init (x:xs)	= accum [x] xs with
-		    accum ys []		= reverse ys;
+		    accum ys [x]	= reverse ys;
 		    accum ys (x:xs)	= accum (x:ys) xs;
 		    accum ys xs		= reverse ys+init xs;
 		  end;
