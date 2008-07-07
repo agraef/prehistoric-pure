@@ -1,5 +1,7 @@
 2008-07-07  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/strings.pure: Make slicing work with strings.
+
 	* lib/prelude.pure: Fixed a bug in init function. Reported by
 	Libor Spacek.
 

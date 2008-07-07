@@ -143,6 +143,11 @@ with
 			  end;
 end when m = #delim end if not null delim;
 
+/* Slicing. */
+
+s::string!!ns		= strcat [s!n; n=ns; n>=0 && n<m]
+			    when m::int = #s end;
+
 /* Define the customary list operations on strings, so that these can mostly
    be used as if they were lists. */
 
