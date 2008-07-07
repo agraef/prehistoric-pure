@@ -10,25 +10,25 @@
    returns Posix time based on UTC (Universal Temps Coordinat) or TAI
    (Temps Atomique International) rather than local daylight saving time */
 
-using system;   // import printf, time, ctime, gmtime, gettimeofday  
-// extern long time(long*) = c_time; //diy time, no longer needed
+using system;   // imports printf, time, ctime, gmtime, gettimeofday, strftime  
+// extern long time(long*) = c_time; // diy time, no longer needed
 // diytime = c_time (pointer 0);
 
 puts "****************************************************************";
 puts "*    New Calendar/Clock, Copyright (c) 2008 by Libor Spacek    *";
 puts "****************************************************************";
-// def posixepoch = (12:17:16:7:5); // Mayan long count date of the posix epoch
-def mdayposix  = 1856305;// Mayan day for the posix epoch Jan 1 1970
-def jdayposix  = 2440588;// Julian day for the posix epoch
+// some constants in whole days
+def mdayposix  = 1856305;// Mayan day for the posix epoch 1 Jan 1970
+def jdayposix  = 2440588;// Julian day (since 1 Jan 4713 BC) for the posix epoch
 def cycledays  = 1872000;// end of cycle: total days in 13 Baktuns
-
+// some constants in whole seconds
 def secsinday  = 86400;  // number of seconds in a day
-def trueyear   = 31556941;// (in seconds) divisible by 13 = current true year
+def trueyear   = 31556941;// current true year (divisible by 13) 
 def myyear     = 31556943;// div by 2277, secsinday compatible, 365.2424 days
 def gregyear   = 31556952;// div by 40824, mean gregorian year, 365.2425 days
-def lunarmonth = 2551443; // lunar (synodic) month to the nearest second
-def newmoon    = 1215051540;// 3rd July 2008, 2:19 am, new moon in posix seconds
-def venussyn   = 50450688;// seconds in a Venus synodic cycle
+def lunarmonth = 2551443; // duration of the lunar synodic month
+def fullmoon   = 1213810200;// 18th June 2008, 17:30, full moon in posix seconds
+def venussyn   = 50450688;// duration of the Venus synodic cycle
 def venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
    
 // current values in posix time supplied by C time();
@@ -37,10 +37,12 @@ secsnow = time mod secsinday; // int seconds since midnight
 // strip the inconvenient \n off strings given by ctime, gmtime
 stripnl s::string = init s;
    
-// either mayan or julian posix epoch (and posix time) as a mjday number
-mjday epoch::int secs::int |mjday epoch::int secs::bigint= epoch+secs/secsinday;
+// either mayan or julian posix epoch (plus posix seconds), gives a double mjday
+// to get current pday, use simple: secs2days time 
+mjday epoch::int secs::int| mjday epoch::int secs::bigint= epoch+secs/secsinday;
 
-// first some simple day conversions
+// all conversions between Julian (j) Mayan (m) and Posix (p), done in days
+// jday mday pday are numbers of days since their relevant origins (epochs)
 jday2mday day::int | jday2mday day::double =  day - jdayposix + mdayposix;
 mday2jday day::int | mday2jday day::double =  day - mdayposix + jdayposix; 
 jday2pday day::int | jday2pday day::double =  day - jdayposix;
@@ -54,8 +56,8 @@ days2secs d::int | days2secs d::bigint | days2secs d::double = secsinday * d;
 days2hours d::int| days2hours d::bigint| days2hours d::double= 24*d;
 hours2days h::int = h / 24;
 
-// conversions from/to days:hours:minutes:seconds format
-// seconds can be int or double. d,h,m are ints
+/* conversions from/to days:hours:minutes:seconds format
+   seconds can be int or double. d,h,m are ints */
 dhms2secs (d::int:h::int:m::int:s::int) |
 dhms2secs (d::int:h::int:m::int:s::double) = 60*(60*(24*d+h)+m)+s;
    
@@ -74,15 +76,15 @@ secs2dhms secs::double =  d:(h mod 24):(m mod 60):(secs-60*m)
         d::int = h div 24 
    end;
    
-// an arbitrary binary operator applied to two (days:hours:minutes:seconds) 
+// an arbitrary binary operator applied to two (days:hours:minutes:seconds)
 opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
    secs2dhms (op (dhms2secs (d1:h1:m1:s1)) (dhms2secs (d2:h2:m2:s2)));
       
-// conversions from/to hours:minutes:seconds format for displaying time of day.
-// hours may be more than 24 but use d:h:m:s for longer periods of time
+/* conversions from/to hours:minutes:seconds format for displaying time of day
+   hours may be more than 24 but use d:h:m:s for longer periods of time */
 hms2secs (h::int:m::int:s::int) |
 hms2secs (h::int:m::int:s::double) = 60*(60*h+m)+s;
-   
+
 secs2hms secs::int | secs2hms secs::bigint = h:(m mod 60):(int (secs-60*m))
    when 
         m::int = int (secs / 60);
@@ -94,11 +96,11 @@ secs2hms secs::double =  h:(m mod 60):(secs-60*m)
         h::int = m div 60; 
    end;
    
-// New Time Format! hours:3mins:10secs:secs = hours:tres:dicis:secs = h:t:d:s
-// the normal seconds are now just a single digit 0-9
-// dicis:secs are easy to read: 6:0 means 60 seconds, 12:5 125 seconds etc.
-// tres - multiply by three to get traditional babylonian minutes
-// hours as usual (24 hour clock)
+/* New Time Format: hours:3mins:10secs:secs = hours:tres:dicis:secs = h:t:d:s
+   the normal seconds are now just a single digit 0-9
+   dicis:secs are easy to read: 6:0 means 60 seconds, 12:5 125 seconds etc.
+   tres - multiply by three to get traditional babylonian minutes
+   hours as usual (24 hour clock) */
 htds2secs (h::int:t::int:d::int:s::int)| 
 htds2secs (h::int:t::int:d::int:s::double) = 10*(18*(20*h+t)+d)+s;
    
@@ -117,7 +119,17 @@ secs2htds secs::double = h:(t mod 20):(d mod 18):(secs-10*d)
         h::int = t div 20 
    end;
 
-// not used yet but could be, as in: addmayan posixepoch (days2mayan posixdays)
+// Mayan 'long count' calendar presentation format   
+days2mayan d::int = baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(d mod 20)
+   when 
+   vinal =d div 20; tun =vinal div 18; katun =tun div 20; baktun =katun div 20
+   end;
+
+mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) = 
+   20*(18*(20*(20*baktun+katun)+tun)+vinal)+kin;
+   
+/* Calculations in Mayan long count format, e.g. addmayan day1 day2
+   probably not needed, is the same as: days2mayan day1+day2; */
 addmayan (baktun1::int:katun1::int:tun1::int:vinal1::int:kin1::int)
    	   (baktun2::int:katun2::int:tun2::int:vinal2::int:kin2::int) =
    baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(kin mod 20) 
@@ -127,26 +139,24 @@ addmayan (baktun1::int:katun1::int:tun1::int:vinal1::int:kin1::int)
    baktun = baktun1+baktun2+(katun div 20) 
    end;
    
-days2mayan d::int = baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(d mod 20)
-   when 
-   vinal =d div 20; tun =vinal div 18; katun =tun div 20; baktun =katun div 20
-   end;
-
-mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) = 
-   20*(18*(20*(20*baktun+katun)+tun)+vinal)+kin;
-   
-/* Julian day number for Gregorian dates (D,M,Y). These count the number of
-   days since 1 January 4713 BC in the Julian calendar. */
-
+/* Gregorian calendar presentation format: (D,M,Y)  
+   unlike the Mayan long count, these dates are historically correct only after
+   the introduction of Gregorian calendar in 1582 (much later in non-catholic
+   countries). Ten days had been 'deleted' by pope Gregory. However, due to
+   ignoring 'pagan' advice, the corrected drift now builds up over the periods 
+   of 4,100,200,400 years. This buildup is currently 2.15 days between 1900 and
+   2100! On top of that, an uncorrected drift still remains, estimated as the
+   minimum of 8 days by the year 12000. 
+   These reasons make the Gregorian calendar dates useless for astronomical
+   purposes. Julian days (acknowledgement to Julius Caesar) are still used
+   and conversions to either Julian days or Mayan days are necessary. */
 greg2jdays (D::int,M::int,Y::int) = 
    D+(153*M+2) div 5+365*Y+Y div 4-Y div 100+Y div 400-32045
    when A = (14-M) div 12; Y = Y+4800-A; M = M+12*A-3 end; 
 
 greg2pdays date@(D::int,M::int,Y::int) = jday2pday (greg2jdays date);
- 
-/* Gregorian date (D,M,Y) for Julian day number. Please note that these dates 
-   are historically correct only after the introduction of the Gregorian 
-   calendar in 1582 (even much later in some countries). */
+greg2psecs g hms = 
+   (days2secs (greg2pdays g)) + (hms2secs hms); // date time -> psecs
 
 jdays2greg N::int  = 
    (E-(153*M+2) div 5+1, M+3-12*(M div 10), 100*B+D-4800+M div 10)
@@ -157,22 +167,28 @@ jdays2greg N::int  =
    
 pdays2greg N::int = jdays2greg (pday2jday N);
    
-// conjunction phase (of Moon and Venus for now) at psecs (posix seconds) time
-// expressed as percentage: inferior conjunction = 0% (new moon), superior=100%
-phase init::int length::int psecs::int | 
-phase init::int length::int psecs::bigint = 
-      if (mf > 0.5) then 200.0*(1.0-mf) else 200.0*mf 
-      when mf = ((psecs-init) mod length)/length end;
+/* phase of a cycle of 'length' from 'init' at time 'now' (must be same units)
+   this is surprisingly accurate without computing the full orbital elements */
+x::double mod y::int = 
+   (x - intx) + (intx mod y) when intx = (int x) end; // mod of a double
+phase init::int length::int now::int | 
+phase init::int length::int now::bigint |
+phase init::int length::int now::double = ((now-init) mod length)/length;
+
+// same as above but returns dhms till the completion   
+completion init::int length::int now::int |
+completion init::int length::int now::bigint |
+completion init::int length::int now::double = length - ((now-init) mod length);   
    
 // for now, let's just do some simple calculations to print
-moonpercent = phase newmoon lunarmonth time;
-vp = phase venusinf venussyn time;
-daytoday = mjday mdayposix time; // mayan day (double)
-mayantoday = days2mayan (int daytoday); // as above but in the long count format
-daysleft = cycledays - daytoday;
-mayanleft = days2mayan ((int daysleft));
-timeleft = secs2htds (secsinday - secsnow);
-percentcomplete = 100.0*daytoday/cycledays;
+nextfmoon = secs2days (completion fullmoon lunarmonth time); // in seconds
+nextvenus = secs2days (completion venusinf venussyn time);
+jdaytoday = int (mjday jdayposix time); // whole julian day
+daytoday  = mjday mdayposix time;       // double mayan day
+longtoday = str (days2mayan (int daytoday));
+nextcycle = completion 0 cycledays daytoday; // now in days
+mayanleft = str (days2mayan (int nextcycle));
+complete = 100.0*(phase 0 cycledays daytoday);
 
 usage = puts "Usage:  pure -x date.pure [anyarg]" $
         puts "\tanyarg for help\n";
@@ -180,21 +196,19 @@ usage = puts "Usage:  pure -x date.pure [anyarg]" $
 // here are test prints of some facts
 case argc of 
   1 =
-   puts ((stripnl (ctime time)) +  " Local Timestamp") $
-   puts ((stripnl (gmtime time)) +  " UTC   Timestamp") $
-//  printf "%s \tToday's Gregorian Date\n"(str(date(mday2jday(int daytoday))))$
-//  printf "%s  \tUTC Time in h:m:s\n"  (str (secs2hms secsnow)) $ 
-//  printf "%s \tUTC Time in h:t:d:s\n"  (str (secs2htds secsnow))$ 
-   printf "%7.4f %%\t\t Fullness of the Moon\n" moonpercent $
-   printf "%7.4f %%\t\t Venus between inf. and sup. conjunction\n" vp $
-   printf "%d \t\t Mayan day number\n" (int daytoday) $
-   printf "%d \t\t Julian day number\n" (int (mjday jdayposix time)) $
-   printf "%s\t\t Mayan long count date for today\n" (str mayantoday) $
-   printf "%s\t\t Long countdown to the end of this cycle\n" 
-         (str mayanleft) $
-//  printf "%s \tTime (h:t:d:s) countdown of today\n" (str timeleft) $
-   printf "%11.8f %%\t\t Completion of this cycle of >5125 years\n" 
-         percentcomplete  $
+   puts ((strftime "%x" time) + "\t Gregorian preferred date") $
+   puts ((strftime "%X" time) + "\t local time") $
+//  puts ((stripnl (gmtime time)) +  " UTC Time") $
+   printf "%s   \t UTC Time\n"  (str (secs2hms secsnow)) $ 
+   printf "%s   \t UTC Time in h:t:d:s\n"  (str (secs2htds secsnow))$ 
+   printf "%d   \t Julian day number\n" jdaytoday $
+   printf "%d   \t Mayan day number\n" (int daytoday) $
+   printf "%s\t Mayan long count date\n" longtoday $
+   printf "%5.3f   \t days till the next full Moon\n" nextfmoon $
+   printf "%6.3f   \t days till the next inf. conjunction of Venus\n" nextvenus$
+   printf "%8.3f   \t days till the end of the Mayan cycle\n" nextcycle $
+   printf "%s\t long countdown to the end of the cycle\n" mayanleft $
+   printf "%11.8f %%\t completion of this cycle of >5125 years\n" complete  $
    puts "****************************************************************";
   2 = 
    puts "Mayan long count digits and their ranges of values:" $
