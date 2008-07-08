@@ -1,5 +1,7 @@
 2008-07-08  Albert Graef  <Dr.Graef@t-online.de>
 
+	* examples/avltree.pure: Added to examples.
+
 	* lib/math.pure: Moved abs, sgn, min, max, pred and succ from
 	math.pure to primitives.pure, so that they are included in the
 	prelude. Make x%0 behave like x div 0 (which raises SIGFPE).
