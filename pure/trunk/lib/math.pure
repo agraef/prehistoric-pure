@@ -22,23 +22,6 @@
 
 def inf = 1.0e307 * 1.0e307; def nan = inf-inf;
 
-/* Absolute value and sign of a number. */
-
-abs x::int | abs x::bigint | abs x::double
-		= if x>=0 then x else -x;
-sgn x::int | sgn x::bigint | sgn x::double
-		= if x>0 then 1 else if x<0 then -1 else 0;
-
-/* Generic min and max functions. */
-
-min x y		= if x<=y then x else y;
-max x y		= if x>=y then x else y;
-
-/* Generic succ and pred functions. */
-
-succ x		= x+1;
-pred x		= x-1;
-
 /* Rounding functions. */
 
 extern double floor(double), double ceil(double);
