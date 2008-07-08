@@ -232,9 +232,9 @@ print_queens ps	= do (puts.join " ".map (sprintf "%d,%d")) ps;
 /* Lists are all good and fine, but what about other, more complicated kinds
    of data? Luckily, as a term rewriting language Pure is well-suited to
    process any kind of tree-structured data. We only discuss a simple example
-   here, but using similar, more elaborate techniques like AVL trees, it is
-   possible to implement almost any kind of container data structure in an
-   efficient way.
+   here, but using similar, more elaborate techniques like AVL trees (see
+   avltree.pure for an example), it is possible to implement almost any kind
+   of container data structure in an efficient way.
 
    So let's see how we can implement simple binary search trees in Pure. These
    are represented using the constant symbol 'nil' (which denotes the empty
