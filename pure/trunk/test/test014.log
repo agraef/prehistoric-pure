@@ -1,3 +1,15 @@
+drop 97 (catmap (\i/*0:*/ -> [random] {
+  rule #0: i = [random]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) (1..100)) when () = srandom 0 {
+  rule #0: () = srandom 0
+  state 0: #0
+	() state 1
+  state 1: #0
+} end;
+[1863734801,-639116898,52532575]
 {
   rule #0: q = 44%(-14)
   state 0: #0
