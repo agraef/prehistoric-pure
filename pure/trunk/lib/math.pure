@@ -361,14 +361,14 @@ infixl 7 % ;
 
 /* The '%' operator returns a rational or complex rational for any combination
    of integer, rational and complex integer/rational arguments, provided that
-   the denominator is nonzero (otherwise it returns a floating point nan or
-   infinity, depending on the numerator). Machine int operands are always
-   promoted to bigints. For other numeric operands '%' works just like
-   '/'. Rational results are normalized so that the sign is always in the
-   numerator and numerator and denominator are relatively prime. Hence a
-   rational zero is always represented as 1L%0L. */
+   the denominator is nonzero (otherwise it behaves like x div 0, which will
+   raise an exception on most systems). Machine int operands are always
+   promoted to bigints. For other numeric operands '%' works just like '/'.
+   Rational results are normalized so that the sign is always in the numerator
+   and numerator and denominator are relatively prime. Hence a rational zero
+   is always represented as 1L%0L. */
 
-x::bigint % 0L		= x/0;
+x::bigint % 0L		= x div 0L;
 x::bigint % y::bigint	= (-x)%(-y) if y<0;
 			= (x div d) % (y div d) when d = gcd x y end
 			    if gcd x y > 1;
