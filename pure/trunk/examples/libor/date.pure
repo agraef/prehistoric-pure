@@ -4,9 +4,8 @@
    Acknowledgement: thanks to Dr Albert Graef for his "Q" code for the 
    Julian day and Gregorian dates 
 
-   Discrepancies with your local clock may occur when C library's time(); 
-   returns Posix time based on UTC (Universal Temps Coordinat) or TAI
-   (Temps Atomique International) rather than local daylight saving time */
+   time; returns Posix time based on UTC (Universal Temps Coordinat) or 
+   TAI (Temps Atomique International) rather than local daylight saving time */
 
 using system;   // imports printf, time, ctime, gmtime, gettimeofday, strftime  
 // extern long time(long*) = c_time; // diy time, no longer needed
@@ -39,7 +38,7 @@ secsnow = time mod secsinday; // int seconds since midnight
 mjday epoch::int secs::int| mjday epoch::int secs::bigint |
 mjday epoch::int secs::double = epoch+secs/secsinday;// use time or gettimeofday
 
-// all conversions between Julian (j) Mayan (m) and Posix (p), done in days
+// all conversions between Julian (j) Mayan (m) and Posix (p), in days
 // jday mday pday are numbers of days since their relevant origins (epochs)
 jday2mday d::int | jday2mday d::double =  d - jdayposix + mdayposix;
 mday2jday d::int | mday2jday d::double =  d - mdayposix + jdayposix; 
@@ -55,18 +54,14 @@ days2hours d::int| days2hours d::bigint| days2hours d::double= 24*d;
 hours2days h::int = h / 24;
 
 /* conversions from/to days:hours:minutes:seconds format
-   seconds can be int or double. d,h,m are ints */
+   seconds can be int, bigint or double. d,h,m are ints */
 dhms2secs (d::int:h::int:m::int:s::int) |
 dhms2secs (d::int:h::int:m::int:s::bigint) |
 dhms2secs (d::int:h::int:m::int:s::double) = 60*(60*(24*d+h)+m)+s;
    
 secs2dhms secs::int | secs2dhms secs::bigint | secs2dhms secs::double = 
    d:(h mod 24):(m mod 60):(secs mod 60)
-   when 
-        m::int = int (secs / 60);
-        h::int = m div 60; 
-        d::int = h div 24 
-   end;      
+   when m::int = int (secs / 60); h::int = m div 60; d::int = h div 24 end;
 
 // an arbitrary binary operator applied to two (days:hours:minutes:seconds)
 opdhms op (d1::int:h1::int:m1::int:s1)(d2::int:h2::int:m2::int:s2) =
@@ -80,10 +75,7 @@ hms2secs (h::int:m::int:s::double) = 60*(60*h+m)+s;
 
 secs2hms secs::int | secs2hms secs::bigint | secs2hms secs::double = 
    h:(m mod 60):(secs mod 60)
-   when 
-        m::int = int (secs / 60);
-        h::int = m div 60; 
-   end;  
+   when m::int = int (secs / 60); h::int = m div 60 end;  
    
 /* New Time Format: hours:3mins:10secs:secs = hours:tres:dicis:secs = h:t:d:s
    the normal seconds are now just a single digit 0-9
@@ -96,16 +88,12 @@ htds2secs (h::int:t::int:d::int:s::double) = 10*(18*(20*h+t)+d)+s;
    
 secs2htds secs::int | secs2htds secs::bigint | secs2htds secs::double =
    h:(t mod 20):(d mod 18):(secs mod 10)
-   when 
-        d::int = int (secs / 10);
-        t::int = d div 18; 
-        h::int = t div 20 
-   end;
+   when d::int = int (secs / 10); t::int = d div 18; h::int = t div 20 end;
 
 // Mayan 'long count' calendar presentation format   
 days2mayan d::int = baktun:(katun mod 20):(tun mod 20):(vinal mod 18):(d mod 20)
    when 
-        vinal=d div 20; tun=vinal div 18; katun=tun div 20; baktun=katun div 20
+      vinal=d div 20; tun=vinal div 18; katun=tun div 20; baktun=katun div 20
    end;
 
 mayan2days (baktun::int:katun::int:tun::int:vinal::int:kin::int) = 
@@ -139,8 +127,9 @@ greg2jdays (D::int,M::int,Y::int) =
 
 greg2pdays date@(D::int,M::int,Y::int) = jday2pday (greg2jdays date);
 
-greg2psecs g hms = 
-   (days2secs (greg2pdays g)) + (hms2secs hms); // date time -> psecs
+// gregorian date time -> psecs
+greg2psecs g@(D::int,M::int,Y::int) hms = 
+   (days2secs (greg2pdays g)) + (hms2secs hms); 
 
 jdays2greg N::int  = 
    (E-(153*M+2) div 5+1, M+3-12*(M div 10), 100*B+D-4800+M div 10)
