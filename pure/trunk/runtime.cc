@@ -1802,6 +1802,112 @@ pure_expr *pure_rational(double d)
   return pure_tuplel(2, u, v);
 }
 
+// This is the ``Mersenne Twister'' random number generator MT19937, which
+// generates pseudorandom integers uniformly distributed in 0..(2^32 - 1)
+// starting from any odd seed in 0..(2^32 - 1).  This version is a recode
+// by Shawn Cokus (Cokus@math.washington.edu) on March 8, 1998 of a version by
+// Takuji Nishimura (who had suggestions from Topher Cooper and Marc Rieffel in
+// July-August 1997).
+//
+// Effectiveness of the recoding (on Goedel2.math.washington.edu, a DEC Alpha
+// running OSF/1) using GCC -O3 as a compiler: before recoding: 51.6 sec. to
+// generate 300 million random numbers; after recoding: 24.0 sec. for the same
+// (i.e., 46.5% of original time), so speed is now about 12.5 million random
+// number generations per second on this machine.
+//
+// According to the URL <http://www.math.keio.ac.jp/~matumoto/emt.html>
+// (and paraphrasing a bit in places), the Mersenne Twister is ``designed
+// with consideration of the flaws of various existing generators,'' has
+// a period of 2^19937 - 1, gives a sequence that is 623-dimensionally
+// equidistributed, and ``has passed many stringent tests, including the
+// die-hard test of G. Marsaglia and the load test of P. Hellekalek and
+// S. Wegenkittl.''  It is efficient in memory usage (typically using 2506
+// to 5012 bytes of static data, depending on data type sizes, and the code
+// is quite short as well).  It generates random numbers in batches of 624
+// at a time, so the caching and pipelining of modern systems is exploited.
+// It is also divide- and mod-free.
+//
+// This library is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Library General Public License as published by
+// the Free Software Foundation (either version 2 of the License or, at your
+// option, any later version).  This library is distributed in the hope that
+// it will be useful, but WITHOUT ANY WARRANTY, without even the implied
+// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+// the GNU Library General Public License for more details.  You should have
+// received a copy of the GNU Library General Public License along with this
+// library; if not, write to the Free Software Foundation, Inc., 59 Temple
+// Place, Suite 330, Boston, MA 02111-1307, USA.
+//
+// The code as Shawn received it included the following notice:
+//
+//   Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.  When
+//   you use this, send an e-mail to <matumoto@math.keio.ac.jp> with
+//   an appropriate reference to your work.
+//
+// It would be nice to CC: <Cokus@math.washington.edu> when you write.
+//
+
+// See http://www.math.keio.ac.jp/~matumoto/emt.html for the original sources.
+
+#define N              (624)
+#define M              (397)
+#define K              (0x9908B0DFU)
+#define hiBit(u)       ((u) & 0x80000000U)
+#define loBit(u)       ((u) & 0x00000001U)
+#define loBits(u)      ((u) & 0x7FFFFFFFU)
+#define mixBits(u, v)  (hiBit(u)|loBits(v))
+
+// TLD?
+static uint32_t stateMT[N+1];
+static uint32_t *nextMT;
+static int leftMT = -1;
+
+void pure_srandom(uint32_t seed)
+{
+  // MT works best with odd seeds, so we enforce that here.
+  register uint32_t x = (seed | 1U) & 0xFFFFFFFFU, *s = stateMT;
+  register int j;
+
+  for (leftMT=0, *s++=x, j=N; --j; *s++ = (x*=69069U) & 0xFFFFFFFFU);
+}
+
+static uint32_t reloadMT(void)
+{
+  register uint32_t *p0=stateMT, *p2=stateMT+2, *pM=stateMT+M, s0, s1;
+  register int j;
+
+  if (leftMT < -1)
+    pure_srandom(4357U);
+
+  leftMT=N-1, nextMT=stateMT+1;
+
+  for (s0=stateMT[0], s1=stateMT[1], j=N-M+1; --j; s0=s1, s1=*p2++)
+    *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+
+  for (pM=stateMT, j=M; --j; s0=s1, s1=*p2++)
+    *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+
+  s1=stateMT[0], *p0 = *pM ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+  s1 ^= (s1 >> 11);
+  s1 ^= (s1 <<  7) & 0x9D2C5680U;
+  s1 ^= (s1 << 15) & 0xEFC60000U;
+  return(s1 ^ (s1 >> 18));
+}
+
+uint32_t pure_random(void)
+{
+  uint32_t y;
+  
+  if(--leftMT < 0)
+    return reloadMT();
+
+  y  = *nextMT++;
+  y ^= (y >> 11);
+  y ^= (y <<  7) & 0x9D2C5680U;
+  y ^= (y << 15) & 0xEFC60000U;
+  return (y ^ (y >> 18));
+}
+
 extern "C"
 pure_expr *bigint_neg(mpz_t x)
 {

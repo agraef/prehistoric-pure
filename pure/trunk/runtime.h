@@ -420,6 +420,14 @@ pure_expr *pure_pointerval(pure_expr *x);
 
 pure_expr *pure_rational(double d);
 
+/* Random number generator. This uses the Mersenne twister, in order to avoid
+   bad generators present in some C libraries. pure_random returns a
+   pseudorandom 32 bit integer, pure_srandom sets the seed of the
+   generator. */
+
+uint32_t pure_random(void);
+void pure_srandom(uint32_t seed);
+
 /* Construct a "byte string" from a string. The result is a raw pointer object
    pointing to the converted string. The original string is copied (and, in
    the case of pure_byte_cstring, converted to the system encoding). The

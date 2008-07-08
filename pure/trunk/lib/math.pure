@@ -22,6 +22,12 @@
 
 def inf = 1.0e307 * 1.0e307; def nan = inf-inf;
 
+/* Random number generator. This uses the Mersenne twister, in order to avoid
+   bad generators present in some C libraries. Returns pseudo random ints in
+   the range -0x80000000..0x7fffffff. */
+
+extern int pure_random() = random, void pure_srandom(int) = srandom;
+
 /* Rounding functions. */
 
 extern double floor(double), double ceil(double);

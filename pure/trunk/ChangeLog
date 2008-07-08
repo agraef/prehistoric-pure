@@ -1,5 +1,8 @@
 2008-07-08  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc/h, lib/math.pure: Add random number generator
+	(Mersenne twister). Suggested by Jiri Spitz.
+
 	* examples/avltree.pure: Added to examples.
 
 	* lib/math.pure: Moved abs, sgn, min, max, pred and succ from
