@@ -86,26 +86,18 @@ dict  xys			= foldl insert emptydict  xys if listp xys;
 hdict xys			= foldl insert emptyhdict xys if listp xys;
 
 // insert a new member into the dict or hdict
-insert (t@Dict  d) (x::int    => y) |
-insert (t@Dict  d) (x::string => y) |
 insert (t@Dict  d) (x         => y) |
 insert (t@Hdict d) (x         => y)
 	= if t === Dict
 		then t ((insertd d x y)!0)
 		else t ((inserth d (hash x) x y)!0)
 with
-  insertd nil key::int    val |
-  insertd nil key::string val |
   insertd nil key         val
 				= [(bin key val ( 0) nil nil), 1];
 
-  insertd (bin k::int _    b l r) key::int    val |
-  insertd (bin k::string _ b l r) key::string val |
   insertd (bin k _         b l r) key         val
 				= [(bin key val b l r), 0] if key == k;
 
-  insertd (bin k::int    v b l r) key::int    val |
-  insertd (bin k::string v b l r) key::string val |
   insertd (bin k         v b l r) key         val
 	= adjust leftHasChanged (bin k v b newl r) (-1)
 	when
@@ -113,8 +105,6 @@ with
 	end
 	if key < k;
 
-  insertd (bin k::int    v b l r) key::int    val |
-  insertd (bin k::string v b l r) key::string val |
   insertd (bin k         v b l r) key         val
 	= adjust rightHasChanged (bin k v b l newr) ( 1)
 	when
@@ -149,21 +139,18 @@ with
 
   adjust 0 oldTree _		= [oldTree, 0];
 
-  adjust 1 (bin key::int    val b0 l r) LoR |
-  adjust 1 (bin key::string val b0 l r) LoR |
   adjust 1 (bin key         val b0 l r) LoR
 	= [rebal toBeRebalanced (bin key val b0 l r) b1, whatHasChanged]
 	when
 		[b1, whatHasChanged, toBeRebalanced] = table b0 LoR
 	end;
 
-  rebal 0 (bin k::int    v _ l r) b |
-  rebal 0 (bin k::string v _ l r) b |
   rebal 0 (bin k         v _ l r) b
 				= bin k v b l r;
 
   rebal 1  oldTree _		= (Dict_avl_geq oldTree)!0;
 
+/*
 // Balance rules for insertions
 //	balance	where		balance	  whole tree	to be
 //	before	inserted	after	  increased	rebalanced
@@ -173,11 +160,18 @@ table	( 1)	(-1)		= [( 0),  	0,		1];
 table	( 1)	( 1)		= [( 0),  	0,		0];
 table	(-1)	(-1)		= [( 0),  	0,		0];
 table	(-1)	( 1)		= [( 0),  	0,		1]
+*/
+
+// table w/o pattern matching
+  table bb::int wi::int	= [ba, wti, tbr]
+	when
+		ba	= if bb == 0 then -wi else 0;
+		wti	= bb == 0;
+		tbr	= (bb + wi) == 0;
+	end
 end;
 
 // delete a member by key from the dict or hdict
-delete (t@Dict  d) x::int    |
-delete (t@Dict  d) x::string |
 delete (t@Dict  d) x         |
 delete (t@Hdict d) x
 	= if t === Dict
@@ -186,18 +180,12 @@ delete (t@Hdict d) x
 with
   deleted nil _			= [nil, 0];
 
-  deleted (bin k::int    _ _ nil r  ) key::int    |
-  deleted (bin k::string _ _ nil r  ) key::string |
   deleted (bin k         _ _ nil r  ) key
 				= [r, 1] if key == k;
 
-  deleted (bin k::int    _ _ l   nil) key::int |
-  deleted (bin k::string _ _ l   nil) key::string |
   deleted (bin k         _ _ l   nil) key
 				= [l, 1] if key == k;
 
-  deleted (bin k::int _    b (bin kl::int    vl bl rl ll) r  ) key::int    |
-  deleted (bin k::string _ b (bin kl::string vl bl rl ll) r  ) key::string |
   deleted (bin k _         b (bin kl         vl bl rl ll) r  ) key
 	= Dict_adjustd leftHasChanged (bin lastk lastv b newl r) (-1)
 	when
@@ -207,8 +195,6 @@ with
 	end
 	if key == k;
 
-  deleted (bin k::int v b l r) key::int |
-  deleted (bin k::string v b l r) key::string |
   deleted (bin k v b l r) key
 	= Dict_adjustd leftHasChanged (bin k v b newl r) (-1)
 	when
@@ -216,8 +202,6 @@ with
 	end
 	if key < k;
 
-  deleted (bin k::int    v b l r) key::int    |
-  deleted (bin k::string v b l r) key::string |
   deleted (bin k         v b l r) key
 	= Dict_adjustd rightHasChanged (bin k v b l newr) ( 1)
 	when
@@ -311,14 +295,10 @@ with
 end;
 
 // check whether a key in dict or hdict
-member (Dict d) k::int    |
-member (Dict d) k::string |
 member (Dict d) k		= member d k
 with
   member nil _			= 0;
 
-  member (bin x _ _ d1 d2) y::int    |
-  member (bin x _ _ d1 d2) y::string |
   member (bin x _ _ d1 d2) y
 				= member d1 y if x > y;
 				= member d2 y if x < y;
@@ -343,8 +323,6 @@ members (Dict  d)		= members d
 with
   members nil			= [];
 
-  members (bin x::int    y _ d1 d2) |
-  members (bin x::string y _ d1 d2) |
   members (bin x         y _ d1 d2)
 				= members d1 + ((x => y) : (members d2))
 end;
@@ -401,8 +379,6 @@ keys (Dict  d)	= keys  d
 with
   keys nil			= [];
 
-  keys (bin x::int    _ _ d1 d2) |
-  keys (bin x::string _ _ d1 d2) |
   keys (bin x         _ _ d1 d2)
 				= keys d1 + (x : (keys d2))
 end;
@@ -429,14 +405,10 @@ with
 end;
 
 // get a value by key from dict or hdict
-(Dict d)!k::int    |
-(Dict d)!k::string |
 (Dict d)!k			= d!k
 with
   nil!_				= throw out_of_bounds;
 
-  (bin x::int    y _ d1 d2)!x1::int    |
-  (bin x::string y _ d1 d2)!x1::string |
   (bin x         y _ d1 d2)!x1
 				= d1!x1 if x1 < x;
 				= d2!x1 if x1 > x;
@@ -469,8 +441,6 @@ with
   slice d ys []			= reverse ys;
 
   nil!_				= nil;
-  (bin x::int    y _ d1 d2)!x1::int    |
-  (bin x::string y _ d1 d2)!x1::string |
   (bin x         y _ d1 d2)!x1
 				= d1!x1 if x1 < x;
 				= d2!x1 if x1 > x;
@@ -499,8 +469,6 @@ with
 end;
 
 // curried version of insert for dict and hdict
-update d@(Dict  _) x::int    y |
-update d@(Dict  _) x::string y |
 update d@(Dict  _) x         y |
 update d@(Hdict _) x         y
 				= insert d (x => y);
@@ -528,35 +496,41 @@ Dict_adjustd ToF::int tree LoR::int
 with
   adjust 0 oldTree _		= [oldTree, 0];
 
-  adjust 1 (bin key::int    val b0 l r) LoR |
-  adjust 1 (bin key::string val b0 l r) LoR |
   adjust 1 (bin key         val b0 l r) LoR
 	= rebal toBeRebalanced (bin key val b0 l r) b1 whatHasChanged
 	when
-		[b1, whatHasChanged, toBeRebalanced] = tabled b0 LoR
+		[b1, whatHasChanged, toBeRebalanced] = table b0 LoR
 	end;
 
-  rebal 0 (bin k::int    v _ l r) b whatHasChanged |
-  rebal 0 (bin k::string v _ l r) b whatHasChanged |
   rebal 0 (bin k         v _ l r) b whatHasChanged
 				= [bin k v b l r, whatHasChanged];
 
   rebal 1  oldTree _ _		= Dict_avl_geq oldTree;
 
+/*
 // Balance rules for deletions
 //	balance	where		balance	  whole tree	to be
 //	before	deleted		after	  decreased	rebalanced
-tabled	( 0)	( 1)		= [( 1),  0,		0];
-tabled	( 0)	(-1)		= [(-1),  0,		0];
-tabled	( 1)	( 1)		= [( 0),  1,		1];
+table	( 0)	( 1)		= [( 1),  0,		0];
+table	( 0)	(-1)		= [(-1),  0,		0];
+table	( 1)	( 1)		= [( 0),  1,		1];
 //					  ^^^^
 // It depends on the tree pattern in avl_geq whether it really decreases
 
-tabled	( 1)	(-1)		= [( 0),  1, 		0];
-tabled	(-1)	( 1)		= [( 0),  1,		0];
-tabled	(-1)	(-1)		= [( 0),  1,		1];
+table	( 1)	(-1)		= [( 0),  1, 		0];
+table	(-1)	( 1)		= [( 0),  1,		0];
+table	(-1)	(-1)		= [( 0),  1,		1];
 //					  ^^^^
 // It depends on the tree pattern in avl_geq whether it really decreases
+*/
+
+// table w/o pattern matching
+  table bb wd	= [ba, wtd, tbr]
+	when
+		ba	= if bb == 0 then wd else 0;
+		wtd	= abs bb;
+		tbr	= bb == wd;
+	end
 end;
 
 // Single and double tree rotations - these are common for insert and delete
@@ -571,23 +545,13 @@ end;
 */
 Dict_avl_geq d = avl_geq d
 with
-  avl_geq (bin a::int    va (-1) alpha (bin b::int    vb (-1) beta gamma)) |
-  avl_geq (bin a::string va (-1) alpha (bin b::string vb (-1) beta gamma)) |
   avl_geq (bin a         va (-1) alpha (bin b         vb (-1) beta gamma))
 	= [bin b vb ( 0) (bin a va ( 0) alpha beta) gamma, 1];
 
-  avl_geq (bin a::int    va (-1) alpha (bin b::int    vb ( 0) beta gamma)) |
-  avl_geq (bin a::string va (-1) alpha (bin b::string vb ( 0) beta gamma)) |
   avl_geq (bin a         va (-1) alpha (bin b         vb ( 0) beta gamma))
 	= [bin b vb ( 1) (bin a va (-1) alpha beta) gamma, 0];
 		// the tree doesn't decrease with this pattern
 
-  avl_geq (bin a::int    va (-1) alpha
-			(bin b::int vb ( 1)
-			(bin x::int vx b1 beta gamma) delta))		|
-  avl_geq (bin a::string va (-1) alpha
-			(bin b::string vb ( 1)
-			(bin x::string vx b1 beta gamma) delta))	|
   avl_geq (bin a         va (-1) alpha
 	  		(bin b vb ( 1) (bin x vx b1 beta gamma) delta))
 	= [bin x vx ( 0) (bin a va b2 alpha beta) (bin b vb b3 gamma delta), 1]
@@ -595,23 +559,13 @@ with
 			[b2, b3] = table b1
 		end;
 
-  avl_geq (bin b::int    vb ( 1) (bin a::int    va ( 1) alpha beta) gamma) |
-  avl_geq (bin b::string vb ( 1) (bin a::string va ( 1) alpha beta) gamma) |
   avl_geq (bin b vb ( 1) (bin a va ( 1) alpha beta) gamma)
 	= [bin a va ( 0) alpha (bin b vb ( 0) beta  gamma), 1];
 
-  avl_geq (bin b::int    vb ( 1) (bin a::int    va ( 0) alpha beta) gamma) |
-  avl_geq (bin b::string vb ( 1) (bin a::string va ( 0) alpha beta) gamma) |
   avl_geq (bin b vb ( 1) (bin a va ( 0) alpha beta) gamma)
 	= [bin a va (-1) alpha (bin b vb ( 1) beta  gamma), 0];
 			// the tree doesn't decrease with this pattern
 
-  avl_geq (bin b::int vb ( 1)
-		    (bin a::int va (-1) alpha
-		    (bin x::int vx b1 beta gamma)) delta)		|
-  avl_geq (bin b::string vb ( 1)
-			(bin a::string va (-1) alpha
-			(bin x::string vx b1 beta gamma)) delta)	|
   avl_geq (bin b vb ( 1)
 			(bin a va (-1) alpha (bin x vx b1 beta gamma)) delta)
 	= [bin x vx ( 0) (bin a va b2 alpha beta) (bin b vb b3 gamma delta), 1]
@@ -619,7 +573,16 @@ with
 			[b2, b3] = table b1
 		end;
 
+/*
   table ( 1)			= [( 0), (-1)];
   table (-1)			= [( 1), ( 0)];
   table ( 0)			= [( 0), ( 0)]
+*/
+
+// table w/o pattern matching
+  table bal = [b1, b2]
+	when
+		b1 =   bal == (-1);
+		b2 = -(bal ==   1);
+	end
 end;
