@@ -11,9 +11,6 @@ Examples:
     >tailqueens 8; // gives solution no. 89, which is a reflection of no. 52
     >map succ (thequeens 8); // gives solution no. 56 */
 
-// increment and decrement general utility
-succ x::int = 1+x; pred x::int = x-1;
-
 // row j in current column not attacked by any queens in preceding columns? 
 safe _ _ [] = 1;
 safe id::int j::int (j2::int:l) =  // id is the column positions difference

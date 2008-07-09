@@ -27,8 +27,8 @@ def venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
 
 /******************************************************************************/   
 // first a couple of functions generally useful in Pure:
-// timer function: (timex (id (foo arg))) returns cputime, value of (foo arg)   
-timex fn = (clock-t)/CLOCKS_PER_SEC $ res when t = clock; res = fn end;
+// Albert Graef's timer function:  returns cputime, value of (f onearg)   
+timex f x = (clock-t0)/CLOCKS_PER_SEC, res when t0 = clock; res = f x end;
       
 /* extended mod operator to work on doubles, so that int, bigint and double 
    times can be conveniently used */
