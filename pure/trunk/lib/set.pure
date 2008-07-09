@@ -78,31 +78,19 @@ set xs 				= foldl insert emptyset xs if listp xs;
 bag xs 				= foldl insert emptybag xs if listp xs;
 
 // insert a new member into a set or bag
-insert (t@Set m) y::int    |
-insert (t@Set m) y::string |
 insert (t@Set m) y         |
-insert (t@Bag m) y::int    |
-insert (t@Bag m) y::string |
 insert (t@Bag m) y		= t ((insert m y)!0)
 with
-  insert nil key::int    |
-  insert nil key::string |
   insert nil key
 	= [(bin key ( 0) nil nil), 1];
 
-  insert (bin k::int    b::int l r) key::int    |
-  insert (bin k::string b::int l r) key::string |
   insert (bin k         b::int l r) key
 	= [(bin key b l r), 0] if (key == k) && (t === Set);
 
-  insert (bin k::int    b::int l r) key::int    |
-  insert (bin k::string b::int l r) key::string |
   insert (bin k         b::int l r) key
 	= adjust leftHasChanged (bin k b newL r) (-1)
 	when [newL, leftHasChanged] = insert l key end if key < k;
 
-  insert (bin k::int    b::int l r) key::int    |
-  insert (bin k::string b::int l r) key::string |
   insert (bin k         b::int l r) key
 	= adjust rightHasChanged (bin k b l newR) ( 1)
 	when [newR, rightHasChanged] = insert r key end
@@ -111,22 +99,18 @@ with
   adjust 0 oldTree _
 	= [oldTree, 0];
 
-  adjust 1 (bin key::int    b0::int l r) LoR::int |
-  adjust 1 (bin key::string b0::int l r) LoR::int |
   adjust 1 (bin key         b0::int l r) LoR::int
 	= [rebal toBeRebalanced (bin key b0 l r) b1, whatHasChanged]
 		when
 			[b1, whatHasChanged, toBeRebalanced] = table b0 LoR
 		end;
 
-  rebal 0 (bin k::int    _ l r) b |
-  rebal 0 (bin k::string _ l r) b |
   rebal 0 (bin k _ l r) b
 	= bin k b l r;
 
   rebal 1  oldTree _
 	= (Set_avl_geq oldTree)!0;
-
+/*
 // Balance rules for insertions
 //	balance	where		balance	  whole tree	to be
 //	before	inserted	after	  increased	rebalanced
@@ -136,31 +120,30 @@ table	( 1)	(-1)		= [( 0),	  0,		1];
 table	( 1)	( 1)		= [( 0),	  0,		0];
 table	(-1)	(-1)		= [( 0),	  0,		0];
 table	(-1)	( 1)		= [( 0),	  0,		1];
+*/
+
+// table w/o pattern matching
+  table bb::int wi::int	= [ba, wti, tbr]
+	when
+		ba	= if bb == 0 then -wi else 0;
+		wti	= bb == 0;
+		tbr	= (bb + wi) == 0;
+	end
 end;
 
 // delete a member by key from the data structure
-delete (t@Set m) y::int    |
-delete (t@Set m) y::string |
 delete (t@Set m) y         |
-delete (t@Bag m) y::int    |
-delete (t@Bag m) y::string |
 delete (t@Bag m) y
 = t ((delete m y)!0)
 with
   delete nil _			= [nil, 0];
 
-  delete (bin k::int    _ nil r) key::int    |
-  delete (bin k::string _ nil r) key::string |
   delete (bin k         _ nil r) key
 				= [r, 1] if key == k;
 
-  delete (bin k::int    _ l nil) key::int    |
-  delete (bin k::string _ l nil) key::string |
   delete (bin k         _ l nil) key
 				= [l, 1] if key == k;
 
-  delete (bin k::int    b::int x@(bin kl::int    bl::int rl ll) r) key::int    |
-  delete (bin k::string b::int x@(bin kl::string bl::int rl ll) r) key::string |
   delete (bin k         b::int x@(bin kl         bl::int rl ll) r) key
 			= Set_adjustd leftHasChanged (bin lk b newL r) (-1)
 		when
@@ -169,8 +152,6 @@ with
 		end
 		if key == k;
 
-  delete (bin k::int    b::int l r) key::int    |
-  delete (bin k::string b::int l r) key::string |
   delete (bin k         b::int l r) key
 		= Set_adjustd leftHasChanged (bin k b newL r) (-1)
 		when
@@ -178,8 +159,6 @@ with
 		end
 		if key < k;
 
-  delete (bin k::int    b::int l r) key::int    |
-  delete (bin k::string b::int l r) key::string |
   delete (bin k         b::int l r) key
 		= Set_adjustd rightHasChanged (bin k b l newR) ( 1)
 		when
@@ -213,18 +192,12 @@ with
 end;
 
 // check whether a key exists in set or bag
-member (Set m) k::int |
-member (Set m) k::string |
 member (Set m) k |
-member (Bag m) k::int |
-member (Bag m) k::string |
 member (Bag m) k
 = member m k
 with
   member nil _			= 0;
 
-  member (bin x _ m1 m2) y::int |
-  member (bin x _ m1 m2) y::string |
   member (bin x _ m1 m2) y
 				= member m1 y if x > y;
 				= member m2 y if x < y;
@@ -238,8 +211,6 @@ members (Bag m)
 with
   members nil	= [];
 
-  members (bin x::int    _ m1 m2) |
-  members (bin x::string _ m1 m2) |
   members (bin x         _ m1 m2)
 				= (members m1) + (x : (members m2))
 end;
@@ -336,8 +307,6 @@ Set_adjustd ToF::int tree LoR::int
 with
   adjust 0 oldTree _ 		= [oldTree, 0];
 
-  adjust 1 (bin key::int    b0::int l r) LoR::int |
-  adjust 1 (bin key::string b0::int l r) LoR::int |
   adjust 1 (bin key         b0::int l r) LoR::int
 	= rebal toBeRebalanced (bin key b0 l r) b1 whatHasChanged
 	when
@@ -349,14 +318,13 @@ with
    decide whether the whole tree increases. With deletions it is sometimes not
    sufficient and we need to know which kind of tree rotation took place.
 */
-  rebal 0 (bin k::int    _ l r) b::int whatHasChanged |
-  rebal 0 (bin k::string _ l r) b::int whatHasChanged |
   rebal 0 (bin k         _ l r) b::int whatHasChanged
 				= [bin k b l r, whatHasChanged];
 
   rebal 1 oldTree _ _ = Set_avl_geq oldTree;
 
 // Balance rules for deletions
+/*
 //	balance	where		balance	  whole tree	to be
 //	before	deleted		after	  decreased	rebalanced
 table	( 0)	( 1)		= [( 1), 	0,		0];
@@ -370,8 +338,16 @@ table	(-1)	( 1)		= [( 0),  	1,		0];
 table	(-1)	(-1)		= [( 0),  	1,		1]
 //					       ^^^^
 // It depends on the tree pattern in avl_geq whether it really decreases
-end;
+*/
 
+// table w/o pattern matching
+  table bb wd	= [ba, wtd, tbr]
+	when
+		ba	= if bb == 0 then wd else 0;
+		wtd	= abs bb;
+		tbr	= bb == wd;
+	end
+end;
 
 // Single and double tree rotations - these are common for insert and delete
 /*
@@ -386,21 +362,13 @@ end;
 
 Set_avl_geq x	= avl_geq x
 with
-  avl_geq (bin a::int    (-1) alpha (bin b::int    (-1) beta gamma)) |
-  avl_geq (bin a::string (-1) alpha (bin b::string (-1) beta gamma)) |
   avl_geq (bin a         (-1) alpha (bin b         (-1) beta gamma))
 	= [bin b ( 0) (bin a ( 0) alpha beta) gamma, 1];
 
-  avl_geq (bin a::int    (-1) alpha (bin b::int    ( 0) beta gamma)) |
-  avl_geq (bin a::string (-1) alpha (bin b::string ( 0) beta gamma)) |
   avl_geq (bin a         (-1) alpha (bin b         ( 0) beta gamma))
 	= [bin b ( 1) (bin a (-1) alpha beta) gamma, 0];
 		// the tree doesn't decrease with this pattern
 
-  avl_geq (bin a::int    (-1) alpha
-	(bin b::int    ( 1) (bin x::int    b1 beta gamma) delta)) |
-  avl_geq (bin a::string (-1) alpha
-	(bin b::string ( 1) (bin x::string b1 beta gamma) delta)) |
   avl_geq (bin a         (-1) alpha
 	(bin b         ( 1) (bin x         b1 beta gamma) delta))
 	= [bin x ( 0) (bin a b2 alpha beta)
@@ -409,21 +377,13 @@ with
 		[b2, b3] = table b1
 	end;
 
-  avl_geq (bin b::int    ( 1) (bin a::int    ( 1) alpha beta) gamma) |
-  avl_geq (bin b::string ( 1) (bin a::string ( 1) alpha beta) gamma) |
   avl_geq (bin b         ( 1) (bin a         ( 1) alpha beta) gamma)
 	= [bin a ( 0) alpha (bin b ( 0) beta  gamma), 1];
 
-  avl_geq (bin b::int    ( 1) (bin a::int    ( 0) alpha beta) gamma) |
-  avl_geq (bin b::string ( 1) (bin a::string ( 0) alpha beta) gamma) |
   avl_geq (bin b         ( 1) (bin a         ( 0) alpha beta) gamma)
 	= [bin a (-1) alpha (bin b ( 1) beta  gamma), 0];
 		// the tree doesn't decrease with this pattern
 
-  avl_geq (bin b::int    ( 1)
-	(bin a::int    (-1) alpha (bin x::int    b1 beta gamma)) delta) |
-  avl_geq (bin b::string ( 1)
-	(bin a::string (-1) alpha (bin x::string b1 beta gamma)) delta) |
   avl_geq (bin b         ( 1)
 	(bin a         (-1) alpha (bin x         b1 beta gamma)) delta)
 	= [bin x ( 0) (bin a b2 alpha beta)
@@ -431,8 +391,16 @@ with
 	when
 		[b2, b3] = table b1
 	end;
-
+/*
   table ( 1)			= [( 0), (-1)];
   table (-1)			= [( 1), ( 0)];
   table ( 0)			= [( 0), ( 0)]
+*/
+
+// table w/o pattern matching
+  table bal = [b1, b2]
+	when
+		b1 =   bal == (-1);
+		b2 = -(bal ==   1);
+	end
 end;
