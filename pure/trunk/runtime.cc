@@ -1908,6 +1908,10 @@ uint32_t pure_random(void)
   return (y ^ (y >> 18));
 }
 
+#undef N
+#undef M
+#undef K
+
 extern "C"
 pure_expr *bigint_neg(mpz_t x)
 {
