@@ -26,9 +26,14 @@ def venussyn   = 50450688;// duration of the Venus synodic cycle
 def venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
 
 /******************************************************************************/   
-// first a couple of functions generally useful in Pure:
-// Albert Graef's timer function:  returns cputime, value of (f onearg)   
-timex f x = (clock-t0)/CLOCKS_PER_SEC, res when t0 = clock; res = f x end;
+// first some functions generally useful in Pure:
+round n::double = int (n+0.5);
+mstime = 1000.0*gettimeofday; 
+mscpu  = 1000.0*clock/CLOCKS_PER_SEC;
+
+// timex returns a list: [ evaluated string argument, cputime, realtime ]
+timex s::string = [(eval s), round (mscpu-c0), round (mstime-d0)] 
+   when d0::double = mstime; c0::double = mscpu end;
       
 /* extended mod operator to work on doubles, so that int, bigint and double 
    times can be conveniently used */
