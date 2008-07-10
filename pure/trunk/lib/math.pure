@@ -560,8 +560,9 @@ rationalp x	= case x of x%y = bigintp x && bigintp y; _ = 0 end;
 realp x		= intp x || bigintp x || doublep x || rationalp x;
 numberp x	= realp x || complexp x;
 
-exactp x	= intp x || bigintp x || rationalp ||
-		  complexp x && exactp (re x) && exactp (im x) if numberp x;
+inexactp x      = doublep x || doublep (re x) || doublep (im x) if numberp x;
+exactp x	= not(doublep x || doublep (re x) || doublep (im x))
+                    if numberp x;
 
 infp x::double	= not nanp x && nanp (x-x);
 nanp x::double	= x===nan;
