@@ -92,8 +92,8 @@ OTHER BUILD AND INSTALLATION OPTIONS for details.
 to write C/C++ extensions modules, if you need to access and manipulate Pure
 expressions from C/C++.)
 
-On some systems you may have to tell the dynamic linker to update its cache so
-that it finds the Pure runtime library. E.g., on Linux this can be done as
+On some systems you have to tell the dynamic linker to update its cache so
+that it finds the Pure runtime library. E.g., on Linux this is done as
 follows:
 
 $ sudo /sbin/ldconfig
