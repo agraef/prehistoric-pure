@@ -1,3 +1,13 @@
+2008-07-11  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc/h: Apply Rooslan S. Khayrov's patches to make the
+	interpreter compile with LLVM 2.3.
+
+	Note that this means that Pure really needs LLVM 2.3 now. By
+	reverting these changes you can still make it work with LLVM 2.2,
+	but we really recommend using LLVM 2.3 now since it has many
+	improvements and bugfixes.
+
 2008-07-08  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc/h, lib/math.pure: Add random number generator

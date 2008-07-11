@@ -8,6 +8,7 @@
 #include <glob.h>
 
 #include <llvm/CallingConv.h>
+#include <llvm/PassManager.h>
 #include <llvm/System/DynamicLibrary.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
 
@@ -1805,7 +1806,7 @@ expr *interpreter::mklistcomp_expr(expr *x, comp_clause_list *cs)
 
 // Code generation.
 
-#define Dbl(d)		ConstantFP::get(Type::DoubleTy, APFloat(d))
+#define Dbl(d)		ConstantFP::get(Type::DoubleTy, d)
 #define Bool(i)		ConstantInt::get(Type::Int1Ty, i)
 #define UInt(i)		ConstantInt::get(Type::Int32Ty, i)
 #define SInt(i)		ConstantInt::get(Type::Int32Ty, (uint64_t)i, true)
@@ -2045,7 +2046,7 @@ ReturnInst *Env::CreateRet(Value *v)
   // We must garbage-collect args and environment here, immediately before the
   // call (if any), or the return instruction otherwise.
   if (pi != ret && n == 1 && m == 0)
-    new CallInst(free1_fun, "", pi);
+    CallInst::Create(free1_fun, "", pi);
   else if (n+m != 0) {
     vector<Value*> myargs;
     if (pi == ret)
@@ -2054,10 +2055,10 @@ ReturnInst *Env::CreateRet(Value *v)
       myargs.push_back(ConstantPointerNull::get(interp.ExprPtrTy));
     myargs.push_back(UInt(n));
     myargs.push_back(UInt(m));
-    new CallInst(free_fun, myargs.begin(), myargs.end(), "", pi);
+    CallInst::Create(free_fun, myargs.begin(), myargs.end(), "", pi);
     if (pi == ret) {
       Value *x[1] = { v };
-      new CallInst(interp.module->getFunction("pure_unref"), x, x+1, "", ret);
+      CallInst::Create(interp.module->getFunction("pure_unref"), x, x+1, "", ret);
     }
   }
   return ret;
@@ -2549,7 +2550,7 @@ Function *interpreter::declare_extern(string name, string restype,
     }
     // The function declaration hasn't been assembled yet. Do it now.
     FunctionType *ft = FunctionType::get(type, argt, varargs);
-    f = new Function(ft, Function::ExternalLinkage, name, module);
+    f = Function::Create(ft, Function::ExternalLinkage, name, module);
     // Enter a fixed association into the dynamic linker table. This ensures
     // that even if the runtime functions can't be resolved via dlopening
     // the interpreter executable (e.g., if the interpreter was linked
@@ -2643,7 +2644,7 @@ Function *interpreter::declare_extern(string name, string restype,
   // entered into the externals table.
   if (!g) {
     gt = ft;
-    g = new Function(gt, Function::ExternalLinkage, name, module);
+    g = Function::Create(gt, Function::ExternalLinkage, name, module);
     Function::arg_iterator a = g->arg_begin();
     for (size_t i = 0; a != g->arg_end(); ++a, ++i)
       a->setName(mklabel("arg", i));
@@ -2659,7 +2660,7 @@ Function *interpreter::declare_extern(string name, string restype,
   // programs).
   vector<const Type*> argt2(n, ExprPtrTy);
   FunctionType *ft2 = FunctionType::get(ExprPtrTy, argt2, false);
-  Function *f = new Function(ft2, Function::InternalLinkage,
+  Function *f = Function::Create(ft2, Function::InternalLinkage,
 			     "$$wrap."+asname, module);
   vector<Value*> args(n), unboxed(n);
   Function::arg_iterator a = f->arg_begin();
@@ -2667,15 +2668,15 @@ Function *interpreter::declare_extern(string name, string restype,
     a->setName(mklabel("arg", i)); args[i] = a;
   }
   Builder b;
-  BasicBlock *bb = new BasicBlock("entry", f),
-    *failedbb = new BasicBlock("failed");
+  BasicBlock *bb = BasicBlock::Create("entry", f),
+    *failedbb = BasicBlock::Create("failed");
   b.SetInsertPoint(bb);
   // unbox arguments
   bool temps = false;
   for (size_t i = 0; i < n; i++) {
     Value *x = args[i];
     if (argt[i] == Type::Int1Ty) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2687,7 +2688,7 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateICmpNE(iv, Zero);
     } else if (argt[i] == Type::Int8Ty) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2699,7 +2700,7 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateTrunc(iv, Type::Int8Ty);
     } else if (argt[i] == Type::Int16Ty) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2711,7 +2712,7 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateTrunc(iv, Type::Int16Ty);
     } else if (argt[i] == Type::Int32Ty) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2723,9 +2724,9 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = iv;
     } else if (argt[i] == Type::Int64Ty) {
-      BasicBlock *intbb = new BasicBlock("int");
-      BasicBlock *mpzbb = new BasicBlock("mpz");
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *intbb = BasicBlock::Create("int");
+      BasicBlock *mpzbb = BasicBlock::Create("mpz");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
@@ -2751,7 +2752,7 @@ Function *interpreter::declare_extern(string name, string restype,
       phi->addIncoming(mpzv, mpzbb);
       unboxed[i] = phi;
     } else if (argt[i] == Type::DoubleTy) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2763,7 +2764,7 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
       unboxed[i] = dv;
     } else if (argt[i] == CharPtrTy) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2776,7 +2777,7 @@ Function *interpreter::declare_extern(string name, string restype,
 	       argt[i] == PointerType::get(Type::Int32Ty, 0) ||
 	       argt[i] == PointerType::get(Type::Int64Ty, 0) ||
 	       argt[i] == PointerType::get(Type::DoubleTy, 0)) {
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       b.CreateCondBr
@@ -2791,9 +2792,9 @@ Function *interpreter::declare_extern(string name, string restype,
       // passed through
       unboxed[i] = x;
     } else if (argt[i] == VoidPtrTy) {
-      BasicBlock *ptrbb = new BasicBlock("ptr");
-      BasicBlock *mpzbb = new BasicBlock("mpz");
-      BasicBlock *okbb = new BasicBlock("ok");
+      BasicBlock *ptrbb = BasicBlock::Create("ptr");
+      BasicBlock *mpzbb = BasicBlock::Create("mpz");
+      BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 3);
@@ -2867,7 +2868,7 @@ Function *interpreter::declare_extern(string name, string restype,
 		     b.CreateBitCast(u, VoidPtrTy));
   else if (type == ExprPtrTy) {
     // check that we actually got a valid pointer; otherwise the call failed
-    BasicBlock *okbb = new BasicBlock("ok");
+    BasicBlock *okbb = BasicBlock::Create("ok");
     b.CreateCondBr
       (b.CreateICmpNE(u, NullExprPtr, "cmp"), okbb, failedbb);
     f->getBasicBlockList().push_back(okbb);
@@ -3009,8 +3010,8 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   // compute the matchee
   Value *arg = codegen(rhs);
   // emit the matching code
-  BasicBlock *matchedbb = new BasicBlock("matched");
-  BasicBlock *failedbb = new BasicBlock("failed");
+  BasicBlock *matchedbb = BasicBlock::Create("matched");
+  BasicBlock *failedbb = BasicBlock::Create("failed");
   matcher m(rule(lhs, rhs));
   if (verbose&verbosity::code) std::cout << m << endl;
   state *start = m.start;
@@ -3104,9 +3105,9 @@ Value *interpreter::when_codegen(expr x, matcher *m,
     Env& e = act.act_fmap()[-y.hash()];
     push("when", &e);
     fun_prolog("anonymous");
-    BasicBlock *bodybb = new BasicBlock("body");
-    BasicBlock *matchedbb = new BasicBlock("matched");
-    BasicBlock *failedbb = new BasicBlock("failed");
+    BasicBlock *bodybb = BasicBlock::Create("body");
+    BasicBlock *matchedbb = BasicBlock::Create("matched");
+    BasicBlock *failedbb = BasicBlock::Create("failed");
     e.builder.CreateBr(bodybb);
     e.f->getBasicBlockList().push_back(bodybb);
     e.builder.SetInsertPoint(bodybb);
@@ -3282,8 +3283,8 @@ Value *interpreter::builtin_codegen(expr x)
       Env& e = act_env();
       Value *condv = b.CreateICmpNE(u, Zero, "cond");
       BasicBlock *iftruebb = b.GetInsertBlock();
-      BasicBlock *iffalsebb = new BasicBlock("iffalse");
-      BasicBlock *endbb = new BasicBlock("end");
+      BasicBlock *iffalsebb = BasicBlock::Create("iffalse");
+      BasicBlock *endbb = BasicBlock::Create("end");
       b.CreateCondBr(condv, endbb, iffalsebb);
       e.f->getBasicBlockList().push_back(iffalsebb);
       b.SetInsertPoint(iffalsebb);
@@ -3310,8 +3311,8 @@ Value *interpreter::builtin_codegen(expr x)
       Env& e = act_env();
       Value *condv = b.CreateICmpNE(u, Zero, "cond");
       BasicBlock *iffalsebb = b.GetInsertBlock();
-      BasicBlock *iftruebb = new BasicBlock("iftrue");
-      BasicBlock *endbb = new BasicBlock("end");
+      BasicBlock *iftruebb = BasicBlock::Create("iftrue");
+      BasicBlock *endbb = BasicBlock::Create("end");
       b.CreateCondBr(condv, iftruebb, endbb);
       e.f->getBasicBlockList().push_back(iftruebb);
       b.SetInsertPoint(iftruebb);
@@ -3351,9 +3352,9 @@ Value *interpreter::builtin_codegen(expr x)
 	return b.CreateAnd(u, v);
       else if (f.ftag() == symtab.shl_sym().f) {
 	// result of shl is undefined if u>=#bits, return 0 in that case
-	BasicBlock *okbb = new BasicBlock("ok");
+	BasicBlock *okbb = BasicBlock::Create("ok");
 	BasicBlock *zerobb = b.GetInsertBlock();
-	BasicBlock *endbb = new BasicBlock("end");
+	BasicBlock *endbb = BasicBlock::Create("end");
 	Value *cmp = b.CreateICmpULT(v, UInt(32));
 	b.CreateCondBr(cmp, okbb, endbb);
 	act_env().f->getBasicBlockList().push_back(okbb);
@@ -3584,8 +3585,8 @@ void interpreter::toplevel_codegen(expr x)
     if (f.ftag() == symtab.or_sym().f) {
       Value *u = get_int(x.xval1().xval2());
       Value *condv = b.CreateICmpNE(u, Zero, "cond");
-      BasicBlock *iftruebb = new BasicBlock("iftrue");
-      BasicBlock *iffalsebb = new BasicBlock("iffalse");
+      BasicBlock *iftruebb = BasicBlock::Create("iftrue");
+      BasicBlock *iffalsebb = BasicBlock::Create("iffalse");
       b.CreateCondBr(condv, iftruebb, iffalsebb);
       e.f->getBasicBlockList().push_back(iftruebb);
       b.SetInsertPoint(iftruebb);
@@ -3596,8 +3597,8 @@ void interpreter::toplevel_codegen(expr x)
     } else if (f.ftag() == symtab.and_sym().f) {
       Value *u = get_int(x.xval1().xval2());
       Value *condv = b.CreateICmpNE(u, Zero, "cond");
-      BasicBlock *iftruebb = new BasicBlock("iftrue");
-      BasicBlock *iffalsebb = new BasicBlock("iffalse");
+      BasicBlock *iftruebb = BasicBlock::Create("iftrue");
+      BasicBlock *iffalsebb = BasicBlock::Create("iffalse");
       b.CreateCondBr(condv, iftruebb, iffalsebb);
       e.f->getBasicBlockList().push_back(iffalsebb);
       b.SetInsertPoint(iffalsebb);
@@ -3880,9 +3881,9 @@ Value *interpreter::cond(expr x, expr y, expr z)
   // emit the condition (turn the previous result into a flag)
   Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
   // create the basic blocks for the branches
-  BasicBlock *thenbb = new BasicBlock("then");
-  BasicBlock *elsebb = new BasicBlock("else");
-  BasicBlock *endbb = new BasicBlock("end");
+  BasicBlock *thenbb = BasicBlock::Create("then");
+  BasicBlock *elsebb = BasicBlock::Create("else");
+  BasicBlock *endbb = BasicBlock::Create("end");
   // create the branch instruction and emit the 'then' block
   f.builder.CreateCondBr(condv, thenbb, elsebb);
   f.f->getBasicBlockList().push_back(thenbb);
@@ -3928,8 +3929,8 @@ void interpreter::toplevel_cond(expr x, expr y, expr z)
   // emit the condition (turn the previous result into a flag)
   Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
   // create the basic blocks for the branches
-  BasicBlock *thenbb = new BasicBlock("then");
-  BasicBlock *elsebb = new BasicBlock("else");
+  BasicBlock *thenbb = BasicBlock::Create("then");
+  BasicBlock *elsebb = BasicBlock::Create("else");
   // create the branch instruction and emit the 'then' block
   f.builder.CreateCondBr(condv, thenbb, elsebb);
   f.f->getBasicBlockList().push_back(thenbb);
@@ -4425,14 +4426,14 @@ Function *interpreter::fun_prolog(string name)
     if (have_c_func) pure_name = "$$pure."+name;
     if (cc == CallingConv::Fast) {
       // create the function
-      f.f = new Function(ft, Function::InternalLinkage,
+      f.f = Function::Create(ft, Function::InternalLinkage,
 			 "$$fastcc."+name, module);
       assert(f.f); f.f->setCallingConv(cc);
       // create the C-callable stub
-      f.h = new Function(ft, scope, pure_name, module); assert(f.h);
+      f.h = Function::Create(ft, scope, pure_name, module); assert(f.h);
     } else {
       // no need for a separate stub
-      f.f = new Function(ft, scope, pure_name, module); assert(f.f);
+      f.f = Function::Create(ft, scope, pure_name, module); assert(f.f);
       f.h = f.f;
     }
     /* Give names to the arguments, and provide direct access to these by
@@ -4455,7 +4456,7 @@ Function *interpreter::fun_prolog(string name)
       }
       /* Create the body of the stub. This is just a call to the internal
 	 function, passing through all arguments including the environment. */
-      BasicBlock *bb = new BasicBlock("entry", f.h);
+      BasicBlock *bb = BasicBlock::Create("entry", f.h);
       f.builder.SetInsertPoint(bb);
       CallInst* v = f.builder.CreateCall(f.f, myargs.begin(), myargs.end());
       v->setCallingConv(cc);
@@ -4473,7 +4474,7 @@ Function *interpreter::fun_prolog(string name)
   llvm::cerr << "PROLOG FUNCTION " << f.name << endl;
 #endif
   // create a new basic block to start insertion into
-  BasicBlock *bb = new BasicBlock("entry", f.f);
+  BasicBlock *bb = BasicBlock::Create("entry", f.f);
   f.builder.SetInsertPoint(bb);
 #if DEBUG>1
   if (!f.name.empty()) { ostringstream msg;
@@ -4491,7 +4492,7 @@ void interpreter::fun_body(matcher *pm, bool nodefault)
 #if DEBUG>1
   llvm::cerr << "BODY FUNCTION " << f.name << endl;
 #endif
-  BasicBlock *bodybb = new BasicBlock("body");
+  BasicBlock *bodybb = BasicBlock::Create("body");
   f.builder.CreateBr(bodybb);
   f.f->getBasicBlockList().push_back(bodybb);
   f.builder.SetInsertPoint(bodybb);
@@ -4500,7 +4501,7 @@ void interpreter::fun_body(matcher *pm, bool nodefault)
     msg << "body " << f.name;
     debug(msg.str().c_str()); }
 #endif
-  BasicBlock *failedbb = new BasicBlock("failed");
+  BasicBlock *failedbb = BasicBlock::Create("failed");
   // emit the matching code
   complex_match(pm, failedbb);
   // emit code for a failed match
@@ -4570,8 +4571,8 @@ void interpreter::unwind_iffalse(Value *v)
   // throw an exception if v == false
   Env& f = act_env();
   assert(f.f!=0);
-  BasicBlock *errbb = new BasicBlock("err");
-  BasicBlock *okbb = new BasicBlock("ok");
+  BasicBlock *errbb = BasicBlock::Create("err");
+  BasicBlock *okbb = BasicBlock::Create("ok");
   f.builder.CreateCondBr(v, okbb, errbb);
   f.f->getBasicBlockList().push_back(errbb);
   f.builder.SetInsertPoint(errbb);
@@ -4585,8 +4586,8 @@ void interpreter::unwind_iftrue(Value *v)
   // throw an exception if v == true
   Env& f = act_env();
   assert(f.f!=0);
-  BasicBlock *errbb = new BasicBlock("err");
-  BasicBlock *okbb = new BasicBlock("ok");
+  BasicBlock *errbb = BasicBlock::Create("err");
+  BasicBlock *okbb = BasicBlock::Create("ok");
   f.builder.CreateCondBr(v, errbb, okbb);
   f.f->getBasicBlockList().push_back(errbb);
   f.builder.SetInsertPoint(errbb);
@@ -4650,7 +4651,7 @@ void interpreter::simple_match(Value *x, state*& s,
   case EXPR::INT:
   case EXPR::DBL: {
     // first check the tag
-    BasicBlock *okbb = new BasicBlock("ok");
+    BasicBlock *okbb = BasicBlock::Create("ok");
     Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
@@ -4675,7 +4676,7 @@ void interpreter::simple_match(Value *x, state*& s,
   case EXPR::STR: {
     // first do a quick check on the tag so that we may avoid an expensive
     // call if the tags don't match
-    BasicBlock *okbb = new BasicBlock("ok");
+    BasicBlock *okbb = BasicBlock::Create("ok");
     Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
@@ -4698,8 +4699,8 @@ void interpreter::simple_match(Value *x, state*& s,
     break;
   case EXPR::APP: {
     // first match the tag...
-    BasicBlock *ok1bb = new BasicBlock("arg1");
-    BasicBlock *ok2bb = new BasicBlock("arg2");
+    BasicBlock *ok1bb = BasicBlock::Create("arg1");
+    BasicBlock *ok2bb = BasicBlock::Create("arg2");
     Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag)), ok1bb, failedbb);
@@ -4748,7 +4749,7 @@ void interpreter::complex_match(matcher *pm, BasicBlock *failedbb)
   if (f.n == 1 && f.b && pm->r.size() == 1 && pm->r[0].qual.is_null()) {
     Value *arg = f.args[0];
     // emit the matching code
-    BasicBlock *matchedbb = new BasicBlock("matched");
+    BasicBlock *matchedbb = BasicBlock::Create("matched");
     state *start = pm->start;
     simple_match(arg, start, matchedbb, failedbb);
     // matched => emit code for the reduct, and return the result
@@ -4840,7 +4841,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
   assert(x->getType() == ExprPtrTy);
   // start a new block for this state (this is just for purposes of
   // readability, we don't actually need this as a label to branch to)
-  BasicBlock *statebb = new BasicBlock(mklabel("state", s->s));
+  BasicBlock *statebb = BasicBlock::Create(mklabel("state", s->s));
   f.builder.CreateBr(statebb);
   f.f->getBasicBlockList().push_back(statebb);
   f.builder.SetInsertPoint(statebb);
@@ -4850,8 +4851,8 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     debug(msg.str().c_str()); }
 #endif
   // blocks for retrying with default transitions after a failed match
-  BasicBlock *retrybb = new BasicBlock(mklabel("retry.state", s->s));
-  BasicBlock *defaultbb = new BasicBlock(mklabel("default.state", s->s));
+  BasicBlock *retrybb = BasicBlock::Create(mklabel("retry.state", s->s));
+  BasicBlock *defaultbb = BasicBlock::Create(mklabel("default.state", s->s));
   // first check for a literal match
   size_t i, n = s->tr.size(), m = 0;
   transl::iterator t0 = s->tr.begin();
@@ -4872,7 +4873,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     transl::iterator t;
     for (t = t0, i = 0; t != s->tr.end(); t++, i++) {
       // first create the block for this specific transition
-      BasicBlock *bb = new BasicBlock(mklabel("trans.state", s->s, t->st->s));
+      BasicBlock *bb = BasicBlock::Create(mklabel("trans.state", s->s, t->st->s));
       if (t->tag == EXPR::APP || t->tag > 0) {
 	// transition on a function symbol; in this case there's only a single
 	// transition, to which we simply assign the label just generated
@@ -4887,7 +4888,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	  // no outer label has been generated yet, do it now and add the
 	  // target to the outer switch
 	  tmap[t->tag].bb =
-	    new BasicBlock(mklabel("begin.state", s->s, -t->tag));
+	    BasicBlock::Create(mklabel("begin.state", s->s, -t->tag));
 	  sw->addCase(SInt(t->tag), tmap[t->tag].bb);
 	}
       }
@@ -4916,7 +4917,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	  list<trans_info>::iterator k = l; k++;
 	  BasicBlock *okbb = l->bb;
 	  BasicBlock *trynextbb =
-	    new BasicBlock(mklabel("next.state", s->s, -tag));
+	    BasicBlock::Create(mklabel("next.state", s->s, -tag));
 	  switch (tag) {
 	  case EXPR::INT:
 	  case EXPR::DBL: {
@@ -4984,7 +4985,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     transl::iterator t;
     for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
       vtransbb.push_back
-	(new BasicBlock(mklabel("trans.state", s->s, t->st->s)));
+	(BasicBlock::Create(mklabel("trans.state", s->s, t->st->s)));
       sw->addCase(SInt(t->ttag), vtransbb[i]);
     }
     // now handle the transitions on the different type tags
@@ -5021,7 +5022,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
   ruleml::const_iterator r = rl.begin();
   assert(r != rl.end());
   assert(f.fmap_idx == 0);
-  BasicBlock* rulebb = new BasicBlock(mklabel("rule.state", s->s, rl.front()));
+  BasicBlock* rulebb = BasicBlock::Create(mklabel("rule.state", s->s, rl.front()));
   f.builder.CreateBr(rulebb);
   while (r != rl.end()) {
     const rule& rr = rules[*r];
@@ -5064,11 +5065,11 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
       iv = get_int(rr.qual);
     // emit the condition (turn the previous result into a flag)
     Value *condv = f.builder.CreateICmpNE(iv, Zero, "cond");
-    BasicBlock *okbb = new BasicBlock("ok");
+    BasicBlock *okbb = BasicBlock::Create("ok");
     // determine the next rule block ('failed' if none)
     BasicBlock *nextbb;
     if (++r != rl.end())
-      nextbb = new BasicBlock(mklabel("rule.state", s->s, *r));
+      nextbb = BasicBlock::Create(mklabel("rule.state", s->s, *r));
     else
       nextbb = failedbb;
     f.builder.CreateCondBr(condv, okbb, nextbb);
