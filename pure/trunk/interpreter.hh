@@ -9,7 +9,7 @@
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/Target/TargetData.h>
 #include <llvm/Transforms/Scalar.h>
-#include <llvm/Support/LLVMBuilder.h>
+#include <llvm/Support/IRBuilder.h>
 
 #include <time.h>
 #include <set>
@@ -83,7 +83,7 @@ struct VarInfo {
 };
 
 //#define Builder llvm::LLVMBuilder
-#define Builder llvm::LLVMFoldingBuilder
+#define Builder llvm::IRBuilder
 
 typedef list<Env*> EnvStack;
 typedef pair<int32_t,uint8_t> xmap_key;

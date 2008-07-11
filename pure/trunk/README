@@ -31,8 +31,9 @@ Please see the INSTALL file for detailed instructions. On most Unix-like
 systems, the usual './configure && make && sudo make install' should do the
 trick. This requires GNU make and g++. For other setups, you'll probably have
 to fiddle with the Makefile and the sources. You'll also need LLVM for the
-compiler backend (version 2.2 has been tested). For your convenience,
-instructions for installing LLVM are also included in the INSTALL file.
+compiler backend (version 2.3 or later is required as of Pure 0.5). For your
+convenience, instructions for installing LLVM are also included in the INSTALL
+file.
 
 USING PURE
 ----- ----
@@ -44,10 +45,10 @@ evaluated. Use the 'quit' command to exit the interpreter (on Unix systems you
 can also just type EOF a.k.a. Ctrl-D at the beginning of the interpreter's
 command line). For instance:
 
-Pure 0.4 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
+Pure 0.5 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
 This program is free software distributed under the GNU Public License
 (GPL V3 or later). Please see the COPYING file for details.
-Loaded prelude from /usr/local/lib/pure-0.4/prelude.pure.
+Loaded prelude from /usr/local/lib/pure-0.5/prelude.pure.
 
 > fact n = if n>0 then n*fact (n-1) else 1;
 > map fact (1..10);

@@ -48,12 +48,12 @@ E.g., the required packages for Ubuntu are: make, g++, g++ 4.0 multilib, flex,
 bison, libgmp3c2, libgmp3-dev, readline5-dev, libltdl3, libldtl3-dev,
 subversion.
 
-STEP 2. Get and unpack the LLVM 2.2 sources at:
-http://llvm.org/releases/download.html#2.2
+STEP 2. Get and unpack the LLVM 2.3 sources at:
+http://llvm.org/releases/download.html#2.3
 
 STEP 3. Configure, build and install LLVM as follows:
 
-$ cd llvm-2.2
+$ cd llvm-2.3
 $ ./configure --enable-optimized --disable-assertions --disable-expensive-checks --enable-targets=host-only
 $ make
 $ sudo make install
@@ -76,7 +76,7 @@ page. See "Downloads" on the Pure website for a quick link to the download
 section.
 
 STEP 5. Configure, build and install Pure as follows (x.y denotes the current
-Pure version number, 0.4 at the time of this writing):
+Pure version number, 0.5 at the time of this writing):
 
 $ cd pure-x.y
 $ ./configure
@@ -111,10 +111,10 @@ STEP 6. The Pure interpreter should be ready to go now.
 Run Pure interactively as:
 
 $ pure
-Pure 0.4 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
+Pure 0.5 (i686-pc-linux-gnu) Copyright (c) 2008 by Albert Graef
 This program is free software distributed under the GNU Public License
 (GPL V3 or later). Please see the COPYING file for details.
-Loaded prelude from /usr/local/lib/pure-0.4/prelude.pure.
+Loaded prelude from /usr/local/lib/pure-0.5/prelude.pure.
 
 Check that it works:
 
@@ -371,10 +371,10 @@ in case of a stack overflow.
 -- --- -------
 
 64 bit systems are fully supported by Pure. However, you'll need to patch up
-LLVM 2.2 so that it can be linked into the Pure runtime library on x86-64
+LLVM 2.3 so that it can be linked into the Pure runtime library on x86-64
 systems. You also have to configure LLVM with --enable-pic. The patch by
-Cyrille Berger, which is to be applied in the llvm-2.2 source directory, is
-available at http://pure-lang.sf.net/X86JITInfo.cpp.pic.patch.
+Cyrille Berger, which is to be applied in the llvm-2.3 source directory, is
+available at http://pure-lang.sf.net/X86JITInfo.cpp.pic.2.3.patch.
 
 Also, the debug build currently does *not* work on x86-64 Linux versions. This
 seems to be a bug in LLVM, so there's hope that it will go away in a future
