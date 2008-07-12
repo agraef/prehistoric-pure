@@ -34,6 +34,7 @@ AC_SUBST(rdynamic)
 AC_SUBST(PIC)
 AC_SUBST(DLLEXT)
 AC_SUBST(AUXLIBS)
+AC_DEFINE_UNQUOTED(DLLEXT, "${DLLEXT}", [Define to the filename extension for shared libraries.])
 dnl Check for programs.
 AC_PROG_INSTALL
 AC_PROG_CXX
