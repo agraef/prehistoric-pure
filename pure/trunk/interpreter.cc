@@ -379,14 +379,27 @@ interpreter::warning(const string& m)
 // Run the interpreter on a source file, collection of source files, or on
 // string data.
 
+#ifndef DLLEXT
+#define DLLEXT ".so"
+#endif
+
 pure_expr* interpreter::run(const string &s, bool check)
 {
   // check for library modules
   size_t p = s.find(":");
   if (p != string::npos && s.substr(0, p) == "lib") {
     if (p+1 >= s.size()) throw err("empty lib name");
-    string name = s.substr(p+1), msg;
-    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str(), &msg))
+    string msg, name = s.substr(p+1), dllname = name;
+    // See whether we need to add the DLLEXT suffix.
+    if (name.substr(name.size()-strlen(DLLEXT)) != DLLEXT)
+      dllname += DLLEXT;
+    // First try to open the library under the given name.
+    if (!llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str(), &msg))
+      return 0;
+    else if (dllname == name)
+      throw err(msg);
+    // Now try the name with DLLEXT added.
+    else if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(dllname.c_str(), &msg))
       throw err(msg);
     return 0;
   }

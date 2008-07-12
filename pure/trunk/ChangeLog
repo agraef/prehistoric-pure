@@ -1,3 +1,8 @@
+2008-07-13  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (run): LLVM 2.3 requires that we add the default
+	shared library extension manually.
+
 2008-07-11  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc/h: Apply Rooslan S. Khayrov's patches to make the
