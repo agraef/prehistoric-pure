@@ -84,7 +84,7 @@ static prec_t expr_nprec(expr x, bool aspat = true)
   case EXPR::APP: {
     expr u, v, w;
     prec_t p;
-    if (x.is_list())
+    if (x.is_listx())
       return 100;
     else if (x.is_app(u, v))
       if (u.tag() > 0 && (p = sym_nprec(u.tag())) < 100 && p%10 >= 3)
@@ -248,7 +248,7 @@ static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
     expr u, v, w, y;
     exprl xs;
     prec_t p;
-    if (x.is_list(xs)) {
+    if (x.is_listx(xs)) {
       // proper list value
       size_t n = xs.size();
       os << "[";
