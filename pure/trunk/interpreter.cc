@@ -238,6 +238,12 @@ interpreter::interpreter()
 		 "pure_pointer",    "expr*",  1, "void*");
   declare_extern((void*)pure_apply,
 		 "pure_apply",      "expr*",  2, "expr*", "expr*");
+
+  declare_extern((void*)pure_listl,
+		 "pure_listl",      "expr*", -1, "int");
+  declare_extern((void*)pure_tuplel,
+		 "pure_tuplel",     "expr*", -1, "int");
+
   declare_extern((void*)pure_cmp_bigint,
 		 "pure_cmp_bigint", "int",    3, "expr*", "int",
 		 sizeof(mp_limb_t)==8?"long*":"int*");
@@ -3672,6 +3678,7 @@ Value *interpreter::codegen(expr x)
 	 interactive session. */
       expr f; uint32_t n = count_args(x, f);
       Value *v; Env *e;
+      exprl xs;
       if (f.tag() == EXPR::FVAR && (v = funcall(f.vtag(), f.vidx(), n, x)))
 	// local function call
 	return v;
@@ -3701,6 +3708,21 @@ Value *interpreter::codegen(expr x)
 	argv.push_back(body);
 	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
 	return call("pure_catch", handler, body);
+      } else if (x.is_list(xs) || x.is_pair() && x.is_tuple(xs)) {
+	// optimize the case of proper lists and tuples
+	size_t i = 0, n = xs.size();
+	vector<Value*> argv(n+1);
+	argv[0] = UInt(n);
+	for (exprl::iterator it = xs.begin(), end = xs.end(); it != end; it++)
+	  argv[++i] = codegen(*it);
+	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
+	return act_env().CreateCall
+	  (module->getFunction(x.is_pair()?"pure_tuplel":"pure_listl"), argv);
+	vector<Value*> argv1;
+	argv1.push_back(NullExprPtr);
+	argv1.insert(argv1.end(), argv.begin(), argv.end());
+	act_env().CreateCall(module->getFunction("pure_free_args"), argv1);
+	return v;
       } else {
 	// ordinary function application
 	Value *u = codegen(x.xval1()), *v = codegen(x.xval2());

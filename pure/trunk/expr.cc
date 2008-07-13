@@ -170,7 +170,16 @@ bool expr::is_list() const
 {
   expr x, y;
   if (is_cons(x, y))
-    return !x.is_pair() && y.is_list();
+    return y.is_listx();
+  else
+    return is_nil();
+}
+
+bool expr::is_listx() const
+{
+  expr x, y;
+  if (is_cons(x, y))
+    return !x.is_pair() && y.is_listx();
   else
     return is_nil();
 }
@@ -198,14 +207,33 @@ bool expr::is_list(exprl &xs) const
 {
   expr x, y;
   if (is_cons(x, y)) {
-    if (x.is_pair())
+    xs.push_back(x);
+    return y.is_listx(xs);
+  } else if (is_nil())
+    return true;
+  else {
+    xs.clear();
+    return false;
+  }
+}
+
+bool expr::is_listx(exprl &xs) const
+{
+  expr x, y;
+  if (is_cons(x, y)) {
+    if (x.is_pair()) {
+      xs.clear();
       return false;
-    else {
+    } else {
       xs.push_back(x);
-      return y.is_list(xs);
+      return y.is_listx(xs);
     }
-  } else
-    return is_nil();
+  } else if (is_nil())
+    return true;
+  else {
+    xs.clear();
+    return false;
+  }
 }
 
 bool expr::is_pair(expr &x, expr &y) const
