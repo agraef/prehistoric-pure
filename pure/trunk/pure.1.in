@@ -177,7 +177,9 @@ along with additional debugging information.
 Pure is a fairly simple language. Programs are collections of equational rules
 defining functions, \fBdef\fP and \fBlet\fP commands binding global constant
 and variable symbols, and expressions to be evaluated. Here's a simple
-example, entered interactively in the interpreter:
+example, entered interactively in the interpreter (note that the \fB>\fP
+symbol at the beginning of each input line is the interpreter's default
+command prompt):
 .sp
 .nf
 > // my first Pure example
