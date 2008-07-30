@@ -221,7 +221,7 @@ int   [0-9]+|0[0-7]+|0[xX][0-9a-fA-F]+
 exp   ([Ee][+-]?[0-9]+)
 float [0-9]+{exp}|[0-9]+\.{exp}|[0-9]*\.[0-9]+{exp}?
 str   ([^\"\\\n]|\\(.|\n))*
-blank [ \t]
+blank [ \t\f\v\r]
 
 inttag  ::{blank}*int
 binttag ::{blank}*bigint
