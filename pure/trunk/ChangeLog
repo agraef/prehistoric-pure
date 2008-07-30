@@ -1,3 +1,7 @@
+2008-07-30  Albert Graef  <Dr.Graef@t-online.de>
+
+	* w3centities.c: Updated to latest from W3C.
+
 2008-07-13  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (codegen): Streamline code for list and tuple
