@@ -128,7 +128,7 @@ struct Env {
   Builder builder;
   // parent environment (if any)
   Env *parent;
-  // reference counter (currently unused)
+  // reference counter
   uint32_t refc;
   // convenience functions for invoking CreateGEP() and CreateLoad()
   llvm::Value *CreateGEP
