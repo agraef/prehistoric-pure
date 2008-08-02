@@ -942,8 +942,8 @@ void interpreter::print_defs(ostream& os, const Env& e)
   if (e.h && e.h != e.f) e.h->print(os);
   e.f->print(os);
   for (size_t i = 0, n = e.fmap.size(); i < n; i++) {
-    map<int32_t,Env>::const_iterator f;
-    for (f = e.fmap[i].begin(); f != e.fmap[i].end(); f++)
+    for (map<int32_t,Env>::const_iterator f = e.fmap.act(i).begin(),
+	   end = e.fmap.act(i).end(); f != end; f++)
       print_defs(os, f->second);
   }
 }

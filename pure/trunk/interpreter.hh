@@ -88,6 +88,33 @@ struct VarInfo {
 typedef list<Env*> EnvStack;
 typedef pair<int32_t,uint8_t> xmap_key;
 
+class FMap {
+  // manage local function environments
+  vector< map<int32_t,Env> > fmap;
+  // current map index
+  size_t idx;
+public:
+  // constructor (create one empty map by default)
+  FMap() : fmap(1), idx(0) {}
+  // assignment
+  FMap& operator= (const FMap& f)
+  { fmap = f.fmap; idx = f.idx; return *this; }
+  // clear local environments
+  void clear() { fmap.clear(); idx = 0; }
+  // resize (set number of maps)
+  void resize(size_t n) { fmap.resize(n); }
+  // current size (number of maps)
+  size_t size() const { return fmap.size(); }
+  // set index to first, next and given map
+  void first() { idx = 0; }
+  void next() { idx++; }
+  void set(size_t n) { idx = n; }
+  // access the current map
+  map<int32_t,Env>& act() { return fmap[idx]; }
+  // access the given map (read-only)
+  const map<int32_t,Env>& act(size_t n) const { return fmap[n]; }
+};
+
 struct Env {
   // function environment
   int32_t tag; // function id, zero for anonymous functions
@@ -106,14 +133,8 @@ struct Env {
   map<xmap_key,uint32_t > xmap;
   // info about captured variables
   list<VarInfo> xtab;
-  // local function environments; note that there's actually a separate child
-  // environment for each rule of the parent function (this gets initialized
-  // to a single empty environment)
-  vector< map<int32_t,Env> > fmap;
-  // the current fmap index; this gets updated each time a new rule is added
-  size_t fmap_idx;
-  // convenience function to access the current fmap
-  map<int32_t,Env>& act_fmap() { return fmap[fmap_idx]; }
+  // local function environments
+  FMap fmap;
   // propagation links for environment variables (pointers to call sites)
   // e in prop means that there's a call with de Bruijn index prop[e] at e
   map<Env*,uint8_t> prop;
@@ -162,11 +183,11 @@ struct Env {
   // default constructor
   Env()
     : tag(0), n(0), m(0), f(0), h(0), fp(0), args(0), envs(0),
-      fmap(1), fmap_idx(0), b(false), local(false), parent(0), refc(0) {}
+      b(false), local(false), parent(0), refc(0) {}
   // environment for an anonymous closure with given body x
   Env(int32_t _tag, uint32_t _n, expr x, bool _b, bool _local = false)
     : tag(_tag), n(_n), m(0), f(0), h(0), fp(0), args(n), envs(0),
-      fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
+      b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);
@@ -180,7 +201,7 @@ struct Env {
   // environment for a named closure with given definition info
   Env(int32_t _tag, const env_info& info, bool _b, bool _local = false)
     : tag(_tag), n(info.argc), m(0), f(0), h(0), fp(0), args(n), envs(0),
-      fmap(1), fmap_idx(0), b(_b), local(_local), parent(0), refc(0)
+      b(_b), local(_local), parent(0), refc(0)
   {
     if (envstk.empty()) {
       assert(!local);

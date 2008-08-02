@@ -1942,8 +1942,7 @@ Env& Env::operator= (const Env& e)
     args = e.args; envs = e.envs;
     b = e.b; local = e.local; parent = e.parent;
   }
-  fmap = e.fmap; fmap_idx = e.fmap_idx;
-  xmap = e.xmap; xtab = e.xtab; prop = e.prop; m = e.m;
+  fmap = e.fmap; xmap = e.xmap; xtab = e.xtab; prop = e.prop; m = e.m;
   return *this;
 }
 
@@ -1961,7 +1960,7 @@ void Env::clear()
     interp.JIT->freeMachineCodeForFunction(f);
     f->dropAllReferences(); if (h != f) h->dropAllReferences();
     fp = 0;
-    fmap.clear(); fmap_idx = 0;
+    fmap.clear();
     to_be_deleted.push_back(f); if (h != f) to_be_deleted.push_back(h);
   } else {
 #if DEBUG>2
@@ -1978,8 +1977,7 @@ void Env::clear()
     }
     fp = 0;
     // delete all nested environments and reinitialize other body-related data
-    fmap.clear(); fmap_idx = 0;
-    xmap.clear(); xtab.clear(); prop.clear(); m = 0;
+    fmap.clear(); xmap.clear(); xtab.clear(); prop.clear(); m = 0;
     // now that all references have been removed, delete the function pointers
     for (list<Function*>::iterator fi = to_be_deleted.begin();
 	 fi != to_be_deleted.end(); fi++) {
@@ -2130,7 +2128,7 @@ void Env::build_map(expr x)
       fenv = *ei++;
     }
     assert(fenv->act_fmap().find(x.vtag()) != fenv->act_fmap().end());
-    fenv = &fenv->act_fmap()[x.vtag()];
+    fenv = &fenv->fmap.act()[x.vtag()];
     if (!fenv->local) break;
     // fenv now points to the environment of the (local) function
     assert(fenv != this && fenv->tag == x.vtag());
@@ -2190,7 +2188,7 @@ void Env::build_map(expr x)
     if (n == 2 && f.tag() == interp.symtab.catch_sym().f) {
       expr h = x.xval1().xval2(), y = x.xval2();
       push("catch");
-      Env& e = act_fmap()[-x.hash()] = Env(0, 0, y, true, true);
+      Env& e = fmap.act()[-x.hash()] = Env(0, 0, y, true, true);
       e.build_map(y); e.promote_map();
       pop();
       build_map(h);
@@ -2207,14 +2205,14 @@ void Env::build_map(expr x)
     break;
   case EXPR::LAMBDA: {
     push("lambda");
-    Env& e = act_fmap()[-x.hash()] = Env(0, 1, x.xval2(), true, true);
+    Env& e = fmap.act()[-x.hash()] = Env(0, 1, x.xval2(), true, true);
     e.build_map(x.xval2()); e.promote_map();
     pop();
     break;
   }
   case EXPR::CASE: {
     push("case");
-    Env& e = act_fmap()[-x.hash()] = Env(0, 1, x.xval(), true, true);
+    Env& e = fmap.act()[-x.hash()] = Env(0, 1, x.xval(), true, true);
     e.build_map(*x.rules()); e.promote_map();
     pop();
     build_map(x.xval());
@@ -2231,13 +2229,13 @@ void Env::build_map(expr x)
     for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      act_fmap()[ftag] = Env(ftag, info, false, true);
+      fmap.act()[ftag] = Env(ftag, info, false, true);
     }
     // Now recursively build the maps for the child environments.
     for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      Env& e = act_fmap()[ftag];
+      Env& e = fmap.act()[ftag];
       e.build_map(info); e.promote_map();
     }
     pop();
@@ -2261,7 +2259,7 @@ void Env::build_map(expr x, rulel::const_iterator r, rulel::const_iterator end)
     rulel::const_iterator s = r;
     expr y = (++s == end)?x:s->rhs;
     push("when");
-    Env& e = act_fmap()[-y.hash()] = Env(0, 1, y, true, true);
+    Env& e = fmap.act()[-y.hash()] = Env(0, 1, y, true, true);
     e.build_map(x, s, end); e.promote_map();
     pop();
     build_map(r->rhs);
@@ -2288,9 +2286,9 @@ void Env::build_map(const env_info& info)
   while (r != info.rules->end()) {
     build_map(r->rhs);
     if (!r->qual.is_null()) build_map(r->qual);
-    r++; fmap_idx++;
+    r++; fmap.next();
   }
-  fmap_idx = 0;
+  fmap.first();
 #if DEBUG>1
   if (!local) print_map(std::cerr, this);
 #endif
@@ -3120,8 +3118,8 @@ Value *interpreter::when_codegen(expr x, matcher *m,
     Env& act = act_env();
     rulel::const_iterator s = r;
     expr y = (++s == end)?x:s->rhs;
-    assert(act.act_fmap().find(-y.hash()) != act.act_fmap().end());
-    Env& e = act.act_fmap()[-y.hash()];
+    assert(act.fmap.act().find(-y.hash()) != act.fmap.act().end());
+    Env& e = act.fmap.act()[-y.hash()];
     push("when", &e);
     fun_prolog("anonymous");
     BasicBlock *bodybb = BasicBlock::Create("body");
@@ -3548,7 +3546,7 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
   int offs = idx-1;
   if (idx == 0) {
     // function in current environment ('with'-bound)
-    f = &act_env().act_fmap()[tag];
+    f = &act_env().fmap.act()[tag];
   } else {
     // function in an outer environment, the de Bruijn index idx tells us
     // where on the current environment stack it's at
@@ -3556,7 +3554,7 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
     size_t i = idx;
     for (; i > 0; e++, i--) assert(e != envstk.end());
     // look up the function in the environment
-    f = &(*e)->act_fmap()[tag];
+    f = &(*e)->fmap.act()[tag];
   }
   if (f->n == n) {
     // bingo! saturated call
@@ -3694,8 +3692,8 @@ Value *interpreter::codegen(expr x)
 	// through pure_catch()
 	expr h = x.xval1().xval2(), y = x.xval2();
 	Env& act = act_env();
-	assert(act.act_fmap().find(-x.hash()) != act.act_fmap().end());
-	Env& e = act.act_fmap()[-x.hash()];
+	assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
+	Env& e = act.fmap.act()[-x.hash()];
 	push("catch", &e);
 	fun_prolog("anonymous");
 	e.CreateRet(codegen(y));
@@ -3735,8 +3733,8 @@ Value *interpreter::codegen(expr x)
   // anonymous closure:
   case EXPR::LAMBDA: {
     Env& act = act_env();
-    assert(act.act_fmap().find(-x.hash()) != act.act_fmap().end());
-    Env& e = act.act_fmap()[-x.hash()];
+    assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
+    Env& e = act.fmap.act()[-x.hash()];
     push("lambda", &e);
     fun("anonymous", x.pm(), true);
     pop(&e);
@@ -3747,8 +3745,8 @@ Value *interpreter::codegen(expr x)
     // case expression: treated like an anonymous closure (see the lambda case
     // above) which gets applied to the subject term to be matched
     Env& act = act_env();
-    assert(act.act_fmap().find(-x.hash()) != act.act_fmap().end());
-    Env& e = act.act_fmap()[-x.hash()];
+    assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
+    Env& e = act.fmap.act()[-x.hash()];
     push("case", &e);
     fun("anonymous", x.pm(), true);
     pop(&e);
@@ -3774,16 +3772,16 @@ Value *interpreter::codegen(expr x)
     // mutually recursive definitions
     for (p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
-      assert(act.act_fmap().find(ftag) != act.act_fmap().end());
-      Env& e = act.act_fmap()[ftag];
+      assert(act.fmap.act().find(ftag) != act.fmap.act().end());
+      Env& e = act.fmap.act()[ftag];
       push("with", &e);
-      act.act_fmap()[ftag].f = fun_prolog(symtab.sym(ftag).s);
+      act.fmap.act()[ftag].f = fun_prolog(symtab.sym(ftag).s);
       pop(&e);
     }
     for (p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      Env& e = act.act_fmap()[ftag];
+      Env& e = act.fmap.act()[ftag];
       push("with", &e);
       fun_body(info.m);
       pop(&e);
@@ -4078,7 +4076,7 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
   assert(!envstk.empty());
   if (idx == 0) {
     // function in current environment ('with'-bound)
-    Env& f = act_env().act_fmap()[tag];
+    Env& f = act_env().fmap.act()[tag];
     return fbox(f, thunked);
   }
   // If we come here, the function is defined in an outer environment. Locate
@@ -4088,7 +4086,7 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
   size_t i = idx;
   for (; i > 0; e++, i--) assert(e != envstk.end());
   // look up the function in the environment
-  Env& f = (*e)->act_fmap()[tag];
+  Env& f = (*e)->fmap.act()[tag];
   assert(f.f);
   // Now create the closure. This is essentially just like fbox(), but we are
   // called inside a nested environment here, and hence the de Bruijn indices
@@ -5062,7 +5060,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
   while (r != rl.end()) {
     const rule& rr = rules[*r];
     reduced.insert(*r);
-    if (f.fmap.size() > 1) f.fmap_idx = *r;
+    if (f.fmap.size() > 1) f.fmap.set(*r);
     f.f->getBasicBlockList().push_back(rulebb);
     f.builder.SetInsertPoint(rulebb);
 #if DEBUG>1
@@ -5120,5 +5118,5 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
     toplevel_codegen(rr.rhs);
     rulebb = nextbb;
   }
-  if (f.fmap.size() > 1) f.fmap_idx = 0;
+  if (f.fmap.size() > 1) f.fmap.first();
 }
