@@ -543,7 +543,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	    sout << "  " << rules << ";";
 	    if (aflag && m) sout << endl << *m;
 	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
-	      interp.print_defs(sout, fenv->second);
+	      fenv->second.print_defs(sout);
 	  } else {
 	    sout << " " << argc << " args, " << rules.size() << " rules";
 	  }
@@ -560,7 +560,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  if (n > 0) {
 	    if (aflag && m) sout << *m << endl;
 	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
-	      interp.print_defs(sout, fenv->second);
+	      fenv->second.print_defs(sout);
 	    nrules += n;
 	    ++nfuns;
 	  }
@@ -936,14 +936,14 @@ void my_readline(const char *prompt, char *buf, int &result, int max_size)
   result = k;
 }
 
-void interpreter::print_defs(ostream& os, const Env& e)
+void Env::print_defs(ostream& os) const
 {
-  if (!e.f) return; // not used, probably a shadowed rule
-  if (e.h && e.h != e.f) e.h->print(os);
-  e.f->print(os);
-  for (size_t i = 0, n = e.fmap.size(); i < n; i++) {
-    for (map<int32_t,Env>::const_iterator f = e.fmap.act(i).begin(),
-	   end = e.fmap.act(i).end(); f != end; f++)
-      print_defs(os, f->second);
+  if (!f) return; // not used, probably a shadowed rule
+  if (h && h != f) h->print(os);
+  f->print(os);
+  for (size_t i = 0, n = fmap.m.size(); i < n; i++) {
+    for (map<int32_t,Env>::const_iterator f = fmap.m[i].begin(),
+	   end = fmap.m[i].end(); f != end; f++)
+      f->second.print_defs(os);
   }
 }
