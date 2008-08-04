@@ -102,12 +102,10 @@ struct FMap {
   void clear() { m.clear(); idx = 0; }
   // resize (set number of maps)
   void resize(size_t n) { m.resize(n); }
-  // current size (number of maps)
-  size_t size() const { return m.size(); }
   // set index to first, next and given map
   void first() { idx = 0; }
   void next() { idx++; }
-  void set(size_t n) { idx = n; }
+  void set(size_t n) { if (m.size() > 1) idx = n; }
   // access the current map
   map<int32_t,Env>& act() { return m[idx]; }
 };
