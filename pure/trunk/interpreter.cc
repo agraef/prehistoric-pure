@@ -5060,7 +5060,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
   while (r != rl.end()) {
     const rule& rr = rules[*r];
     reduced.insert(*r);
-    if (f.fmap.size() > 1) f.fmap.set(*r);
+    f.fmap.set(*r);
     f.f->getBasicBlockList().push_back(rulebb);
     f.builder.SetInsertPoint(rulebb);
 #if DEBUG>1
@@ -5118,5 +5118,5 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
     toplevel_codegen(rr.rhs);
     rulebb = nextbb;
   }
-  if (f.fmap.size() > 1) f.fmap.first();
+  f.fmap.first();
 }
