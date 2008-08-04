@@ -176,7 +176,7 @@ struct Env {
   // and patching up tail calls
   llvm::ReturnInst *CreateRet(llvm::Value *v);
   // print the code of all functions in an environment, recursively
-  void print_defs(ostream& os) const;
+  void print(ostream& os) const;
   // default constructor
   Env()
     : tag(0), n(0), m(0), f(0), h(0), fp(0), args(0), envs(0),
