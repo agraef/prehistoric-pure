@@ -88,31 +88,28 @@ struct VarInfo {
 typedef list<Env*> EnvStack;
 typedef pair<int32_t,uint8_t> xmap_key;
 
-class FMap {
+struct FMap {
   // manage local function environments
-  vector< map<int32_t,Env> > fmap;
+  vector< map<int32_t,Env> > m;
   // current map index
   size_t idx;
-public:
   // constructor (create one empty map by default)
-  FMap() : fmap(1), idx(0) {}
+  FMap() : m(1), idx(0) {}
   // assignment
   FMap& operator= (const FMap& f)
-  { fmap = f.fmap; idx = f.idx; return *this; }
+  { m = f.m; idx = f.idx; return *this; }
   // clear local environments
-  void clear() { fmap.clear(); idx = 0; }
+  void clear() { m.clear(); idx = 0; }
   // resize (set number of maps)
-  void resize(size_t n) { fmap.resize(n); }
+  void resize(size_t n) { m.resize(n); }
   // current size (number of maps)
-  size_t size() const { return fmap.size(); }
+  size_t size() const { return m.size(); }
   // set index to first, next and given map
   void first() { idx = 0; }
   void next() { idx++; }
   void set(size_t n) { idx = n; }
   // access the current map
-  map<int32_t,Env>& act() { return fmap[idx]; }
-  // access the given map (read-only)
-  const map<int32_t,Env>& act(size_t n) const { return fmap[n]; }
+  map<int32_t,Env>& act() { return m[idx]; }
 };
 
 struct Env {
@@ -180,6 +177,8 @@ struct Env {
   // interface to CreateRet() which also takes care of collecting temporaries
   // and patching up tail calls
   llvm::ReturnInst *CreateRet(llvm::Value *v);
+  // print the code of all functions in an environment, recursively
+  void print_defs(ostream& os) const;
   // default constructor
   Env()
     : tag(0), n(0), m(0), f(0), h(0), fp(0), args(0), envs(0),
@@ -580,7 +579,6 @@ private:
   // Interface to the lexer.
 public:
   bool declare_op;
-  void print_defs(ostream& os, const Env& e);
 private:
   bool lex_begin();
   void lex_end();
