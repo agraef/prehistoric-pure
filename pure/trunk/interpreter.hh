@@ -103,7 +103,7 @@ struct FMap {
   FMap& operator= (const FMap& f)
   { clear(); m.resize(f.m.size());
     for (size_t i = 0, n = f.m.size(); i < n; i++) m[i] = new EnvMap(*f.m[i]);
-    m = f.m; idx = f.idx; return *this; }
+    idx = f.idx; return *this; }
   // set index to first, next and given map
   void first() { idx = 0; }
   void next()
