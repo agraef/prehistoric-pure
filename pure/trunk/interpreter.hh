@@ -95,13 +95,15 @@ struct FMap {
   size_t idx;
   // constructor (create one empty map by default)
   FMap() : m(1), idx(0) { m[0] = new EnvMap; }
-  // assignment
-  FMap& operator= (const FMap& f)
-  { m = f.m; idx = f.idx; return *this; }
   // clear local environments
   void clear()
   { for (size_t i = 0, n = m.size(); i < n; i++) delete m[i];
     m.clear(); idx = 0; }
+  // assignment
+  FMap& operator= (const FMap& f)
+  { clear(); m.resize(f.m.size());
+    for (size_t i = 0, n = f.m.size(); i < n; i++) m[i] = new EnvMap(*f.m[i]);
+    m = f.m; idx = f.idx; return *this; }
   // set index to first, next and given map
   void first() { idx = 0; }
   void next()
