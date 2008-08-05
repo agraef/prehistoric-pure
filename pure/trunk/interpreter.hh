@@ -82,7 +82,6 @@ struct VarInfo {
     : v(_v), vtag(_vtag), idx(_idx), p(_p) {}
 };
 
-//#define Builder llvm::LLVMBuilder
 #define Builder llvm::IRBuilder
 
 typedef list<Env*> EnvStack;
