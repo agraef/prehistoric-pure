@@ -942,8 +942,8 @@ void Env::print(ostream& os) const
   if (h && h != f) h->print(os);
   f->print(os);
   for (size_t i = 0, n = fmap.m.size(); i < n; i++) {
-    for (map<int32_t,Env>::const_iterator f = fmap.m[i].begin(),
-	   end = fmap.m[i].end(); f != end; f++)
+    for (EnvMap::const_iterator f = fmap.m[i]->begin(),
+	   end = fmap.m[i]->end(); f != end; f++)
       f->second.print(os);
   }
 }

@@ -2280,8 +2280,6 @@ void Env::build_map(const env_info& info)
   // build the maps for a global function definition
   assert(info.t == env_info::fun);
   // we need a separate submap for each rule
-  size_t n = info.rules->size();
-  fmap.resize(n);
   rulel::const_iterator r = info.rules->begin();
   while (r != info.rules->end()) {
     build_map(r->rhs);
