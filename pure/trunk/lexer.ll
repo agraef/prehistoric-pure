@@ -941,9 +941,13 @@ void Env::print(ostream& os) const
   if (!f) return; // not used, probably a shadowed rule
   if (h && h != f) h->print(os);
   f->print(os);
+  set<Env*> e;
   for (size_t i = 0, n = fmap.m.size(); i < n; i++) {
     for (EnvMap::const_iterator it = fmap.m[i]->begin(),
 	   end = fmap.m[i]->end(); it != end; it++)
-      it->second.print(os);
+      if (e.find(it->second) == e.end()) {
+	it->second->print(os);
+	e.insert(it->second);
+      }
   }
 }
