@@ -85,7 +85,7 @@ struct VarInfo {
 #define Builder llvm::IRBuilder
 
 typedef list<Env*> EnvStack;
-typedef map<int32_t,Env> EnvMap;
+typedef map<int32_t,Env*> EnvMap;
 typedef pair<int32_t,uint8_t> xmap_key;
 
 struct FMap {
@@ -95,20 +95,15 @@ struct FMap {
   size_t idx;
   // constructor (create one empty map by default)
   FMap() : m(1), idx(0) { m[0] = new EnvMap; }
-  // clear local environments
-  void clear()
-  { for (size_t i = 0, n = m.size(); i < n; i++) delete m[i];
-    m.clear(); idx = 0; }
   // assignment
-  FMap& operator= (const FMap& f)
-  { clear(); m.resize(f.m.size());
-    for (size_t i = 0, n = f.m.size(); i < n; i++) m[i] = new EnvMap(*f.m[i]);
-    idx = f.idx; return *this; }
+  FMap& operator= (const FMap& f);
+  // clear local environments
+  void clear();
   // set index to first, next and given map
   void first() { idx = 0; }
   void next()
   { if (++idx >= m.size()) { m.resize(idx+1); m[idx] = new EnvMap; } }
-  void set(size_t n) { if (m.size() > 1) idx = n; }
+  void select(size_t n) { if (m.size() > 1) idx = n; }
   // access the current map
   EnvMap& act() { return *m[idx]; }
 };

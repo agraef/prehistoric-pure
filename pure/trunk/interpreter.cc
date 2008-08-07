@@ -1929,6 +1929,28 @@ ostream &operator<< (ostream& os, const ExternInfo& info)
   return os << ")";
 }
 
+FMap& FMap::operator= (const FMap& f)
+{
+  clear(); m.resize(f.m.size());
+  for (size_t i = 0, n = f.m.size(); i < n; i++) m[i] = new EnvMap(*f.m[i]);
+  idx = f.idx; return *this;
+}
+
+void FMap::clear()
+{
+  set<Env*> e;
+  for (size_t i = 0, n = m.size(); i < n; i++) {
+    for (EnvMap::iterator it = m[i]->begin(), end = m[i]->end();
+	 it != end; it++)
+      e.insert(it->second);
+    delete m[i];
+  }
+  for (set<Env*>::iterator it = e.begin(), end = e.end();
+       it != end; it++)
+    delete *it;
+  m.clear(); idx = 0;
+}
+
 Env& Env::operator= (const Env& e)
 {
   if (f) {
@@ -2128,7 +2150,7 @@ void Env::build_map(expr x)
       fenv = *ei++;
     }
     assert(fenv->act_fmap().find(x.vtag()) != fenv->act_fmap().end());
-    fenv = &fenv->fmap.act()[x.vtag()];
+    fenv = fenv->fmap.act()[x.vtag()];
     if (!fenv->local) break;
     // fenv now points to the environment of the (local) function
     assert(fenv != this && fenv->tag == x.vtag());
@@ -2188,7 +2210,8 @@ void Env::build_map(expr x)
     if (n == 2 && f.tag() == interp.symtab.catch_sym().f) {
       expr h = x.xval1().xval2(), y = x.xval2();
       push("catch");
-      Env& e = fmap.act()[-x.hash()] = Env(0, 0, y, true, true);
+      Env* eptr = fmap.act()[-x.hash()] = new Env(0, 0, y, true, true);
+      Env& e = *eptr;
       e.build_map(y); e.promote_map();
       pop();
       build_map(h);
@@ -2205,14 +2228,16 @@ void Env::build_map(expr x)
     break;
   case EXPR::LAMBDA: {
     push("lambda");
-    Env& e = fmap.act()[-x.hash()] = Env(0, 1, x.xval2(), true, true);
+    Env* eptr = fmap.act()[-x.hash()] = new Env(0, 1, x.xval2(), true, true);
+    Env& e = *eptr;
     e.build_map(x.xval2()); e.promote_map();
     pop();
     break;
   }
   case EXPR::CASE: {
     push("case");
-    Env& e = fmap.act()[-x.hash()] = Env(0, 1, x.xval(), true, true);
+    Env* eptr = fmap.act()[-x.hash()] = new Env(0, 1, x.xval(), true, true);
+    Env& e = *eptr;
     e.build_map(*x.rules()); e.promote_map();
     pop();
     build_map(x.xval());
@@ -2229,13 +2254,13 @@ void Env::build_map(expr x)
     for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      fmap.act()[ftag] = Env(ftag, info, false, true);
+      fmap.act()[ftag] = new Env(ftag, info, false, true);
     }
     // Now recursively build the maps for the child environments.
     for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      Env& e = fmap.act()[ftag];
+      Env& e = *fmap.act()[ftag];
       e.build_map(info); e.promote_map();
     }
     pop();
@@ -2259,7 +2284,8 @@ void Env::build_map(expr x, rulel::const_iterator r, rulel::const_iterator end)
     rulel::const_iterator s = r;
     expr y = (++s == end)?x:s->rhs;
     push("when");
-    Env& e = fmap.act()[-y.hash()] = Env(0, 1, y, true, true);
+    Env* eptr = fmap.act()[-y.hash()] = new Env(0, 1, y, true, true);
+    Env& e = *eptr;
     e.build_map(x, s, end); e.promote_map();
     pop();
     build_map(r->rhs);
@@ -3117,7 +3143,7 @@ Value *interpreter::when_codegen(expr x, matcher *m,
     rulel::const_iterator s = r;
     expr y = (++s == end)?x:s->rhs;
     assert(act.fmap.act().find(-y.hash()) != act.fmap.act().end());
-    Env& e = act.fmap.act()[-y.hash()];
+    Env& e = *act.fmap.act()[-y.hash()];
     push("when", &e);
     fun_prolog("anonymous");
     BasicBlock *bodybb = BasicBlock::Create("body");
@@ -3544,7 +3570,7 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
   int offs = idx-1;
   if (idx == 0) {
     // function in current environment ('with'-bound)
-    f = &act_env().fmap.act()[tag];
+    f = act_env().fmap.act()[tag];
   } else {
     // function in an outer environment, the de Bruijn index idx tells us
     // where on the current environment stack it's at
@@ -3552,7 +3578,7 @@ Value *interpreter::funcall(int32_t tag, uint8_t idx, uint32_t n, expr x)
     size_t i = idx;
     for (; i > 0; e++, i--) assert(e != envstk.end());
     // look up the function in the environment
-    f = &(*e)->fmap.act()[tag];
+    f = (*e)->fmap.act()[tag];
   }
   if (f->n == n) {
     // bingo! saturated call
@@ -3691,7 +3717,7 @@ Value *interpreter::codegen(expr x)
 	expr h = x.xval1().xval2(), y = x.xval2();
 	Env& act = act_env();
 	assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
-	Env& e = act.fmap.act()[-x.hash()];
+	Env& e = *act.fmap.act()[-x.hash()];
 	push("catch", &e);
 	fun_prolog("anonymous");
 	e.CreateRet(codegen(y));
@@ -3732,7 +3758,7 @@ Value *interpreter::codegen(expr x)
   case EXPR::LAMBDA: {
     Env& act = act_env();
     assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
-    Env& e = act.fmap.act()[-x.hash()];
+    Env& e = *act.fmap.act()[-x.hash()];
     push("lambda", &e);
     fun("anonymous", x.pm(), true);
     pop(&e);
@@ -3744,7 +3770,7 @@ Value *interpreter::codegen(expr x)
     // above) which gets applied to the subject term to be matched
     Env& act = act_env();
     assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
-    Env& e = act.fmap.act()[-x.hash()];
+    Env& e = *act.fmap.act()[-x.hash()];
     push("case", &e);
     fun("anonymous", x.pm(), true);
     pop(&e);
@@ -3771,15 +3797,15 @@ Value *interpreter::codegen(expr x)
     for (p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       assert(act.fmap.act().find(ftag) != act.fmap.act().end());
-      Env& e = act.fmap.act()[ftag];
+      Env& e = *act.fmap.act()[ftag];
       push("with", &e);
-      act.fmap.act()[ftag].f = fun_prolog(symtab.sym(ftag).s);
+      act.fmap.act()[ftag]->f = fun_prolog(symtab.sym(ftag).s);
       pop(&e);
     }
     for (p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       const env_info& info = p->second;
-      Env& e = act.fmap.act()[ftag];
+      Env& e = *act.fmap.act()[ftag];
       push("with", &e);
       fun_body(info.m);
       pop(&e);
@@ -4074,7 +4100,7 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
   assert(!envstk.empty());
   if (idx == 0) {
     // function in current environment ('with'-bound)
-    Env& f = act_env().fmap.act()[tag];
+    Env& f = *act_env().fmap.act()[tag];
     return fbox(f, thunked);
   }
   // If we come here, the function is defined in an outer environment. Locate
@@ -4084,7 +4110,7 @@ Value *interpreter::fref(int32_t tag, uint8_t idx, bool thunked)
   size_t i = idx;
   for (; i > 0; e++, i--) assert(e != envstk.end());
   // look up the function in the environment
-  Env& f = (*e)->fmap.act()[tag];
+  Env& f = *(*e)->fmap.act()[tag];
   assert(f.f);
   // Now create the closure. This is essentially just like fbox(), but we are
   // called inside a nested environment here, and hence the de Bruijn indices
@@ -5058,7 +5084,7 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
   while (r != rl.end()) {
     const rule& rr = rules[*r];
     reduced.insert(*r);
-    f.fmap.set(*r);
+    f.fmap.select(*r);
     f.f->getBasicBlockList().push_back(rulebb);
     f.builder.SetInsertPoint(rulebb);
 #if DEBUG>1
