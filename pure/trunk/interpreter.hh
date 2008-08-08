@@ -88,22 +88,49 @@ typedef list<Env*> EnvStack;
 typedef map<int32_t,Env*> EnvMap;
 typedef pair<int32_t,uint8_t> xmap_key;
 
+/* Manage local function environments. The FMap structure is organized as a
+   forest with one root per rule and one child per 'with' clause. Each node of
+   the forest holds a map mapping function symbols to the corresponding
+   environments. Initially, there is just one root holding an empty map. New
+   roots can be added with 'next', new children with 'push'; 'pop' backs out
+   to the parent level.
+
+   Child nodes are initialized to a copy of its parent map, to which you can
+   then add any local bindings. After the structure has been built, you can
+   use 'first' to reposition the "cursor" so that it points to the first root
+   and then traverse the forest using the same sequence of calls to 'next',
+   'push' and 'pop'. The 'select' method can be used to position the cursor at
+   the given root. The 'act' method returns the current map.
+
+   Implementation: The forest is encoded as a collection of vectors: 'm' holds
+   the map for each node, 'root' the node number of each root, 'pred' the
+   parent link for each node, and 'succ' the link to the next sibling of each
+   node. A 'pred' value of -1 denotes a root node, in which case 'succ' points
+   to the next root (or contains -1 to indicate the last root). The 'idx'
+   member points to the current node, 'lastidx' to the most recently visited
+   child after a 'pop' operation (-1 otherwise). */
+
 struct FMap {
-  // manage local function environments
+  // map of each node
   vector<EnvMap*> m;
-  // current map index
-  size_t idx;
+  // vectors encoding the forest structure (see explanation above)
+  vector<int32_t> root, pred, succ;
+  // index of current node and most previously visited child
+  int32_t idx, lastidx;
   // constructor (create one empty map by default)
-  FMap() : m(1), idx(0) { m[0] = new EnvMap; }
+  FMap() : m(1), root(1, 0), pred(1, -1), succ(1, -1), idx(0), lastidx(-1)
+  { m[0] = new EnvMap; }
   // assignment
   FMap& operator= (const FMap& f);
-  // clear local environments
+  // clear
   void clear();
-  // set index to first, next and given map
-  void first() { idx = 0; }
-  void next()
-  { if (++idx >= m.size()) { m.resize(idx+1); m[idx] = new EnvMap; } }
-  void select(size_t n) { if (m.size() > 1) idx = n; }
+  // set index to first, next and given root node
+  void first() { idx = 0; lastidx = -1; }
+  void next();
+  void select(size_t n);
+  // set index to the parent or next child of the current node
+  void push();
+  void pop();
   // access the current map
   EnvMap& act() { return *m[idx]; }
 };
