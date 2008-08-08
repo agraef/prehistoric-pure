@@ -1932,8 +1932,11 @@ ostream &operator<< (ostream& os, const ExternInfo& info)
 FMap& FMap::operator= (const FMap& f)
 {
   clear(); m.resize(f.m.size());
-  for (size_t i = 0, n = f.m.size(); i < n; i++) m[i] = new EnvMap(*f.m[i]);
-  idx = f.idx; return *this;
+  for (size_t i = 0, n = f.m.size(); i < n; i++)
+    m[i] = new EnvMap(*f.m[i]);
+  root = f.root; pred = f.pred; succ = f.succ;
+  idx = f.idx; lastidx = f.lastidx;
+  return *this;
 }
 
 void FMap::clear()
@@ -1948,7 +1951,67 @@ void FMap::clear()
   for (set<Env*>::iterator it = e.begin(), end = e.end();
        it != end; it++)
     delete *it;
-  m.clear(); idx = 0;
+  m.clear(); root.clear(); pred.clear(); succ.clear();
+  idx = 0; lastidx = -1;
+}
+
+void FMap::next()
+{
+  assert(pred[idx] < 0);
+  if (succ[idx] >= 0)
+    idx = succ[idx];
+  else {
+    // create a new root
+    size_t n = root.size(), k = m.size();
+    root.resize(n+1);
+    m.resize(k+1); pred.resize(k+1); succ.resize(k+1);
+    root[n] = succ[idx] = k;
+    pred[k] = succ[k] = -1;
+    m[k] = new EnvMap;
+    idx = k;
+  }
+  lastidx = -1;
+}
+
+void FMap::select(size_t n)
+{
+  if (root.size() > 1) {
+    assert(n < root.size());
+    idx = root[n];
+  } else
+    idx = 0;
+  lastidx = -1;
+}
+
+void FMap::push()
+{
+  if (lastidx >= 0) {
+    assert(pred[lastidx] == idx);
+    if (succ[lastidx] >= 0)
+      idx = succ[lastidx];
+    else {
+      // create a new child, link from the previous one
+      size_t k = m.size();
+      m.resize(k+1); pred.resize(k+1); succ.resize(k+1);
+      pred[k] = idx; succ[k] = -1;
+      m[k] = new EnvMap(*m[idx]);
+      succ[lastidx] = k;
+      idx = k;
+    }
+  } else if (++idx >= (int32_t)m.size()) {
+    // the first child always immediately follows its parent
+    assert(idx == m.size());
+    m.resize(idx+1); pred.resize(idx+1); succ.resize(idx+1);
+    pred[idx] = idx-1; succ[idx] = -1;
+    m[idx] = new EnvMap(*m[idx-1]);
+  }
+  lastidx = -1;
+}
+
+void FMap::pop()
+{
+  assert(pred[idx] >= 0);
+  lastidx = idx; idx = pred[idx];
 }
 
 Env& Env::operator= (const Env& e)
