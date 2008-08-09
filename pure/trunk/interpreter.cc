@@ -1955,6 +1955,20 @@ void FMap::clear()
   idx = 0; lastidx = -1;
 }
 
+void FMap::first()
+{
+  idx = 0; lastidx = -1;
+  // reset child environments
+  set<Env*> e;
+  for (size_t i = 0, n = m.size(); i < n; i++)
+    for (EnvMap::iterator it = m[i]->begin(), end = m[i]->end();
+	 it != end; it++)
+      e.insert(it->second);
+  for (set<Env*>::iterator it = e.begin(), end = e.end();
+       it != end; it++)
+    (*it)->fmap.first();
+}
+
 void FMap::next()
 {
   assert(pred[idx] < 0);
@@ -2000,7 +2014,7 @@ void FMap::push()
     }
   } else if (++idx >= (int32_t)m.size()) {
     // the first child always immediately follows its parent
-    assert(idx == m.size());
+    assert(idx == (int32_t)m.size());
     m.resize(idx+1); pred.resize(idx+1); succ.resize(idx+1);
     pred[idx] = idx-1; succ[idx] = -1;
     m[idx] = new EnvMap(*m[idx-1]);
@@ -2212,7 +2226,7 @@ void Env::build_map(expr x)
       assert(ei != envstk.end());
       fenv = *ei++;
     }
-    assert(fenv->act_fmap().find(x.vtag()) != fenv->act_fmap().end());
+    assert(fenv->fmap.act().find(x.vtag()) != fenv->fmap.act().end());
     fenv = fenv->fmap.act()[x.vtag()];
     if (!fenv->local) break;
     // fenv now points to the environment of the (local) function
@@ -2369,13 +2383,12 @@ void Env::build_map(const env_info& info)
   // build the maps for a global function definition
   assert(info.t == env_info::fun);
   // we need a separate submap for each rule
-  rulel::const_iterator r = info.rules->begin();
-  while (r != info.rules->end()) {
+  rulel::const_iterator r = info.rules->begin(), end = info.rules->end();
+  while (r != end) {
     build_map(r->rhs);
     if (!r->qual.is_null()) build_map(r->qual);
-    r++; fmap.next();
+    if (++r != end) fmap.next();
   }
-  fmap.first();
 #if DEBUG>1
   if (!local) print_map(std::cerr, this);
 #endif
@@ -5137,11 +5150,11 @@ void interpreter::try_rules(matcher *pm, state *s, BasicBlock *failedbb,
   Env& f = act_env();
   assert(s->tr.empty()); // we're in a final state here
   const rulev& rules = pm->r;
-  assert(f.fmap.size() == 1 || f.fmap.size() == rules.size());
+  assert(f.fmap.root.size() == 1 || f.fmap.root.size() == rules.size());
   const ruleml& rl = s->r;
   ruleml::const_iterator r = rl.begin();
   assert(r != rl.end());
-  assert(f.fmap_idx == 0);
+  assert(f.fmap.idx == 0);
   BasicBlock* rulebb = BasicBlock::Create(mklabel("rule.state", s->s, rl.front()));
   f.builder.CreateBr(rulebb);
   while (r != rl.end()) {

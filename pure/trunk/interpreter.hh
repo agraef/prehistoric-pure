@@ -125,7 +125,7 @@ struct FMap {
   // clear
   void clear();
   // set index to first, next and given root node
-  void first() { idx = 0; lastidx = -1; }
+  void first();
   void next();
   void select(size_t n);
   // set index to the parent or next child of the current node
@@ -219,6 +219,7 @@ struct Env {
       assert(local);
       parent = envstk.front();
     }
+    fmap.first();
   }
   // environment for a named closure with given definition info
   Env(int32_t _tag, const env_info& info, bool _b, bool _local = false)
@@ -233,6 +234,7 @@ struct Env {
       assert(local);
       parent = envstk.front();
     }
+    fmap.first();
   }
   // assignment -- this is only allowed if the lvalue is an uninitialized
   // environment for which no LLVM function has been created yet, or if it is
