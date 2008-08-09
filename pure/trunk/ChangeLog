@@ -1,3 +1,8 @@
+2008-08-09  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc: Overhaul environment-handling code in the code
+	generator so that it properly handles nested 'with' environments.
+
 2008-07-30  Albert Graef  <Dr.Graef@t-online.de>
 
 	* w3centities.c: Updated to latest from W3C.
