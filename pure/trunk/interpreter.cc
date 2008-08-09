@@ -2326,6 +2326,7 @@ void Env::build_map(expr x)
     break;
   case EXPR::WITH: {
     env *fe = x.fenv();
+    fmap.push();
     push("with");
     // First enter all the environments into the fmap.
     for (env::const_iterator p = fe->begin(); p != fe->end(); p++) {
@@ -2342,6 +2343,7 @@ void Env::build_map(expr x)
     }
     pop();
     build_map(x.xval());
+    fmap.pop();
     break;
   }
   default:
@@ -3870,6 +3872,7 @@ Value *interpreter::codegen(expr x)
     Env& act = act_env();
     // first create all function entry points, so that we properly handle
     // mutually recursive definitions
+    act.fmap.push();
     for (p = fe->begin(); p != fe->end(); p++) {
       int32_t ftag = p->first;
       assert(act.fmap.act().find(ftag) != act.fmap.act().end());
@@ -3887,6 +3890,7 @@ Value *interpreter::codegen(expr x)
       pop(&e);
     }
     Value *v = codegen(x.xval());
+    act.fmap.pop();
     return v;
   }
   default: {
