@@ -3880,7 +3880,6 @@ Value *interpreter::codegen(expr x)
 	 interactive session. */
       expr f; uint32_t n = count_args(x, f);
       Value *v; Env *e;
-      exprl xs;
       if (f.tag() == EXPR::FVAR && (v = funcall(f.vtag(), f.vidx(), n, x)))
 	// local function call
 	return v;
@@ -3910,22 +3909,32 @@ Value *interpreter::codegen(expr x)
 	argv.push_back(body);
 	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
 	return call("pure_catch", handler, body);
-      } else if (x.is_list(xs) || x.is_pair() && x.is_tuple(xs)) {
-	// optimize the case of proper lists and tuples
-	size_t i = 0, n = xs.size();
-	vector<Value*> argv(n+1);
-	argv[0] = UInt(n);
-	for (exprl::iterator it = xs.begin(), end = xs.end(); it != end; it++)
-	  argv[++i] = codegen(*it);
-	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
-	v = act_env().CreateCall
-	  (module->getFunction(x.is_pair()?"pure_tuplel":"pure_listl"), argv);
-	vector<Value*> argv1;
-	argv1.push_back(NullExprPtr);
-	argv1.insert(argv1.end(), argv.begin(), argv.end());
-	act_env().CreateCall(module->getFunction("pure_free_args"), argv1);
-	return v;
       } else {
+#if LIST_KLUDGE>0
+	/* Alternative code for proper lists and tuples, which considerably
+	   speeds up compilation for larger sequences. See the comments at the
+	   beginning of interpreter.hh for details. */
+	exprl xs;
+	if ((x.is_list(xs) || x.is_pair() && x.is_tuple(xs)) &&
+	    xs.size() >= LIST_KLUDGE) {
+	  size_t i = 0, n = xs.size();
+	  vector<Value*> argv(n+1);
+	  argv[0] = UInt(n);
+	  for (exprl::iterator it = xs.begin(), end = xs.end(); it != end;
+	       it++)
+	    argv[++i] = codegen(*it);
+	  act_env().CreateCall(module->getFunction("pure_new_args"), argv);
+	  v = act_env().CreateCall
+	    (module->getFunction(x.is_pair()?"pure_tuplel":"pure_listl"),
+	     argv);
+	  vector<Value*> argv1;
+	  argv1.push_back(NullExprPtr);
+	  argv1.insert(argv1.end(), argv.begin(), argv.end());
+	  act_env().CreateCall(module->getFunction("pure_free_args"), argv1);
+	  return v;
+	}
+	xs.clear();
+#endif
 	// ordinary function application
 	Value *u = codegen(x.xval1()), *v = codegen(x.xval2());
 	return apply(u, v);

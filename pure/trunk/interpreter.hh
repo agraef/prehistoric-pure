@@ -29,6 +29,14 @@
    get tail call elimination. */
 #define USE_FASTCC 1
 
+/* Alternative code generation for the case of proper lists and tuples. This
+   is a kludge to work around performance issues with the JIT which (as of
+   LLVM 2.3) gets very slow with deeply nested call graphs. The code enabled
+   with this option here is actually less efficient for small list/tuple
+   values, which is why we impose a lower bound on the list/tuple size (10 by
+   default, use 0 to disable this option). */
+#define LIST_KLUDGE 10
+
 using namespace std;
 
 /* The Pure interpreter. */
