@@ -170,7 +170,7 @@ bool expr::is_list() const
 {
   expr x, y;
   if (is_cons(x, y))
-    return y.is_listx();
+    return y.is_list();
   else
     return is_nil();
 }
@@ -208,7 +208,7 @@ bool expr::is_list(exprl &xs) const
   expr x, y;
   if (is_cons(x, y)) {
     xs.push_back(x);
-    return y.is_listx(xs);
+    return y.is_list(xs);
   } else if (is_nil())
     return true;
   else {
