@@ -1,5 +1,8 @@
 2008-08-10  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc (doeval, dodefn): Optimize the case of toplevel
+	evaluations and variable definitions of constant expressions.
+
 	* interpreter.cc (codegen): Fixed memory leak caused by the new
 	list and tuple code. Reported by Jiri Spitz.
 
