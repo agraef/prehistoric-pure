@@ -3062,6 +3062,58 @@ Value *interpreter::envptr(Env *f)
     return act_builder().CreateLoad(fptrvar);
 }
 
+pure_expr *interpreter::const_value(expr x)
+{
+  switch (x.tag()) {
+  // constants:
+  case EXPR::INT:
+    return pure_int(x.ival());
+  case EXPR::BIGINT:
+    return pure_mpz(x.zval());
+  case EXPR::DBL:
+    return pure_double(x.dval());
+  case EXPR::STR:
+    return pure_string_dup(x.sval());
+  case EXPR::PTR:
+    return pure_pointer(x.pval());
+  default: {
+    exprl xs;
+    if (x.tag() > 0) {
+      env::const_iterator it = globenv.find(x.tag());
+      map<int32_t,GlobalVar>::iterator v;
+      if (externals.find(x.tag()) != externals.end())
+	return 0;
+      else if (it == globenv.end())
+	// unbound symbol
+	return pure_const(x.tag());
+      else if (it->second.t == env_info::fvar &&
+	       (v = globalvars.find(x.tag())) != globalvars.end())
+	// variable
+	return v->second.x;
+      else
+	return 0;
+    } else if (x.is_list(xs) || x.is_pair() && x.is_tuplex(xs)) {
+      // proper lists and tuples
+      size_t i, n = xs.size();
+      pure_expr **xv = (pure_expr**)malloc(n*sizeof(pure_expr*));
+      if (!xv) return 0;
+      exprl::iterator it = xs.begin(), end = xs.end();
+      for (i = 0; it != end; i++, it++)
+	if ((xv[i] = const_value(*it)) == 0) {
+	  for (size_t j = 0; j < i; j++)
+	    pure_freenew(xv[j]);
+	  free(xv);
+	  return 0;
+	}
+      pure_expr *res = (x.is_pair()?pure_tuplev:pure_listv)(n, xv);
+      free(xv);
+      return res;
+    } else
+      return 0;
+  }
+  }
+}
+
 pure_expr *interpreter::doeval(expr x, pure_expr*& e)
 {
   char test;
@@ -3069,8 +3121,15 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
     e = pure_const(symtab.segfault_sym().f);
     return 0;
   }
-  // Create an anonymous function to call in order to evaluate the target
-  // expression.
+  e = 0;
+  // First check whether the value is actually a constant, then we can skip
+  // the compilation step.
+  clock_t t0 = clock();
+  pure_expr *res = const_value(x);
+  if (interactive && stats) clocks = clock()-t0;
+  if (res) return res;
+  // Not a constant value. Create an anonymous function to call in order to
+  // evaluate the target expression.
   /* NOTE: The environment is allocated dynamically, so that its child
      environments survive for the entire lifetime of any embedded closures,
      which might still be called at a later time. */
@@ -3090,9 +3149,8 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   // JIT the function.
   f.fp = JIT->getPointerToFunction(f.f);
   assert(f.fp);
-  e = 0;
-  clock_t t0 = clock();
-  pure_expr *res = pure_invoke(f.fp, &e);
+  t0 = clock();
+  res = pure_invoke(f.fp, &e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);
@@ -3107,6 +3165,15 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   return res;
 }
 
+static pure_expr *pure_subterm(pure_expr *x, const path& p)
+{
+  for (size_t i = 0, n = p.len(); i < n; i++) {
+    assert(x->tag == EXPR::APP);
+    x = x->data.x[p[i]?1:0];
+  }
+  return x;
+}
+
 pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
 {
   char test;
@@ -3114,8 +3181,44 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
     e = pure_const(symtab.segfault_sym().f);
     return 0;
   }
-  // Create an anonymous function to call in order to evaluate the rhs
-  // expression, match against the lhs and bind variables in lhs accordingly.
+  e = 0;
+  // First check whether the value is actually a constant, then we can skip
+  // the compilation step.
+  clock_t t0 = clock();
+  pure_expr *res = const_value(rhs);
+  if (res) {
+    matcher m(rule(lhs, rhs));
+    if (m.match(rhs)) {
+      // Bind the variables.
+      for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
+	int32_t tag = it->first;
+	const env_info& info = it->second;
+	assert(info.t == env_info::lvar && info.p);
+	// find the subterm at info.p
+	pure_expr *x = pure_subterm(res, *info.p);
+	// store the value in a global variable of the same name
+	const symbol& sym = symtab.sym(tag);
+	GlobalVar& v = globalvars[tag];
+	if (!v.v) {
+	  v.v = new GlobalVariable
+	    (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s,
+	     module);
+	  JIT->addGlobalMapping(v.v, &v.x);
+	}
+	if (v.x) pure_free(v.x);
+	v.x = pure_new(x);
+      }
+    } else {
+      // Failed match, bail out.
+      pure_freenew(res);
+      res = e = 0;
+    }
+    if (interactive && stats) clocks = clock()-t0;
+    return res;
+  }
+  // Not a constant value. Create an anonymous function to call in order to
+  // evaluate the rhs expression, match against the lhs and bind variables in
+  // lhs accordingly.
   Env *save_fptr = fptr;
   fptr = new Env(0, 0, rhs, false); fptr->refc = 1;
   Env &f = *fptr;
@@ -3176,9 +3279,8 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
   // JIT the function.
   f.fp = JIT->getPointerToFunction(f.f);
   assert(f.fp);
-  e = 0;
-  clock_t t0 = clock();
-  pure_expr *res = pure_invoke(f.fp, &e);
+  t0 = clock();
+  res = pure_invoke(f.fp, &e);
   if (interactive && stats) clocks = clock()-t0;
   // Get rid of our anonymous function.
   JIT->freeMachineCodeForFunction(f.f);

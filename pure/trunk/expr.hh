@@ -468,6 +468,8 @@ public:
   // This is always true, as we consider a singleton as a tuple, too. Use
   // is_pair() to test for a "real" tuple instead.
   bool is_tuple()  const { return true; }
+  // Check for proper (normalized) tuples.
+  bool is_tuplex() const;
   bool is_cons(expr &x, expr &y) const;
   bool is_list(exprl &xs) const;
   bool is_listx(exprl &xs) const;
@@ -475,6 +477,7 @@ public:
   // Always true (see note above). Use is_pair() && istuple(xs) to test for a
   // "real" tuple instead.
   bool is_tuple(exprl &xs) const;
+  bool is_tuplex(exprl &xs) const;
 };
 
 /* Rules of the form: lhs -> rhs [if qual]. */

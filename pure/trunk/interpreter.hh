@@ -485,6 +485,7 @@ private:
   Env *find_stacked(int32_t tag);
   Env& act_env() { assert(!envstk.empty()); return *envstk.front(); }
   Builder& act_builder() { return act_env().builder; }
+  pure_expr *const_value(expr x);
   pure_expr *doeval(expr x, pure_expr*& e);
   pure_expr *dodefn(env vars, expr lhs, expr rhs, pure_expr*& e);
   llvm::Value *codegen(expr x);
