@@ -1,3 +1,8 @@
+2008-08-10  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (codegen): Fixed memory leak caused by the new
+	list and tuple code. Reported by Jiri Spitz.
+
 2008-08-09  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc: Overhaul environment-handling code in the code
