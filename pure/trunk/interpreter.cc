@@ -3816,7 +3816,7 @@ Value *interpreter::codegen(expr x)
 	for (exprl::iterator it = xs.begin(), end = xs.end(); it != end; it++)
 	  argv[++i] = codegen(*it);
 	act_env().CreateCall(module->getFunction("pure_new_args"), argv);
-	return act_env().CreateCall
+	v = act_env().CreateCall
 	  (module->getFunction(x.is_pair()?"pure_tuplel":"pure_listl"), argv);
 	vector<Value*> argv1;
 	argv1.push_back(NullExprPtr);
