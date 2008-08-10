@@ -4,7 +4,9 @@
 	evaluations and variable definitions of constant expressions.
 
 	* interpreter.cc (codegen): Fixed memory leak caused by the new
-	list and tuple code. Reported by Jiri Spitz.
+	list and tuple code. Reported by Jiri Spitz. We now also impose a
+	minimum size for speeding up the generated code for smaller list
+	and tuple sizes.
 
 2008-08-09  Albert Graef  <Dr.Graef@t-online.de>
 
