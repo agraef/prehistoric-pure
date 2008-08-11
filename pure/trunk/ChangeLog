@@ -1,3 +1,10 @@
+2008-08-11  Albert Graef  <Dr.Graef@t-online.de>
+
+	* configure.ac, Makefile.in: Additional configury for proper
+	handling of dynamic linking on OSX (-install_name option,
+	DYLD_LIBRARY_PATH). Reported by Ryan Schmidt. NOTE: This change
+	requires a reconfigure.
+
 2008-08-10  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (doeval, dodefn): Optimize the case of toplevel

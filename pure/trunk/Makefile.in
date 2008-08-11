@@ -257,15 +257,15 @@ cleanlogs:
 	rm -f $(srcdir)/test/*.log
 
 $(srcdir)/test/prelude.log: lib/prelude.pure lib/primitives.pure lib/strings.pure
-	LD_LIBRARY_PATH=. PURELIB=$(srcdir)/lib ./pure -n -v$(level) $< > $@ 2>&1
+	@LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -n -v$(level) $< > $@ 2>&1
 
 %.log: %.pure
-	LD_LIBRARY_PATH=. PURELIB=$(srcdir)/lib ./pure -v$(level) < $< > $@ 2>&1
+	@LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -v$(level) < $< > $@ 2>&1
 
 check: pure
 	@ echo Running tests.
-	@ (export LD_LIBRARY_PATH=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: "; if ./pure $(ECHO_N) -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
-	@ (export LD_LIBRARY_PATH=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: "; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo passed; else echo FAILED; fi; done)
+	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: "; if ./pure $(ECHO_N) -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
+	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: "; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo passed; else echo FAILED; fi; done)
 
 # DO NOT DELETE
 

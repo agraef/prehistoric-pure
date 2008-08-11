@@ -662,6 +662,7 @@ rdynamic
 PIC
 DLLEXT
 AUXLIBS
+LD_LIB_PATH
 INSTALL_PROGRAM
 INSTALL_SCRIPT
 INSTALL_DATA
@@ -1853,14 +1854,17 @@ rdynamic="-rdynamic"
 PIC=
 DLLEXT=".so"
 AUXLIBS=
+LD_LIB_PATH="LD_LIBRARY_PATH"
 case "$host" in
     *-*-mingw*)       AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
                       LIBS="$LIBS -limagehlp -lpsapi";
                       LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
     x86_64-*-linux*)  PIC="-fPIC";;
-    *-*-darwin*)      rdynamic=""; shared="-dynamiclib"; DLLEXT=".dylib";;
+    *-*-darwin*)      LD_LIB_PATH="DYLD_LIBRARY_PATH";
+                      rdynamic=""; shared="-dynamiclib -install_name \$(libdir)/\$(libpure)"; DLLEXT=".dylib";;
     hppa*-hp-hpux*)   rdynamic=""; DLLEXT=".sl";;
 esac
+
 
 
 
@@ -6136,6 +6140,7 @@ rdynamic!$rdynamic$ac_delim
 PIC!$PIC$ac_delim
 DLLEXT!$DLLEXT$ac_delim
 AUXLIBS!$AUXLIBS$ac_delim
+LD_LIB_PATH!$LD_LIB_PATH$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
@@ -6159,7 +6164,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 71; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 72; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
