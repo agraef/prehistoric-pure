@@ -1,5 +1,8 @@
 2008-08-11  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (pure_catch): Fix wrong stack cleanup, causing
+	segfaults with catch/throw. Reported by Libor Spacek.
+
 	* configure.ac, Makefile.in: Additional configury for proper
 	handling of dynamic linking on OSX (-install_name option,
 	DYLD_LIBRARY_PATH). Reported by Ryan Schmidt. NOTE: This change
