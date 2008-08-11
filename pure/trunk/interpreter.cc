@@ -3076,6 +3076,8 @@ pure_expr *interpreter::const_value(expr x)
     return pure_string_dup(x.sval());
   case EXPR::PTR:
     return pure_pointer(x.pval());
+  case EXPR::APP:
+    return const_app_value(x);
   default: {
     exprl xs;
     if (x.tag() > 0) {
@@ -3112,6 +3114,42 @@ pure_expr *interpreter::const_value(expr x)
       return 0;
   }
   }
+}
+
+pure_expr *interpreter::const_app_value(expr x)
+{
+  if (x.tag() == EXPR::APP) {
+    pure_expr *f = 0, *y = 0;
+    if ((f = const_app_value(x.xval1())) && (y = const_value(x.xval2())))
+      return pure_app(f, y);
+    else {
+      if (f) pure_freenew(f);
+      return 0;
+    }
+  } else if (x.tag() > 0) {
+    env::const_iterator it = globenv.find(x.tag());
+    map<int32_t,GlobalVar>::iterator v;
+    if (externals.find(x.tag()) != externals.end())
+      return 0;
+    else if (it == globenv.end())
+      // unbound symbol
+      return pure_const(x.tag());
+    else if (it->second.t == env_info::fvar &&
+	     (v = globalvars.find(x.tag())) != globalvars.end()) {
+      // variable value
+      pure_expr *y = v->second.x;
+      // walk down the spine, if any
+      while (y->tag == EXPR::APP) y = y->data.x[0];
+      // check if we got a closure subject to evaluation
+      if (y->tag >= 0 && y->data.clos)
+	return 0;
+      else
+	// not a callable closure, so it must be a constructor term
+	return v->second.x;
+    } else
+      return 0;
+  } else
+    return 0;
 }
 
 pure_expr *interpreter::doeval(expr x, pure_expr*& e)
