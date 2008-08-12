@@ -263,6 +263,8 @@ interpreter::interpreter()
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
   declare_extern((void*)pure_throw,
 		 "pure_throw",      "void",   1, "expr*");
+  declare_extern((void*)pure_sigfpe,
+		 "pure_sigfpe",     "void",   0);
 
   declare_extern((void*)pure_new,
 		 "pure_new",        "expr*",  1, "expr*");
@@ -3652,11 +3654,43 @@ Value *interpreter::builtin_codegen(expr x)
 	return b.CreateSub(u, v);
       else if (f.ftag() == symtab.mult_sym().f)
 	return b.CreateMul(u, v);
-      else if (f.ftag() == symtab.div_sym().f)
-	return b.CreateSDiv(u, v);
-      else if (f.ftag() == symtab.mod_sym().f)
-	return b.CreateSRem(u, v);
-      else {
+      else if (f.ftag() == symtab.div_sym().f) {
+	// catch division by zero
+	if (x.xval2().tag() == EXPR::INT && x.xval2().ival() == 0) {
+	  b.CreateCall(module->getFunction("pure_sigfpe"));
+	  return v;
+	} else {
+	  BasicBlock *okbb = BasicBlock::Create("ok");
+	  BasicBlock *errbb = BasicBlock::Create("err");
+	  Value *cmp = b.CreateICmpEQ(v, Zero);
+	  b.CreateCondBr(cmp, errbb, okbb);
+	  act_env().f->getBasicBlockList().push_back(errbb);
+	  b.SetInsertPoint(errbb);
+	  b.CreateCall(module->getFunction("pure_sigfpe"));
+	  b.CreateRet(NullExprPtr);
+	  act_env().f->getBasicBlockList().push_back(okbb);
+	  b.SetInsertPoint(okbb);
+	  return b.CreateSDiv(u, v);
+	}
+      } else if (f.ftag() == symtab.mod_sym().f) {
+	// catch division by zero
+	if (x.xval2().tag() == EXPR::INT && x.xval2().ival() == 0) {
+	  b.CreateCall(module->getFunction("pure_sigfpe"));
+	  return v;
+	} else {
+	  BasicBlock *okbb = BasicBlock::Create("ok");
+	  BasicBlock *errbb = BasicBlock::Create("err");
+	  Value *cmp = b.CreateICmpEQ(v, Zero);
+	  b.CreateCondBr(cmp, errbb, okbb);
+	  act_env().f->getBasicBlockList().push_back(errbb);
+	  b.SetInsertPoint(errbb);
+	  b.CreateCall(module->getFunction("pure_sigfpe"));
+	  b.CreateRet(NullExprPtr);
+	  act_env().f->getBasicBlockList().push_back(okbb);
+	  b.SetInsertPoint(okbb);
+	  return b.CreateSRem(u, v);
+	}
+      } else {
 	assert(0 && "error in type checker");
 	return 0;
       }
