@@ -21,8 +21,7 @@
 
 /* Throw an exception. */
 
-extern void pure_throw(expr*); // IMPURE!
-throw x		= pure_throw x;
+extern void pure_throw(expr*) = throw; // IMPURE!
 
 /* Convenience function to ensure a condition p. Returns 1 (true) if p holds,
    and throws the given exception e otherwise. */
