@@ -1,5 +1,9 @@
 2008-08-12  Albert Graef  <Dr.Graef@t-online.de>
 
+	* pure.cc (main): Set up handlers for standard POSIX termination
+	signals, mapping these to orderly Pure exceptions of the form
+	'signal SIG'.
+
 	* interpreter.cc (builtin_codegen), runtime.cc(bigint_div,
 	bigint_mod): Handle division by zero by throwing a 'signal SIGFPE'
 	exception. Previously, these would just bail out with an unhandled
