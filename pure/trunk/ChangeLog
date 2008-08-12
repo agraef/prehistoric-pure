@@ -1,3 +1,7 @@
+2008-08-12  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.cc (pure_catch, pure_sys_vars): Fixed memory leaks.
+
 2008-08-11  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc (pure_catch): Fix wrong stack cleanup, causing
