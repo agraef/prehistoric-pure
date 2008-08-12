@@ -1,5 +1,7 @@
 2008-08-12  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (pure_sys_vars): Add signal constants.
+
 	* pure.cc (main): Set up handlers for standard POSIX termination
 	signals, mapping these to orderly Pure exceptions of the form
 	'signal SIG'.
