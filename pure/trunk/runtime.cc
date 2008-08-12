@@ -2938,4 +2938,62 @@ void pure_sys_vars(void)
   cdf(interp, "REG_ESPACE",	pure_int(REG_ESPACE));
   // regexec error codes
   cdf(interp, "REG_NOMATCH",	pure_int(REG_NOMATCH));
+  // signals
+#ifdef SIGHUP
+  cdf(interp, "SIGHUP",		pure_int(SIGHUP));
+#endif
+#ifdef SIGINT
+  cdf(interp, "SIGINT",		pure_int(SIGINT));
+#endif
+#ifdef SIGQUIT
+  cdf(interp, "SIGQUIT",	pure_int(SIGQUIT));
+#endif
+#ifdef SIGILL
+  cdf(interp, "SIGILL",		pure_int(SIGILL));
+#endif
+#ifdef SIGABRT
+  cdf(interp, "SIGABRT",	pure_int(SIGABRT));
+#endif
+#ifdef SIGFPE
+  cdf(interp, "SIGFPE",		pure_int(SIGFPE));
+#endif
+#ifdef SIGKILL
+  cdf(interp, "SIGKILL",	pure_int(SIGKILL));
+#endif
+#ifdef SIGSEGV
+  cdf(interp, "SIGSEGV",	pure_int(SIGSEGV));
+#endif
+#ifdef SIGPIPE
+  cdf(interp, "SIGPIPE",	pure_int(SIGPIPE));
+#endif
+#ifdef SIGALRM
+  cdf(interp, "SIGALRM",	pure_int(SIGALRM));
+#endif
+#ifdef SIGTERM
+  cdf(interp, "SIGTERM",	pure_int(SIGTERM));
+#endif
+#ifdef SIGUSR1
+  cdf(interp, "SIGUSR1",	pure_int(SIGUSR1));
+#endif
+#ifdef SIGUSR2
+  cdf(interp, "SIGUSR2",	pure_int(SIGUSR2));
+#endif
+#ifdef SIGCHLD
+  cdf(interp, "SIGCHLD",	pure_int(SIGCHLD));
+#endif
+#ifdef SIGCONT
+  cdf(interp, "SIGCONT",	pure_int(SIGCONT));
+#endif
+#ifdef SIGSTOP
+  cdf(interp, "SIGSTOP",	pure_int(SIGSTOP));
+#endif
+#ifdef SIGTSTP
+  cdf(interp, "SIGTSTP",	pure_int(SIGTSTP));
+#endif
+#ifdef SIGTTIN
+  cdf(interp, "SIGTTIN",	pure_int(SIGTTIN));
+#endif
+#ifdef SIGTTOU
+  cdf(interp, "SIGTTOU",	pure_int(SIGTTOU));
+#endif
 }
