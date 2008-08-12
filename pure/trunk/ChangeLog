@@ -1,3 +1,11 @@
+2008-08-13  Albert Graef  <Dr.Graef@t-online.de>
+
+	* runtime.cc (pure_catch, pure_invoke): Collecting temporary
+	values after an exception doesn't seem to be safe while an
+	evaluation is still in progress. Moved this to doeval/dodefn in
+	interpreter.cc where we're back at the toplevel and it is safe to
+	do this.
+
 2008-08-12  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc/h, lib/system.pure: Add 'trap' operation to configure

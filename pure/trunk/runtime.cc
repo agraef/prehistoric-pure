@@ -1363,6 +1363,8 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       pure_expr *e = interp.estk.front().e;
       interp.estk.pop_front();
       if (e) pure_new_internal(e);
+#if 0
+      /* This doesn't seem to be safe here. Defer until later. */
       // collect garbage
       pure_expr *tmps = interp.tmps;
       while (tmps) {
@@ -1370,6 +1372,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 	pure_freenew(tmps);
 	tmps = next;
       }
+#endif
       for (size_t i = interp.sstk_sz; i-- > sz; )
 	if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	  pure_free_internal(interp.sstk[i]);
@@ -1394,7 +1397,7 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 	res = ((pure_expr*(*)())fp)();
       // normal return
       interp.estk.pop_front();
-#if DEBUG>1
+#if DEBUG>2
       pure_expr *tmps = interp.tmps;
       while (tmps) {
 	if (tmps != res) cerr << "uncollected temporary: " << tmps << endl;
@@ -1437,6 +1440,8 @@ pure_expr *pure_invoke(void *f, pure_expr** _e)
     e = interp.estk.front().e;
     interp.estk.pop_front();
     if (e) pure_new_internal(e);
+#if 0
+    /* This doesn't seem to be safe here. Defer until later. */
     // collect garbage
     pure_expr *tmps = interp.tmps;
     while (tmps) {
@@ -1444,6 +1449,7 @@ pure_expr *pure_invoke(void *f, pure_expr** _e)
       pure_freenew(tmps);
       tmps = next;
     }
+#endif
     for (size_t i = interp.sstk_sz; i-- > sz; )
       if (interp.sstk[i] && interp.sstk[i]->refc > 0)
 	pure_free_internal(interp.sstk[i]);
@@ -1460,7 +1466,7 @@ pure_expr *pure_invoke(void *f, pure_expr** _e)
     // normal return
     interp.estk.pop_front();
     MEMDEBUG_SUMMARY(res)
-#if DEBUG>1
+#if DEBUG>2
     pure_expr *tmps = interp.tmps;
     while (tmps) {
       if (tmps != res) cerr << "uncollected temporary: " << tmps << endl;
