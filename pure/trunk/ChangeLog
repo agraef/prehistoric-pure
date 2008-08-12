@@ -1,5 +1,9 @@
 2008-08-12  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll: Fixed a bug in option parsing of the 'list' command
+	which would cause an option string starting with '-a' to be
+	interpreted as an ordinary argument.
+
 	* runtime.cc (pure_catch, pure_sys_vars): Fixed memory leaks.
 
 2008-08-11  Albert Graef  <Dr.Graef@t-online.de>
