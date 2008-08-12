@@ -345,6 +345,11 @@ void pure_throw(pure_expr* e);
 
 void pure_sigfpe(void);
 
+/* Configure signal handlers. The second argument is the signal number, the
+   first the action to take (-1 = ignore, 1 = handle, 0 = default). */
+
+void pure_trap(int32_t action, int32_t sig);
+
 /* Execute a parameterless fbox x and return its result. If an exception
    occurs while x is executed, apply h to the value of the exception
    instead. */

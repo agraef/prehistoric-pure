@@ -47,6 +47,18 @@ extern void perror(char*), char* strerror(int);
 errno			= pure_errno;
 set_errno val::int	= pure_set_errno val;
 
+/* Signal handling. The action parameter of 'trap' can be one of the
+   predefined integer values SIG_TRAP, SIG_IGN and SIG_DFL. SIG_TRAP causes
+   the given signal to be handled by mapping it to a Pure exception of the
+   form 'signal SIG'. SIG_IGN ignores the signal, SIG_DFL reverts to the
+   system's default handling. See 'list -g SIG*' for a list of known signal
+   values on your system. NOTE: Most standard termination signals (SIGINT,
+   SIGTERM, etc.) are already set up at the start of the interpreter to report
+   corresponding Pure exceptions; if this is not desired, you can use 'trap'
+   to either ignore these or revert to the default handlers instead. */
+
+extern void pure_trap(int action, int sig) = trap;
+
 /* Time functions. 'time' reports the current time in seconds since the
    "epoch" a.k.a. 00:00:00 UTC, Jan 1 1970. The result is always a bigint (in
    fact, the time value is already 64 bit on many OSes nowadays). */
