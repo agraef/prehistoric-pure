@@ -31,8 +31,9 @@ round n::double = int (n+0.5);
 mstime = 1000.0*gettimeofday; 
 mscpu  = 1000.0*clock/CLOCKS_PER_SEC;
 
-// timex returns a list: [ evaluated string argument, cputime, realtime ]
-timex s::string = [(eval s), round (mscpu-c0), round (mstime-d0)] 
+/* timex returns a list: [ evaluated closure, cputime, realtime ]
+   call with closure argument: (timex (\_ -> sumefunction some arguments)) */
+timex f = (f ()), (round (mscpu-c0)), (round (mstime-d0)) 
    when d0::double = mstime; c0::double = mscpu end;
       
 /* extended mod operator to work on doubles, so that int, bigint and double 
