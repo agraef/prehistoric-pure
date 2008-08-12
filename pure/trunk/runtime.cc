@@ -33,8 +33,12 @@ char *alloca ();
 #include "config.h"
 #include "funcall.h"
 
-// Hook to report stack overflows and other kinds of hard errors.
-#define checkstk(test) if (interpreter::brkflag)			\
+// Hooks to report stack overflows and other kinds of hard errors.
+#define checkstk(test) if (interpreter::stackmax > 0 &&			\
+      interpreter::stackdir*(&test - interpreter::baseptr)		\
+      >= interpreter::stackmax)						\
+    pure_throw(stack_exception())
+#define checkall(test) if (interpreter::brkflag)			\
     pure_throw(signal_exception(interpreter::brkflag));			\
   else if (interpreter::stackmax > 0 &&					\
       interpreter::stackdir*(&test - interpreter::baseptr)		\
@@ -1158,7 +1162,7 @@ pure_expr *pure_call(pure_expr *x)
 #endif
     assert(x->tag > 0 && x->refc > 0 && !x->data.clos->local);
     // parameterless call
-    checkstk(test);
+    checkall(test);
     return ((pure_expr*(*)())fp)();
   } else {
 #if DEBUG>2
@@ -1254,7 +1258,7 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     for (size_t j = 0; j < m; j++)
       cerr << "env#" << j << " = " << f0->data.clos->env[j] << " -> " << (void*)f0->data.clos->env[j] << ", refc = " << f0->data.clos->env[j]->refc << endl;
 #endif
-    checkstk(test);
+    checkall(test);
     if (m>0)
       xfuncall(ret, fp, n, env, argv)
     else
