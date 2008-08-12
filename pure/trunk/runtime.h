@@ -340,6 +340,11 @@ typedef struct { jmp_buf jmp; pure_expr* e; size_t sz; } pure_exception;
 
 void pure_throw(pure_expr* e);
 
+/* Throw a 'signal SIGFPE' exception. This is used to signal division by
+   zero. */
+
+void pure_sigfpe(void);
+
 /* Execute a parameterless fbox x and return its result. If an exception
    occurs while x is executed, apply h to the value of the exception
    instead. */

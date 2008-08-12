@@ -1289,6 +1289,14 @@ void pure_throw(pure_expr* e)
   }
 }
 
+#include <signal.h>
+
+extern "C"
+void pure_sigfpe(void)
+{
+  pure_throw(signal_exception(SIGFPE));
+}
+
 extern "C"
 pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 {
@@ -1952,9 +1960,12 @@ pure_expr *bigint_mul(mpz_t x, mpz_t y)
   return u;
 }
 
+// These raise a SIGFPE signal exception for division by zero.
+
 extern "C"
 pure_expr *bigint_div(mpz_t x, mpz_t y)
 {
+  if (mpz_sgn(y) == 0) pure_sigfpe();
   pure_expr *u = pure_bigint(0, 0);
   mpz_t& z = u->data.z;
   mpz_tdiv_q(z, x, y);
@@ -1964,6 +1975,7 @@ pure_expr *bigint_div(mpz_t x, mpz_t y)
 extern "C"
 pure_expr *bigint_mod(mpz_t x, mpz_t y)
 {
+  if (mpz_sgn(y) == 0) pure_sigfpe();
   pure_expr *u = pure_bigint(0, 0);
   mpz_t& z = u->data.z;
   mpz_tdiv_r(z, x, y);
