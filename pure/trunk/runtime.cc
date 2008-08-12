@@ -44,8 +44,8 @@ char *alloca ();
 // Debug expression allocations. Warns about expression memory leaks.
 // NOTE: Bookkeeping starts and ends at each toplevel pure_invoke call.
 // Enabling this code will make the interpreter *much* slower.
-#if DEBUG>2
-#if DEBUG>9 // enable this to print each and every expression (de)allocation
+#if MEMDEBUG
+#if MEMDEBUG>1 // enable this to print each and every expression (de)allocation
 #define MEMDEBUG_NEW(x)  interpreter::g_interp->mem_allocations.insert(x); \
   cerr << "NEW:  " << (void*)x << ": " << x << endl;
 #define MEMDEBUG_FREE(x) interpreter::g_interp->mem_allocations.erase(x); \
@@ -1216,7 +1216,11 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
     argv[n-1] = y;
     // make sure that we do not gc the function before calling it
     f0->refc++; pure_free_internal(x);
-    // construct a stack frame
+    // first push the function object on the shadow stack so that it's
+    // garbage-collected in case of an exception
+    resize_sstk(interp.sstk, interp.sstk_cap, interp.sstk_sz, n+m+2);
+    interp.sstk[interp.sstk_sz++] = f0;
+    // construct a stack frame for the function call
     {
       size_t sz = interp.sstk_sz;
       resize_sstk(interp.sstk, interp.sstk_cap, sz, n+m+1);
@@ -1258,7 +1262,8 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
 #if DEBUG>1
 	cerr << "pure_apply: result " << f0 << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
 #endif
-    pure_free_internal(f0);
+    // pop the function object from the shadow stack
+    pure_free_internal(interp.sstk[--interp.sstk_sz]);
     return ret;
   } else {
     // construct a literal application node
@@ -1352,11 +1357,8 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
       cerr << "pure_catch: exception " << (void*)e << " (refc = " << e->refc
 	   << "): " << e << endl;
 #endif
-      pure_expr *res = pure_apply(h, e);
-      assert(res);
-      res->refc++;
       pure_free_internal(x);
-      pure_unref_internal(res);
+      pure_expr *res = pure_apply(h, e);
       return res;
     } else {
       pure_expr *res;
@@ -2859,6 +2861,7 @@ df(interpreter& interp, const char* s, pure_expr *x)
   } catch (err &e) {
     cerr << "warning: " << e.what() << endl;
   }
+  MEMDEBUG_FREE(x)
 }
 
 static inline void
@@ -2869,6 +2872,7 @@ cdf(interpreter& interp, const char* s, pure_expr *x)
   } catch (err &e) {
     cerr << "warning: " << e.what() << endl;
   }
+  pure_freenew(x);
 }
 
 extern "C"
