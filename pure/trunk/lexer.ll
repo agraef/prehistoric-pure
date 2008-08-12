@@ -343,7 +343,7 @@ ptrtag  ::{blank}*pointer
   // process option arguments
   for (arg = args.l.begin(); arg != args.l.end(); arg++) {
     const char *s = arg->c_str();
-    if (s[0] != '-' || !s[1] || !strchr("cdefghlstv", s[1])) break;
+    if (s[0] != '-' || !s[1] || !strchr("acdefghlstv", s[1])) break;
     while (*++s) {
       switch (*s) {
       case 'a': aflag = true; break;
