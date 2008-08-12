@@ -162,7 +162,7 @@ pure_completion(const char *text, int start, int end)
   return matches;
 }
 
-static void sigint_handler(int sig)
+static void sig_handler(int sig)
 {
   interpreter::brkflag = sig;
 }
@@ -185,13 +185,32 @@ main(int argc, char *argv[])
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
   // make sure that SIGPIPE is ignored
-#ifndef _WIN32
+  /* Set up handlers for all standard POSIX termination signals (except
+     SIGKILL which is unmaskable). SIGPIPE is ignored by default, all others
+     are mapped to Pure exceptions of the form 'signal SIG', so that they can
+     be caught with 'catch' or safely return us to the interpreter's
+     interactive command line. */
+#ifdef SIGHUP
+  signal(SIGHUP, sig_handler);
+#endif
+#ifdef SIGINT
+  signal(SIGINT, sig_handler);
+#endif
+#ifdef SIGPIPE
   signal(SIGPIPE, SIG_IGN);
 #endif
-  /* Set up a SIGINT handler which throws a Pure exception, so that we safely
-     return to the interpreter's interactive command line when the user
-     interrupts a computation. */
-  signal(SIGINT, sigint_handler);
+#ifdef SIGALRM
+  signal(SIGALRM, sig_handler);
+#endif
+#ifdef SIGTERM
+  signal(SIGTERM, sig_handler);
+#endif
+#ifdef SIGUSR1
+  signal(SIGUSR1, sig_handler);
+#endif
+#ifdef SIGUSR2
+  signal(SIGUSR2, sig_handler);
+#endif
   // set up an exit function which saves the history if needed
   atexit(exit_handler);
   // set the system locale
