@@ -1297,6 +1297,22 @@ void pure_sigfpe(void)
   pure_throw(signal_exception(SIGFPE));
 }
 
+static void sig_handler(int sig)
+{
+  interpreter::brkflag = sig;
+}
+
+extern "C"
+void pure_trap(int32_t action, int32_t sig)
+{
+  if (action > 0)
+    signal(sig, sig_handler);
+  else if (action < 0)
+    signal(sig, SIG_IGN);
+  else
+    signal(sig, SIG_DFL);
+}
+
 extern "C"
 pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 {
@@ -2938,6 +2954,10 @@ void pure_sys_vars(void)
   cdf(interp, "REG_ESPACE",	pure_int(REG_ESPACE));
   // regexec error codes
   cdf(interp, "REG_NOMATCH",	pure_int(REG_NOMATCH));
+  // signal actions
+  cdf(interp, "SIG_TRAP",	pure_int(1));
+  cdf(interp, "SIG_IGN",	pure_int(-1));
+  cdf(interp, "SIG_DFL",	pure_int(0));
   // signals
 #ifdef SIGHUP
   cdf(interp, "SIGHUP",		pure_int(SIGHUP));
