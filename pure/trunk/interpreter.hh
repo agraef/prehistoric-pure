@@ -19,10 +19,14 @@
 #include "symtable.hh"
 #include "runtime.h"
 
-// add some debugging output (disable in release version!)
+/* Add some debugging output (disable in release version!). */
 #ifndef DEBUG
 #define DEBUG 1 // extra sanity checks
 //#define DEBUG 2 // debug runtime + code execution etc.
+#endif
+/* Extra memory debugging code (slow!). See runtime.cc for details. */
+#ifndef MEMDEBUG
+#define MEMDEBUG 0
 #endif
 
 /* Experimental support for the "fast" calling convention which is needed to
