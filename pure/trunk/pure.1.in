@@ -33,7 +33,7 @@ variable.
 Pure is a modern-style functional programming language based on term
 rewriting. Pure programs are basically collections of equational rules used to
 evaluate expressions in a symbolic fashion by reducing them to normal form. A
-brief overview of the language can be found in the \fBPURE OVERVIEW\fP section
+brief overview of the language can be found in the PURE OVERVIEW section
 below. (In case you're wondering, the name ``Pure'' actually refers to the
 adjective. But you can also write it as ``PURE'' and take this as a recursive
 acronym for the ``Pure Universal Rewriting Engine''.)
@@ -58,8 +58,7 @@ command line.
 When the interpreter is in interactive mode and reads from a tty, commands are
 read using
 .BR readline (3)
-(providing completion for all commands listed in section
-.B INTERACTIVE USAGE
+(providing completion for all commands listed in section INTERACTIVE USAGE
 below, as well as for global function and variable symbols) and, when exiting
 the interpreter, the command history is stored in
 .BR ~/.pure_history ,
@@ -170,8 +169,8 @@ modules imported through a
 .B using
 clause. As a remedy, you can use the interactive
 .B list
-command (see the \fBINTERACTIVE USAGE\fP section below) to list definitions
-along with additional debugging information.
+command (see the INTERACTIVE USAGE section below) to list definitions along
+with additional debugging information.
 .SH PURE OVERVIEW
 .PP
 Pure is a fairly simple language. Programs are collections of equational rules
@@ -615,8 +614,8 @@ toplevel constructs which let you declare special symbol attributes and manage
 programs consisting of several source modules. These are: operator and
 constant symbol declarations,
 .B extern
-declarations for external C functions (described in the \fBC INTERFACE\fP
-section), and
+declarations for external C functions (described in the C INTERFACE section),
+and
 .B using
 clauses which provide a simple include file mechanism.
 .TP
@@ -667,7 +666,7 @@ searched for in the current directory and the directory named by the
 environment variable. (The
 .B using
 clause also has an alternative form which allows dynamic libraries to be
-loaded, this will be discussed in the \fBC INTERFACE\fP section.)
+loaded, this will be discussed in the C INTERFACE section.)
 .SH EXCEPTION HANDLING
 Pure also offers a useful exception handling facility. To raise an exception,
 you just invoke the built-in function
@@ -959,8 +958,8 @@ Purge the definitions of the given symbols (functions, constants or global
 variables). If no symbols are given, purge \fIall\fP definitions (after
 confirmation) made after the most recent
 .B save
-command (or the beginning of the interactive session).
-See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+command (or the beginning of the interactive session). See the DEFINITION
+LEVELS AND OVERRIDE MODE section below for details.
 .TP
 .B "help \fR[\fIargs\fP]\fP"
 Display the
@@ -970,16 +969,16 @@ manpage, or invoke
 with the given arguments.
 .TP
 .B "list \fR[\fIoption\fP ...]\fP \fR[\fIsymbol\fP ...]\fP"
-List defined symbols in various formats.
-See the \fBLIST COMMAND\fP section below for details.
+List defined symbols in various formats. See the LIST COMMAND section below
+for details.
 .TP
 .B "ls \fR[\fIargs\fP]\fP"
 List files (shell \fBls\fP(1) command).
 .TP
 .B override
 Enter ``override'' mode. This allows you to add equations ``above'' existing
-definitions in the source script, possibly overriding existing equations.
-See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+definitions in the source script, possibly overriding existing equations. See
+the DEFINITION LEVELS AND OVERRIDE MODE section below for details.
 .TP
 .B pwd
 Print the current working dir (shell \fBpwd\fP(1) command).
@@ -1004,8 +1003,8 @@ Begin a new level of temporary definitions. A subsequent
 .B clear
 command (see above) will purge all definitions made after the most recent
 .B save
-(or the beginning of the interactive session).
-See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+(or the beginning of the interactive session). See the DEFINITION LEVELS AND
+OVERRIDE MODE section below for details.
 .TP
 .B "stats \fR[on|off]\fP"
 Enables (default) or disables ``stats'' mode, in which various statistics are
@@ -1016,7 +1015,7 @@ profiling information may be provided.
 .B underride
 Exits ``override'' mode. This returns you to the normal mode of operation,
 where new equations are added `below'' previous rules of an existing function.
-See the \fBDEFINITION LEVELS AND OVERRIDE MODE\fP section below for details.
+See the DEFINITION LEVELS AND OVERRIDE MODE section below for details.
 .PP
 Note that these special commands are only recognized at the beginning of the
 interactive command line. (Thus you can escape a symbol looking like a command
@@ -1073,9 +1072,9 @@ List only ``temporary'' symbols and definitions at the given \fIlevel\fP (the
 current level by default) or above. The \fIlevel\fP parameter, if given, must
 immediately follow the option character. A \fIlevel\fP of 1 denotes all
 temporary definitions, whereas 0 indicates \fIall\fP definitions (which is the
-default if \fB-t\fP is not specified). See the \fBDEFINITION LEVELS AND
-OVERRIDE MODE\fP section below for information about the notion of temporary
-definition levels.
+default if \fB-t\fP is not specified). See the DEFINITION LEVELS AND OVERRIDE
+MODE section below for information about the notion of temporary definition
+levels.
 .TP
 .B -v
 Print information about variable symbols.
@@ -1506,16 +1505,16 @@ proper truth value (0 or 1) which wouldn't be possible with tail call
 semantics.
 .PP
 .B Handling of asynchronous signals.
-As described in section \fBEXCEPTION HANDLING\fP, signals delivered to the
-process can be caught and handled with Pure's exception handling
-facilities. Like stack checks, checks for pending signals are only performed
-at certain places, such as entry into a global function. This doesn't include
-tail calls, however, so a busy loop like `loop = loop;' will \fInever\fP be
+As described in section EXCEPTION HANDLING, signals delivered to the process
+can be caught and handled with Pure's exception handling facilities. Like
+stack checks, checks for pending signals are only performed at certain places,
+such as entry into a global function. This doesn't include tail calls,
+however, so a busy loop like `loop = loop;' will \fInever\fP be
 interrupted. To work around this, just add a call to another global function
 to your loop to make it interruptible. For instance:
 .sp
 .nf
-loop = loop when _ = check end;
+loop = loop \fBwhen\fP _ = check \fBend\fP;
 check = ();
 .fi
 .PP
@@ -1526,8 +1525,8 @@ routine.) To handle signals while the above loop is executing, add an
 exception handler like the following:
 .sp
 .nf
-loop = loop when _ = catch handle check end
-with handle (signal k) = catch handle (...) end;
+loop = loop \fBwhen\fP _ = catch handle check \fBend\fP
+\fBwith\fP handle (signal k) = catch handle (...) \fBend\fP;
 .fi
 .PP
 By these means the entire loop remains tail-recursive. (Note the `catch
