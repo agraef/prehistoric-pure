@@ -38,12 +38,15 @@ char *alloca ();
       interpreter::stackdir*(&test - interpreter::baseptr)		\
       >= interpreter::stackmax)						\
     pure_throw(stack_exception())
-#define checkall(test) if (interpreter::brkflag)			\
-    pure_throw(signal_exception(interpreter::brkflag));			\
-  else if (interpreter::stackmax > 0 &&					\
+#define checkall(test) if (interpreter::stackmax > 0 &&			\
       interpreter::stackdir*(&test - interpreter::baseptr)		\
-      >= interpreter::stackmax)						\
-    pure_throw(stack_exception())
+      >= interpreter::stackmax) {					\
+    interpreter::brkmask = 0;						\
+    pure_throw(stack_exception());					\
+  } else if (interpreter::brkmask)					\
+    interpreter::brkmask = 0;						\
+  else if (interpreter::brkflag)					\
+    pure_throw(signal_exception(interpreter::brkflag))
 
 // Debug expression allocations. Warns about expression memory leaks.
 // NOTE: Bookkeeping starts and ends at each toplevel pure_invoke call.
@@ -1389,6 +1392,8 @@ pure_expr *pure_catch(pure_expr *h, pure_expr *x)
 	   << "): " << e << endl;
 #endif
       pure_free_internal(x);
+      // mask further breaks until the handler starts executing
+      interp.brkmask = 1;
       pure_expr *res = pure_apply(h, e);
       return res;
     } else {
