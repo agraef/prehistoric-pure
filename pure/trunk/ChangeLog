@@ -1,5 +1,7 @@
 2008-08-13  Albert Graef  <Dr.Graef@t-online.de>
 
+	* examples/signal.pure: Add signal processing example.
+
 	* runtime.cc (pure_catch, pure_invoke): Collecting temporary
 	values after an exception doesn't seem to be safe while an
 	evaluation is still in progress. Moved this to doeval/dodefn in
