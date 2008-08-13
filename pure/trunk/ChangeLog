@@ -1,5 +1,9 @@
 2008-08-13  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc (declare_extern, named_type, type_name): Add
+	support for single precision 'float' arguments and return values
+	to the C interface. Reported by Eddie Rucker.
+
 	* examples/signal.pure: Add signal processing example.
 
 	* runtime.cc (pure_catch, pure_invoke): Collecting temporary
