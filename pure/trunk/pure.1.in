@@ -177,7 +177,7 @@ along with additional debugging information.
 Pure is a fairly simple language. Programs are collections of equational rules
 defining functions, \fBdef\fP and \fBlet\fP commands binding global constant
 and variable symbols, and expressions to be evaluated. Here's a simple
-example, entered interactively in the interpreter (note that the \fB>\fP
+example, entered interactively in the interpreter (note that the ``>''
 symbol at the beginning of each input line is the interpreter's default
 command prompt):
 .sp
@@ -606,6 +606,68 @@ queens n        = search n 1 [] \fBwith\fP
                 = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
 \fBend\fP;
 .fi
+.SH DECLARATIONS
+As you probably noticed, Pure is very terse. That's because, in contrast to
+hopelessly verbose languages like Java, you don't declare much stuff in Pure,
+you just define it and be done with it. Usually, all necessary information
+about the defined symbols is inferred automatically. However, there are a few
+toplevel constructs which let you declare special symbol attributes and manage
+programs consisting of several source modules. These are: operator and
+constant symbol declarations,
+.B extern
+declarations for external C functions (described in the \fBC INTERFACE\fP
+section), and
+.B using
+clauses which provide a simple include file mechanism.
+.TP
+.B Operator and constant declarations: infix \fIlevel\fP \fIop\fR ...;
+Ten different precedence levels are available for user-defined operators,
+numbered 0 (lowest) thru 9 (highest). On each precedence level, you can
+declare (in order of increasing precedence)
+.BR infix " (binary non-associative),"
+.BR infixl " (binary left-associative),"
+.BR infixr " (binary right-associative),"
+.BR prefix " (unary prefix) and"
+.BR postfix " (unary postfix)"
+operators. For instance:
+.sp
+.nf
+\fBinfixl\fP 6 + - ;
+\fBinfixl\fP 7 * / div mod ;
+.fi
+.sp
+Note that to declare multiple symbols in a single declaration, you just list
+them all with whitespace in between.
+.sp
+Similarly, constant symbols are introduced using a declaration of the form:
+.sp
+.nf
+\fBnullary \fIsymbol\fR ...;
+.fi
+.sp
+Examples for all of these can be found in the prelude which declares a bunch
+of standard (arithmetic, relational, logical) operator symbols as well as the
+list and pair constructors `:' and `,' and the constant symbols `[]' and `()'
+denoting the empty list and tuple, respectively.
+.TP
+.B Using clause: using \fIname\fR ...;
+Causes each given script to be included, at the position of the
+.B using
+clause, but only if the script was not included already. Note that the
+constants, variables and functions defined by the included script are then
+available anywhere in the program, not just the module that contains the
+.B using
+clause. The script name can be specified either as a string denoting the
+proper filename (possibly including path and/or filename extension), or as an
+identifier. In the latter case, the
+.B .pure
+filename extension is added automatically. In both cases, the script is
+searched for in the current directory and the directory named by the
+.B PURELIB
+environment variable. (The
+.B using
+clause also has an alternative form which allows dynamic libraries to be
+loaded, this will be discussed in the \fBC INTERFACE\fP section.)
 .SH EXCEPTION HANDLING
 Pure also offers a useful exception handling facility. To raise an exception,
 you just invoke the built-in function
@@ -657,9 +719,9 @@ corresponding error message:
 <stdin>:2.0-7: unhandled exception 'failed_cond' while evaluating 'fact foo'
 .fi
 .PP
-Moreover, asynchronous signals can be reported using exceptions, too. Most
-standard termination signals (SIGINT, SIGTERM, etc.) are set up during startup
-of the interpreter to produce corresponding Pure exceptions of the form
+Exceptions also provide a way to handle asynchronous signals. Most standard
+termination signals (SIGINT, SIGTERM, etc.) are set up during startup of the
+interpreter to produce corresponding Pure exceptions of the form
 .B signal SIG
 where
 .B SIG
@@ -673,6 +735,18 @@ exception. For instance, the following lets you handle the SIGQUIT signal:
 .nf
 > \fBusing\fP system;
 > trap SIG_TRAP SIGQUIT;
+.fi
+.PP
+You can also use
+.B trap
+to just ignore a signal or revert to the system's default handler (which might
+take different actions depending on the type of signal, see
+.BR signal (7)
+for details):
+.sp
+.nf
+> trap SIG_IGN SIGQUIT; // signal is ignored
+> trap SIG_DFL SIGQUIT; // reinstalls the default signal handler
 .fi
 .PP
 Last but not least, exceptions can also be used to implement non-local value
@@ -700,64 +774,6 @@ E.g., let's compute a solution for a standard 8x8 board:
 > queens 8;
 (1,1):(2,5):(3,8):(4,6):(5,3):(6,7):(7,2):(8,4):[]
 .fi
-.SH DECLARATIONS
-As you probably noticed, Pure is very terse. That's because, in contrast to
-hopelessly verbose languages like Java, you don't declare much stuff in Pure,
-you just define it and be done with it. Usually, all necessary information
-about the defined symbols is inferred automatically. However, there are a few
-toplevel constructs which let you declare special symbol attributes and manage
-programs consisting of several source modules. These are: operator and
-constant symbol declarations,
-.B extern
-declarations for external C functions (described in the next section), and
-.B using
-clauses which provide a simple include file mechanism.
-.TP
-.B Operator and constant declarations: infix \fIlevel\fP \fIop\fR ...;
-Ten different precedence levels are available for user-defined operators,
-numbered 0 (lowest) thru 9 (highest). On each precedence level, you can
-declare (in order of increasing precedence)
-.BR infix " (binary non-associative),"
-.BR infixl " (binary left-associative),"
-.BR infixr " (binary right-associative),"
-.BR prefix " (unary prefix) and"
-.BR postfix " (unary postfix)"
-operators. For instance:
-.sp
-.nf
-\fBinfixl\fP 6 + - ;
-\fBinfixl\fP 7 * / div mod ;
-.fi
-.sp
-Note that to declare multiple symbols in a single declaration, you just list
-them all with whitespace in between.
-.sp
-Similarly, constant symbols are introduced using a declaration of the form:
-.sp
-.nf
-\fBnullary \fIsymbol\fR ...;
-.fi
-.sp
-Examples for all of these can be found in the prelude which declares a bunch
-of standard (arithmetic, relational, logical) operator symbols as well as the
-list and pair constructors `:' and `,' and the constant symbols `[]' and `()'
-denoting the empty list and tuple, respectively.
-.TP
-.B Using clause: using \fIname\fR ...;
-Causes each given script to be included, at the position of the
-.B using
-clause, but only if the script was not included already. The script name can
-be specified either as a string denoting the proper filename (possibly
-including path and/or filename extension), or as an identifier. In the latter
-case, the
-.B .pure
-filename extension is added automatically. In both cases, the script is
-searched for in the current directory and the directory named by the
-.B PURELIB
-environment variable. (The
-.B using
-clause also has an alternative form which allows dynamic libraries to be
-loaded, this will be discussed in the following section.)
 .SH C INTERFACE
 Accessing C functions from Pure programs is dead simple. You just need an
 .B extern
@@ -786,11 +802,12 @@ Parameter names in prototypes only serve informational purposes and are for
 the human reader; they are effectively treated as comments by the compiler.
 .PP
 The interpreter makes sure that the parameters in a call match; if not, the
-call is treated as a normal form expression. The range of supported C types is
-a bit limited right now (void, bool, char, short, int, long, double, as well
-as arbitrary pointer types, i.e.: void*, char*, etc.), but in practice these
-should cover most kinds of calls that need to be done when interfacing to C
-libraries.
+call is treated as a normal form expression by default, which enables you to
+extend the external function with your own Pure equations. The range of
+supported C types is a bit limited right now (void, bool, char, short, int,
+long, float, double, as well as arbitrary pointer types, i.e.: void*, char*,
+etc.), but in practice these should cover most kinds of calls that need to be
+done when interfacing to C libraries.
 .PP
 Since Pure only has 32 bit machine integers and GMP bigints, a variety of C
 integer types are provided which are converted from/to the Pure types in a
@@ -804,6 +821,9 @@ C function takes or returns 64 bit integer values. For a long parameter you
 can either pass a Pure machine int (which is sign-extended to 64 bit) or a
 Pure bigint (which is truncated to 64 bit if necessary). 64 bit return values
 are always converted to (signed) Pure bigints.
+.PP
+Similarly, single precision float arguments and return values are converted
+from/to Pure's double precision floating point numbers automatically.
 .PP
 Concerning the pointer types, char* is for string arguments and return values
 which need translation between Pure's internal utf-8 representation and the
@@ -820,8 +840,8 @@ C) and ``boxed'' again when they are returned as function results (from C to
 Pure). All of this is handled by the runtime system in a transparent way, of
 course.
 .PP
-It is even possible to augment an external C function with ordinary Pure
-equations, but in this case you have to make sure that the
+As already mentioned, it is possible to augment an external C function with
+ordinary Pure equations, but in this case you have to make sure that the
 .B extern
 declaration of the function comes first. For instance, we might want to extend
 our imported
@@ -829,6 +849,9 @@ our imported
 function with a rule to handle integers:
 .sp
 .nf
+> \fBextern\fP double sin(double);
+> sin 0.3;
+0.29552020666134
 > sin 0;
 sin 0
 > sin x::int = sin (double x);
@@ -887,17 +910,22 @@ declaration names a function symbol which cannot be resolved, an appropriate
 error message is printed.
 .SH STANDARD LIBRARY
 Pure comes with a collection of Pure library modules, which includes the
-standard prelude. Right now the library is pretty rudimentary, but it offers
-the necessary functions to work with the built-in types (including arithmetic
-and logical operations) and to do most kind of list processing you can find in
-ML- and Haskell-like languages. Please refer to the
+standard prelude (loaded automatically at startup time) and some other modules
+which can be loaded explicitly with a
+.B using
+clause. The prelude offers the necessary functions to work with the built-in
+types (including arithmetic and logical operations) and to do most kind of
+list processing you can find in ML- and Haskell-like languages. Please refer
+to the
 .B prelude.pure
 file for details on the provided operations. Common container data structures
-like sets and dictionaries are also available. Moreover, the beginnings of a
-system interface can be found in the
+like sets and dictionaries are also available, see
+.BR set.pure ,
+.B dict.pure
+etc. Moreover, the (beginnings of a) system interface can be found in the
 .B system.pure
-module. In particular, this also includes operations to do basic I/O. More
-stuff will likely be provided in future releases.
+module. In particular, this module also includes operations to do basic
+I/O. More stuff will likely be provided in future releases.
 .SH INTERACTIVE USAGE
 In interactive mode, the interpreter reads definitions and expressions and
 processes them as usual. The input language is just the same as for source
@@ -1473,8 +1501,38 @@ Scheme programmers should note that conditional expressions
 (\fBif\fP-\fBthen\fP-\fBelse\fP) are tail-recursive in both branches, just
 like in Scheme, while the logical operators && and || are
 .I not
-tail-recursive. This is because the logical operators always return a proper
-truth value (0 or 1) which wouldn't be possible with tail call semantics.
+tail-recursive. This is because in Pure the logical operators always return a
+proper truth value (0 or 1) which wouldn't be possible with tail call
+semantics.
+.PP
+.B Handling of asynchronous signals.
+As described in section \fBEXCEPTION HANDLING\fP, signals delivered to the
+process can be caught and handled with Pure's exception handling
+facilities. Like stack checks, checks for pending signals are only performed
+at certain places, such as entry into a global function. This doesn't include
+tail calls, however, so a busy loop like `loop = loop;' will \fInever\fP be
+interrupted. To work around this, just add a call to another global function
+to your loop to make it interruptible. For instance:
+.sp
+.nf
+loop = loop when _ = check end;
+check = ();
+.fi
+.PP
+(Of course, the `check' function can actually do any processing required by
+your application. In that case you'd probably want the `loop' function to
+carry around some ``state'' argument which is modified by the `check'
+routine.) To handle signals while the above loop is executing, add an
+exception handler like the following:
+.sp
+.nf
+loop = loop when _ = catch handle check end
+with handle (signal k) = catch handle (...) end;
+.fi
+.PP
+By these means the entire loop remains tail-recursive. (Note the `catch
+handle' around the signal processing code which is needed for safety because
+another signal may arrive while the signal handler is being executed.)
 .SH FILES
 .TP
 .B ~/.pure_history
