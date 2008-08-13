@@ -411,6 +411,24 @@ their declarations (in the prelude or the user's program), and function
 application binds stronger than all operators. Parentheses can be used to
 override default precedences and associativities as usual.
 .PP
+The common operator symbols like +, -, *, / etc. are declared at the beginning
+of the prelude, see the
+.B prelude.pure
+script for a list of these. Arithmetic, relational and logical operators
+usually follow C conventions. However, out of necessity some of Pure's
+operator symbols deviate from C. Most notably, the `!' symbol is Pure's
+indexing operator, hence logical negation is denoted
+.B not
+instead (named for Haskell compatibility, but Pure's
+.B not
+is a real prefix operator instead of an ordinary function symbol). Moreover,
+the bitwise operators are named
+.B and
+and
+.B or
+instead of `&' and `|', because the latter is reserved as a special symbol in
+rules, see RULE SYNTAX below.
+.PP
 At the toplevel, a Pure program basically consists of equations defining
 functions, constant and variable definitions, and expressions to be evaluated.
 .TP
