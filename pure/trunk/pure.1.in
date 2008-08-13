@@ -586,7 +586,7 @@ If you dare, you can actually have a look at the catmap-lambda-if-then-else
 expression the comprehension expanded to:
 .sp
 .nf
-> list primes
+> \fBlist\fP primes
 primes n = sieve (2..n) \fBwith\fP sieve [] = []; sieve (p:qs) = p:sieve
 (catmap (\eq -> if q mod p then [q] else []) qs) \fBend\fP;
 .fi
@@ -657,9 +657,27 @@ corresponding error message:
 <stdin>:2.0-7: unhandled exception 'failed_cond' while evaluating 'fact foo'
 .fi
 .PP
-Exceptions can also be used to implement non-local value returns. For
-instance, here's a variation of our n queens algorithm which only returns the
-first solution. Note the use of
+Moreover, asynchronous signals can be reported using exceptions, too. Most
+standard termination signals (SIGINT, SIGTERM, etc.) are set up during startup
+of the interpreter to produce corresponding Pure exceptions of the form
+.B signal SIG
+where
+.B SIG
+is the signal number. Pure's system module provides symbolic constants for
+common POSIX signals and also defines the operation
+.B trap
+which lets you rebind any signal to a
+.B signal
+exception. For instance, the following lets you handle the SIGQUIT signal:
+.sp
+.nf
+> \fBusing\fP system;
+> trap SIG_TRAP SIGQUIT;
+.fi
+.PP
+Last but not least, exceptions can also be used to implement non-local value
+returns. For instance, here's a variation of our n queens algorithm which only
+returns the first solution. Note the use of
 .B throw
 in the recursive search routine to bail out with a solution as soon as we
 found one. The value thrown there is caught in the main routine. If no value
@@ -874,11 +892,12 @@ the necessary functions to work with the built-in types (including arithmetic
 and logical operations) and to do most kind of list processing you can find in
 ML- and Haskell-like languages. Please refer to the
 .B prelude.pure
-file for details on the provided operations. Also, the beginnings of a system
-interface can be found in the
+file for details on the provided operations. Common container data structures
+like sets and dictionaries are also available. Moreover, the beginnings of a
+system interface can be found in the
 .B system.pure
 module. In particular, this also includes operations to do basic I/O. More
-stuff will be provided in future releases.
+stuff will likely be provided in future releases.
 .SH INTERACTIVE USAGE
 In interactive mode, the interpreter reads definitions and expressions and
 processes them as usual. The input language is just the same as for source
@@ -1288,9 +1307,9 @@ definitions. For instance:
 > foo x = c*x;
 > foo 99;
 c*99
-> let c = 2; foo 99;
+> \fBlet\fP c = 2; foo 99;
 198
-> let c = 3; foo 99;
+> \fBlet\fP c = 3; foo 99;
 297
 .fi
 .PP
@@ -1306,14 +1325,14 @@ their purpose after all) and will only take effect on subsequent
 definitions. E.g., continuing the previous example:
 .sp
 .nf
-> def d = 2;
+> \fBdef\fP d = 2;
 > bar x = d*x;
-> list foo bar
+> \fBlist\fP foo bar
 bar x = 2*x;
 foo x = c*x;
 > bar 99;
 198
-> def d = 3;
+> \fBdef\fP d = 3;
 <stdin>:9.0-8: symbol 'd' is already defined as a constant
 .fi
 .PP
@@ -1323,9 +1342,9 @@ purged with the \fBclear\fP command, and this won't affect any other existing
 definitions:
 .sp
 .nf
-> clear d
-> def d = 3;
-> list bar
+> \fBclear\fP d
+> \fBdef\fP d = 3;
+> \fBlist\fP bar
 bar x = 2*x;
 .fi
 .PP
@@ -1370,10 +1389,10 @@ purpose, since this will often allow the compiler to generate better code
 using constant folding and similar techniques. Example:
 .sp
 .nf
-> extern double atan(double);
-> def pi = 4*atan 1.0;
+> \fBextern\fP double atan(double);
+> \fBdef\fP pi = 4*atan 1.0;
 > foo x = 2*pi*x;
-> list foo
+> \fBlist\fP foo
 foo x = 2*3.14159265358979*x;
 .fi
 .PP
@@ -1385,7 +1404,7 @@ you to employ a constant computed at runtime to configure your code for
 different environments, without any runtime penalties:
 .sp
 .nf
-> def running_on_windows = index sysinfo "mingw32" >= 0;
+> \fBdef\fP running_on_windows = index sysinfo "mingw32" >= 0;
 > foo x = something x if running_on_windows;
 >       = something_else x otherwise;
 .fi
