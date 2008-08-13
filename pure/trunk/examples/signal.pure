@@ -19,7 +19,7 @@ test = printf "Running as pid %d, try to kill me!\n" getpid, loop;
 
 loop = loop when _ = catch sig check end
 with
-  sig (signal k) = loop when _ = printf "Hey, I got signal %d.\n" k end;
+  sig (signal k) = printf "Hey, I got signal %d.\n" k;
 end;
 
 /* Take a short nap so that the loop doesn't run busily. This also serves the
