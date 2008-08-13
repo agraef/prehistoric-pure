@@ -2567,6 +2567,8 @@ const Type *interpreter::named_type(string name)
     return Type::Int32Ty;
   else if (name == "long")
     return Type::Int64Ty;
+  else if (name == "float")
+    return Type::FloatTy;
   else if (name == "double")
     return Type::DoubleTy;
   else if (name == "char*")
@@ -2606,6 +2608,8 @@ const char *interpreter::type_name(const Type *type)
     return "int";
   else if (type == Type::Int64Ty)
     return "long";
+  else if (type == Type::FloatTy)
+    return "float";
   else if (type == Type::DoubleTy)
     return "double";
   else if (type == CharPtrTy)
@@ -2872,6 +2876,18 @@ Function *interpreter::declare_extern(string name, string restype,
       phi->addIncoming(intv, intbb);
       phi->addIncoming(mpzv, mpzbb);
       unboxed[i] = phi;
+    } else if (argt[i] == Type::FloatTy) {
+      BasicBlock *okbb = BasicBlock::Create("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(EXPR::DBL), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *pv = b.CreateBitCast(x, DblExprPtrTy, "dblexpr");
+      idx[1] = ValFldIndex;
+      Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
+      unboxed[i] = b.CreateFPTrunc(dv, Type::FloatTy);
     } else if (argt[i] == Type::DoubleTy) {
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
@@ -2897,6 +2913,7 @@ Function *interpreter::declare_extern(string name, string restype,
     } else if (argt[i] == PointerType::get(Type::Int16Ty, 0) ||
 	       argt[i] == PointerType::get(Type::Int32Ty, 0) ||
 	       argt[i] == PointerType::get(Type::Int64Ty, 0) ||
+	       argt[i] == PointerType::get(Type::FloatTy, 0) ||
 	       argt[i] == PointerType::get(Type::DoubleTy, 0)) {
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
@@ -2977,6 +2994,9 @@ Function *interpreter::declare_extern(string name, string restype,
     u = b.CreateCall(module->getFunction("pure_int"), u);
   else if (type == Type::Int64Ty)
     u = b.CreateCall(module->getFunction("pure_long"), u);
+  else if (type == Type::FloatTy)
+    u = b.CreateCall(module->getFunction("pure_double"),
+		     b.CreateFPExt(u, Type::DoubleTy));
   else if (type == Type::DoubleTy)
     u = b.CreateCall(module->getFunction("pure_double"), u);
   else if (type == CharPtrTy)
@@ -2984,6 +3004,7 @@ Function *interpreter::declare_extern(string name, string restype,
   else if (type == PointerType::get(Type::Int16Ty, 0) ||
 	   type == PointerType::get(Type::Int32Ty, 0) ||
 	   type == PointerType::get(Type::Int64Ty, 0) ||
+	   type == PointerType::get(Type::FloatTy, 0) ||
 	   type == PointerType::get(Type::DoubleTy, 0))
     u = b.CreateCall(module->getFunction("pure_pointer"),
 		     b.CreateBitCast(u, VoidPtrTy));
