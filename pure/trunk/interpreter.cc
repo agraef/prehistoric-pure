@@ -21,6 +21,7 @@ char *interpreter::baseptr = 0;
 int interpreter::stackmax = 0;
 int interpreter::stackdir = 0;
 int interpreter::brkflag = 0;
+int interpreter::brkmask = 0;
 
 static void* resolve_external(const std::string& name)
 {

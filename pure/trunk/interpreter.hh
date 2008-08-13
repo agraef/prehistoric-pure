@@ -583,7 +583,7 @@ public:
   static bool g_interactive;
   static interpreter* g_interp;
   // not saved
-  static int brkflag;
+  static int brkflag, brkmask;
   static char *baseptr;
   static int stackmax;
   static int stackdir;
