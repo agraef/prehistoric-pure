@@ -2985,9 +2985,8 @@ Function *interpreter::declare_extern(string name, string restype,
     u = b.CreateCall(module->getFunction("pure_int"),
 		     b.CreateZExt(u, Type::Int32Ty));
   else if (type == Type::Int8Ty)
-    // char treated as an unsigned integer here
     u = b.CreateCall(module->getFunction("pure_int"),
-		     b.CreateZExt(u, Type::Int32Ty));
+		     b.CreateSExt(u, Type::Int32Ty));
   else if (type == Type::Int16Ty)
     u = b.CreateCall(module->getFunction("pure_int"),
 		     b.CreateSExt(u, Type::Int32Ty));
