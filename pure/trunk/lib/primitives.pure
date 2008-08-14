@@ -105,6 +105,19 @@ ushort x::int		= if x>=0 then x else x+0x10000;
 uint x::int		= if x>=0 then bigint x else x+0x100000000L;
 ulong x::bigint		= if x>=0 then x else x+0x10000000000000000L;
 
+/* Rounding functions. */
+
+extern double floor(double), double ceil(double);
+extern double round(double), double trunc(double);
+
+floor x::int | floor x::bigint = x;
+ceil x::int | ceil x::bigint = x;
+round x::int | round x::bigint = x;
+trunc x::int | trunc x::bigint = x;
+
+// Fractional part of x.
+frac x::int | frac x::bigint | frac x::double = x-trunc x;
+
 /* Absolute value and sign of a number. */
 
 abs x::int | abs x::bigint | abs x::double
