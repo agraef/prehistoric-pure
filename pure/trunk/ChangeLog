@@ -1,5 +1,11 @@
 2008-08-14  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/math.pure: Bugfixes, overhaul of number predicates, added
+	missing semantic number predicates.
+
+	* runtime.cc (pure_bigintval, same): Fix up bigint conversions and
+	syntactic comparisons of doubles for the inf/nan cases.
+
 	* lib/primitives.pure, runtime.cc/h: Removed obsolete fun and arg
 	functions, as 'arg' conflicted with math.pure. Also, applp is now
 	implemented directly in Pure, and the corresponding runtime
