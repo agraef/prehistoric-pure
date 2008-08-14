@@ -45,8 +45,10 @@ pointerp x	= case x of _::pointer = 1; _ = 0 end;
 /* Predicates to check for function objects, global (unbound) variables,
    function applications, proper lists, list nodes and tuples. */
 
-extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*),
-  bool applp(expr*);
+extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*);
+
+applp (_ _)	= 1;
+applp _		= 0 otherwise;
 
 listp []	= 1;
 listp (x:xs)	= listp xs;
@@ -59,10 +61,6 @@ listnp _	= 0 otherwise;
 tuplep ()	= 1;
 tuplep (x,xs)	= 1;
 tuplep _	= 0 otherwise;
-
-/* Operations to return the function and the argument in an application. */
-
-extern expr* fun(expr*), expr* arg(expr*);
 
 /* Compute a 32 bit hash code of a Pure expression. */
 
