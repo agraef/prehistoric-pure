@@ -154,7 +154,7 @@ rect x::int | rect x::bigint = x+:0;
 rect x::double = x+:0.0;
 
 /* Create complex values on the unit circle. Note: To quickly compute
-   exp (x+:y) in polar form, use exp x*cis y. */
+   exp (x+:y) in polar form, use exp x <: y. */
 
 cis t		= rect (1<:t);
 
