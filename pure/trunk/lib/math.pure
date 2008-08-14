@@ -443,10 +443,12 @@ num (x%y)	= x;
 den (x%y)	= y;
 
 num x::int	|
-num x::bigint	= x;
+num x::bigint	= bigint x;
+num x::double	= if frac x==0.0 then bigint x else num (rational x);
 
 den x::int	|
-den x::bigint	= 1;
+den x::bigint	= 1L;
+den x::double	= if frac x==0.0 then 1L else den (rational x);
 
 /* Absolute value and sign. */
 
@@ -577,9 +579,9 @@ numberp x	= realp x || complexp x;
 
 compvalp x	= numberp x;
 realvalp x	= compvalp x && im x==0;
-ratvalp x	= realvalp x && (y-y!==nan when y = re x end);
-bigintvalp x	= ratvalp x && den x==1;
-intvalp x	= bigintvalp && int x==x;
+ratvalp x	= realvalp x && re (x-x)!==nan;
+bigintvalp x	= ratvalp x && den (re x)==1;
+intvalp x	= bigintvalp x && int (re x)==x;
 
 /* Check whether a number is exact (i.e., doesn't contain any double
    components. */
