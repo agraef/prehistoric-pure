@@ -830,7 +830,8 @@ Since Pure only has 32 bit machine integers and GMP bigints, a variety of C
 integer types are provided which are converted from/to the Pure types in a
 straightfoward way. The short type indicates 16 bit integers which are
 converted from/to Pure machine ints using truncation and sign extension,
-respectively. The long type
+respectively. The char type, which denotes 8 bit integers, is treated
+analogously. The long type
 .I always
 denotes 64 bit integers, even if the corresponding C type is actually 32 bit
 (as it usually is on most contemporary systems). This type is to be used if a
