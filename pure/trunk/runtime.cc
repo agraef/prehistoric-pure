@@ -1147,6 +1147,15 @@ int64_t pure_get_long(pure_expr *x)
 }
 
 extern "C"
+int32_t pure_get_int(pure_expr *x)
+{
+  uint32_t v =
+    (sizeof(mp_limb_t) == 8) ? (uint32_t)(uint64_t)mpz_getlimbn(x->data.z, 0) :
+    mpz_getlimbn(x->data.z, 0);
+  return (mpz_sgn(x->data.z) < 0) ? -(int32_t)v : (int32_t)v;
+}
+
+extern "C"
 void *pure_get_bigint(pure_expr *x)
 {
   assert(x && x->tag == EXPR::BIGINT);
