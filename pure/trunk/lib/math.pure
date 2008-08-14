@@ -453,6 +453,13 @@ den x::bigint	= 1;
 abs (x%y)	= abs x % y;
 sgn (x%y)	= sgn x;
 
+/* Complex functions. */
+
+arg (x%y)	= atan2 0 (x/y);
+re x@(_%_)	= x;
+im (_%_)	= 0L%1L;
+conj x@(_%_)	= x;
+
 /* Rounding functions. These return exact results here. */
 
 floor x@(_%_)	= if n<=x then n else n-1 when n::bigint = trunc x end;
