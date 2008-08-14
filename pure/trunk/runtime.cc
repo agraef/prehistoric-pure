@@ -1742,7 +1742,7 @@ pure_expr *pure_intval(pure_expr *x)
   assert(x);
   switch (x->tag) {
   case EXPR::INT:	return x;
-  case EXPR::BIGINT:	return pure_int(mpz_get_si(x->data.z));
+  case EXPR::BIGINT:	return pure_int(pure_get_int(x));
   case EXPR::DBL:	return pure_int((int32_t)x->data.d);
 #if SIZEOF_VOID_P==8
     // Must cast to 64 bit here first, since on 64 bit systems g++ gives an
@@ -1782,15 +1782,12 @@ pure_expr *pure_pointerval(pure_expr *x)
 #else
       return pure_pointer((void*)(uint32_t)mpz_getlimbn(x->data.z, 0));
 #endif
-    else {
+    else
 #if SIZEOF_VOID_P==8
-      uint64_t u = mpz_getlimbn(x->data.z, 0) +
-	(((uint64_t)mpz_getlimbn(x->data.z, 1))<<32);
-      return pure_pointer((void*)u);
+      return pure_pointer((void*)(uint64_t)pure_get_long(x));
 #else
-      return pure_pointer((void*)mpz_get_ui(x->data.z));
+      return pure_pointer((void*)(uint32_t)pure_get_int(x));
 #endif
-    }
   default:		return 0;
   }
 }
