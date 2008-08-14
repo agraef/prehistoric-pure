@@ -1,3 +1,8 @@
+2008-08-15  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/primitives.pure: Moved basic rounding functions from
+	math.pure, and fixed some minor glitches in the pow function.
+
 2008-08-14  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/primitives.pure: Added routines to convert signed integers
