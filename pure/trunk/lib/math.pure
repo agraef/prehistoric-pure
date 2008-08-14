@@ -563,13 +563,33 @@ x1 >= x2%y2	= x1*y2 >= x2;
 /* Additional number predicates. */
 
 complexp x	= case x of x+:y | x<:y = realp x && realp y; _ = 0 end;
-rationalp x	= case x of x%y = bigintp x && bigintp y; _ = 0 end;
-realp x		= intp x || bigintp x || doublep x || rationalp x;
+realp x		= case x of _::int | _::bigint | _::double |
+		            _::bigint%_::bigint = 1; _ = 0 end;
+rationalp x	= case x of _::bigint%_::bigint = 1; _ = 0 end;
 numberp x	= realp x || complexp x;
 
-inexactp x      = doublep x || doublep (re x) || doublep (im x) if numberp x;
-exactp x	= not(doublep x || doublep (re x) || doublep (im x))
-                    if numberp x;
+/* Semantic number predicates. In difference to the syntactic predicates in
+   primitives.pure and above, these check whether the given value can be
+   represented as an object of the given target type (up to rounding
+   errors). Note that if x is of syntactic type X, then it is also of semantic
+   type X. Moreover, intvalp x => bigintvalp x => ratvalp x => realvalp x =>
+   compvalp x <=> numberp x. */
 
-infp x::double	= not nanp x && nanp (x-x);
-nanp x::double	= x===nan;
+compvalp x	= numberp x;
+realvalp x	= compvalp x && im x==0;
+ratvalp x	= realvalp x && (y-y!==nan when y = re x end);
+bigintvalp x	= ratvalp x && den x==1;
+intvalp x	= bigintvalp && int x==x;
+
+/* Check whether a number is exact (i.e., doesn't contain any double
+   components. */
+
+exactp x	= numberp x &&
+		  not (doublep x || doublep (re x) || doublep (im x));
+inexactp x      = numberp x &&
+		  (doublep x || doublep (re x) || doublep (im x));
+
+/* Check for inf and nan values. */
+
+infp x		= case x of x::double = x!==nan && x-x===nan; _ = 0 end;
+nanp x		= case x of x::double = x===nan; _ = 0 end;
