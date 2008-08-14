@@ -1330,8 +1330,7 @@ forcing the programmer to declare ``constructor'' symbols (except nullary
 symbols). On the other hand, generic rules operating on arbitrary function
 applications are not all that common, so having to ``escape'' a variable using
 the anonymous ``as'' pattern trick is a small price to pay for that
-convenience. Moreover, the prelude also provides operations to recognize and
-decompose function applications.
+convenience.
 .PP
 .B Constant and variable definitions.
 Defined constants (symbols bound with \fBdef\fP) are somewhat limited in scope
