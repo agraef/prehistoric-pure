@@ -1820,6 +1820,9 @@ pure_expr *pure_bigintval(pure_expr *x)
     return pointer_to_bigint(x->data.p);
   else if (x->tag != EXPR::INT && x->tag != EXPR::DBL)
     return 0;
+  else if (x->tag == EXPR::DBL &&
+	   (is_nan(x->data.d) || is_nan(x->data.d-x->data.d)))
+    pure_sigfpe();
   pure_expr *y = pure_bigint(0, 0);
   mpz_t& z = y->data.z;
   if (x->tag == EXPR::INT)
@@ -2361,7 +2364,7 @@ bool same(const pure_expr *x, const pure_expr *y)
     case EXPR::BIGINT:
       return mpz_cmp(x->data.z, y->data.z) == 0;
     case EXPR::DBL:
-      return x->data.d == y->data.d;
+      return x->data.d == y->data.d || is_nan(x->data.d) && is_nan(y->data.d);
     case EXPR::STR:
       return strcmp(x->data.s, y->data.s) == 0;
     case EXPR::PTR:
