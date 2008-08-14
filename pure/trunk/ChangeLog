@@ -1,3 +1,10 @@
+2008-08-14  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/primitives.pure, runtime.cc/h: Removed obsolete fun and arg
+	functions, as 'arg' conflicted with math.pure. Also, applp is now
+	implemented directly in Pure, and the corresponding runtime
+	routine has been removed as well.
+
 2008-08-13  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (declare_extern, named_type, type_name): Add
