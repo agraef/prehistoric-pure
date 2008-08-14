@@ -28,19 +28,6 @@ def inf = 1.0e307 * 1.0e307; def nan = inf-inf;
 
 extern int pure_random() = random, void pure_srandom(int) = srandom;
 
-/* Rounding functions. */
-
-extern double floor(double), double ceil(double);
-extern double round(double), double trunc(double);
-
-floor x::int | floor x::bigint = x;
-ceil x::int | ceil x::bigint = x;
-round x::int | round x::bigint = x;
-trunc x::int | trunc x::bigint = x;
-
-// Fractional part of x.
-frac x::int | frac x::bigint | frac x::double = x-trunc x;
-
 /* The sqrt function. */
 
 extern double sqrt(double) = c_sqrt;
