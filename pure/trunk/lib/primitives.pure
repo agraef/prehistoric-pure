@@ -332,8 +332,8 @@ lcm x::int y::int	= int (bigint_lcm (bigint x) (bigint y));
 extern expr* bigint_pow(void*, int), double pow(double, double) = c_pow;
 
 pow x::int y::int	= bigint_pow (bigint x) y if y>=0;
-pow x::bigint y::bigint	= bigint_pow x (int y) if int y>=0;
-pow x::double y::double	= c_pow x y if x>=0 || int y==y;
+pow x::bigint y::bigint	= bigint_pow x (int y) if y>=0;
+pow x::double y::double	= c_pow x y if x>=0 || frac y==0.0;
 
 // mixed int/bigint
 pow x::int y::bigint	= bigint_pow (bigint x) (int y) if y>=0;
@@ -343,12 +343,12 @@ pow x::bigint y::int	= bigint_pow x y if y>=0;
 pow x::double y::int	|
 pow x::double y::bigint	= c_pow x (double y);
 pow x::int y::double	|
-pow x::bigint y::double	= c_pow (double x) y if x>=0 || int y==y;
+pow x::bigint y::double	= c_pow (double x) y if x>=0 || frac y==0.0;
 
 /* The ^ operator. Works like pow, but always promotes its operands to double
    and returns a double result. */
 
-x::double^y::double	= c_pow x y if x>=0 || int y==y;
+x::double^y::double	= c_pow x y if x>=0 || frac y==0.0;
 x::int^y::int		|
 x::bigint^y::bigint	|
 x::int^y::bigint	|
@@ -356,7 +356,7 @@ x::bigint^y::int	= c_pow (double x) (double y);
 x::double^y::int	|
 x::double^y::bigint	= c_pow x (double y);
 x::int^y::double	|
-x::bigint^y::double	= c_pow (double x) y if x>=0 || int y==y;
+x::bigint^y::double	= c_pow (double x) y if x>=0 || frac y==0.0;
 			= double x^y otherwise;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
