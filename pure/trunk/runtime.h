@@ -318,11 +318,12 @@ int32_t pure_cmp_string(pure_expr *x, const char *s);
 char *pure_get_cstring(pure_expr *x);
 void pure_free_cstrings();
 
-/* Convert a bigint expression to a pointer (mpz_t) or a long (64 bit)
+/* Convert a bigint expression to a pointer (mpz_t) or a 64 or 32 bit
    integer. This is used to marshall bigint arguments in the C interface. */
 
 void *pure_get_bigint(pure_expr *x);
 int64_t pure_get_long(pure_expr *x);
+int32_t pure_get_int(pure_expr *x);
 
 /* Execute a closure. If the given expression x (or x y in the case of
    pure_apply) is a parameterless closure (or a saturated application of a
