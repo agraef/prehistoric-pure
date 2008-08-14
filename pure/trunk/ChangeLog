@@ -1,5 +1,9 @@
 2008-08-14  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/primitives.pure: Added routines to convert signed integers
+	to the corresponding unsigned quantities, as discussed on the
+	mailing list.
+
 	* lib/math.pure: Bugfixes, overhaul of number predicates, added
 	missing semantic number predicates.
 

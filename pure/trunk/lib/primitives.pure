@@ -91,6 +91,21 @@ pointer x::bigint	|
 pointer x::double	|
 pointer x::string	= pure_pointerval x;
 
+/* Convert signed (8/16/32/64) bit integers to the corresponding unsigned
+   quantities. These functions behave as if the value was "cast" to the
+   corresponding unsigned C type, and are most useful for dealing with
+   unsigned integers returned by external C routines. The routines always use
+   the smallest Pure int type capable of holding the result: int for ubyte and
+   ushort, bigint for uint and ulong. (Note that in the case of 64 bit values
+   the C interface returns a bigint, that's why ulong takes a bigint
+   parameter. The other routines all take an int as input.)  */
+
+ubyte x::int		= if x>=0 then x else x+0x100;
+ushort x::int		= if x>=0 then x else x+0x10000;
+uint x::int		= if x>=0 then bigint x else x+0x100000000L;
+ulong x::bigint		= if x>=0 then x else x+0x10000000000000000L;
+
+
 /* Absolute value and sign of a number. */
 
 abs x::int | abs x::bigint | abs x::double
