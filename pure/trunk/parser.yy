@@ -224,6 +224,7 @@ typedef list<comp_clause> comp_clause_list;
 %token <csval>	STR	"string"
 %token <ival>	INT	"integer"
 %token <zval>	BIGINT	"bigint"
+%token <zval>	CBIGINT	"converted bigint"
 %token <dval>	DBL	"floating point number"
 %token <ival>	TAG	"type tag"
 %type  <sval>	name optalias ctype
@@ -242,7 +243,7 @@ typedef list<comp_clause> comp_clause_list;
   comp_clauses comp_clause_list args lhs qual rules rulel rule
   pat_rules pat_rulel simple_rules simple_rulel simple_rule ids names name
   optalias opt_ctypes ctypes ctype
-%destructor { mpz_clear(*$$); free($$); } BIGINT
+%destructor { mpz_clear(*$$); free($$); } BIGINT CBIGINT
 %destructor { free($$); } STR
 %printer { debug_stream() << *$$; } ID name optalias ctype expr cond simple app
   prim op args lhs qual rule simple_rules simple_rulel simple_rule
@@ -250,7 +251,7 @@ typedef list<comp_clause> comp_clause_list;
 %printer { debug_stream() << $$->rl; } pat_rules pat_rulel
 %printer { debug_stream() << $$; }  INT DBL STR
 %printer { char *s = mpz_get_str(NULL, 10, *$$);
-           debug_stream() << s; free(s); }  BIGINT
+           debug_stream() << s; free(s); }  BIGINT CBIGINT
 
 %%
 
@@ -507,6 +508,7 @@ prim
 			    $$ = $3;
 			  } }
 | INT			{ $$ = new expr(EXPR::INT, $1); }
+| CBIGINT		{ $$ = new expr(EXPR::BIGINT, *$1, true); free($1); }
 | BIGINT		{ $$ = new expr(EXPR::BIGINT, *$1); free($1); }
 | DBL			{ $$ = new expr(EXPR::DBL, $1); }
 | STR			{ $$ = new expr(EXPR::STR, $1); }

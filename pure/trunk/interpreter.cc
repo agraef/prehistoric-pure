@@ -1623,9 +1623,10 @@ expr* interpreter::uminop(expr *op, expr *x)
   }
   expr *y;
   // handle special case of a numeric argument
-  if (x->tag() == EXPR::BIGINT && mpz_cmp_ui(x->zval(), 0x80000000U) == 0)
-    // The negated bigint 0x80000000 can actually be represented as a machine
-    // int value, we do that conversion on the fly here.
+  if (x->tag() == EXPR::BIGINT && x->cint() &&
+      mpz_cmp_ui(x->zval(), 0x80000000U) == 0)
+    // The negated int 0x80000000 can actually be represented as a machine int
+    // value, we convert it back on the fly here.
     y = new expr(EXPR::INT, (int32_t)-0x80000000);
   else if (x->tag() == EXPR::INT)
     y = new expr(EXPR::INT, -x->ival());
