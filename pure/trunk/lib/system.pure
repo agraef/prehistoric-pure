@@ -103,7 +103,6 @@ extern int clock();
 extern int sleep(int);
 extern double pure_nanosleep(double) = nanosleep;
 
-sleep t::bigint = sleep (int t);
 nanosleep t::int | nanosleep t::bigint = nanosleep (double t);
 
 /* Basic process operations: system executes a shell command, exit terminates
@@ -195,12 +194,10 @@ end with
   do_fprintf fp (count,arg:args) (printf_format_spec t s) = count, args
   when
     res = case t, arg of
-      "d", x::int = pure_fprintf_int fp s x;
-      "d", x::bigint = pure_fprintf_int fp s (int x);
+      "d", x::int | "d", x::bigint = pure_fprintf_int fp s x;
       "g", x::double = pure_fprintf_double fp s x;
       "s", x::string = pure_fprintf_string fp s x;
-      "p", x::string = pure_fprintf_pointer fp s x;
-      "p", x::pointer = pure_fprintf_pointer fp s x;
+      "p", x::string | "p", x::pointer = pure_fprintf_pointer fp s x;
       _ = throw (printf_value_error s arg);
     end;
     count = if res>=0 then count+res else throw printf_error res;
@@ -260,12 +257,10 @@ end with
     end;
     buf = check_buf (malloc size);
     res = case t, arg of
-      "d", x::int = pure_snprintf_int buf size s x;
-      "d", x::bigint = pure_snprintf_int buf size s (int x);
+      "d", x::int | "d", x::bigint = pure_snprintf_int buf size s x;
       "g", x::double = pure_snprintf_double buf size s x;
       "s", x::string = pure_snprintf_string buf size s x;
-      "p", x::string = pure_snprintf_pointer buf size s x;
-      "p", x::pointer = pure_snprintf_pointer buf size s x;
+      "p", x::string | "p", x::pointer = pure_snprintf_pointer buf size s x;
       _ = throw (printf_value_error s arg) when _ = free buf end;
     end;
     u = if res>=0 then u + cstring buf

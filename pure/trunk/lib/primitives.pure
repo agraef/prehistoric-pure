@@ -332,11 +332,11 @@ lcm x::int y::int	= int (bigint_lcm (bigint x) (bigint y));
 extern expr* bigint_pow(void*, int), double pow(double, double) = c_pow;
 
 pow x::int y::int	= bigint_pow (bigint x) y if y>=0;
-pow x::bigint y::bigint	= bigint_pow x (int y) if y>=0;
+pow x::bigint y::bigint	= bigint_pow x y if y>=0;
 pow x::double y::double	= c_pow x y if x>=0 || frac y==0.0;
 
 // mixed int/bigint
-pow x::int y::bigint	= bigint_pow (bigint x) (int y) if y>=0;
+pow x::int y::bigint	= bigint_pow (bigint x) y if y>=0;
 pow x::bigint y::int	= bigint_pow x y if y>=0;
 
 // mixed double/int/bigint
