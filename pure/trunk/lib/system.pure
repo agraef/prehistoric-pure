@@ -345,6 +345,7 @@ end with
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
+  guestimate "%c" = 2, "%c";
   guestimate format = n, format
   when
     1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0;
@@ -437,6 +438,7 @@ end with
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
+  guestimate "%c" = 2, "%c";
   guestimate format = n, format
   when
     1,0,_,1,s = regex "^%([0-9]*)" REG_EXTENDED format 0;
