@@ -194,6 +194,7 @@ end with
   do_fprintf fp (count,arg:args) (printf_format_spec t s) = count, args
   when
     res = case t, arg of
+      "c", x::int | "c", x::bigint |
       "d", x::int | "d", x::bigint = pure_fprintf_int fp s x;
       "g", x::double = pure_fprintf_double fp s x;
       "s", x::string = pure_fprintf_string fp s x;
@@ -211,7 +212,7 @@ end with
 end;
 
 printf_split_format format = regexg analyze
-  "(%[-#0 ]?[0-9]*([.][0-9]*)?[diouxXeEfgGsp])|(%)|([^%]|%%)+"
+  "(%[-#0 ]?[0-9]*([.][0-9]*)?[cdiouxXeEfgGsp])|(%)|([^%]|%%)+"
   REG_EXTENDED format 0
 with
   analyze info =
@@ -257,6 +258,7 @@ end with
     end;
     buf = check_buf (malloc size);
     res = case t, arg of
+      "c", x::int | "c", x::bigint |
       "d", x::int | "d", x::bigint = pure_snprintf_int buf size s x;
       "g", x::double = pure_snprintf_double buf size s x;
       "s", x::string = pure_snprintf_string buf size s x;
