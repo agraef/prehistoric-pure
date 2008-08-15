@@ -751,7 +751,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
     return token::INT;
   } else {
     yylval->zval = z;
-    return token::BIGINT;
+    return token::CBIGINT;
   }
 }
 {int}L     {
