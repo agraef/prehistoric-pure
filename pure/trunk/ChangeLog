@@ -1,5 +1,7 @@
 2008-08-15  Albert Graef  <Dr.Graef@t-online.de>
 
+	* test/test018.pure: Add test for integer marshalling.
+
 	* interpreter.cc (declare_extern): All C int parameter types now
 	handle bigint arguments.
 
