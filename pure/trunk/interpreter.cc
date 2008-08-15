@@ -259,6 +259,8 @@ interpreter::interpreter()
 		 "pure_get_bigint",  "void*", 1, "expr*");
   declare_extern((void*)pure_get_long,
 		 "pure_get_long",    "long",  1, "expr*");
+  declare_extern((void*)pure_get_int,
+		 "pure_get_int",     "int",   1, "expr*");
 
   declare_extern((void*)pure_catch,
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
@@ -2814,41 +2816,84 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
       unboxed[i] = b.CreateICmpNE(iv, Zero);
     } else if (argt[i] == Type::Int8Ty) {
+      /* We allow either ints or bigints to be passed for C integers. */
+      BasicBlock *intbb = BasicBlock::Create("int");
+      BasicBlock *mpzbb = BasicBlock::Create("mpz");
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
-      b.CreateCondBr
-	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
-      f->getBasicBlockList().push_back(okbb);
-      b.SetInsertPoint(okbb);
+      SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
+      sw->addCase(SInt(EXPR::INT), intbb);
+      sw->addCase(SInt(EXPR::BIGINT), mpzbb);
+      f->getBasicBlockList().push_back(intbb);
+      b.SetInsertPoint(intbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
       idx[1] = ValFldIndex;
-      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
-      unboxed[i] = b.CreateTrunc(iv, Type::Int8Ty);
+      Value *intv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(mpzbb);
+      b.SetInsertPoint(mpzbb);
+      // Handle the case of a bigint (mpz_t -> int).
+      Value *mpzv = b.CreateCall(module->getFunction("pure_get_int"), x);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      PHINode *phi = b.CreatePHI(Type::Int32Ty);
+      phi->addIncoming(intv, intbb);
+      phi->addIncoming(mpzv, mpzbb);
+      unboxed[i] = b.CreateTrunc(phi, Type::Int8Ty);
     } else if (argt[i] == Type::Int16Ty) {
+      BasicBlock *intbb = BasicBlock::Create("int");
+      BasicBlock *mpzbb = BasicBlock::Create("mpz");
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
-      b.CreateCondBr
-	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
-      f->getBasicBlockList().push_back(okbb);
-      b.SetInsertPoint(okbb);
+      SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
+      sw->addCase(SInt(EXPR::INT), intbb);
+      sw->addCase(SInt(EXPR::BIGINT), mpzbb);
+      f->getBasicBlockList().push_back(intbb);
+      b.SetInsertPoint(intbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
       idx[1] = ValFldIndex;
-      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
-      unboxed[i] = b.CreateTrunc(iv, Type::Int16Ty);
+      Value *intv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(mpzbb);
+      b.SetInsertPoint(mpzbb);
+      // Handle the case of a bigint (mpz_t -> int).
+      Value *mpzv = b.CreateCall(module->getFunction("pure_get_int"), x);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      PHINode *phi = b.CreatePHI(Type::Int32Ty);
+      phi->addIncoming(intv, intbb);
+      phi->addIncoming(mpzv, mpzbb);
+      unboxed[i] = b.CreateTrunc(phi, Type::Int16Ty);
     } else if (argt[i] == Type::Int32Ty) {
+      BasicBlock *intbb = BasicBlock::Create("int");
+      BasicBlock *mpzbb = BasicBlock::Create("mpz");
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
-      b.CreateCondBr
-	(b.CreateICmpEQ(tagv, SInt(EXPR::INT), "cmp"), okbb, failedbb);
-      f->getBasicBlockList().push_back(okbb);
-      b.SetInsertPoint(okbb);
+      SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
+      sw->addCase(SInt(EXPR::INT), intbb);
+      sw->addCase(SInt(EXPR::BIGINT), mpzbb);
+      f->getBasicBlockList().push_back(intbb);
+      b.SetInsertPoint(intbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
       idx[1] = ValFldIndex;
-      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
-      unboxed[i] = iv;
+      Value *intv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(mpzbb);
+      b.SetInsertPoint(mpzbb);
+      // Handle the case of a bigint (mpz_t -> int).
+      Value *mpzv = b.CreateCall(module->getFunction("pure_get_int"), x);
+      b.CreateBr(okbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      PHINode *phi = b.CreatePHI(Type::Int32Ty);
+      phi->addIncoming(intv, intbb);
+      phi->addIncoming(mpzv, mpzbb);
+      unboxed[i] = phi;
     } else if (argt[i] == Type::Int64Ty) {
       BasicBlock *intbb = BasicBlock::Create("int");
       BasicBlock *mpzbb = BasicBlock::Create("mpz");
@@ -2856,15 +2901,14 @@ Function *interpreter::declare_extern(string name, string restype,
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
       SwitchInst *sw = b.CreateSwitch(tagv, failedbb, 2);
-      /* We allow either ints or bigints to be passed for a long value. */
       sw->addCase(SInt(EXPR::INT), intbb);
       sw->addCase(SInt(EXPR::BIGINT), mpzbb);
       f->getBasicBlockList().push_back(intbb);
       b.SetInsertPoint(intbb);
       Value *pv = b.CreateBitCast(x, IntExprPtrTy, "intexpr");
       idx[1] = ValFldIndex;
-      Value *iv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
-      Value *intv = b.CreateSExt(iv, Type::Int64Ty);
+      Value *intv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "intval");
+      intv = b.CreateSExt(intv, Type::Int64Ty);
       b.CreateBr(okbb);
       f->getBasicBlockList().push_back(mpzbb);
       b.SetInsertPoint(mpzbb);
