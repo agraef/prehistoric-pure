@@ -1,5 +1,8 @@
 2008-08-15  Albert Graef  <Dr.Graef@t-online.de>
 
+	* interpreter.cc (declare_extern): All C int parameter types now
+	handle bigint arguments.
+
 	* lib/primitives.pure: Moved basic rounding functions from
 	math.pure, and fixed some minor glitches in the pow function.
 
