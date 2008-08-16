@@ -677,7 +677,7 @@ of standard (arithmetic, relational, logical) operator symbols as well as the
 list and pair constructors `:' and `,' and the constant symbols `[]' and `()'
 denoting the empty list and tuple, respectively.
 .TP
-.B Using clause: using \fIname\fR ...;
+.B Using clause: using \fIname\fR, ...;
 Causes each given script to be included, at the position of the
 .B using
 clause, but only if the script was not included already. Note that the
@@ -728,9 +728,8 @@ directly from the shell.
 .PP
 Note that the
 .B using
-clause also has an alternative form which works differently and allows dynamic
-libraries to be loaded, this will be discussed in the C INTERFACE section
-below.
+clause also has an alternative form which allows dynamic libraries to be
+loaded, this will be discussed in the C INTERFACE section below.
 .SH EXCEPTION HANDLING
 Pure also offers a useful exception handling facility. To raise an exception,
 you just invoke the built-in function
@@ -854,6 +853,14 @@ declaration into a script):
 0.29552020666134
 .fi
 .sp
+Multiple prototypes can be given in one
+.B extern
+declaration, separating them with commas:
+.sp
+.nf
+\fBextern\fP double sin(double), double cos(double), double tan(double);
+.fi
+.sp
 For clarity, the parameter types can also be annotated with parameter names,
 e.g.:
 .sp
@@ -877,12 +884,12 @@ Pure's double precision floating point numbers automatically.
 .PP
 A variety of C integer types (char, short, int, long) are provided which are
 converted from/to the available Pure integer types in a straightforward
-way. One important thing to note here is that the the `long' type
+way. One important thing to note here is that the `long' type
 .I always
 denotes 64 bit integers, even if the corresponding C type is actually 32 bit
-(as it usually is on most contemporary systems). All integer parameter types
-take both Pure ints and bigints as arguments; truncation or sign extension is
-performed as needed, so that the C interface behaves as if the argument was
+(as it usually is on most contemporary systems). All integer parameters take
+both Pure ints and bigints as actual arguments; truncation or sign extension
+is performed as needed, so that the C interface behaves as if the argument was
 ``cast'' to the C target type. Returned integers use the smallest Pure type
 capable of holding the result (i.e., int for the C char, short and int types,
 bigint for long a.k.a. 64 bit integers).
