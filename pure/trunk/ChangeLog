@@ -1,3 +1,24 @@
+2008-08-16  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc, lexer.ll: Implemented new script search
+	algorithm, as discussed on the mailing list.
+
+	Scripts loaded with a 'using' clause are now first searched in the
+	directory of the script containing the 'using' clause, then in the
+	PURELIB directory and finally in the current directory. This
+	allows scripts to be installed in their own directory, along with
+	any other non-library modules they need. Scripts specified on the
+	command line or with the 'run' command are searched for in the
+	current directory and then in the PURELIB directory, as before.
+
+	Script names are now "canonicalized" by following symbolic links
+	(albeit only one level) and removing '.' and '..' directory
+	components in the absolute pathname. Also, checking whether a
+	script has already been loaded now uses the canonicalized pathname
+	so that, e.g., two scripts foo/baz.pure and bar/baz.pure are
+	considered distinct modules and can both be used in the same
+	program (unless they link to the same script file).
+
 2008-08-15  Albert Graef  <Dr.Graef@t-online.de>
 
 	* test/test018.pure: Add test for integer marshalling.

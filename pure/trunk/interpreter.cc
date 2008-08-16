@@ -387,6 +387,124 @@ interpreter::warning(const string& m)
   }
 }
 
+/* Search for a source file. Absolute file names (starting with a slash) are
+   taken as is. Relative pathnames are resolved using the following algorithm:
+   If srcdir is nonempty, search it first, then libdir (if nonempty), then the
+   current working directory. If srcdir is empty, first search the current
+   directory, then libdir (if nonempty). In either case, if the resulting
+   absolute pathname is a symbolic link, the destination is used instead, and
+   finally the pathname is canonicalized. */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static inline string dirname(const string& fname)
+{
+  size_t pos = fname.rfind('/');
+  if (pos == string::npos)
+    return "";
+  else
+    return fname.substr(0, pos+1);
+}
+
+static inline string basename(const string& fname)
+{
+  size_t pos = fname.rfind('/');
+  if (pos == string::npos)
+    return fname;
+  else
+    return fname.substr(pos+1);
+}
+
+static inline bool chkfile(const string& s)
+{
+  struct stat st;
+  return !stat(s.c_str(), &st) && !S_ISDIR(st.st_mode);
+}
+
+#ifndef _WIN32
+static inline bool chklink(const string& s)
+{
+  struct stat st;
+  return !lstat(s.c_str(), &st) && S_ISLNK(st.st_mode);
+}
+#endif
+
+#define BUFSIZE 1024
+
+static string searchdir(const string& srcdir, const string& libdir,
+			const string& script)
+{
+  char cwd[BUFSIZE];
+  if (script.empty())
+    return script;
+  else if (!getcwd(cwd, BUFSIZE)) {
+    perror("getcwd");
+    return script;
+  }
+  string workdir = cwd;
+  if (!workdir.empty() && workdir[workdir.size()-1] != '/')
+    workdir += "/";
+  string fname;
+  if (script[0] != '/') {
+    // resolve relative pathname
+    if (srcdir.empty()) {
+      fname = workdir+script;
+      if (chkfile(fname)) goto found;
+      if (!libdir.empty()) {
+	fname = libdir+script;
+	if (chkfile(fname)) goto found;
+      }
+      fname = script;
+    } else {
+      fname = srcdir+script;
+      if (chkfile(fname)) goto found;
+      if (!libdir.empty()) {
+	fname = libdir+script;
+	if (chkfile(fname)) goto found;
+      }
+      fname = workdir+script;
+      if (chkfile(fname)) goto found;
+      fname = script;
+    }
+  } else
+    fname = script;
+ found:
+  if (fname[0] != '/') fname = workdir+fname;
+  char buf[BUFSIZE];
+#ifndef _WIN32
+  if (chklink(fname)) {
+    // follow symbolic link to its destination
+    int l = readlink(fname.c_str(), buf, BUFSIZE-1);
+    if (l >= 0) {
+      buf[l] = 0;
+      string basedir = dirname(fname), linkname = buf;
+      string dir = dirname(linkname), name = basename(linkname);
+      if (dir.empty())
+	dir = basedir;
+      else if (dir[0] != '/')
+	dir = basedir+dir;
+      fname = dir+name;
+    } else
+      perror("readlink");
+  }
+#endif
+  // canonicalize the pathname
+  string dir = dirname(fname), name = basename(fname);
+  if (chdir(dir.c_str())==0 && getcwd(buf, BUFSIZE)) {
+    string dir = buf;
+    if (!dir.empty() && dir[dir.size()-1] != '/')
+      dir += "/";
+    fname = dir+name;
+  }
+  chdir(cwd);
+#if DEBUG>1
+  std::cerr << "search '" << script << "', found as '" << fname << "'\n";
+#endif
+  return fname;
+}
+
 // Run the interpreter on a source file, collection of source files, or on
 // string data.
 
@@ -415,7 +533,8 @@ pure_expr* interpreter::run(const string &s, bool check)
     return 0;
   }
   // ordinary source file
-  if (check && sources.find(s) != sources.end())
+  string fname = searchdir(srcdir, lib, s);
+  if (check && sources.find(fname) != sources.end())
     // already loaded, skip
     return 0;
   // save local data
@@ -424,6 +543,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   int l_nerrs = nerrs;
   uint8_t l_temp = temp;
   const char *l_source_s = source_s;
+  string l_srcdir = srcdir;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -435,11 +555,12 @@ pure_expr* interpreter::run(const string &s, bool check)
   nerrs = 0;
   source = s; declare_op = false;
   source_s = 0;
+  srcdir = dirname(fname);
   errmsg.clear();
   if (check && !interactive) temp = 0;
-  bool ok = lex_begin();
+  bool ok = lex_begin(fname);
   if (ok) {
-    if (temp == 0 && !s.empty()) sources.insert(s);
+    if (temp == 0 && !s.empty()) sources.insert(fname);
     yy::parser parser(*this);
     parser.set_debug_level((verbose&verbosity::parser) != 0);
     // parse
@@ -460,6 +581,7 @@ pure_expr* interpreter::run(const string &s, bool check)
   nerrs = l_nerrs;
   temp = l_temp;
   source_s = l_source_s;
+  srcdir = l_srcdir;
   // return last computed result, if any
   return result;
 }
@@ -488,6 +610,7 @@ pure_expr *interpreter::runstr(const string& s)
   string l_source = source;
   int l_nerrs = nerrs;
   const char *l_source_s = source_s;
+  string l_srcdir = srcdir;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -499,6 +622,7 @@ pure_expr *interpreter::runstr(const string& s)
   nerrs = 0;
   source = ""; declare_op = false;
   source_s = s.c_str();
+  srcdir = "";
   errmsg.clear();
   bool ok = lex_begin();
   if (ok) {
@@ -519,6 +643,7 @@ pure_expr *interpreter::runstr(const string& s)
   source_s = 0;
   nerrs = l_nerrs;
   source_s = l_source_s;
+  srcdir = l_srcdir;
   // return last computed result, if any
   return result;
 }
