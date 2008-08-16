@@ -645,7 +645,7 @@ and
 .B using
 clauses which provide a simple include file mechanism.
 .TP
-.B Operator and constant declarations: infix \fIlevel\fP \fIop\fR ...;
+.B Operator and constant declarations: infix \fIlevel\fP \fIop\fP\fR ...;\fP nullary \fIsymbol\fP\fR ...;\fP
 Ten different precedence levels are available for user-defined operators,
 numbered 0 (lowest) thru 9 (highest). On each precedence level, you can
 declare (in order of increasing precedence)
@@ -664,10 +664,12 @@ operators. For instance:
 Note that to declare multiple symbols in a single declaration, you just list
 them all with whitespace in between.
 .sp
-Similarly, constant symbols are introduced using a declaration of the form:
+Similarly, constant symbols are introduced using a
+.B nullary
+declaration, e.g.:
 .sp
 .nf
-\fBnullary \fIsymbol\fR ...;
+\fBnullary\fP [] () nil;
 .fi
 .sp
 Examples for all of these can be found in the prelude which declares a bunch
@@ -682,17 +684,53 @@ clause, but only if the script was not included already. Note that the
 constants, variables and functions defined by the included script are then
 available anywhere in the program, not just the module that contains the
 .B using
-clause. The script name can be specified either as a string denoting the
-proper filename (possibly including path and/or filename extension), or as an
+clause.
+.sp
+The script name can be specified either as a string denoting the proper
+filename (possibly including path and/or filename extension), or as an
 identifier. In the latter case, the
 .B .pure
 filename extension is added automatically. In both cases, the script is
-searched for in the current directory and the directory named by the
-.B PURELIB
-environment variable. (The
+searched for first in the directory of the script containing the
 .B using
-clause also has an alternative form which allows dynamic libraries to be
-loaded, this will be discussed in the C INTERFACE section.)
+clause, then the directory named by the
+.B PURELIB
+environment variable, and finally in the current working directory. This is
+different from the standard search order used for scripts specified on the
+command line, where the current directory is searched prior to the
+.B PURELIB
+directory. The search order employed here lets you install a script into any
+directory, along with any other required non-library scripts, and run the
+script from there. (Note that this will only work if the
+.B using
+clause is contained in a script file, but not if the clause is read from
+standard input or entered interactively. In the latter case the normal search
+order is used.)
+.sp
+For the purpose of comparing and loading scripts, the interpreter always uses
+the canonicalized full pathname of the script, following symbolic links to the
+destination file (albeit only one level). Thus different scripts with the same
+basename, such as
+.B foo/utils.pure
+and
+.B bar/utils.pure
+can both be included in the same program (unless they link to the same
+file). The resolution of symbolic links also makes it possible to have an
+executable script with a shebang line in its own directory, to be executed via
+a symbolic link placed on the system
+.BR PATH .
+In this case the script search performed in
+.B using
+clauses will use the real script directory and thus other required scripts can
+be located in the script directory as usual. This is the recommended practice
+for installing standalone Pure applications in source form which are to be run
+directly from the shell.
+.PP
+Note that the
+.B using
+clause also has an alternative form which works differently and allows dynamic
+libraries to be loaded, this will be discussed in the C INTERFACE section
+below.
 .SH EXCEPTION HANDLING
 Pure also offers a useful exception handling facility. To raise an exception,
 you just invoke the built-in function
@@ -1024,13 +1062,18 @@ Exits the interpreter.
 Loads the given script file and adds its definitions to the current
 environment. This works more or less like a
 .B using
-clause, but loads the script ``anonymously'', as if the contents of the script
-had been typed at the command prompt. That is,
+clause, but uses the standard search order and loads the script
+``anonymously'', as if the contents of the script had been typed at the
+command prompt. That is,
 .B run
 doesn't check whether the script is being used already and it puts the
 definitions on the current temporary level (so that
 .B clear
-can be used to remove them again).
+can be used to remove them again). In particular, this makes it possible to
+quickly reload a script without exiting the interpreter, by issuing the
+.B clear
+command followed by
+.BR run .
 .TP
 .B save
 Begin a new level of temporary definitions. A subsequent
@@ -1586,7 +1629,7 @@ time.
 .B PURE_MORE
 Shell command to be used for paging through output of the
 .B list
-command, when the interpreter runs in interactive mode.
+command, when the interpreter runs in interactive mode (default: none).
 .TP
 .B PURE_PS
 Command prompt used in the interactive command loop (">\ " by default).
