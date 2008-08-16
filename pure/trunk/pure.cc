@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <locale.h>
 #include <signal.h>
@@ -174,6 +176,12 @@ static void exit_handler()
   if (histfile) write_history(histfile);
 }
 
+static inline bool chkfile(const string& s)
+{
+  struct stat st;
+  return !stat(s.c_str(), &st) && !S_ISDIR(st.st_mode);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -272,15 +280,12 @@ main(int argc, char *argv[])
   interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
   if (want_prelude) {
     // load the prelude if we can find it
-    FILE *fp = fopen("prelude.pure", "r");
-    if (fp)
+    if (chkfile("prelude.pure")) {
       prelude = "prelude.pure";
-    else
-      // try again in the PURELIB directory
-      fp = fopen(prelude.c_str(), "r");
-    if (fp) {
-      fclose(fp);
       have_prelude = true;
+    } else if (chkfile(prelude)) // try again in the PURELIB directory
+      have_prelude = true;
+    if (have_prelude) {
       interp.run(prelude);
       interp.compile();
     }

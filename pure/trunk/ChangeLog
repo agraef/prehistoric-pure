@@ -1,5 +1,7 @@
 2008-08-16  Albert Graef  <Dr.Graef@t-online.de>
 
+	* pure.cc (main): More robust test for presence of the prelude.
+
 	* interpreter.cc, lexer.ll: Implemented new script search
 	algorithm, as discussed on the mailing list.
 
