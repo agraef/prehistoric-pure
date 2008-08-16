@@ -309,19 +309,18 @@ the prelude: `[]' and `()' are the empty list and tuple, `:' produces list
 syntactic sugar for list values in brackets, such as [x,y,z], which is exactly
 the same as x:y:z:[]. Moreover, the prelude also provides an infix `..' 
 operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0. Pure's
-tuples are a bit unusual, however: They are constructed by just ``paring''
-things using the `,' operator, for which the empty tuple acts as a neutral
-element (i.e., (),x is just x, as is x,()). The pairing operator is
-associative, which implies that tuples are completely flat (i.e., x,(y,z) is
-just x,y,z, as is (x,y),z). This means that there are no nested tuples (tuples
-of tuples), if you need such constructs then you should use lists
-instead. Also note that the parentheses are \fInot\fP part of the tuple syntax
-in Pure, although you \fIcan\fP use parentheses, just as with any other
-expression, for the usual purpose of grouping expressions and overriding
-default precedences and associativity. This means that a list of tuples will
-be printed (and must also be entered) using the ``canonical'' representation
-(x1,y1):(x2,y2):...:[] rather than [(x1,y1),(x2,y2),...] (which denotes just
-[x1,y1,x2,y2,...]).
+tuples are a bit unusual: They are constructed by just ``paring'' things using
+the `,' operator, for which the empty tuple acts as a neutral element (i.e.,
+(),x is just x, as is x,()). The pairing operator is associative, which
+implies that tuples are completely flat (i.e., x,(y,z) is just x,y,z, as is
+(x,y),z). This means that there are no nested tuples (tuples of tuples), if
+you need such constructs then you should use lists instead. Also note that the
+parentheses are \fInot\fP part of the tuple syntax in Pure, although you
+\fIcan\fP use parentheses, just as with any other expression, for the usual
+purpose of grouping expressions and overriding default precedences and
+associativity. This means that a list of tuples will be printed (and must also
+be entered) using the ``canonical'' representation (x1,y1):(x2,y2):...:[]
+rather than [(x1,y1),(x2,y2),...] (which denotes just [x1,y1,x2,y2,...]).
 .TP
 .B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
@@ -430,7 +429,8 @@ instead of `&' and `|', because the latter is reserved as a special symbol in
 rules, see RULE SYNTAX below.
 .PP
 At the toplevel, a Pure program basically consists of equations defining
-functions, constant and variable definitions, and expressions to be evaluated.
+functions (also called ``rules''), constant and variable bindings, and
+expressions to be evaluated:
 .TP
 .B Rules: \fIlhs\fR = \fIrhs\fR;
 The basic form can also be augmented with a condition \fBif\fP\ \fIguard\fP
@@ -462,6 +462,71 @@ than being evaluated at runtime.
 A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
+.PP
+Here are a few examples showing how the above constructs are used (see the
+following section for a closer discussion of the rule syntax).
+.PP
+The factorial:
+.sp
+.nf
+fact n  = n*fact (n-1) \fBif\fP n>0;
+        = 1 \fBotherwise\fP;
+.fi
+.PP
+The Fibonacci numbers:
+.sp
+.nf
+fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
+             \fBwith\fP fibs n = 0, 1 \fBif\fP n<=0;
+                         = \fBcase\fP fibs (n-1) \fBof\fP
+                             a, b = b, a+b;
+                           \fBend\fP;
+             \fBend\fP;
+
+\fBlet\fP fibs = map fib (1..30);
+fibs;
+.fi
+.PP
+A little list comprehension example (Erathosthenes' classical prime sieve):
+.sp
+.nf
+primes n        = sieve (2..n) \fBwith\fP
+  sieve []      = [];
+  sieve (p:qs)  = p : sieve [q; q = qs; q mod p];
+\fBend\fP;
+.fi
+.sp
+For instance:
+.sp
+.nf
+> primes 100;
+[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]
+.fi
+.PP
+If you dare, you can actually have a look at the catmap-lambda-if-then-else
+expression the comprehension expanded to:
+.sp
+.nf
+> \fBlist\fP primes
+primes n = sieve (2..n) \fBwith\fP sieve [] = []; sieve (p:qs) = p:sieve
+(catmap (\eq -> if q mod p then [q] else []) qs) \fBend\fP;
+.fi
+.PP
+List comprehensions are also a useful device to organize backtracking
+searches. For instance, here's an algorithm for the n queens problem, which
+returns the list of all placements of n queens on an n x n board (encoded as
+lists of n pairs (i,j) with i = 1..n), so that no two queens hold each other
+in check.
+.sp
+.nf
+queens n        = search n 1 [] \fBwith\fP
+  search n i p  = [reverse p] \fBif\fP i>n;
+                = cat [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
+  safe (i,j) p  = not any (check (i,j)) p;
+  check (i1,j1) (i2,j2)
+                = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
+\fBend\fP;
+.fi
 .SH RULE SYNTAX
 Basically, the same rule syntax is used to define functions at the toplevel
 and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP,
@@ -565,63 +630,6 @@ same value, e.g.:
 .sp
 .nf
 \fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
-.fi
-.PP
-Here are a few more examples of rules illustrating some of the constructs
-introduced above and in the previous section. The first one is a definition of
-a function which generates the Fibonacci numbers:
-.sp
-.nf
-fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
-             \fBwith\fP fibs n = 0, 1 \fBif\fP n<=0;
-                         = \fBcase\fP fibs (n-1) \fBof\fP
-                             a, b = b, a+b;
-                           \fBend\fP;
-             \fBend\fP;
-
-\fBlet\fP fibs = map fib (1..100);
-fibs;
-.fi
-.PP
-A little list comprehension example (Erathosthenes' classical prime sieve):
-.sp
-.nf
-primes n        = sieve (2..n) \fBwith\fP
-  sieve []      = [];
-  sieve (p:qs)  = p : sieve [q; q = qs; q mod p];
-\fBend\fP;
-.fi
-.sp
-For instance:
-.sp
-.nf
-> primes 100;
-[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]
-.fi
-.PP
-If you dare, you can actually have a look at the catmap-lambda-if-then-else
-expression the comprehension expanded to:
-.sp
-.nf
-> \fBlist\fP primes
-primes n = sieve (2..n) \fBwith\fP sieve [] = []; sieve (p:qs) = p:sieve
-(catmap (\eq -> if q mod p then [q] else []) qs) \fBend\fP;
-.fi
-.PP
-We mention in passing that list comprehensions are also a useful device to
-organize backtracking searches. For instance, here's an algorithm for the n
-queens problem, which returns the list of all placements of n queens on an n x
-n board (encoded as lists of n pairs (i,j) with i = 1..n), so that no two
-queens hold each other in check.
-.sp
-.nf
-queens n        = search n 1 [] \fBwith\fP
-  search n i p  = [reverse p] \fBif\fP i>n;
-                = cat [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
-  safe (i,j) p  = not any (check (i,j)) p;
-  check (i1,j1) (i2,j2)
-                = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
-\fBend\fP;
 .fi
 .SH DECLARATIONS
 As you probably noticed, Pure is very terse. That's because, in contrast to
@@ -820,28 +828,35 @@ the human reader; they are effectively treated as comments by the compiler.
 .PP
 The interpreter makes sure that the parameters in a call match; if not, the
 call is treated as a normal form expression by default, which enables you to
-extend the external function with your own Pure equations. The range of
-supported C types is a bit limited right now (void, bool, char, short, int,
-long, float, double, as well as arbitrary pointer types, i.e.: void*, char*,
-etc.), but in practice these should cover most kinds of calls that need to be
-done when interfacing to C libraries.
+extend the external function with your own Pure equations (see below). The
+range of supported C types is a bit limited right now (void, bool, char,
+short, int, long, float, double, as well as arbitrary pointer types, i.e.:
+void*, char*, etc.), but in practice these should cover most kinds of calls
+that need to be done when interfacing to C libraries.
 .PP
-Since Pure only has 32 bit machine integers and GMP bigints, a variety of C
-integer types are provided which are converted from/to the Pure types in a
-straightfoward way. The short type indicates 16 bit integers which are
-converted from/to Pure machine ints using truncation and sign extension,
-respectively. The char type, which denotes 8 bit integers, is treated
-analogously. The long type
+Single precision float arguments and return values are converted from/to
+Pure's double precision floating point numbers automatically.
+.PP
+A variety of C integer types (char, short, int, long) are provided which are
+converted from/to the available Pure integer types in a straightforward
+way. One important thing to note here is that the the `long' type
 .I always
 denotes 64 bit integers, even if the corresponding C type is actually 32 bit
-(as it usually is on most contemporary systems). This type is to be used if a
-C function takes or returns 64 bit integer values. For a long parameter you
-can either pass a Pure machine int (which is sign-extended to 64 bit) or a
-Pure bigint (which is truncated to 64 bit if necessary). 64 bit return values
-are always converted to (signed) Pure bigints.
+(as it usually is on most contemporary systems). All integer parameter types
+take both Pure ints and bigints as arguments; truncation or sign extension is
+performed as needed, so that the C interface behaves as if the argument was
+``cast'' to the C target type. Returned integers use the smallest Pure type
+capable of holding the result (i.e., int for the C char, short and int types,
+bigint for long a.k.a. 64 bit integers).
 .PP
-Similarly, single precision float arguments and return values are converted
-from/to Pure's double precision floating point numbers automatically.
+Pure considers all integers as signed quantities, but it is possible to pass
+unsigned integers as well (if necessary, you can use a bigint to pass positive
+values which are too big to fit into a machine int). Also note that when an
+unsigned integer is returned by a C routine which is too big to fit into the
+corresponding signed integer type, it will become negative. In this case,
+depending on the target type, you can use the ubyte, ushort, uint and ulong
+functions provided by the prelude to convert the result back to an unsigned
+quantity.
 .PP
 Concerning the pointer types, char* is for string arguments and return values
 which need translation between Pure's internal utf-8 representation and the
