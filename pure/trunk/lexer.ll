@@ -852,19 +852,14 @@ using	   return token::USING;
 %%
 
 bool
-interpreter::lex_begin()
+interpreter::lex_begin(const string& fname)
 {
   yy_flex_debug = (verbose&verbosity::lexer) != 0 && !source_s;
   if (source_s)
     yyin = 0;
   else if (source.empty())
     yyin = stdin;
-  else if (!(yyin = fopen(source.c_str(), "r")) && source[0] != '/') {
-    string fname = lib+source;
-    if (!(yyin = fopen(fname.c_str(), "r")))
-      perror(source.c_str());
-      //error("cannot open '" + source + "'");
-  } else if (!yyin)
+  else if (!(yyin = fopen(fname.c_str(), "r")))
     //error("cannot open '" + source + "'");
     perror(source.c_str());
   if (source_s || yyin) {

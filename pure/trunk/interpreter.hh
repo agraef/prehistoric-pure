@@ -618,8 +618,9 @@ private:
   // Interface to the lexer.
 public:
   bool declare_op;
+  string srcdir;
 private:
-  bool lex_begin();
+  bool lex_begin(const string& fname = "");
   void lex_end();
 };
 
