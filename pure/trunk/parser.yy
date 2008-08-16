@@ -313,8 +313,8 @@ ids
 names
 : name
 { $$ = new list<string>; $$->push_back(*$1); delete $1; }
-| names name
-{ $$ = $1; $$->push_back(*$2); delete $2; }
+| names ',' name
+{ $$ = $1; $$->push_back(*$3); delete $3; }
 ;
 
 name

@@ -1,3 +1,9 @@
+2008-08-17  Albert Graef  <Dr.Graef@t-online.de>
+
+	* parser.yy, lexer.ll: Revised 'using' syntax so that script names
+	are now separated with a comma. Updated library and sample scripts
+	accordingly.
+
 2008-08-16  Albert Graef  <Dr.Graef@t-online.de>
 
 	* pure.cc (main): More robust test for presence of the prelude.
