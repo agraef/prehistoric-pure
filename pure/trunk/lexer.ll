@@ -229,7 +229,7 @@ dbltag  ::{blank}*double
 strtag  ::{blank}*string
 ptrtag  ::{blank}*pointer
 
-%x comment xdecl xdecl_comment
+%x comment xdecl xdecl_comment xusing xusing_comment
 
 %{
 # define YY_USER_ACTION  yylloc->columns(yyleng);
@@ -266,12 +266,41 @@ ptrtag  ::{blank}*pointer
   interp.error(*yylloc, msg);
   BEGIN(INITIAL); return token::ERRTOK;
 }
-
      
 <xdecl_comment>[^*\n]*        yylloc->step();
 <xdecl_comment>"*"+[^*/\n]*   yylloc->step();
 <xdecl_comment>[\n]+          yylloc->lines(yyleng); yylloc->step();
 <xdecl_comment>"*"+"/"        yylloc->step(); BEGIN(xdecl);
+
+<xusing>{id}	yylval->sval = new string(yytext); return token::ID;
+<xusing>,	return yy::parser::token_type(yytext[0]);
+<xusing>"//".*	yylloc->step();
+<xusing>"/*"	BEGIN(xusing_comment);
+<xusing>;	BEGIN(INITIAL); return yy::parser::token_type(yytext[0]);
+<xusing>{blank}+	yylloc->step();
+<xusing>[\n]+	yylloc->lines(yyleng); yylloc->step();
+<xusing>\"{str}\"   {
+  char *msg;
+  yytext[yyleng-1] = 0;
+  yylval->csval = parsestr(yytext+1, msg);
+  yytext[yyleng-1] = '"';
+  if (msg) interp.error(*yylloc, msg);
+  return token::STR;
+}
+<xusing>\"{str}      {
+  interp.error(*yylloc, "unterminated string constant");
+  BEGIN(INITIAL); return token::ERRTOK;
+}
+<xusing>.	{
+  string msg = "invalid character '"+string(yytext)+"'";
+  interp.error(*yylloc, msg);
+  BEGIN(INITIAL); return token::ERRTOK;
+}
+     
+<xusing_comment>[^*\n]*        yylloc->step();
+<xusing_comment>"*"+[^*/\n]*   yylloc->step();
+<xusing_comment>[\n]+          yylloc->lines(yyleng); yylloc->step();
+<xusing_comment>"*"+"/"        yylloc->step(); BEGIN(xusing);
 
 ^!{blank}*.* {
   // shell escape is only permitted in interactive mode
@@ -801,7 +830,7 @@ else	   return token::ELSE;
 otherwise  return token::OTHERWISE;
 when	   return token::WHEN;
 with	   return token::WITH;
-using	   return token::USING;
+using      BEGIN(xusing); return token::USING;
 {id}       {
   if (interp.declare_op) {
     yylval->sval = new string(yytext);

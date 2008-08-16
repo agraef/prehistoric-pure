@@ -1,6 +1,6 @@
 // Some tests for set and bag data containers
 
-using array dict heap set;
+using array, dict, heap, set;
 
 // List of 1000 random integers from interval <0; 99> for stress tests
 let randlist = 
