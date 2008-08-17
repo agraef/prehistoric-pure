@@ -879,6 +879,35 @@ uint8_t pure_restore()
 
 #include <llvm/Target/TargetOptions.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
+static inline bool chkfile(const string& s)
+{
+  struct stat st;
+  return !stat(s.c_str(), &st) && !S_ISDIR(st.st_mode);
+}
+
+static void add_path(list<string>& dirs, const string& path)
+{
+  size_t pos = 0;
+  while (pos != string::npos) {
+    size_t end = path.find(':', pos);
+    string s;
+    if (end == string::npos) {
+      s = path.substr(pos);
+      pos = end;
+    } else {
+      s = path.substr(pos, end-pos);
+      pos = end+1;
+    }
+    if (!s.empty()) {
+      if (s[s.size()-1] != '/') s.append("/");
+      dirs.push_back(s);
+    }
+  }
+}
+
 extern "C"
 pure_interp *pure_create_interp(int argc, char *argv[])
 {
@@ -901,11 +930,13 @@ pure_interp *pure_create_interp(int argc, char *argv[])
     size_t n = strtoul(env, &end, 0);
     if (!*end) interpreter::stackmax = n*1024;
   }
-  if ((env = getenv("PURELIB")))
-    interp.lib = string(env)+"/";
-  else
-    interp.lib = string(PURELIB)+"/";
-  string prelude = interp.lib+string("prelude.pure");
+  if ((env = getenv("PURELIB"))) {
+    string s = env;
+    if (!s.empty() && s[s.size()-1] != '/') s.append("/");
+    interp.libdir = s;
+  } else
+    interp.libdir = string(PURELIB)+"/";
+  string prelude = interp.libdir+string("prelude.pure");
 #if USE_FASTCC
   // This global option is needed to get tail call optimization (you'll also
   // need to have USE_FASTCC in interpreter.hh enabled).
@@ -922,7 +953,35 @@ pure_interp *pure_create_interp(int argc, char *argv[])
       want_prelude = false;
     else if (*args == string("-q"))
       /* ignored */;
-    else if (string(*args).substr(0,2) == "-v") {
+    else if (string(*args).substr(0,2) == "-I") {
+      string s = string(*args).substr(2);
+      if (s.empty()) {
+	if (!*++args) {
+	  cerr << "pure_create_interp: -I lacks directory argument\n";
+	  delete _interp;
+	  return 0;
+	}
+	s = *args;
+      }
+      if (!s.empty()) {
+	if (s[s.size()-1] != '/') s.append("/");
+	interp.includedirs.push_back(s);
+      }
+    } else if (string(*args).substr(0,2) == "-L") {
+      string s = string(*args).substr(2);
+      if (s.empty()) {
+	if (!*++args) {
+	  cerr << "pure_create_interp: -L lacks directory argument\n";
+	  delete _interp;
+	  return 0;
+	}
+	s = *args;
+      }
+      if (!s.empty()) {
+	if (s[s.size()-1] != '/') s.append("/");
+	interp.librarydirs.push_back(s);
+      }
+    } else if (string(*args).substr(0,2) == "-v") {
       string s = string(*args).substr(2);
       if (s.empty()) continue;
       char *end;
@@ -943,19 +1002,14 @@ pure_interp *pure_create_interp(int argc, char *argv[])
       delete _interp;
       return 0;
     }
+  if ((env = getenv("PURE_INCLUDE"))) add_path(interp.includedirs, env);
+  if ((env = getenv("PURE_LIBRARY"))) add_path(interp.librarydirs, env);
   interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
   if (want_prelude) {
     // load the prelude if we can find it
-    FILE *fp = fopen("prelude.pure", "r");
-    if (fp)
-      prelude = "prelude.pure";
-    else
-      // try again in the PURELIB directory
-      fp = fopen(prelude.c_str(), "r");
-    if (fp) {
-      fclose(fp);
+    if (chkfile(prelude)) {
       have_prelude = true;
-      interp.run(prelude);
+      interp.run(prelude, false);
       interp.compile();
     }
   }
@@ -969,7 +1023,7 @@ pure_interp *pure_create_interp(int argc, char *argv[])
     } else if (*argv == string("-x")) {
       if (*++argv) {
 	count++; interp.modname = *argv;
-	interp.run(*argv);
+	interp.run(*argv, false);
       } else {
 	cerr << "pure_create_interp: missing script name\n";
 	delete _interp;
@@ -978,11 +1032,15 @@ pure_interp *pure_create_interp(int argc, char *argv[])
       break;
     } else if (*argv == string("--"))
       break;
-    else if (**argv == '-')
+    else if (string(*argv).substr(0,2) == "-I" ||
+	     string(*argv).substr(0,2) == "-L") {
+      string s = string(*argv).substr(2);
+      if (s.empty()) ++argv;
+    } else if (**argv == '-')
       ;
     else if (**argv) {
       if (count++ == 0) interp.modname = *argv;
-      interp.run(*argv);
+      interp.run(*argv, false);
     }
   interp.symtab.init_builtins();
   return (pure_interp*)_interp;

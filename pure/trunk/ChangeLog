@@ -1,5 +1,61 @@
 2008-08-17  Albert Graef  <Dr.Graef@t-online.de>
 
+	* pure.cc, interpreter.cc/h, runtime.cc: Overhaul of the script
+	and library search algorithms.
+
+	The prelude is now *always* searched for in PURELIB only, to
+	prevent code injection issues. Thus to use a custom prelude you'll
+	have to set the PURELIB environment variable accordingly, or
+	employ the '-n' option and explicitly specify the prelude on the
+	command line.
+
+	Scripts specified on the command line or with the 'run' command
+	will *only* be searched for in the current directory.
+
+	In addition to the PURELIB environment variable, new -I/-L command
+	line options and PURE_INCLUDE/PURE_LIBRARY environment variables
+	are now available to specify additional directories to search for
+	source files and dynamic libraries specified using relative
+	pathnames in 'using' clauses.
+
+	For source scripts opened with a 'using' clause, the interpreter
+	searches the following directories in the given order:
+
+	- the directory of the script containing the 'using' clause (or
+	the current working directory if the 'using' clause is read from
+	standard input),
+
+	- directories specified with -I, in the order in which they are
+	specified on the command line,
+
+	- directories specified in colon-separated format in the
+	PURE_INCLUDE variable, in the order in which they are specified,
+
+	- the PURELIB directory.
+
+	Similarly, dynamic libraries are searched for in:
+
+	- the directory of the script containing the 'using' clause (or
+	the current working directory if the 'using' clause is read from
+	standard input),
+
+	- directories specified with -L, in the order in which they are
+	specified on the command line,
+
+	- directories specified in colon-separated format in the
+	PURE_LIBRARY variable, in the order in which they are specified,
+
+	- the PURELIB directory,
+
+	- other platform-specific locations searched by the dynamic
+	linker, such as system library directories and LD_LIBRARY_PATH on
+	Linux.
+
+	Note that in either case the current working directory is *not*
+	searched by default (unless the 'using' clause is read from
+	standard input), but of course you can force this by adding '.' to
+	the corresponding search path.
+
 	* parser.yy, printer.cc et al: Revised list-of-tuples syntax. In
 	order to include a tuple in a proper list value you can simply put
 	the tuple inside parentheses now.

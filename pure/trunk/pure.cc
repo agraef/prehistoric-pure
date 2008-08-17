@@ -36,16 +36,20 @@ using namespace std;
        pure [-h] [-i] [-n] [-q] [-v[level]] -x script [args ...]\n\
 -h: Print this message and exit.\n\
 -i: Force interactive mode (read commands from stdin).\n\
+-I: Add directory to search for included source files.\n\
+-L: Add directory to search for dynamic libraries.\n\
 -n: Suppress automatic inclusion of the prelude.\n\
 -q: Quiet startup (suppresses sign-on message).\n\
 -v: Set verbosity level (useful for debugging purposes).\n\
 -x: Execute script with given command line arguments.\n\
 --: Stop option processing, pass remaining args in argv variable.\n\
 Environment:\n\
-PURELIB:    Directory to search for source scripts including the prelude.\n\
-PURE_MORE:  Shell command for paging through output of the 'list' command.\n\
-PURE_PS:    Command prompt to be used in the interactive command loop.\n\
-PURE_STACK: Maximum stack size in kilobytes (default: 0 = unlimited).\n"
+PURELIB:      Directory to search for library scripts and the prelude.\n\
+PURE_INCLUDE: Path to search for included source files.\n\
+PURE_LIBRARY: Path to search for dynamic libraries.\n\
+PURE_MORE:    Shell command for paging through output of the 'list' command.\n\
+PURE_PS:      Command prompt to be used in the interactive command loop.\n\
+PURE_STACK:   Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
 static const char *commands[] = {
@@ -182,6 +186,26 @@ static inline bool chkfile(const string& s)
   return !stat(s.c_str(), &st) && !S_ISDIR(st.st_mode);
 }
 
+static void add_path(list<string>& dirs, const string& path)
+{
+  size_t pos = 0;
+  while (pos != string::npos) {
+    size_t end = path.find(':', pos);
+    string s;
+    if (end == string::npos) {
+      s = path.substr(pos);
+      pos = end;
+    } else {
+      s = path.substr(pos, end-pos);
+      pos = end+1;
+    }
+    if (!s.empty()) {
+      if (s[s.size()-1] != '/') s.append("/");
+      dirs.push_back(s);
+    }
+  }
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -234,11 +258,13 @@ main(int argc, char *argv[])
     size_t n = strtoul(env, &end, 0);
     if (!*end) interpreter::stackmax = n*1024;
   }
-  if ((env = getenv("PURELIB")))
-    interp.lib = string(env)+"/";
-  else
-    interp.lib = string(PURELIB)+"/";
-  string prelude = interp.lib+string("prelude.pure");
+  if ((env = getenv("PURELIB"))) {
+    string s = env;
+    if (!s.empty() && s[s.size()-1] != '/') s.append("/");
+    interp.libdir = s;
+  } else
+    interp.libdir = string(PURELIB)+"/";
+  string prelude = interp.libdir+string("prelude.pure");
 #if USE_FASTCC
   // This global option is needed to get tail call optimization (you'll also
   // need to have USE_FASTCC in interpreter.hh enabled).
@@ -258,7 +284,33 @@ main(int argc, char *argv[])
       want_prelude = false;
     else if (*args == string("-q"))
       quiet = true;
-    else if (string(*args).substr(0,2) == "-v") {
+    else if (string(*args).substr(0,2) == "-I") {
+      string s = string(*args).substr(2);
+      if (s.empty()) {
+	if (!*++args) {
+	  interp.error(prog + ": -I lacks directory argument");
+	  return 1;
+	}
+	s = *args;
+      }
+      if (!s.empty()) {
+	if (s[s.size()-1] != '/') s.append("/");
+	interp.includedirs.push_back(s);
+      }
+    } else if (string(*args).substr(0,2) == "-L") {
+      string s = string(*args).substr(2);
+      if (s.empty()) {
+	if (!*++args) {
+	  interp.error(prog + ": -L lacks directory argument");
+	  return 1;
+	}
+	s = *args;
+      }
+      if (!s.empty()) {
+	if (s[s.size()-1] != '/') s.append("/");
+	interp.librarydirs.push_back(s);
+      }
+    } else if (string(*args).substr(0,2) == "-v") {
       string s = string(*args).substr(2);
       if (s.empty()) continue;
       char *end;
@@ -277,16 +329,14 @@ main(int argc, char *argv[])
       interp.error(prog + ": invalid option " + *args);
       return 1;
     }
+  if ((env = getenv("PURE_INCLUDE"))) add_path(interp.includedirs, env);
+  if ((env = getenv("PURE_LIBRARY"))) add_path(interp.librarydirs, env);
   interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
   if (want_prelude) {
     // load the prelude if we can find it
-    if (chkfile("prelude.pure")) {
-      prelude = "prelude.pure";
+    if (chkfile(prelude)) {
       have_prelude = true;
-    } else if (chkfile(prelude)) // try again in the PURELIB directory
-      have_prelude = true;
-    if (have_prelude) {
-      interp.run(prelude);
+      interp.run(prelude, false);
       interp.compile();
     }
   }
@@ -300,7 +350,7 @@ main(int argc, char *argv[])
     } else if (*argv == string("-x")) {
       if (*++argv) {
 	count++; interp.modname = *argv;
-	interp.run(*argv);
+	interp.run(*argv, false);
       } else {
 	interp.error(prog + ": missing script name");
 	return 1;
@@ -308,11 +358,15 @@ main(int argc, char *argv[])
       break;
     } else if (*argv == string("--"))
       break;
-    else if (**argv == '-')
+    else if (string(*argv).substr(0,2) == "-I" ||
+	     string(*argv).substr(0,2) == "-L") {
+      string s = string(*argv).substr(2);
+      if (s.empty()) ++argv;
+    } else if (**argv == '-')
       ;
     else if (**argv) {
       if (count++ == 0) interp.modname = *argv;
-      interp.run(*argv);
+      interp.run(*argv, false);
     }
   if (count > 0 && !force_interactive) {
     if (interp.verbose&verbosity::dump) interp.compile();
@@ -345,7 +399,7 @@ main(int argc, char *argv[])
     histfile = strdup(interp.histfile.c_str());
   }
   interp.temp = 1;
-  interp.run("");
+  interp.run("", false);
   if (interp.ttymode) cout << endl;
   return 0;
 }

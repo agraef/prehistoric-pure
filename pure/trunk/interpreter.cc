@@ -58,7 +58,7 @@ static int c_stack_dir()
 interpreter::interpreter()
   : verbose(0), interactive(false), ttymode(false), override(false),
     stats(false), temp(0),
-    ps("> "), lib(""), histfile("/.pure_history"), modname("pure"),
+    ps("> "), libdir(""), histfile("/.pure_history"), modname("pure"),
     nerrs(0), source_s(0), result(0), mem(0), exps(0), tmps(0),
     module(0), JIT(0), FPM(0), fptr(0)
 {
@@ -434,7 +434,8 @@ static inline bool chklink(const string& s)
 #define BUFSIZE 1024
 
 static string searchdir(const string& srcdir, const string& libdir,
-			const string& script)
+			const list<string>& include_dirs,
+			const string& script, bool search = true)
 {
   char cwd[BUFSIZE];
   if (script.empty())
@@ -449,23 +450,23 @@ static string searchdir(const string& srcdir, const string& libdir,
   string fname;
   if (script[0] != '/') {
     // resolve relative pathname
-    if (srcdir.empty()) {
+    if (!search) {
       fname = workdir+script;
       if (chkfile(fname)) goto found;
-      if (!libdir.empty()) {
-	fname = libdir+script;
-	if (chkfile(fname)) goto found;
-      }
       fname = script;
     } else {
-      fname = srcdir+script;
+      fname = (srcdir.empty()?workdir:srcdir)+script;
       if (chkfile(fname)) goto found;
+      for (list<string>::const_iterator dir = include_dirs.begin(),
+	     end = include_dirs.end(); dir != end; dir++)
+	if (!dir->empty()) {
+	  fname = *dir+script;
+	  if (chkfile(fname)) goto found;
+	}
       if (!libdir.empty()) {
 	fname = libdir+script;
 	if (chkfile(fname)) goto found;
       }
-      fname = workdir+script;
-      if (chkfile(fname)) goto found;
       fname = script;
     }
   } else
@@ -505,6 +506,53 @@ static string searchdir(const string& srcdir, const string& libdir,
   return fname;
 }
 
+/* Library search. */
+
+static string searchlib(const string& srcdir, const string& libdir,
+			const list<string>& library_dirs,
+			const string& lib, bool search = true)
+{
+  char cwd[BUFSIZE];
+  if (lib.empty())
+    return lib;
+  else if (!getcwd(cwd, BUFSIZE)) {
+    perror("getcwd");
+    return lib;
+  }
+  string workdir = cwd;
+  if (!workdir.empty() && workdir[workdir.size()-1] != '/')
+    workdir += "/";
+  string fname;
+  if (lib[0] != '/') {
+    // resolve relative pathname
+    if (!search) {
+      fname = workdir+lib;
+      if (chkfile(fname)) goto found;
+      fname = lib;
+    } else {
+      fname = (srcdir.empty()?workdir:srcdir)+lib;
+      if (chkfile(fname)) goto found;
+      for (list<string>::const_iterator dir = library_dirs.begin(),
+	     end = library_dirs.end(); dir != end; dir++)
+	if (!dir->empty()) {
+	  fname = *dir+lib;
+	  if (chkfile(fname)) goto found;
+	}
+      if (!libdir.empty()) {
+	fname = libdir+lib;
+	if (chkfile(fname)) goto found;
+      }
+      fname = lib;
+    }
+  } else
+    fname = lib;
+ found:
+#if DEBUG>1
+  std::cerr << "search '" << lib << "', found as '" << fname << "'\n";
+#endif
+  return fname;
+}
+
 // Run the interpreter on a source file, collection of source files, or on
 // string data.
 
@@ -523,17 +571,19 @@ pure_expr* interpreter::run(const string &s, bool check)
     if (name.substr(name.size()-strlen(DLLEXT)) != DLLEXT)
       dllname += DLLEXT;
     // First try to open the library under the given name.
-    if (!llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str(), &msg))
+    string aname = searchlib(srcdir, libdir, librarydirs, name);
+    if (!llvm::sys::DynamicLibrary::LoadLibraryPermanently(aname.c_str(), &msg))
       return 0;
     else if (dllname == name)
       throw err(msg);
+    aname = searchlib(srcdir, libdir, librarydirs, dllname);
     // Now try the name with DLLEXT added.
-    else if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(dllname.c_str(), &msg))
+    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(aname.c_str(), &msg))
       throw err(msg);
     return 0;
   }
   // ordinary source file
-  string fname = searchdir(srcdir, lib, s);
+  string fname = searchdir(srcdir, libdir, includedirs, s, check);
   if (check && sources.find(fname) != sources.end())
     // already loaded, skip
     return 0;
