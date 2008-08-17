@@ -40,7 +40,7 @@
    a!!is		slicing (get a list of values from a list
 			indices
    a!!ijs		slicing of two-dimensional array (from a given
-			list of pairs (i, j):...:[])
+			list of pairs [(i, j), ...])
 
    null a		tests whether a is the empty array
    members a		list of values stored in a

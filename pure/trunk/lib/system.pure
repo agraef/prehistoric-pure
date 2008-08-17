@@ -603,7 +603,7 @@ reg n::int (_,_,infos) = reg (n-1) infos if n>0;
 regs info = myregs 0 info with
   myregs n (p,s,infos)	= (n,p,s):myregs (n+1) infos if p>=0;
 			= myregs (n+1) infos otherwise;
-  myregs n (p,s)	= (n,p,s):[] if p>=0;
+  myregs n (p,s)	= [(n,p,s)] if p>=0;
 			= [] otherwise;
 end;
 
