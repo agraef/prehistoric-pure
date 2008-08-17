@@ -884,18 +884,21 @@ bool
 interpreter::lex_begin(const string& fname)
 {
   yy_flex_debug = (verbose&verbosity::lexer) != 0 && !source_s;
+  FILE *fp;
   if (source_s)
-    yyin = 0;
+    fp = 0;
   else if (source.empty())
-    yyin = stdin;
-  else if (!(yyin = fopen(fname.c_str(), "r")))
+    fp = stdin;
+  else if (!(fp = fopen(fname.c_str(), "r")))
     //error("cannot open '" + source + "'");
     perror(source.c_str());
-  if (source_s || yyin) {
+  if (source_s || fp) {
+    yyin = fp;
     yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
     BEGIN(INITIAL);
-  }
-  return source_s || yyin;
+    return true;
+  } else
+    return false;
 }
 
 void
