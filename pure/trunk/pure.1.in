@@ -308,19 +308,20 @@ the prelude: `[]' and `()' are the empty list and tuple, `:' produces list
 ``conses'', and `,' produces ``pairs''. As indicated, Pure provides the usual
 syntactic sugar for list values in brackets, such as [x,y,z], which is exactly
 the same as x:y:z:[]. Moreover, the prelude also provides an infix `..' 
-operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0. Pure's
-tuples are a bit unusual: They are constructed by just ``paring'' things using
-the `,' operator, for which the empty tuple acts as a neutral element (i.e.,
-(),x is just x, as is x,()). The pairing operator is associative, which
-implies that tuples are completely flat (i.e., x,(y,z) is just x,y,z, as is
-(x,y),z). This means that there are no nested tuples (tuples of tuples), if
-you need such constructs then you should use lists instead. Also note that the
-parentheses are \fInot\fP part of the tuple syntax in Pure, although you
-\fIcan\fP use parentheses, just as with any other expression, for the usual
-purpose of grouping expressions and overriding default precedences and
-associativity. This means that a list of tuples will be printed (and must also
-be entered) using the ``canonical'' representation (x1,y1):(x2,y2):...:[]
-rather than [(x1,y1),(x2,y2),...] (which denotes just [x1,y1,x2,y2,...]).
+operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0.
+.sp
+Pure's tuples are a bit unusual: They are constructed by just ``paring''
+things using the `,' operator, for which the empty tuple acts as a neutral
+element (i.e., (),x is just x, as is x,()). The pairing operator is
+associative, which implies that tuples are completely flat (i.e., x,(y,z) is
+just x,y,z, as is (x,y),z). This means that there are no nested tuples (tuples
+of tuples), if you need such constructs then you should use lists
+instead. Also note that parentheses are generally only used to group
+expressions and are \fInot\fP part of the tuple syntax in Pure. There's one
+exception to this rule, however, namely that in order to include a tuple in a
+bracketed list you have to put it inside parentheses. E.g., [(1,2),3,(4,5)] is
+a three element list consisting of the tuple 1,2, the integer 3, and another
+tuple 4,5. Likewise, [(1,2,3)] is list with a single element, the tuple 1,2,3.
 .TP
 .B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
@@ -330,7 +331,8 @@ generated elements should actually be added to the output list). List
 comprehensions are in fact syntactic sugar for a combination of nested
 lambdas, conditional expressions and ``catmaps'' (a list operation which
 combines list concatenation and mapping a function over a list, defined in the
-prelude), but they are often much easier to write.
+prelude), but they are often much easier to write. Some examples of list
+comprehensions can be found below at the end of this section.
 .TP
 .B Function applications: \fRfoo\ x\ y\ z
 As in other modern FPLs, these are written simply as juxtaposition (i.e., in
@@ -834,7 +836,7 @@ E.g., let's compute a solution for a standard 8x8 board:
 .sp
 .nf
 > queens 8;
-(1,1):(2,5):(3,8):(4,6):(5,3):(6,7):(7,2):(8,4):[]
+[(1,1),(2,5),(3,8),(4,6),(5,3),(6,7),(7,2),(8,4)]
 .fi
 .SH C INTERFACE
 Accessing C functions from Pure programs is dead simple. You just need an
@@ -1332,24 +1334,15 @@ below existing ones:
 > \fBunderride\fP
 .fi
 .SH CAVEATS AND NOTES
+This section deals with common pitfalls and describes other quirks and
+limitations of the current implementation.
+.PP
 .B Debugging.
 There's no symbolic debugger yet. So
 .BR printf (3)
 (available in the
 .B system
 standard library module) should be your friend. ;-)
-.PP
-.B Tuples and parentheses.
-Please note that parentheses are really only used to group expressions and are
-\fInot\fP part of the tuple syntax; tuples are in fact not really part of the
-Pure language at all, but are implemented in the prelude. As you can see
-there, the pairing operator `,' used to construct tuples is
-(right-)associative. We call these the ``poor man's tuples'' since they are
-always flat and thus there are no nested tuples (if you need this then you
-should use lists instead). This also implies that an expression like
-[(1,2),(3,4)] is in fact exactly the same as [1,2,3,4]. If you want to denote
-a list of tuples, you must use the syntax (1,2):(3,4):[] instead; this is also
-the notation used when the interpreter prints such objects.
 .PP
 .B Special forms.
 Special forms are recognized at compile time only. Thus the catch function as
@@ -1464,8 +1457,8 @@ an existing constant or variable as a different kind of symbol. The same also
 holds if a symbol is currently defined as a function.)
 .PP
 .B Numeric calculations.
-If possible, you should always decorate numeric variables on the left-hand
-sides of function definitions with the appropriate type tags, like
+If possible, you should decorate numeric variables on the left-hand sides of
+function definitions with the appropriate type tags, like
 .B ::int
 or
 .BR ::double .
@@ -1481,6 +1474,10 @@ fact n::int    |
 fact n         = n*fact(n-1) \fBif\fP n>0;
                = 1 \fBotherwise\fP;
 .fi
+.PP
+(This obviously becomes unwieldy if you have to deal with several numeric
+arguments, however, so in this case it is usually better to just use a
+polymorphic rule.)
 .PP
 Also note that
 .B int
@@ -1534,7 +1531,7 @@ You also have to be careful when passing generic pointer values to external C
 routines, since currently there is no type checking for these; any pointer
 type other than char* and expr* is effectively treated as void*. This
 considerably simplifies lowlevel programming and interfacing to C libraries,
-but also makes it very easy to have your program segfault all over the place! 
+but also makes it very easy to have your program segfault all over the place. 
 Therefore it is highly recommended that you wrap your lowlevel code in Pure
 routines and data structures which do all the checks necessary to ensure that
 only the right kind of data is passed to C routines.
