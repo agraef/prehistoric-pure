@@ -313,9 +313,12 @@ public:
   bool stats;        // stats mode (print execution times)
   uint8_t temp;      // temporary level (purgable definitions)
   string ps;         // prompt string
-  string lib;        // library dir to search for source files
+  string libdir;     // library dir to search for source files
   string histfile;   // command history file
   string modname;    // name of output (LLVM) module
+
+  // Additional directories to search for sources and libraries.
+  list<string> includedirs, librarydirs;
 
   // Interpreter state. For internal use only.
   int nerrs;	     // current error count
@@ -338,12 +341,14 @@ public:
    *************************************************************************/
 
   /* Parse and execute the given source file (stdin if empty), or the given
-     list of files. If check is true (the default), only load the script if it
-     wasn't included before. Returns the last computed expression (if any).
-     (This expression is owned by the interpreter and must *not* be freed by
-     the caller.) This is the main interface function.  If interactive is
-     true, readline is used to get interactive input from the user, using ps
-     as the prompt string. Please note that due to some global data shared by
+     list of files. If check is true (the default), a full search is performed
+     for relative pathnames (checking include directories and PURELIB to
+     locate the script file) and the script is only loaded if it wasn't
+     included before. Returns the last computed expression (if any). (This
+     expression is owned by the interpreter and must *not* be freed by the
+     caller.) This is the main interface function. If interactive is true,
+     readline is used to get interactive input from the user, using ps as the
+     prompt string. Please note that due to some global data shared by
      different interpreter instances, you can't run two interpreters
      concurrently right now. (It is possible to run them sequentially,
      though.) */
