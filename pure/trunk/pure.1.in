@@ -2,9 +2,9 @@
 .SH NAME
 pure \- the Pure interpreter
 .SH SYNOPSIS
-\fBpure\fP [-h] [-i] [-n] [-q] [-v[\fIlevel\fP]] [\fIscript\fP ...] [-- \fIargs\fP ...]
+\fBpure\fP [\fIoptions\fP ...] [\fIscript\fP ...] [-- \fIargs\fP ...]
 .br
-\fBpure\fP [-h] [-i] [-n] [-q] [-v[\fIlevel\fP]] -x \fIscript\fP [\fIargs\fP ...]
+\fBpure\fP [\fIoptions\fP ...] -x \fIscript\fP [\fIargs\fP ...]
 .SH OPTIONS
 .TP
 .B -h
@@ -13,13 +13,19 @@ Print help message and exit.
 .B -i
 Force interactive mode (read commands from stdin).
 .TP
+.BI -I directory
+Add a directory to be searched for included source scripts.
+.TP
+.BI -L directory
+Add a directory to be searched for dynamic libraries.
+.TP
 .B -n
 Suppress automatic inclusion of the prelude.
 .TP
 .B -q
 Quiet startup (suppresses sign-on message in interactive mode).
 .TP
-.B -v
+.BR -v [\fIlevel\fP]
 Set verbosity level. See below for details.
 .TP
 .B -x
@@ -59,8 +65,8 @@ When the interpreter is in interactive mode and reads from a tty, commands are
 read using
 .BR readline (3)
 (providing completion for all commands listed in section INTERACTIVE USAGE
-below, as well as for global function and variable symbols) and, when exiting
-the interpreter, the command history is stored in
+below, as well as for symbols defined in the running program) and, when
+exiting the interpreter, the command history is stored in
 .BR ~/.pure_history ,
 from where it is restored the next time you run the interpreter.
 .PP
@@ -106,13 +112,22 @@ If available, the prelude script
 .B prelude.pure
 is loaded by the interpreter prior to any other other definitions, unless the
 .B -n
-option is specified. The prelude as well as other source scripts specified
-with a relative pathname are first searched for in the current directory and
-then in the directory specified with the
+option is specified. The prelude is searched for in the directory specified
+with the
 .B PURELIB
 environment variable. If the
 .B PURELIB
-variable is not set, a system-specific default is used.
+variable is not set, a system-specific default is used. Other source scripts
+specified on the command line are searched for in the current directory if a
+relative pathname is given. In addition, the executed program may load other
+scripts and libraries via a
+.B using
+declaration in the source, which are searched for in a number of locations,
+including the directories named with the
+.B -I
+and
+.B -L
+options; see the sections DECLARATIONS and C INTERFACE below for details.
 .PP
 The
 .B -v
@@ -313,15 +328,15 @@ operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0.
 Pure's tuples are a bit unusual: They are constructed by just ``paring''
 things using the `,' operator, for which the empty tuple acts as a neutral
 element (i.e., (),x is just x, as is x,()). The pairing operator is
-associative, which implies that tuples are completely flat (i.e., x,(y,z) is
-just x,y,z, as is (x,y),z). This means that there are no nested tuples (tuples
-of tuples), if you need such constructs then you should use lists
-instead. Also note that parentheses are generally only used to group
-expressions and are \fInot\fP part of the tuple syntax in Pure. There's one
-exception to this rule, however, namely that in order to include a tuple in a
-bracketed list you have to put it inside parentheses. E.g., [(1,2),3,(4,5)] is
-a three element list consisting of the tuple 1,2, the integer 3, and another
-tuple 4,5. Likewise, [(1,2,3)] is list with a single element, the tuple 1,2,3.
+(right-)associative, meaning that x,(y,z) == x,y,z == (x,y),z, which implies
+that tuples are completely flat and thus there are no nested tuples (tuples of
+tuples). If you need such constructs then you should use lists instead. Also
+note that parentheses are generally only used to group expressions and are
+\fInot\fP part of the tuple syntax in Pure. There's one exception to this
+rule, however, namely that in order to include a tuple in a bracketed list you
+have to put it inside parentheses. E.g., [(1,2),3,(4,5)] is a three element
+list consisting of the tuple 1,2, the integer 3, and another tuple
+4,5. Likewise, [(1,2,3)] is list with a single element, the tuple 1,2,3.
 .TP
 .B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
@@ -692,22 +707,28 @@ The script name can be specified either as a string denoting the proper
 filename (possibly including path and/or filename extension), or as an
 identifier. In the latter case, the
 .B .pure
-filename extension is added automatically. In both cases, the script is
-searched for first in the directory of the script containing the
+filename extension is added automatically. In both cases, the interpreter
+performs a search to locate the script, unless an absolute pathname was
+given. It first searches the directory of the script containing the
 .B using
-clause, then the directory named by the
+clause (or the current working directory if the clause was read from standard
+input, as is the case, e.g., in an interactive session), then the directories
+named in
+.B -I
+options on the command line (in the given order), then the colon-separated
+list of directories in the
+.B PURE_INCLUDE
+environment variable, and finally the directory named by the
 .B PURELIB
-environment variable, and finally in the current working directory. This is
-different from the standard search order used for scripts specified on the
-command line, where the current directory is searched prior to the
-.B PURELIB
-directory. The search order employed here lets you install a script into any
-directory, along with any other required non-library scripts, and run the
-script from there. (Note that this will only work if the
+environment variable. Note that the current working directory is \fInot\fP
+searched by default (unless the
 .B using
-clause is contained in a script file, but not if the clause is read from
-standard input or entered interactively. In the latter case the normal search
-order is used.)
+clause is read from standard input), but of course you can force this by
+adding the option
+.B -I.
+to the command line, or by including `.' in the
+.B PURE_INCLUDE
+variable.
 .sp
 For the purpose of comparing and loading scripts, the interpreter always uses
 the canonicalized full pathname of the script, following symbolic links to the
@@ -724,8 +745,8 @@ a symbolic link placed on the system
 In this case the script search performed in
 .B using
 clauses will use the real script directory and thus other required scripts can
-be located in the script directory as usual. This is the recommended practice
-for installing standalone Pure applications in source form which are to be run
+be located in the script directory. This is the recommended practice for
+installing standalone Pure applications in source form which are to be run
 directly from the shell.
 .PP
 Note that the
@@ -980,11 +1001,23 @@ your Pure program by means of corresponding
 .B extern
 declarations.
 .PP
-Shared libraries opened with \fBusing\fP clauses are searched for on the usual
-system linker path (\fBLD_LIBRARY_PATH\fP on Linux). The necessary filename
-suffix (e.g., \fB.so\fP on Linux or \fB.dll\fP on Windows) will also be
-supplied automatically. You can also specify a full pathname for the library
-if you prefer that. If a library file cannot be found, or if an
+Shared libraries opened with \fBusing\fP clauses are searched for in the same
+way as source scripts (see section DECLARATIONS above), using the
+.B -L
+option and the
+.B PURE_LIBRARY
+environment variable in place of
+.B -I
+and
+.BR PURE_INCLUDE .
+If the library isn't found by these means, the interpreter will also consider
+other platform-specific locations searched by the dynamic linker, such as the
+system library directories and
+.B LD_LIBRARY_PATH
+on Linux. The necessary filename suffix (e.g., \fB.so\fP on Linux or
+\fB.dll\fP on Windows) will be supplied automatically when needed. Of course
+you can also specify a full pathname for the library if you prefer that. If a
+library file cannot be found, or if an
 .B extern
 declaration names a function symbol which cannot be resolved, an appropriate
 error message is printed.
@@ -1071,9 +1104,9 @@ Exits the interpreter.
 Loads the given script file and adds its definitions to the current
 environment. This works more or less like a
 .B using
-clause, but uses the standard search order and loads the script
-``anonymously'', as if the contents of the script had been typed at the
-command prompt. That is,
+clause, but only searches for the script in the current directory and loads
+the script ``anonymously'', as if the contents of the script had been typed at
+the command prompt. That is,
 .B run
 doesn't check whether the script is being used already and it puts the
 definitions on the current temporary level (so that
@@ -1625,10 +1658,22 @@ was specified.
 .SH ENVIRONMENT
 .TP
 .B PURELIB
-Directory to search for source files, including the prelude. If
+Directory to search for library scripts, including the prelude. If
 .B PURELIB
 is not set, it defaults to some default location specified at installation
 time.
+.TP
+.B PURE_INCLUDE
+Additional directories to be searched for included scripts (default:
+none). Uses the same colon-separated format as the
+.B PATH
+variable.
+.TP
+.B PURE_LIBRARY
+Additional directories to be searched for dynamic libraries (default:
+none). Uses the same colon-separated format as the
+.B PATH
+variable.
 .TP
 .B PURE_MORE
 Shell command to be used for paging through output of the
