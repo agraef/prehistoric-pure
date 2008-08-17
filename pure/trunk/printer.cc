@@ -84,7 +84,7 @@ static prec_t expr_nprec(expr x, bool aspat = true)
   case EXPR::APP: {
     expr u, v, w;
     prec_t p;
-    if (x.is_listx())
+    if (x.is_list())
       return 100;
     else if (x.is_app(u, v))
       if (u.tag() > 0 && (p = sym_nprec(u.tag())) < 100 && p%10 >= 3)
@@ -248,11 +248,11 @@ static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
     expr u, v, w, y;
     exprl xs;
     prec_t p;
-    if (x.is_listx(xs)) {
+    if (x.is_list(xs)) {
       // proper list value
       size_t n = xs.size();
       os << "[";
-      if (n>1) {
+      if (n>1 || n==1 && xs.front().is_pair()) {
 	// list elements at a precedence not larger than ',' have to be
 	// parenthesized
 	p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
@@ -528,8 +528,7 @@ static bool pure_is_nil(const pure_expr *x)
 static bool pure_is_cons(const pure_expr *x)
 {
   if (x->tag == EXPR::APP && x->data.x[0]->tag == EXPR::APP)
-    return
-      x->data.x[0]->data.x[0]->tag == interpreter::g_interp->symtab.cons_sym().f;
+    return x->data.x[0]->data.x[0]->tag == interpreter::g_interp->symtab.cons_sym().f;
   else
     return false;
 }
@@ -537,8 +536,7 @@ static bool pure_is_cons(const pure_expr *x)
 static bool pure_is_pair(const pure_expr *x)
 {
   if (x->tag == EXPR::APP && x->data.x[0]->tag == EXPR::APP)
-    return
-      x->data.x[0]->data.x[0]->tag == interpreter::g_interp->symtab.pair_sym().f;
+    return x->data.x[0]->data.x[0]->tag == interpreter::g_interp->symtab.pair_sym().f;
   else
     return false;
 }
@@ -546,22 +544,16 @@ static bool pure_is_pair(const pure_expr *x)
 static bool pure_is_list(const pure_expr *x)
 {
   while (pure_is_cons(x))
-    if (pure_is_pair(x->data.x[0]->data.x[1]))
-      return false;
-    else
-      x = x->data.x[1];
+    x = x->data.x[1];
   return pure_is_nil(x);
 }
 
 static bool pure_is_list(const pure_expr *x, list<const pure_expr*>& xs)
 {
-  while (pure_is_cons(x))
-    if (pure_is_pair(x->data.x[0]->data.x[1]))
-      return false;
-    else {
-      xs.push_back(x->data.x[0]->data.x[1]);
-      x = x->data.x[1];
-    }
+  while (pure_is_cons(x)) {
+    xs.push_back(x->data.x[0]->data.x[1]);
+    x = x->data.x[1];
+  }
   return pure_is_nil(x);
 }
 
@@ -681,7 +673,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
       // proper list value
       size_t n = xs.size();
       os << "[";
-      if (n>1) {
+      if (n>1 || n==1 && pure_is_pair(xs.front())) {
 	// list elements at a precedence not larger than ',' have to be
 	// parenthesized
 	p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;

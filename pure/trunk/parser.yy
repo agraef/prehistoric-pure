@@ -515,7 +515,8 @@ prim
 | '[' expr ']'		{ $$ = interp.mklist_expr($2); }
 | '[' expr ';' comp_clauses ']'
 			{ $$ = interp.mklistcomp_expr($2, $4); }
-| '(' expr ')'		{ $$ = $2; }
+| '(' expr ')'		{ $$ = $2;
+			  if ($$->is_pair()) $$->flags() |= EXPR::PAREN; }
 | '(' op ')'		{ $$ = $2; }
 ;
 
