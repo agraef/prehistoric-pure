@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 {
   pure_interp *interp = pure_create_interp(argc, argv);
   char buf[10000];
+  if (!interp) return 1;
   fputs("? ", stdout); fflush(stdout);
   while (fgets(buf, sizeof(buf), stdin)) {
     pure_expr *x = eval(buf);
