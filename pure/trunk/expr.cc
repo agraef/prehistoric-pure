@@ -175,15 +175,6 @@ bool expr::is_list() const
     return is_nil();
 }
 
-bool expr::is_listx() const
-{
-  expr x, y;
-  if (is_cons(x, y))
-    return !x.is_pair() && y.is_listx();
-  else
-    return is_nil();
-}
-
 bool expr::is_voidx() const
 {
   return tag() == interpreter::g_interp->symtab.void_sym().f;
@@ -226,25 +217,6 @@ bool expr::is_list(exprl &xs) const
   }
 }
 
-bool expr::is_listx(exprl &xs) const
-{
-  expr x, y;
-  if (is_cons(x, y)) {
-    if (x.is_pair()) {
-      xs.clear();
-      return false;
-    } else {
-      xs.push_back(x);
-      return y.is_listx(xs);
-    }
-  } else if (is_nil())
-    return true;
-  else {
-    xs.clear();
-    return false;
-  }
-}
-
 bool expr::is_pair(expr &x, expr &y) const
 {
   expr u, v;
@@ -274,6 +246,17 @@ bool expr::is_tuplex(exprl &xs) const
       xs.push_back(x);
       return y.is_tuplex(xs);
     }
+  else {
+    xs.push_back(*this);
+    return true;
+  }
+}
+
+bool expr::is_tuplexxx(exprl &xs) const
+{
+  expr x, y;
+  if (is_pair(x, y) && !(flags()&EXPR::PAREN))
+    return x.is_tuplexxx(xs) && y.is_tuplexxx(xs);
   else {
     xs.push_back(*this);
     return true;

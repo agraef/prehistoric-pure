@@ -1,5 +1,9 @@
 2008-08-17  Albert Graef  <Dr.Graef@t-online.de>
 
+	* parser.yy, printer.cc et al: Revised list-of-tuples syntax. In
+	order to include a tuple in a proper list value you can simply put
+	the tuple inside parentheses now.
+
 	* parser.yy, lexer.ll: Revised 'using' syntax so that script names
 	are now separated with a comma. Updated library and sample scripts
 	accordingly.

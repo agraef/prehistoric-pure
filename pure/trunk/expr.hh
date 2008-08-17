@@ -117,7 +117,8 @@ struct EXPR {
 
   // special flag values used during compilation:
   enum {
-    OVF		= 1,		// overflowed int constant -> bigint
+    OVF		= 1,	// overflowed int constant -> bigint
+    PAREN	= 1<<1,	// parenthesized expression
   };
 
   uint32_t refc;  // reference counter
@@ -469,9 +470,6 @@ public:
   bool is_nil()    const;
   bool is_cons()   const;
   bool is_list()   const;
-  // Check for lists which don't contain tuple elements, so that they can be
-  // printed in standard list format.
-  bool is_listx()  const;
   bool is_voidx()  const;
   bool is_pair()   const;
   // This is always true, as we consider a singleton as a tuple, too. Use
@@ -481,12 +479,13 @@ public:
   bool is_tuplex() const;
   bool is_cons(expr &x, expr &y) const;
   bool is_list(exprl &xs) const;
-  bool is_listx(exprl &xs) const;
   bool is_pair(expr &x, expr &y) const;
   // Always true (see note above). Use is_pair() && istuple(xs) to test for a
   // "real" tuple instead.
   bool is_tuple(exprl &xs) const;
   bool is_tuplex(exprl &xs) const;
+  // Special check for tuples used in list construction.
+  bool is_tuplexxx(exprl &xs) const;
 };
 
 /* Rules of the form: lhs -> rhs [if qual]. */
