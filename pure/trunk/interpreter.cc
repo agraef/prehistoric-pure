@@ -1748,7 +1748,7 @@ expr* interpreter::uminop(expr *op, expr *x)
   }
   expr *y;
   // handle special case of a numeric argument
-  if (x->tag() == EXPR::BIGINT && x->cint() &&
+  if (x->tag() == EXPR::BIGINT && (x->flags()&EXPR::OVF) &&
       mpz_cmp_ui(x->zval(), 0x80000000U) == 0)
     // The negated int 0x80000000 can actually be represented as a machine int
     // value, we convert it back on the fly here.
