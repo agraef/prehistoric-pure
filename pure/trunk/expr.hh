@@ -483,9 +483,10 @@ public:
   // Always true (see note above). Use is_pair() && istuple(xs) to test for a
   // "real" tuple instead.
   bool is_tuple(exprl &xs) const;
+  // Check for proper (normalized) tuples.
   bool is_tuplex(exprl &xs) const;
   // Special check for tuples used in list construction.
-  bool is_tuplexxx(exprl &xs) const;
+  bool is_tuplel(exprl &xs) const;
 };
 
 /* Rules of the form: lhs -> rhs [if qual]. */

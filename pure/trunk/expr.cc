@@ -252,11 +252,11 @@ bool expr::is_tuplex(exprl &xs) const
   }
 }
 
-bool expr::is_tuplexxx(exprl &xs) const
+bool expr::is_tuplel(exprl &xs) const
 {
   expr x, y;
   if (is_pair(x, y) && !(flags()&EXPR::PAREN))
-    return x.is_tuplexxx(xs) && y.is_tuplexxx(xs);
+    return x.is_tuplel(xs) && y.is_tuplel(xs);
   else {
     xs.push_back(*this);
     return true;
