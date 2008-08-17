@@ -1920,7 +1920,7 @@ expr *interpreter::mklist_expr(expr *x)
 {
   expr *u;
   exprl xs;
-  if (x->is_pair() && x->is_tuplexxx(xs))
+  if (x->is_pair() && x->is_tuplel(xs))
     u = new expr(expr::list(xs));
   else
     u = new expr(expr::cons(*x, expr::nil()));
