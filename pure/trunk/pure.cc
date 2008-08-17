@@ -32,8 +32,9 @@ using namespace std;
 
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"
 #define USAGE \
-"Usage: pure [-h] [-i] [-n] [-q] [-v[level]] [script ...] [-- args ...]\n\
-       pure [-h] [-i] [-n] [-q] [-v[level]] -x script [args ...]\n\
+"Usage: pure [options ...] [script ...] [-- args ...]\n\
+       pure [options ...] -x script [args ...]\n\
+Options:\n\
 -h: Print this message and exit.\n\
 -i: Force interactive mode (read commands from stdin).\n\
 -I: Add directory to search for included source files.\n\
