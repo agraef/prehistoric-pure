@@ -146,7 +146,7 @@ with read_a_line f buf t = check s when s = c_fgets buf 1024 f end
        check s         = return s if null t;
                        = return t otherwise;
        done s::string  = feof f || ferror f || not null s && last s == "\n";
-       return x        = x when _ = free buf end;
+       return x        = free buf $$ x;
   end;
 end;
 
@@ -161,7 +161,7 @@ with read_a_file f buf t = check s when s = c_fgets buf 0x10000 f end
 		       = read_a_file f buf (t+s) otherwise;
        check s         = return s if null t;
                        = return t otherwise;
-       return x        = x when _ = free buf end;
+       return x        = free buf $$ x;
   end;
 end;
 
@@ -169,7 +169,7 @@ end;
    directly, the runtime provides us with some functions which only process a
    single argument at a time. Our wrapper functions take or return a tuple of
    values, and check these against the format specifiers. Only simple formats
-   derived from %dioux, %efg, %s and %p are supported right now. */
+   derived from %cdioux, %efg, %s and %p are supported right now. */
 
 /* printf/fprintf: Normally, these return the result of the underlying C
    routines (number of characters written, or negative on error). However, in
@@ -263,17 +263,17 @@ end with
       "g", x::double = pure_snprintf_double buf size s x;
       "s", x::string = pure_snprintf_string buf size s x;
       "p", x::string | "p", x::pointer = pure_snprintf_pointer buf size s x;
-      _ = throw (printf_value_error s arg) when _ = free buf end;
+      _ = free buf $$ throw (printf_value_error s arg);
     end;
     u = if res>=0 then u + cstring buf
-        else (throw printf_error res when _ = free buf end);
+        else free buf $$ throw printf_error res;
   end;
   do_sprintf (u,args) (printf_format_str s) = u, args
   when
     size = #s+1000; buf = check_buf (malloc size);
     res = pure_snprintf buf size s;
     u = if res>=0 then u + cstring buf
-        else (throw printf_error res when _ = free buf end);
+        else free buf $$ throw printf_error res;
   end;
   do_sprintf (u,_) _ = throw printf_arg_error;
   check_buf buf = throw printf_malloc_error if null buf;
@@ -325,7 +325,7 @@ end with
     // Note: In difference to C scanf, the return value is the number of read
     // characters here, with -1 denoting an error condition.
     res = if res>=0 then res
-          else (throw (scanf_error ret) when _ = free buf end);
+          else free buf $$ throw (scanf_error ret);
     val = case t of
       "n" = nread+get_int buf;
       "d" = get_int buf;
@@ -416,7 +416,7 @@ end with
     // Note: In difference to C scanf, the return value is the number of read
     // characters here, with -1 denoting an error condition.
     res = if res>=0 then res
-          else (throw (scanf_error ret) when _ = free buf end);
+          else free buf $$ throw (scanf_error ret);
     val = case t of
       "n" = nread+get_int buf;
       "d" = get_int buf;
@@ -484,7 +484,7 @@ glob pat::string flags::int = result
 when
   globptr = calloc 1 GLOB_SIZE; result = c_glob pat flags (pointer 0) globptr;
   result = if result==0 then globlist globptr else result;
-  _ = globfree globptr, free globptr;
+  _ = globfree globptr $$ free globptr;
 end;
 
 /* POSIX regex matching (regcomp and regexec). The C functions have a somewhat
@@ -559,7 +559,7 @@ regex pat::string cflags::int s::string eflags::int = result
 when
   result = regcomp regptr pat cflags;
   result = if result==0 then match else regerr result (decode result);
-  _ = regfree regptr, free regptr;
+  _ = regfree regptr $$ free regptr;
 end with
   match = result when
     n, matches = regmatches regptr cflags;
@@ -643,7 +643,7 @@ when
               end when n, matches = regmatches regptr cflags end)
            else
              regerr result (decode result);
-  _ = regfree regptr, free regptr;
+  _ = regfree regptr $$ free regptr;
 end with
   decode n::int = cstring buf when
     size = regerror n regptr (pointer 0) 0; 
@@ -684,7 +684,7 @@ when
               end when n, matches = regmatches regptr cflags end)
            else
              regerr result (decode result);
-  _ = regfree regptr, free regptr;
+  _ = regfree regptr $$ free regptr;
 end with
   decode n::int = cstring buf when
     size = regerror n regptr (pointer 0) 0; 
@@ -722,7 +722,7 @@ when
               end when n, matches = regmatches regptr cflags end)
            else
              regerr result (decode result);
-  _ = regfree regptr, free regptr;
+  _ = regfree regptr $$ free regptr;
 end with
   decode n::int = cstring buf when
     size = regerror n regptr (pointer 0) 0; 
@@ -754,7 +754,7 @@ when
               end when n, matches = regmatches regptr cflags end)
            else
              regerr result (decode result);
-  _ = regfree regptr, free regptr;
+  _ = regfree regptr $$ free regptr;
 end with
   decode n::int = cstring buf when
     size = regerror n regptr (pointer 0) 0; 
