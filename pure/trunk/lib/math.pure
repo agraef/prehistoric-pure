@@ -185,8 +185,8 @@ conj x::double	= x;
 
 /* Complex sqrt. */
 
-sqrt (x+:y)	= sqrt r * (cos t +: sin t)
-		  when r = sqrt (x*x+y*y); t = atan2 y x/2 end;
+sqrt (x+:y)	= sqrt ((r+x)/2) +: sqrt ((r-x)/2)
+		  when r = sqrt (x*x+y*y) end;
 sqrt (r<:t)	= sqrt r <: t/2;
 
 // Complex square roots of negative reals.
