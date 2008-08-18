@@ -247,8 +247,8 @@ Expressions are generally evaluated from left to right, innermost expressions
 first, i.e., using
 .I "call by value"
 semantics. Pure also has a few built-in special forms (most notably,
-conditional expressions and the short-circuit logical connectives && and ||)
-which take some of their arguments using
+conditional expressions, the short-circuit logical connectives && and || and
+the sequencing operator $$) which take some of their arguments using
 .I "call by name"
 semantics.
 .PP
@@ -265,14 +265,16 @@ Expressions consist of the following elements:
 The usual C'ish notations for integers (decimal, hexadecimal, octal), floating
 point values and double-quoted strings are all provided, although the Pure
 syntax differs in some minor ways, as discussed in the following. First, there
-is a special notation for denoting bigints. Note that an integer constant that
-is too large to fit into a machine integer will be interpreted as a bigint
-automatically. Moreover, as in Python an integer literal immediately followed
-by the uppercase letter ``L'' will always be interpreted as a bigint constant,
-even if it fits into a machine integer. This notation is also used when
-printing bigint constants. Second, character escapes in Pure strings have a
-more flexible syntax borrowed from the author's Q language, which provides
-notations to specify any Unicode character. In particular, the notation
+is a special notation for denoting bigints. Integer constants that are too
+large to fit into machine integers will be interpreted as bigints
+automatically. Moreover, integer literals immediately followed by the
+uppercase letter ``L'' will always be interpreted as bigint constants, even if
+they fit into machine integers. This notation is also used when printing
+bigint constants.
+.sp
+Second, character escapes in Pure strings have a more flexible syntax borrowed
+from the author's Q language, which provides notations to specify any Unicode
+character. In particular, the notation
 .BR \e\fIn\fP ,
 where \fIn\fP is an integer literal written in decimal (no prefix),
 hexadecimal (`0x' prefix) or octal (`0' prefix) notation, denotes the Unicode
@@ -314,8 +316,8 @@ punctuation symbols, as defined in the source using corresponding
 \fBprefix\fP, \fBpostfix\fP and \fBinfix\fP declarations, which are discussed
 in section DECLARATIONS. Enclosing an operator in parentheses, such as (+) or
 (\fBnot\fP), turns it into an ordinary function symbol. Symbols can also be
-defined as \fBnullary\fP to denote special constant symbols. See the prelude
-for examples.
+defined as \fBnullary\fP to denote special constant symbols. See below for
+further details.
 .TP
 .B Lists and tuples: \fR[x,y,z], x..y, x:xs, x,y,z
 The necessary constructors to build lists and tuples are actually defined in
@@ -325,18 +327,19 @@ syntactic sugar for list values in brackets, such as [x,y,z], which is exactly
 the same as x:y:z:[]. Moreover, the prelude also provides an infix `..' 
 operator to denote arithmetic sequences such as 1..10 or 1.0,1.2..3.0.
 .sp
-Pure's tuples are a bit unusual: They are constructed by just ``paring''
+Pure's tuples are a bit unusual: They are constructed by just ``pairing''
 things using the `,' operator, for which the empty tuple acts as a neutral
-element (i.e., (),x is just x, as is x,()). The pairing operator is
-(right-)associative, meaning that x,(y,z) == x,y,z == (x,y),z, which implies
-that tuples are completely flat and thus there are no nested tuples (tuples of
-tuples). If you need such constructs then you should use lists instead. Also
-note that parentheses are generally only used to group expressions and are
-\fInot\fP part of the tuple syntax in Pure. There's one exception to this
-rule, however, namely that in order to include a tuple in a bracketed list you
-have to put it inside parentheses. E.g., [(1,2),3,(4,5)] is a three element
-list consisting of the tuple 1,2, the integer 3, and another tuple
-4,5. Likewise, [(1,2,3)] is list with a single element, the tuple 1,2,3.
+element (i.e., (),x is just x, as is x,()). Pairs always associate to the
+right, meaning that x,y,z == x,(y,z) == (x,y),z, where x,(y,z) is the
+normalized representation. This implies that tuples are always flat, i.e.,
+there are no nested tuples (tuples of tuples); if you need such constructs
+then you should use lists instead. Also note that parentheses are generally
+only used to group expressions and are \fInot\fP part of the tuple syntax in
+Pure. There's one exception to this rule, however, namely that in order to
+include a tuple in a bracketed list you have to put it inside
+parentheses. E.g., [(1,2),3,(4,5)] is a three element list consisting of the
+tuple 1,2, the integer 3, and another tuple 4,5. Likewise, [(1,2,3)] is list
+with a single element, the tuple 1,2,3.
 .TP
 .B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
@@ -359,10 +362,7 @@ exactly the same as (+) x y.
 .B Conditional expressions: if\fR\ x\ \fBthen\fR\ y\ \fBelse\fR\ z
 Evaluates to y or z depending on whether x is ``true'' (i.e., a nonzero
 integer). An exception is generated if the condition is not an
-integer. Conditional expressions are special forms with call-by-name arguments
-y and z; only one of the branches is actually evaluated. (The logical
-operators && and || are treated in a similar fashion, in order to implement
-short-circuit semantics.)
+integer.
 .TP
 .B Lambdas: \fR\ex\ ->\ y
 These work pretty much like in Haskell. More than one variable may be bound
@@ -398,6 +398,12 @@ Pure uses the keyword \fBwith\fP which better lines up with \fBcase\fP and
 \fBwhen\fP). Several functions can be defined in a single \fBwith\fP clause,
 and the definitions may consist of as many equations as you want.
 .PP
+Like in most modern functional languages, local functions and variables always
+use
+.IR "lexical binding" ,
+i.e., the value of a local name is completely determined by the surrounding
+program text.
+.PP
 Syntactically, the equational rules in definitions always look the same (see
 RULE SYNTAX below), therefore it is important to note the differences between
 \fBwith\fP expressions which define local functions, and the local variable
@@ -413,6 +419,7 @@ a definition of a function foo with formal parameter x and return value y, or
 a definition binding the local variable x by matching the constructor pattern
 foo x against the value y.
 .PP
+.B Expression syntax.
 Expressions are parsed according to the following precedence rules: Lambda
 binds most weakly, followed by
 .BR when ,
@@ -427,8 +434,8 @@ their declarations (in the prelude or the user's program), and function
 application binds stronger than all operators. Parentheses can be used to
 override default precedences and associativities as usual.
 .PP
-The common operator symbols like +, -, *, / etc. are declared at the beginning
-of the prelude, see the
+The common operator symbols like +, -, *, / etc. are all declared at the
+beginning of the prelude, see the
 .B prelude.pure
 script for a list of these. Arithmetic, relational and logical operators
 usually follow C conventions. However, out of necessity some of Pure's
@@ -445,6 +452,31 @@ and
 instead of `&' and `|', because the latter is reserved as a special symbol in
 rules, see RULE SYNTAX below.
 .PP
+.B Special forms.
+As already mentioned, some operators are actually implemented as special
+forms. In particular, the conditional expression \fBif\fP x \fBthen\fP y
+\fBelse\fP z is a special form with call-by-name arguments y and z; only one
+of the branches is actually evaluated, depending on the value of x. Similarly,
+the logical connectives && and || evaluate their operands in
+.I short-circuit
+mode just like in C. Thus, e.g., x&&y immediately becomes false if x evaluates
+to false, without ever evaluating y.
+.PP
+Another important special form is the sequencing operator $$, which evaluates
+its left operand, immediately throws the result away and then goes on to
+evaluate the right operand which gives the result of the entire
+expression. This operator is useful to write imperative-style code such as the
+following prompt/input interaction:
+.sp
+.nf
+> using system;
+> puts "Enter a number:" $$ scanf "%g";
+Enter a number:
+21
+21.0
+.fi
+.PP
+.B Toplevel.
 At the toplevel, a Pure program basically consists of equations defining
 functions (also called ``rules''), constant and variable bindings, and
 expressions to be evaluated:
@@ -480,6 +512,7 @@ A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
 .PP
+.B Examples.
 Here are a few examples showing how the above constructs are used (see the
 following section for a closer discussion of the rule syntax).
 .PP
@@ -488,6 +521,8 @@ The factorial:
 .nf
 fact n  = n*fact (n-1) \fBif\fP n>0;
         = 1 \fBotherwise\fP;
+
+\fBlet\fP facts = map fact (1..10); facts;
 .fi
 .PP
 The Fibonacci numbers:
@@ -500,8 +535,19 @@ fib n   = a  \fBwhen\fP a, b   = fibs n \fBend\fP
                            \fBend\fP;
              \fBend\fP;
 
-\fBlet\fP fibs = map fib (1..30);
-fibs;
+\fBlet\fP fibs = map fib (1..30); fibs;
+.fi
+.PP
+It is worth noting here that in most cases Pure performs tail call
+optimization so that tail-recursive definitions like the following will be
+executed in constant stack space (see the CAVEATS AND NOTES section for more
+details on this).
+.sp
+.nf
+// tail-recursive factorial using an "accumulating parameter"
+fact n = loop 1 n \fBwith\fP
+  loop p n = \fBif\fP n>0 \fBthen\fP loop (p*n) (n-1) \fBelse\fP p;
+\fBend\fP;
 .fi
 .PP
 A little list comprehension example (Erathosthenes' classical prime sieve):
@@ -1377,13 +1423,6 @@ There's no symbolic debugger yet. So
 .B system
 standard library module) should be your friend. ;-)
 .PP
-.B Special forms.
-Special forms are recognized at compile time only. Thus the catch function as
-well as the short-circuit logical connectives && and || are only treated as
-special forms in direct (saturated) calls. They can still be used if you pass
-them around as function values or partial applications, but in this case they
-lose all their special call-by-name argument processing.
-.PP
 .B ``As'' patterns.
 In the current implementation, ``as'' patterns cannot be placed on the
 ``spine'' of a function definition. Thus rules like the following, which have
@@ -1424,7 +1463,70 @@ applications are not all that common, so having to ``escape'' a variable using
 the anonymous ``as'' pattern trick is a small price to pay for that
 convenience.
 .PP
-.B Constant and variable definitions.
+.B Numeric calculations.
+If possible, you should decorate numeric variables on the left-hand sides of
+function definitions with the appropriate type tags, like
+.B ::int
+or
+.BR ::double .
+This often helps the compiler to generate better code and makes your programs
+run faster. The `|' syntax makes it easy to add the necessary specializations
+of existing rules to your program. E.g., taking the polymorphic implementation
+of the factorial as an example, you only have to add a left-hand side with the
+appropriate type tag to make that definition go as fast as possible for the
+special case of machine integers:
+.sp
+.nf
+fact n::int    |
+fact n         = n*fact(n-1) \fBif\fP n>0;
+               = 1 \fBotherwise\fP;
+.fi
+.PP
+(This obviously becomes unwieldy if you have to deal with several numeric
+arguments, however, so in this case it is usually better to just use a
+polymorphic rule.)
+.PP
+Also note that
+.B int
+(the machine integers) and
+.B bigint
+(the GMP ``big'' integers) are really different kinds of objects, and thus if
+you want to define a function operating on both kinds of integers, you'll also
+have to provide equations for both. This also applies to equations matching
+against constant values of these types; in particular, a small integer
+constant like `0' only matches machine integers, not bigints; for the latter
+you'll have to use the ``big L'' notation `0L'.
+.PP
+When definining a function in terms of numeric values bound to a symbol, it's
+usually better to use a constant symbol rather than a variable for that
+purpose, since this will often allow the compiler to generate better code
+using constant folding and similar techniques. Example:
+.sp
+.nf
+> \fBextern\fP double atan(double);
+> \fBdef\fP pi = 4*atan 1.0;
+> foo x = 2*pi*x;
+> \fBlist\fP foo
+foo x = 2*3.14159265358979*x;
+.fi
+.PP
+(If you take a look at the disassembled code for this function, you will find
+that the value 2*3.14159265358979 has actually been computed at compile time.)
+.PP
+Also, the LLVM backend will eliminate dead code automagically, which enables
+you to employ a constant computed at runtime to configure your code for
+different environments, without any runtime penalties:
+.sp
+.nf
+> \fBdef\fP running_on_windows = index sysinfo "mingw32" >= 0;
+> foo x = something x \fBif\fP running_on_windows;
+>       = something_else x \fBotherwise\fP;
+.fi
+.PP
+In this case the code for one of the branches of foo will be completely
+eliminated, depending on whether your script runs on Windows or not.
+.PP
+.B Global definitions.
 Defined constants (symbols bound with \fBdef\fP) are somewhat limited in scope
 compared to (\fBlet\fP-bound) variable definitions, since the value bound to
 the constant symbol must be usable at compile time, so that it can be
@@ -1489,68 +1591,43 @@ to redefine it as a constant, or vice versa, since Pure won't let you redefine
 an existing constant or variable as a different kind of symbol. The same also
 holds if a symbol is currently defined as a function.)
 .PP
-.B Numeric calculations.
-If possible, you should decorate numeric variables on the left-hand sides of
-function definitions with the appropriate type tags, like
-.B ::int
-or
-.BR ::double .
-This often helps the compiler to generate better code and makes your programs
-run faster. The `|' syntax makes it easy to add the necessary specializations
-of existing rules to your program. E.g., taking the polymorphic implementation
-of the factorial as an example, you only have to add a left-hand side with the
-appropriate type tag to make that definition go as fast as possible for the
-special case of machine integers:
+.B Local definitions.
+In the PURE OVERVIEW section, we briefly mentioned that local function and
+variable bindings always use
+.I static
+a.k.a.
+.I lexical scoping
+in Pure, which is in line with most other modern FPLs. What this means is that
+the bindings of local functions and variables are determined statically by the
+surrounding program text, rather than the environment an expression is
+executed in. (In contrast,
+.I global
+functions and variables are always bound
+.I dynamically
+in Pure, so that they can easily be changed at any time during an interactive
+session.) In particular, if a function returns another (anonymous or local)
+function, the returned function captures the environment it was created in,
+i.e., it becomes a lexical
+.IR closure .
+.PP
+For instance, the following function, when invoked with a single argument x,
+creates another function which adds x to its argument:
 .sp
 .nf
-fact n::int    |
-fact n         = n*fact(n-1) \fBif\fP n>0;
-               = 1 \fBotherwise\fP;
+> foo x = bar \fBwith\fP bar y = x+y \fBend\fP;
+> \fBlet\fP f = foo 99; f;
+<<closure bar>>
+> f 10, f 20;
+109,119
 .fi
 .PP
-(This obviously becomes unwieldy if you have to deal with several numeric
-arguments, however, so in this case it is usually better to just use a
-polymorphic rule.)
-.PP
-Also note that
-.B int
-(the machine integers) and
-.B bigint
-(the GMP ``big'' integers) are really different kinds of objects, and thus if
-you want to define a function operating on both kinds of integers, you'll also
-have to provide equations for both. This also applies to equations matching
-against constant values of these types; in particular, a small integer
-constant like `0' only matches machine integers, not bigints; for the latter
-you'll have to use the ``big L'' notation `0L'.
-.PP
-When definining a function in terms of numeric values bound to a symbol, it's
-usually better to use a constant symbol rather than a variable for that
-purpose, since this will often allow the compiler to generate better code
-using constant folding and similar techniques. Example:
+This works no matter what other bindings of `x' may be in effect when the
+closure is invoked:
 .sp
 .nf
-> \fBextern\fP double atan(double);
-> \fBdef\fP pi = 4*atan 1.0;
-> foo x = 2*pi*x;
-> \fBlist\fP foo
-foo x = 2*3.14159265358979*x;
+> \fBlet\fP x = 77; f 10, f 20 \fBwhen\fP x = 88 \fBend\fP;
+109,119
 .fi
-.PP
-(If you take a look at the disassembled code for this function, you will find
-that the value 2*3.14159265358979 has actually been computed at compile time.)
-.PP
-Also, the LLVM backend will eliminate dead code automagically, which enables
-you to employ a constant computed at runtime to configure your code for
-different environments, without any runtime penalties:
-.sp
-.nf
-> \fBdef\fP running_on_windows = index sysinfo "mingw32" >= 0;
-> foo x = something x if running_on_windows;
->       = something_else x otherwise;
-.fi
-.PP
-In this case the code for one of the branches of foo will be completely
-eliminated, depending on whether your script runs on Windows or not.
 .PP
 .B External C functions.
 The interpreter always takes your
@@ -1568,6 +1645,13 @@ but also makes it very easy to have your program segfault all over the place.
 Therefore it is highly recommended that you wrap your lowlevel code in Pure
 routines and data structures which do all the checks necessary to ensure that
 only the right kind of data is passed to C routines.
+.PP
+.B Special forms.
+Special forms are recognized at compile time only. Thus the catch function as
+well as the logical connectives && and || and the sequencing operator $$ are
+only treated as special forms in direct (saturated) calls. They can still be
+used if you pass them around as function values or partial applications, but
+in this case they lose all their special call-by-name argument processing.
 .PP
 .B Stack size and tail recursion.
 Pure programs may need a considerable amount of stack space to handle
@@ -1597,25 +1681,29 @@ will loop forever if your platform supports the required optimizations:
 loop = loop;
 .fi
 .PP
-In the current implementation, a tail call will be eliminated \fIonly\fP if
-the call is done \fIdirectly\fP, i.e., through an explicit call, not through a
-(global or local) function variable. Otherwise the call will be handled by the
-runtime system which is written in C and can't do proper tail calls because C
-can't (at least not in a portable way). This also affects mutually recursive
-global function calls, since there the calls are handled in an indirect way,
-too, through an anonymous global variable. (This is done so that a global
-function definition can be changed at any time during an interactive session,
-without having to recompile the entire program.) However, mutual tail
-recursion does work with \fIlocal\fP functions, so it's easy to work around
-this limitation.
-.PP
-Scheme programmers should note that conditional expressions
-(\fBif\fP-\fBthen\fP-\fBelse\fP) are tail-recursive in both branches, just
-like in Scheme, while the logical operators && and || are
+This also works if your definition involves function parameters, guards and
+multiple equations, of course. Moreover, conditional expressions
+(\fBif\fP-\fBthen\fP-\fBelse\fP) are tail-recursive in both branches, and the
+sequence operator $$ is tail-recursive in its second operand. Note, however,
+that the logical operators && and || are
 .I not
-tail-recursive. This is because in Pure the logical operators always return a
-proper truth value (0 or 1) which wouldn't be possible with tail call
-semantics.
+tail-recursive in Pure, because they are required to
+.I always
+yield a proper truth value (0 or 1), which wouldn't be possible with tail call
+semantics. (The rationale behind this design decision is that it allows the
+compiler to generate much better code for logical expressions.)
+.PP
+There is one additional restriction in the current implementation, namely that
+a tail call will be eliminated \fIonly\fP if the call is done \fIdirectly\fP,
+i.e., through an explicit call, not through a (global or local) function
+variable. Otherwise the call will be handled by the runtime system which is
+written in C and can't do proper tail calls because C can't (at least not in a
+portable way). This also affects mutually recursive global function calls,
+since there the calls are handled in an indirect way, too, through an
+anonymous global variable. (This is done so that a global function definition
+can be changed at any time during an interactive session, without having to
+recompile the entire program.) However, mutual tail recursion does work with
+\fIlocal\fP functions, so it's easy to work around this limitation.
 .PP
 .B Handling of asynchronous signals.
 As described in section EXCEPTION HANDLING, signals delivered to the process
@@ -1627,24 +1715,33 @@ interrupted. To work around this, just add a call to another global function
 to your loop to make it interruptible. For instance:
 .sp
 .nf
-loop = loop \fBwhen\fP _ = check \fBend\fP;
+loop = check $$ loop;
 check = ();
 .fi
 .PP
-(Of course, the `check' function can actually do any processing required by
-your application. In that case you'd probably want the `loop' function to
-carry around some ``state'' argument which is modified by the `check'
-routine.) To handle signals while the above loop is executing, add an
-exception handler like the following:
+To handle signals while the above loop is executing, you can add an exception
+handler like the following:
 .sp
 .nf
-loop = loop \fBwhen\fP _ = catch handle check \fBend\fP
+loop = catch handle check $$ loop
 \fBwith\fP handle (signal k) = catch handle (...) \fBend\fP;
 .fi
 .PP
-By these means the entire loop remains tail-recursive. (Note the `catch
-handle' around the signal processing code which is needed for safety because
-another signal may arrive while the signal handler is being executed.)
+(Note the `catch handle' around the signal processing code which is needed for
+safety because another signal may arrive while the signal handler is being
+executed.)
+.PP
+Of course, in a real application the `check' function would most likely have
+to do some actual processing, too. In that case you'd probably want the `loop'
+function to carry around some ``state'' argument to be processed by the
+`check' routine, which then returns an updated state value for the next
+iteration. This can be implemented as follows:
+.sp
+.nf
+loop x = loop (catch handle (check x))
+\fBwith\fP handle (signal k) = catch handle (...) \fBend\fP;
+check x = ...;
+.fi
 .SH FILES
 .TP
 .B ~/.pure_history
@@ -1664,21 +1761,17 @@ is not set, it defaults to some default location specified at installation
 time.
 .TP
 .B PURE_INCLUDE
-Additional directories to be searched for included scripts (default:
-none). Uses the same colon-separated format as the
-.B PATH
-variable.
+Additional directories (in colon-separated format) to be searched for included
+scripts.
 .TP
 .B PURE_LIBRARY
-Additional directories to be searched for dynamic libraries (default:
-none). Uses the same colon-separated format as the
-.B PATH
-variable.
+Additional directories (in colon-separated format) to be searched for dynamic
+libraries.
 .TP
 .B PURE_MORE
 Shell command to be used for paging through output of the
 .B list
-command, when the interpreter runs in interactive mode (default: none).
+command, when the interpreter runs in interactive mode.
 .TP
 .B PURE_PS
 Command prompt used in the interactive command loop (">\ " by default).
