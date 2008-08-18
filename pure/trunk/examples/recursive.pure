@@ -39,10 +39,10 @@ tak x::double y::double z::double
 using system;
 
 main n::int
-= printf "Ack(3,%d): %d\n" (n, ack 3 n),
-  printf "Fib(%.1f): %.1f\n" (27.0+n, fib (27.0+n)),
-  printf "Tak(%d,%d,%d): %d\n" (m*3, m*2, m, tak (m*3) (m*2) m),
-  printf "Fib(3): %d\n" (fib 3),
+= printf "Ack(3,%d): %d\n" (n, ack 3 n) $$
+  printf "Fib(%.1f): %.1f\n" (27.0+n, fib (27.0+n)) $$
+  printf "Tak(%d,%d,%d): %d\n" (m*3, m*2, m, tak (m*3) (m*2) m) $$
+  printf "Fib(3): %d\n" (fib 3) $$
   printf "Tak(3.0,2.0,1.0): %.1f\n" (tak 3.0 2.0 1.0)
 when m = n-1 end;
 
