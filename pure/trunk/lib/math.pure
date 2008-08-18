@@ -468,6 +468,9 @@ pow (x%y) n::bigint	= pow x n % pow y n if n>0;
 			= 1L%1L otherwise;
 pow (x%y) n::double	= pow (x/y) n;
 pow (x%y) (n%m)		= pow (x/y) (n/m);
+pow x::int (n%m)        |
+pow x::bigint (n%m)     |
+pow x::double (n%m)     = pow x (n/m);
 
 // Negative powers of integers.
 pow x::int n::int	|
