@@ -252,12 +252,16 @@ the sequencing operator $$) which take some of their arguments using
 .I "call by name"
 semantics.
 .PP
+.B Expression syntax.
 The Pure language provides built-in support for machine integers (32 bit),
 bigints (implemented using GMP), floating point values (double precision
 IEEE), character strings (UTF-8 encoded) and generic C pointers (these don't
 have a syntactic representation in Pure, though, so they need to be created
 with external C functions). Truth values are encoded as machine integers (as
-you might expect, zero denotes ``false'' and any non-zero value ``true'').
+you might expect, zero denotes
+.B false
+and any non-zero value
+.BR true ).
 .PP
 Expressions consist of the following elements:
 .TP
@@ -398,28 +402,7 @@ Pure uses the keyword \fBwith\fP which better lines up with \fBcase\fP and
 \fBwhen\fP). Several functions can be defined in a single \fBwith\fP clause,
 and the definitions may consist of as many equations as you want.
 .PP
-Like in most modern functional languages, local functions and variables always
-use
-.IR "lexical binding" ,
-i.e., the value of a local name is completely determined by the surrounding
-program text.
-.PP
-Syntactically, the equational rules in definitions always look the same (see
-RULE SYNTAX below), therefore it is important to note the differences between
-\fBwith\fP expressions which define local functions, and the local variable
-bindings performed by \fBcase\fP and \fBwhen\fP expressions; the latter are
-also called \fIpattern bindings\fP.
-.PP
-While Haskell lets you do \fIboth\fP function definitions and pattern bindings
-in its \fBwhere\fP clauses, in Pure you have to use \fBwith\fP for the former
-and \fBwhen\fP for the latter. This is necessary because Pure does not
-distinguish between defined functions and constructors, and thus there is no
-magic to figure out whether an equation like `foo x = y' by itself is meant as
-a definition of a function foo with formal parameter x and return value y, or
-a definition binding the local variable x by matching the constructor pattern
-foo x against the value y.
-.PP
-.B Expression syntax.
+.B Operators and precedence.
 Expressions are parsed according to the following precedence rules: Lambda
 binds most weakly, followed by
 .BR when ,
@@ -495,9 +478,9 @@ RULE SYNTAX below for details.
 .TP
 .B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
 Binds every variable in the left-hand side pattern to the corresponding
-subterm of the evaluated right-hand side. This works like a pattern binding in
-a \fBwhen\fP clause, but serves to bind \fIglobal\fP variables occurring free
-on the right-hand side of other function and variable definitions.
+subterm of the evaluated right-hand side. This works like a \fBwhen\fP clause,
+but serves to bind \fIglobal\fP variables occurring free on the right-hand
+side of other function and variable definitions.
 .TP
 .B Constant bindings: def\fR \fIlhs\fR = \fIrhs\fR;
 An alternative form of \fBlet\fP which binds constant symbols rather than
@@ -512,9 +495,110 @@ A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
 .PP
+.B Scoping rules.
+A few remarks about the scope of identifiers and other symbols are in order
+here. Like most modern functional languages, Pure uses
+.I lexical
+or
+.I static
+binding for local functions and variables. What this means is that the binding
+of a local name is completely determined at compile time by the surrounding
+program text, and does not change as the program is being executed. In
+particular, if a function returns another (anonymous or local) function, the
+returned function captures the environment it was created in, i.e., it becomes
+a (lexical)
+.IR closure .
+For instance, the following function, when invoked with a single argument x,
+returns another function which adds x to its argument:
+.sp
+.nf
+> foo x = bar \fBwith\fP bar y = x+y \fBend\fP;
+> \fBlet\fP f = foo 99; f;
+<<closure bar>>
+> f 10, f 20;
+109,119
+.fi
+.PP
+This works the same no matter what other bindings of `x' may be in effect when
+the closure is invoked:
+.sp
+.nf
+> \fBlet\fP x = 77; f 10, f 20 \fBwhen\fP x = 88 \fBend\fP;
+109,119
+.fi
+.PP
+Global bindings of constant, variable and function symbols work a bit
+differently, though. Like many languages which are to be used interactively,
+Pure binds global symbols
+.IR dynamically ,
+so that they can be changed easily at any time during an interactive
+session. This is mainly a convenience for interactive usage, but works the
+same no matter whether the source code is entered interactively or being read
+from a script, in order to ensure consistent behaviour between interactive
+and batch mode operation.
+.PP
+So, for instance, you can easily bind a global variable to a new value by just
+entering a corresponding
+.B let
+command:
+.sp
+.nf
+> foo x = c*x;
+> foo 99;
+c*99
+> \fBlet\fP c = 2; foo 99;
+198
+> \fBlet\fP c = 3; foo 99;
+297
+.fi
+.PP
+This works pretty much like global variables in imperative languages, but note
+that in Pure the value of a global variable can \fInot\fP be changed inside a
+function definition. Thus referential transparency is unimpaired; while the
+value of an expression depending on a global variable may change between
+different computations, the variable will always take the same value in a
+single evaluation.
+.PP
+Similarly, you can also add new equations to an existing function at any time:
+.sp
+.nf
+> fact 0 = 1;
+> fact n::int = n*fact (n-1) \fBif\fP n>0;
+> fact 10;
+3628800
+> fact 10.0;
+fact 10.0
+> fact 1.0 = 1.0;
+> fact n::double = n*fact (n-1) \fBif\fP n>1;
+> fact 10.0;
+3628800.0
+> fact 10;
+3628800
+.fi
+.PP
+(In interactive mode, it is even possible to completely erase constant,
+variable and function definitions. See section INTERACTIVE USAGE for details.)
+.PP
+So, while the meaning of a local symbol never changes once its definition has
+been processed, the definition of global functions and variables my well
+evolve while the program is being processed. When you evaluate an expression
+(to print its value, or to bind it to a variable or constant symbol), the
+interpreter will always use the
+.I latest
+definitions of all global constants, variables and functions used in the
+expression, up to the current point in the source where the expression is
+evaluated. Thus you have to make sure that, when you evaluate an expression,
+all the functions, constants and variables it uses have already been defined
+at this point in the source (no matter whether the source is being entered
+interactively, or read from a script). (Note that constant symbols work a bit
+differently from variables in that their values are not supposed to change
+once they have been defined, and the values will be substituted into other
+definitions rather than being looked up at runtime. But you still have to
+define them before they can be used.)
+.PP
 .B Examples.
-Here are a few examples showing how the above constructs are used (see the
-following section for a closer discussion of the rule syntax).
+Here are a few examples of simple Pure programs (see the following section for
+a closer discussion of the rule syntax).
 .PP
 The factorial:
 .sp
@@ -593,14 +677,14 @@ queens n        = search n 1 [] \fBwith\fP
 .SH RULE SYNTAX
 Basically, the same rule syntax is used to define functions at the toplevel
 and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP,
-\fBlet\fP and \fBdef\fP constructs for the purpose of performing pattern
-bindings (however, for obvious reasons guards are not permitted in \fBwhen\fP,
+\fBlet\fP and \fBdef\fP constructs for the purpose of binding variable values
+(however, for obvious reasons guards are not permitted in \fBwhen\fP,
 \fBlet\fP and \fBdef\fP clauses). When matching against a function call or the
 subject term in a \fBcase\fP expression, the rules are always considered in
 the order in which they are written, and the first matching rule (whose guard
 evaluates to a nonzero value, if applicable) is picked. (Again, the \fBwhen\fP
 construct is treated differently, because each rule is actually a separate
-pattern binding.)
+definition.)
 .PP
 In any case, the left-hand side pattern must not contain repeated variables
 (i.e., rules must be ``left-linear''), except for the anonymous variable `_'
@@ -1413,8 +1497,9 @@ below existing ones:
 > \fBunderride\fP
 .fi
 .SH CAVEATS AND NOTES
-This section deals with common pitfalls and describes other quirks and
-limitations of the current implementation.
+This section deals with some common pitfalls, as well as quirks and
+limitations of the current implementation, and lists some useful tips and
+tricks.
 .PP
 .B Debugging.
 There's no symbolic debugger yet. So
@@ -1436,24 +1521,33 @@ a@(foo x y) = a,x,y;
 .fi
 .PP
 This is because the spine of a function application is not available when the
-function is called at runtime. ``As'' patterns in pattern bindings are not
-affected by this restriction since the entire value to be matched is available
-at runtime. For instance:
+function is called at runtime. ``As'' patterns in pattern bindings
+(\fBcase\fP, \fBwhen\fP) are not affected by this restriction since the entire
+value to be matched is available at runtime. For instance:
 .sp
 .nf
 > \fBcase\fP bar 99 \fBof\fP y@(bar x) = y,x+1; \fBend\fP;
 bar 99,100
 .fi
 .PP
-.B Manipulating function applications.
-The ``head = function'' rule means that the head symbol f of an application f
-x1 ... xn occurring on (or inside) the left-hand side of an equation, pattern
-binding, or pattern-matching lambda expression, is always interpreted as a
-literal function symbol (not a variable). This implies that you cannot match
-the ``function'' component of an application against a variable, at least not
-directly. However, an anonymous ``as'' pattern like f@_ will do the trick,
-since the anonymous variable is always recognized, even if it occurs as the
-head symbol of a function application.
+.B Head = function.
+``As'' patterns are also a useful device if you need to manipulate function
+applications in a generic way. Note that the ``head = function'' rule means
+that the head symbol f of an application f x1 ... xn occurring on (or inside)
+the left-hand side of an equation, variable binding, or pattern-matching
+lambda expression, is always interpreted as a literal function symbol (not a
+variable). This implies that you cannot match the ``function'' component of an
+application against a variable, at least not directly. An anonymous ``as''
+pattern like f@_ does the trick, however, since the anonymous variable is
+always recognized, even if it occurs as the head symbol of a function
+application. Here's a little example which demonstrates how you can convert a
+function application to a list containing the function and all arguments:
+.sp
+.nf
+> foo x = a [] x \fBwith\fP a xs (x@_ y) = a (y:xs) x; a xs x = x:xs \fBend\fP;
+> foo (a b c d);
+[a,b,c,d]
+.fi
 .PP
 This may seem a little awkward, but as a matter of fact the ``head =
 function'' rule is quite useful since it covers the common cases without
@@ -1462,6 +1556,40 @@ symbols). On the other hand, generic rules operating on arbitrary function
 applications are not all that common, so having to ``escape'' a variable using
 the anonymous ``as'' pattern trick is a small price to pay for that
 convenience.
+.PP
+.B With or when?
+A common source of confusion for Haskell renegades is that Pure provides two
+different constructs to bind local function and variable symbols,
+respectively, namely
+.BR with ,
+which is used for local function definitions, and
+.BR when ,
+which binds local variables. This distinction is necessary because Pure does
+not segregate defined functions and constructors, and thus there is no magic
+to figure out whether an equation like `foo x = y' by itself is meant as a
+definition of a function foo with formal parameter x and return value y, or a
+definition binding the local variable x by matching the constructor pattern
+foo x against the value y. The
+.B with
+construct does the former,
+.B when
+the latter.
+.PP
+Another pitfall is that, since
+.B with
+and
+.B when
+clauses are tacked on to the end of the expression they belong to, they have
+to be read in reverse, if you want to figure out what is actually going on
+there. Also note that since
+.B with
+and
+.B when
+are part of the expression, not the rule syntax, these clauses cannot span
+both the right-hand side and the guard of a rule. Usually it's easy to work
+around this with conditional and
+.B case
+expressions, though.
 .PP
 .B Numeric calculations.
 If possible, you should decorate numeric variables on the left-hand sides of
@@ -1483,8 +1611,8 @@ fact n         = n*fact(n-1) \fBif\fP n>0;
 .fi
 .PP
 (This obviously becomes unwieldy if you have to deal with several numeric
-arguments, however, so in this case it is usually better to just use a
-polymorphic rule.)
+arguments of different types, however, so in this case it is usually better to
+just use a polymorphic rule.)
 .PP
 Also note that
 .B int
@@ -1497,10 +1625,12 @@ against constant values of these types; in particular, a small integer
 constant like `0' only matches machine integers, not bigints; for the latter
 you'll have to use the ``big L'' notation `0L'.
 .PP
-When definining a function in terms of numeric values bound to a symbol, it's
-usually better to use a constant symbol rather than a variable for that
-purpose, since this will often allow the compiler to generate better code
-using constant folding and similar techniques. Example:
+.B Working with constants.
+When definining a function in terms of constant values which have to be
+computed beforehand, it's usually better to use a constant symbol (rather than
+a variable or a parameterless function) for that purpose, since this will
+often allow the compiler to generate better code using constant folding and
+similar techniques. Example:
 .sp
 .nf
 > \fBextern\fP double atan(double);
@@ -1526,108 +1656,49 @@ different environments, without any runtime penalties:
 In this case the code for one of the branches of foo will be completely
 eliminated, depending on whether your script runs on Windows or not.
 .PP
-.B Global definitions.
-Defined constants (symbols bound with \fBdef\fP) are somewhat limited in scope
-compared to (\fBlet\fP-bound) variable definitions, since the value bound to
-the constant symbol must be usable at compile time, so that it can be
-substituted into other definitions. Thus, while there is no \fIa priori\fP
-restriction on the computations you can perform to obtain the value of the
-constant, the value must not be a pointer object (other than the null
-pointer), or an anonymous closure (which also rules out local functions,
-because these cannot be referred to by their names at the toplevel), or an
-aggregate value containing any such values.
+On the other hand, constant definitions are somewhat limited in scope compared
+to variable definitions, since the value bound to the constant symbol must be
+usable at compile time, so that it can be substituted into other
+definitions. Thus, while there is no \fIa priori\fP restriction on the
+computations you can perform to obtain the value of the constant, the value
+must not be a pointer object (other than the null pointer), or an anonymous
+closure (which also rules out local functions, because these cannot be
+referred to by their names at the toplevel), or an aggregate value containing
+any such values.
 .PP
-Global variables are also more versatile in that they can be redefined at any
-time, which will immediately affect all uses of the variable in function
-definitions. For instance:
+Constant symbols also differ from variables in that they cannot be redefined
+(that's their purpose after all) and will only take effect on subsequent
+definitions. E.g.:
 .sp
 .nf
+> \fBdef\fP c = 2;
 > foo x = c*x;
+> \fBlist\fP foo
+foo x = 2*x;
 > foo 99;
-c*99
-> \fBlet\fP c = 2; foo 99;
 198
-> \fBlet\fP c = 3; foo 99;
-297
+> \fBdef\fP c = 3;
+<stdin>:5.0-8: symbol 'c' is already defined as a constant
 .fi
 .PP
-This works pretty much like global variables in imperative languages, but in
-Pure the value of a global variable can \fInot\fP be changed inside a function
-definition. Thus referential transparency is unimpaired; while the value of an
-expression depending on a global variable may change between different
-computations, the variable will always take the same value in a single
-evaluation.
-.PP
-Constant symbols work differently in that they cannot be redefined (that's
-their purpose after all) and will only take effect on subsequent
-definitions. E.g., continuing the previous example:
+Well, in fact this not the full truth because in interactive mode it \fIis\fP
+possible to redefine constant symbols after all, if the old definition is
+first purged with the \fBclear\fP command. However, this won't affect any
+other existing definitions:
 .sp
 .nf
-> \fBdef\fP d = 2;
-> bar x = d*x;
+> \fBclear\fP c
+> \fBdef\fP c = 3;
+> bar x = c*x;
 > \fBlist\fP foo bar
-bar x = 2*x;
-foo x = c*x;
-> bar 99;
-198
-> \fBdef\fP d = 3;
-<stdin>:9.0-8: symbol 'd' is already defined as a constant
-.fi
-.PP
-Well, in fact it \fIis\fP possible to redefine constant symbols when running
-the interpreter in interactive mode, but only after the old definition is
-purged with the \fBclear\fP command, and this won't affect any other existing
-definitions:
-.sp
-.nf
-> \fBclear\fP d
-> \fBdef\fP d = 3;
-> \fBlist\fP bar
-bar x = 2*x;
+foo x = 2*x;
+bar x = 3*x;
 .fi
 .PP
 (You'll also have to purge any existing definition of a variable if you want
 to redefine it as a constant, or vice versa, since Pure won't let you redefine
 an existing constant or variable as a different kind of symbol. The same also
 holds if a symbol is currently defined as a function.)
-.PP
-.B Local definitions.
-In the PURE OVERVIEW section, we briefly mentioned that local function and
-variable bindings always use
-.I static
-a.k.a.
-.I lexical scoping
-in Pure, which is in line with most other modern FPLs. What this means is that
-the bindings of local functions and variables are determined statically by the
-surrounding program text, rather than the environment an expression is
-executed in. (In contrast,
-.I global
-functions and variables are always bound
-.I dynamically
-in Pure, so that they can easily be changed at any time during an interactive
-session.) In particular, if a function returns another (anonymous or local)
-function, the returned function captures the environment it was created in,
-i.e., it becomes a lexical
-.IR closure .
-.PP
-For instance, the following function, when invoked with a single argument x,
-creates another function which adds x to its argument:
-.sp
-.nf
-> foo x = bar \fBwith\fP bar y = x+y \fBend\fP;
-> \fBlet\fP f = foo 99; f;
-<<closure bar>>
-> f 10, f 20;
-109,119
-.fi
-.PP
-This works no matter what other bindings of `x' may be in effect when the
-closure is invoked:
-.sp
-.nf
-> \fBlet\fP x = 77; f 10, f 20 \fBwhen\fP x = 88 \fBend\fP;
-109,119
-.fi
 .PP
 .B External C functions.
 The interpreter always takes your
