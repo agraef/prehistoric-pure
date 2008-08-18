@@ -32,7 +32,7 @@ extern int pure_random() = random, void pure_srandom(int) = srandom;
 
 extern double sqrt(double) = c_sqrt;
 
-sqrt x::double		= c_sqrt x if x>=0;
+sqrt x::double = c_sqrt x if x>=0;
 sqrt x::int | sqrt x::bigint = sqrt (double x);
 
 /* Exponential function and logarithms. */
@@ -185,7 +185,8 @@ conj x::double	= x;
 
 /* Complex sqrt. */
 
-sqrt (x+:y)	= sqrt (x*x+y*y) * (cos (t/2) +: sin (t/2));
+sqrt (x+:y)	= sqrt r * (cos t +: sin t)
+		  when r = sqrt (x*x+y*y); t = atan2 y x/2 end;
 sqrt (r<:t)	= sqrt r <: t/2;
 
 // Complex square roots of negative reals.
