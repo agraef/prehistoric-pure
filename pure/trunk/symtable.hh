@@ -49,6 +49,7 @@ public:
   symbol& cons_sym();
   symbol& void_sym();
   symbol& pair_sym();
+  symbol& seq_sym();
   symbol& neg_sym() { return sym("neg"); }
   symbol& not_sym();
   symbol& bitnot_sym();

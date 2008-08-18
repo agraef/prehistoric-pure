@@ -4233,7 +4233,12 @@ Value *interpreter::codegen(expr x)
 	       (v = funcall(e, n, x)))
 	// recursive call to a global function
 	return v;
-      else if (n == 2 && f.tag() == symtab.catch_sym().f) {
+      else if (n == 2 && f.ftag() == symtab.seq_sym().f) {
+	// sequence operator
+	Value *u = codegen(x.xval1().xval2());
+	act_builder().CreateCall(module->getFunction("pure_freenew"), u);
+	return codegen(x.xval2());
+      } else if (n == 2 && f.tag() == symtab.catch_sym().f) {
 	// catch an exception; create a little anonymous closure to be called
 	// through pure_catch()
 	expr h = x.xval1().xval2(), y = x.xval2();

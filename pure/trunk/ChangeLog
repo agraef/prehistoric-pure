@@ -1,3 +1,11 @@
+2008-08-18  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc (codegen): Generate tail-recursive code for
+	sequence operator.
+
+	* lib/prelude.pure, lib/primitives.pure: Definition of $$ sequence
+	operator.
+
 2008-08-17  Albert Graef  <Dr.Graef@t-online.de>
 
 	* pure.cc, interpreter.cc/h, runtime.cc: Overhaul of the script
