@@ -120,6 +120,15 @@ symbol& symtable::pair_sym()
     return sym(",", 1, infixr);
 }
 
+symbol& symtable::seq_sym()
+{
+  symbol *_sym = lookup("$$");
+  if (_sym)
+    return *_sym;
+  else
+    return sym("$$", 0, infixl);
+}
+
 symbol& symtable::not_sym()
 {
   symbol *_sym = lookup("not");

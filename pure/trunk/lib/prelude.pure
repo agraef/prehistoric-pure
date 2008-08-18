@@ -45,6 +45,7 @@ nullary    [] ();		// empty list and tuple
 /* Operators. Note that the parser will automagically give unary minus the
    same precedence level as the corresponding binary operator. */
 
+infixl 0   $$ ;			// sequence operator
 infixr 0   $ ;			// right-associative application
 infixr 1   , ;			// pair (tuple)
 infix  2   => ;			// mapsto constructor
