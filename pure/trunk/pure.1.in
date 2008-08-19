@@ -189,11 +189,11 @@ with additional debugging information.
 .SH PURE OVERVIEW
 .PP
 Pure is a fairly simple language. Programs are collections of equational rules
-defining functions, \fBdef\fP and \fBlet\fP commands binding global constant
-and variable symbols, and expressions to be evaluated. Here's a simple
-example, entered interactively in the interpreter (note that the ``>''
-symbol at the beginning of each input line is the interpreter's default
-command prompt):
+defining functions, \fBconst\fP and \fBlet\fP commands binding global
+constants and variables, and expressions to be evaluated. Here's a simple
+example, entered interactively in the interpreter (note that the ``>'' symbol
+at the beginning of each input line is the interpreter's default command
+prompt):
 .sp
 .nf
 > // my first Pure example
@@ -314,14 +314,18 @@ a.k.a.
 .B nullary
 symbols, see below).
 .TP
-.B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x
+.B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x, []
 As indicated, these take the form of an identifier or a sequence of ASCII
 punctuation symbols, as defined in the source using corresponding
-\fBprefix\fP, \fBpostfix\fP and \fBinfix\fP declarations, which are discussed
-in section DECLARATIONS. Enclosing an operator in parentheses, such as (+) or
-(\fBnot\fP), turns it into an ordinary function symbol. Symbols can also be
-defined as \fBnullary\fP to denote special constant symbols. See below for
-further details.
+\fBprefix\fP, \fBpostfix\fP, \fBinfix\fP and \fBnullary\fP declarations, which
+are discussed in section DECLARATIONS. Enclosing an operator in parentheses,
+such as (+) or (\fBnot\fP), turns it into an ordinary function symbol. Symbols
+declared as \fBnullary\fP denote special constant symbols which simply stand
+for themselves. Technically, these are just ordinary identifiers; however, the
+.B nullary
+attribute tells the compiler that when such an identifier occurs on the
+left-hand side of an equation, it is to be interpreted as a constant rather
+than a variable (see above).
 .TP
 .B Lists and tuples: \fR[x,y,z], x..y, x:xs, x,y,z
 The necessary constructors to build lists and tuples are actually defined in
@@ -482,13 +486,17 @@ subterm of the evaluated right-hand side. This works like a \fBwhen\fP clause,
 but serves to bind \fIglobal\fP variables occurring free on the right-hand
 side of other function and variable definitions.
 .TP
-.B Constant bindings: def\fR \fIlhs\fR = \fIrhs\fR;
-An alternative form of \fBlet\fP which binds constant symbols rather than
-variables. Like \fBlet\fP, this binds the variables on the left-hand side to
-the corresponding values on the evaluated right-hand side. The difference is
-that constant symbols can only be defined once, after which their values are
-substituted directly into the right-hand sides of other definitions, rather
-than being evaluated at runtime.
+.B Constant bindings: const\fR \fIlhs\fR = \fIrhs\fR;
+An alternative form of \fBlet\fP which defines constants rather than
+variables. (These are not to be confused with
+.B nullary
+symbols which simply stand for themselves!) Like \fBlet\fP, this construct
+binds the variable symbols on the left-hand side to the corresponding values
+on the evaluated right-hand side. The difference is that
+.B const
+symbols can only be defined once, after which their values are substituted
+directly into the right-hand sides of other definitions, rather than being
+looked up at runtime.
 .TP
 .B Toplevel expressions: \fIexpr\fR;
 A singleton expression at the toplevel, terminated with a semicolon, simply
@@ -527,9 +535,9 @@ the closure is invoked:
 109,119
 .fi
 .PP
-Global bindings of constant, variable and function symbols work a bit
-differently, though. Like many languages which are to be used interactively,
-Pure binds global symbols
+Global bindings of variable and function symbols work a bit differently,
+though. Like many languages which are to be used interactively, Pure binds
+global symbols
 .IR dynamically ,
 so that they can be changed easily at any time during an interactive
 session. This is mainly a convenience for interactive usage, but works the
@@ -580,21 +588,17 @@ fact 10.0
 variable and function definitions. See section INTERACTIVE USAGE for details.)
 .PP
 So, while the meaning of a local symbol never changes once its definition has
-been processed, the definition of global functions and variables my well
+been processed, the definition of global functions and variables may well
 evolve while the program is being processed. When you evaluate an expression
-(to print its value, or to bind it to a variable or constant symbol), the
-interpreter will always use the
+(to print its value, or to bind it to a variable symbol), the interpreter will
+always use the
 .I latest
 definitions of all global constants, variables and functions used in the
 expression, up to the current point in the source where the expression is
 evaluated. Thus you have to make sure that, when you evaluate an expression,
 all the functions, constants and variables it uses have already been defined
 at this point in the source (no matter whether the source is being entered
-interactively, or read from a script). (Note that constant symbols work a bit
-differently from variables in that their values are not supposed to change
-once they have been defined, and the values will be substituted into other
-definitions rather than being looked up at runtime. But you still have to
-define them before they can be used.)
+interactively, or read from a script).
 .PP
 .B Examples.
 Here are a few examples of simple Pure programs (see the following section for
@@ -632,6 +636,24 @@ details on this).
 fact n = loop 1 n \fBwith\fP
   loop p n = \fBif\fP n>0 \fBthen\fP loop (p*n) (n-1) \fBelse\fP p;
 \fBend\fP;
+.fi
+.PP
+Here is an example showing how constants are defined and used. Constant
+definitions take pretty much the same form as variable definitions with
+.B let
+(see above), but work more like the definition of a parameterless function
+whose value is precomputed at compile time:
+.sp
+.nf
+> \fBextern\fP double atan(double);
+> \fBconst\fP pi = 4*atan 1.0;
+> pi;
+3.14159265358979
+> foo x = 2*pi*x;
+> \fBlist\fP foo
+foo x = 2*3.14159265358979*x;
+> foo 1;
+6.28318530717958
 .fi
 .PP
 A little list comprehension example (Erathosthenes' classical prime sieve):
@@ -677,9 +699,9 @@ queens n        = search n 1 [] \fBwith\fP
 .SH RULE SYNTAX
 Basically, the same rule syntax is used to define functions at the toplevel
 and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP,
-\fBlet\fP and \fBdef\fP constructs for the purpose of binding variable values
+\fBlet\fP and \fBconst\fP constructs for the purpose of binding variable values
 (however, for obvious reasons guards are not permitted in \fBwhen\fP,
-\fBlet\fP and \fBdef\fP clauses). When matching against a function call or the
+\fBlet\fP and \fBconst\fP clauses). When matching against a function call or the
 subject term in a \fBcase\fP expression, the rules are always considered in
 the order in which they are written, and the first matching rule (whose guard
 evaluates to a nonzero value, if applicable) is picked. (Again, the \fBwhen\fP
@@ -1285,7 +1307,7 @@ Disassembles pattern matching automata. Works like the
 option of the interpreter.
 .TP
 .B -c
-Print information about constant symbols.
+Print information about defined constants.
 .TP
 .B -d
 Disassembles LLVM IR, showing the generated LLVM assembler code of a
@@ -1300,7 +1322,7 @@ indices, subterm paths). Works like the
 option of the interpreter.
 .TP
 .B -f
-Print information about function symbols.
+Print information about defined functions.
 .TP
 .B -g
 Indicates that the following symbols are actually shell glob patterns and that
@@ -1326,7 +1348,7 @@ MODE section below for information about the notion of temporary definition
 levels.
 .TP
 .B -v
-Print information about variable symbols.
+Print information about defined variables.
 .PP
 If none of the
 .BR -c ,
@@ -1497,9 +1519,9 @@ below existing ones:
 > \fBunderride\fP
 .fi
 .SH CAVEATS AND NOTES
-This section deals with some common pitfalls, as well as quirks and
-limitations of the current implementation, and lists some useful tips and
-tricks.
+This section is a grab bag of useful tips and tricks, common pitfalls, quirks
+and limitations of the current implementation and information on how to deal
+with them.
 .PP
 .B Debugging.
 There's no symbolic debugger yet. So
@@ -1558,30 +1580,31 @@ the anonymous ``as'' pattern trick is a small price to pay for that
 convenience.
 .PP
 .B With or when?
-A common source of confusion for Haskell renegades is that Pure provides two
+A common source of confusion for Haskellers is that Pure provides two
 different constructs to bind local function and variable symbols,
-respectively, namely
-.BR with ,
-which is used for local function definitions, and
-.BR when ,
-which binds local variables. This distinction is necessary because Pure does
-not segregate defined functions and constructors, and thus there is no magic
-to figure out whether an equation like `foo x = y' by itself is meant as a
-definition of a function foo with formal parameter x and return value y, or a
-definition binding the local variable x by matching the constructor pattern
-foo x against the value y. The
+respectively. This distinction is necessary because Pure does not segregate
+defined functions and constructors, and thus there is no magic to figure out
+whether an equation like `foo x = y' by itself is meant as a definition of a
+function foo with formal parameter x and return value y, or a definition
+binding the local variable x by matching the constructor pattern foo x against
+the value y. The
 .B with
 construct does the former,
 .B when
 the latter.
 .PP
-Another pitfall is that, since
+Another pitfall is that
 .B with
 and
 .B when
-clauses are tacked on to the end of the expression they belong to, they have
-to be read in reverse, if you want to figure out what is actually going on
-there. Also note that since
+clauses are tacked on to the end of the expression they belong to, which
+mimics mathematical notation but may be unfamilar if you're more accustomed to
+languages from the Algol/Pascal/C family. If you want to figure out what is
+actually going on there, it's usually best to read nested scopes ``in
+reverse'' (proceeding from the rightmost/outermost to the leftmost/innermost
+clause).
+.PP
+Also note that since
 .B with
 and
 .B when
@@ -1625,16 +1648,17 @@ against constant values of these types; in particular, a small integer
 constant like `0' only matches machine integers, not bigints; for the latter
 you'll have to use the ``big L'' notation `0L'.
 .PP
-.B Working with constants.
+.B Constant definitions.
 When definining a function in terms of constant values which have to be
-computed beforehand, it's usually better to use a constant symbol (rather than
-a variable or a parameterless function) for that purpose, since this will
-often allow the compiler to generate better code using constant folding and
-similar techniques. Example:
+computed beforehand, it's usually better to use a
+.B const
+definition (rather than defining a variable or a parameterless function) for
+that purpose, since this will often allow the compiler to generate better code
+using constant folding and similar techniques. Example:
 .sp
 .nf
 > \fBextern\fP double atan(double);
-> \fBdef\fP pi = 4*atan 1.0;
+> \fBconst\fP pi = 4*atan 1.0;
 > foo x = 2*pi*x;
 > \fBlist\fP foo
 foo x = 2*3.14159265358979*x;
@@ -1648,47 +1672,46 @@ you to employ a constant computed at runtime to configure your code for
 different environments, without any runtime penalties:
 .sp
 .nf
-> \fBdef\fP running_on_windows = index sysinfo "mingw32" >= 0;
-> foo x = something x \fBif\fP running_on_windows;
->       = something_else x \fBotherwise\fP;
+\fBconst\fP win = index sysinfo "mingw32" >= 0;
+check boy = bad boy \fBif\fP win;
+          = good boy \fBotherwise\fP;
 .fi
 .PP
-In this case the code for one of the branches of foo will be completely
-eliminated, depending on whether your script runs on Windows or not.
+In this case the code for one of the branches of `check' will be completely
+eliminated, depending on the outcome of the configuration check.
 .PP
 On the other hand, constant definitions are somewhat limited in scope compared
-to variable definitions, since the value bound to the constant symbol must be
-usable at compile time, so that it can be substituted into other
-definitions. Thus, while there is no \fIa priori\fP restriction on the
-computations you can perform to obtain the value of the constant, the value
-must not be a pointer object (other than the null pointer), or an anonymous
-closure (which also rules out local functions, because these cannot be
-referred to by their names at the toplevel), or an aggregate value containing
-any such values.
+to variable definitions, since the bound value must be usable at compile time,
+so that it can be substituted into other definitions. Thus, while there is no
+\fIa priori\fP restriction on the computations you can perform to obtain the
+value of the constant, the value must not be a pointer object (other than the
+null pointer), or an anonymous closure (which also rules out local functions,
+because these cannot be referred to by their names at the toplevel), or an
+aggregate value containing any such values.
 .PP
-Constant symbols also differ from variables in that they cannot be redefined
-(that's their purpose after all) and will only take effect on subsequent
+Constants also differ from variables in that they cannot be redefined (that's
+their purpose after all) and will only take effect on subsequent
 definitions. E.g.:
 .sp
 .nf
-> \fBdef\fP c = 2;
+> \fBconst\fP c = 2;
 > foo x = c*x;
 > \fBlist\fP foo
 foo x = 2*x;
 > foo 99;
 198
-> \fBdef\fP c = 3;
+> \fBconst\fP c = 3;
 <stdin>:5.0-8: symbol 'c' is already defined as a constant
 .fi
 .PP
 Well, in fact this not the full truth because in interactive mode it \fIis\fP
-possible to redefine constant symbols after all, if the old definition is
-first purged with the \fBclear\fP command. However, this won't affect any
-other existing definitions:
+possible to redefine constants after all, if the old definition is first
+purged with the \fBclear\fP command. However, this won't affect any other
+existing definitions:
 .sp
 .nf
 > \fBclear\fP c
-> \fBdef\fP c = 3;
+> \fBconst\fP c = 3;
 > bar x = c*x;
 > \fBlist\fP foo bar
 foo x = 2*x;
