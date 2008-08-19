@@ -41,7 +41,10 @@ DLL=@DLLEXT@
 
 CXX = @CXX@
 INSTALL = @INSTALL@
+
+ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
+ECHO_T = @ECHO_T@
 
 # Linker flags and required libraries. These are determined automatically by
 # configure, but if necessary you can also change these on the command line.
@@ -264,8 +267,8 @@ $(srcdir)/test/prelude.log: lib/prelude.pure lib/primitives.pure lib/strings.pur
 
 check: pure
 	@ echo Running tests.
-	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: "; if ./pure $(ECHO_N) -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo passed; else echo FAILED; fi)
-	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: "; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo passed; else echo FAILED; fi; done)
+	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: $(ECHO_C)"; if ./pure -n -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi)
+	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: $(ECHO_C)"; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi; done)
 
 # DO NOT DELETE
 
