@@ -12,18 +12,18 @@ using system;   // imports printf, time, ctime, gmtime, gettimeofday, strftime
 // diytime = c_time (pointer 0);
 
 // some constants in whole days
-def mdayposix  = 1856305;// Mayan day for the posix epoch 1 Jan 1970
-def jdayposix  = 2440588;// Julian day (since 1 Jan 4713 BC) for the posix epoch
-def cycledays  = 1872000;// end of cycle: total days in 13 Baktuns
+const mdayposix  = 1856305;// Mayan day for the posix epoch 1 Jan 1970
+const jdayposix  = 2440588;// Julian day (since 1 Jan 4713 BC) for the posix epoch
+const cycledays  = 1872000;// end of cycle: total days in 13 Baktuns
 // some constants in whole seconds
-def secsinday  = 86400;  // number of seconds in a day
-def trueyear   = 31556941;// current true year (divisible by 13) 
-def myyear     = 31556943;// div by 2277, secsinday compatible, 365.2424 days
-def gregyear   = 31556952;// div by 40824, mean gregorian year, 365.2425 days
-def lunarmonth = 2551443; // duration of the lunar synodic month
-def fullmoon   = 1213810200;// 18th June 2008, 17:30, full moon in posix seconds
-def venussyn   = 50450688;// duration of the Venus synodic cycle
-def venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
+const secsinday  = 86400;  // number of seconds in a day
+const trueyear   = 31556941;// current true year (divisible by 13) 
+const myyear     = 31556943;// div by 2277, secsinday compatible, 365.2424 days
+const gregyear   = 31556952;// div by 40824, mean gregorian year, 365.2425 days
+const lunarmonth = 2551443; // duration of the lunar synodic month
+const fullmoon   = 1213810200;// 18th June 2008, 17:30, full moon in posix seconds
+const venussyn   = 50450688;// duration of the Venus synodic cycle
+const venusinf   = 1187409600;// 18th August 2007, 4am Venus inferior conjunction
 
 /******************************************************************************/   
 // first some functions generally useful in Pure:

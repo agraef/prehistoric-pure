@@ -1,3 +1,11 @@
+2008-08-19  Albert Graef  <Dr.Graef@t-online.de>
+
+	* parser.yy, lexer.ll, printer.cc, etc.: Renamed the 'def' keyword
+	to 'const', as originally proposed by Eddie Rucker. ('def' is
+	still a reserved keyword, since it's soon going to be used for
+	macro definitions.) Scripts and syntax highlighting files in the
+	distribution have been updated accordingly.
+
 2008-08-18  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (codegen): Generate tail-recursive code for

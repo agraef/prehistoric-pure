@@ -20,7 +20,7 @@
 
 /* IEEE floating point infinities and NaNs. */
 
-def inf = 1.0e307 * 1.0e307; def nan = inf-inf;
+const inf = 1.0e307 * 1.0e307; const nan = inf-inf;
 
 /* Random number generator. This uses the Mersenne twister, in order to avoid
    bad generators present in some C libraries. Returns pseudo random ints in
@@ -48,7 +48,7 @@ log x::int | log x::bigint = log (double x);
 
 /* Euler's number. */
 
-def e = exp 1.0;
+const e = exp 1.0;
 
 /* Trigonometric functions. */
 
@@ -71,7 +71,7 @@ atan2 x::double y::int | atan2 x::double y::bigint = atan2 x (double y);
 
 /* Ludolph's number. */
 
-def pi = 4.0*atan 1.0;
+const pi = 4.0*atan 1.0;
 
 /* Hyperbolic functions. */
 
@@ -111,7 +111,7 @@ r<:t::double	= r <: atan2 (sin t) (cos t) if t<-pi || t>pi;
 
 /* The imaginary unit. */
 
-def i = 0+:1;
+const i = 0+:1;
 
 /* The following operations all work with both the rectangular and the polar
    representation, promoting real inputs to complex where appropriate. When

@@ -11,6 +11,7 @@
       <item> end </item>
     </list>
     <list name="keywords">
+      <item> const </item>
       <item> def </item>
       <item> else </item>
       <item> extern </item>

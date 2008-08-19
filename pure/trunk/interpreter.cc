@@ -1217,16 +1217,16 @@ void interpreter::define_const(rule *r)
   last.clear();
   pure_expr *e, *res = const_defn(r->lhs, r->rhs, e);
   if ((verbose&verbosity::defs) != 0)
-    cout << "def " << r->lhs << " = " << r->rhs << ";\n";
+    cout << "const " << r->lhs << " = " << r->rhs << ";\n";
   if (!res) {
     ostringstream msg;
     if (e) {
       msg << "unhandled exception '" << e << "' while evaluating '"
-	  << "def " << r->lhs << " = " << r->rhs << "'";
+	  << "const " << r->lhs << " = " << r->rhs << "'";
       pure_free(e);
     } else
       msg << "failed match while evaluating '"
-	  << "def " << r->lhs << " = " << r->rhs << "'";
+	  << "const " << r->lhs << " = " << r->rhs << "'";
     throw err(msg.str());
   }
   delete r;
