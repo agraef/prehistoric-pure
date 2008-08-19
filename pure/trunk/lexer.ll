@@ -395,12 +395,12 @@ ptrtag  ::{blank}*pointer
 	cout << "list command help: list [options ...] [symbol ...]\n\
 Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -a  Disassembles pattern matching automata. Useful for debugging purposes.\n\
--c  Print information about constant symbols.\n\
+-c  Print information about defined constants.\n\
 -d  Disassembles LLVM IR, showing the generated LLVM assembler code of a\n\
     function. Useful for debugging purposes.\n\
 -e  Annotate printed definitions with lexical environment information\n\
     (de Bruijn indices, subterm paths). Useful for debugging purposes.\n\
--f  Print information about function symbols.\n\
+-f  Print information about defined functions.\n\
 -g  Indicates that the following symbols are actually shell glob patterns\n\
     and that all matching symbols should be listed.\n\
 -h  Print this list.\n\
@@ -410,7 +410,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -t[level] List only symbols and definitions at the given temporary level\n\
     (the current level by default) or above. Level 1 denotes all temporary\n\
     definitions, level 0 *all* definitions (the default if -t is omitted).\n\
--v  Print information about variable symbols.\n";
+-v  Print information about defined variables.\n";
 	goto out;
       default:
 	cerr << "list: invalid option character '" << *s << "'\n";
