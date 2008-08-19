@@ -82,7 +82,7 @@ f $ x		= f x;
 
 void _		= ();
 id x		= x;
-const x y	= x;
+cst x y		= x;
 
 flip f x y	= f y x;
 curry f x y	= f (x,y);
