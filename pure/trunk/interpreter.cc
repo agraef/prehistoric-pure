@@ -788,9 +788,11 @@ pure_expr *interpreter::const_defn(expr pat, expr& x)
   return res;
 }
 
-static expr pure_expr_to_expr(pure_expr *x)
+expr interpreter::pure_expr_to_expr(pure_expr *x)
 {
-  // FIXME: We might want to do stack checks here.
+  char test;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax)
+    throw err("expression too deep in constant definition");
   switch (x->tag) {
   case EXPR::APP:
     return expr(pure_expr_to_expr(x->data.x[0]),
