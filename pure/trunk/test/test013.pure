@@ -2,7 +2,7 @@
 // constant definition example
 
 extern double atan(double);
-def pi = 4*atan 1.0;
+const pi = 4*atan 1.0;
 
 foo x = pi*x;
 

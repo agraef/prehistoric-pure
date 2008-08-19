@@ -432,7 +432,7 @@ ostream& operator << (ostream& os, const env& e)
       break;
     }
     case env_info::cvar:
-      os << "def " << sym.s << " = " << *info.cval;
+      os << "const " << sym.s << " = " << *info.cval;
       break;
     case env_info::fvar:
       os << "let " << sym.s << " = " << *(pure_expr**)info.val;

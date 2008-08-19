@@ -164,7 +164,7 @@ For instance, add `turn-on-font-lock' to enable syntax highlighting."
 ;   (list "\\<\\(catch\\|throw\\)\\>" 0 'font-lock-builtin-face)
    (list
     (concat "\\<\\("
-	    "def\\|extern\\|infix[lr]?\\|"
+	    "const\\|def\\|extern\\|infix[lr]?\\|"
 	    "let\\|nullary\\|p\\(refix\\|ostfix\\)\\|"
 	    "using"
 	    "\\)\\>")
@@ -178,7 +178,7 @@ For instance, add `turn-on-font-lock' to enable syntax highlighting."
    (list "\\<\\(catch\\|throw\\)\\>" 0 'font-lock-builtin-face)
    (list
     (concat "\\<\\("
-	    "case\\|def\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|"
+	    "case\\|const\\|def\\|e\\(lse\\|nd\\|xtern\\)\\|i\\(f\\|nfix[lr]?\\)\\|"
 	    "let\\|nullary\\|o\\(f\\|therwise\\)\\|p\\(refix\\|ostfix\\)\\|"
 	    "then\\|using\\|w\\(hen\\|ith\\)"
 	    "\\)\\>")
