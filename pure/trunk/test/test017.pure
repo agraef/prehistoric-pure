@@ -1,7 +1,7 @@
 
 using system;
 
-timex f = (clock-t0)/CLOCKS_PER_SEC, res when t0 = clock; res = f () end;
+timex f = clock-t0, res when t0 = clock; res = f () end;
 
 foo n = if n<=0 then n else foo (n-1); // burn some cycles
 bar x = catch id (throw x);
