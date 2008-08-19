@@ -589,16 +589,15 @@ variable and function definitions. See section INTERACTIVE USAGE for details.)
 .PP
 So, while the meaning of a local symbol never changes once its definition has
 been processed, the definition of global functions and variables may well
-evolve while the program is being processed. When you evaluate an expression
-(to print its value, or to bind it to a variable symbol), the interpreter will
-always use the
+evolve while the program is being processed. When you evaluate an expression,
+the interpreter will always use the
 .I latest
 definitions of all global constants, variables and functions used in the
 expression, up to the current point in the source where the expression is
-evaluated. Thus you have to make sure that, when you evaluate an expression,
-all the functions, constants and variables it uses have already been defined
-at this point in the source (no matter whether the source is being entered
-interactively, or read from a script).
+evaluated. (This also applies to scripts read from a file, thus you have to
+make sure that all required functions, constants and variables have been
+defined at each point in a script where an expression is evaluated or assigned
+to a global variable or constant.)
 .PP
 .B Examples.
 Here are a few examples of simple Pure programs (see the following section for
