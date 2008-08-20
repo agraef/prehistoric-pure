@@ -188,12 +188,15 @@ command (see the INTERACTIVE USAGE section below) to list definitions along
 with additional debugging information.
 .SH PURE OVERVIEW
 .PP
-Pure is a fairly simple language. Programs are collections of equational rules
-defining functions, \fBconst\fP and \fBlet\fP commands binding global
-constants and variables, and expressions to be evaluated. Here's a simple
-example, entered interactively in the interpreter (note that the ``>'' symbol
-at the beginning of each input line is the interpreter's default command
-prompt):
+Pure is a fairly simple but very powerful language. Programs are collections
+of equational rules defining functions, and expressions to be
+evaluated. Moreover, the \fBconst\fP and \fBlet\fP commands can be used to
+assign the value of an expression to a global constant or a variable,
+respectively.
+.PP
+Here's a simple example, entered interactively in the interpreter (note that
+the ``>'' symbol at the beginning of each input line is the interpreter's
+default command prompt):
 .sp
 .nf
 > // my first Pure example
@@ -212,10 +215,10 @@ Unix-like systems this allows you to add a ``shebang'' to your main script in
 order to turn it into an executable program.
 .PP
 On the surface, Pure is quite similar to other modern functional languages
-like Haskell and ML. But under the hood it is a much more dynamic and
-reflective language, more akin to Lisp. In particular, Pure is dynamically
-typed, so functions can be fully polymorphic and you can add to the definition
-of an existing function at any time:
+like Haskell and ML. But under the hood it is a much more dynamic language,
+more akin to Lisp. In particular, Pure is dynamically typed, so functions can
+be fully polymorphic and you can add to the definition of an existing function
+at any time:
 .sp
 .nf
 > fact 1.0 = 1.0;
@@ -225,11 +228,26 @@ of an existing function at any time:
 > fact 10;
 3628800
 .fi
+.PP
+Like in Haskell and ML, functions and variables are often defined by
+.IR pattern-matching ,
+i.e., the left-hand side of a definition is compared to the target expression,
+binding the variables in the pattern to their actual values accordingly:
 .sp
-Also, due to its term rewriting semantics, Pure can do symbolic evaluations:
+.nf
+> foo (bar x) = x-1;
+> foo (bar 99);
+98
+.fi
+.PP
+However, due to its term rewriting semantics, Pure goes beyond most other
+functional languages in that it can do symbolic evaluations just as well as
+``normal'' computations:
 .sp
 .nf
 > square x = x*x;
+> square 4;
+16
 > square (a+b);
 (a+b)*(a+b)
 .fi
@@ -241,7 +259,14 @@ until no more equations are applicable. The result of this process is called a
 which represents the ``value'' of the original expression. Keeping with the
 tradition of term rewriting, there's no distinction between ``defined'' and
 ``constructor'' function symbols in Pure; any function symbol (or operator)
-also acts as a constructor if it happens to occur in a normal form term.
+also acts as a constructor if it happens to occur in a normal form term:
+.sp
+.nf
+> (x+y)*z = x*z+y*z; x*(y+z) = x*y+x*z;
+> x*(y*z) = (x*y)*z; x+(y+z) = (x+y)+z;
+> square (a+b);
+a*a+a*b+b*a+b*b
+.fi
 .PP
 Expressions are generally evaluated from left to right, innermost expressions
 first, i.e., using
@@ -252,7 +277,6 @@ the sequencing operator $$) which take some of their arguments using
 .I "call by name"
 semantics.
 .PP
-.B Expression syntax.
 The Pure language provides built-in support for machine integers (32 bit),
 bigints (implemented using GMP), floating point values (double precision
 IEEE), character strings (UTF-8 encoded) and generic C pointers (these don't
@@ -263,6 +287,7 @@ you might expect, zero denotes
 and any non-zero value
 .BR true ).
 .PP
+.B Expression syntax.
 Expressions consist of the following elements:
 .TP
 .B Constants: \fR4711, 4711L, 1.2e-3, \(dqHello,\ world!\en\(dq
@@ -539,11 +564,11 @@ Global bindings of variable and function symbols work a bit differently,
 though. Like many languages which are to be used interactively, Pure binds
 global symbols
 .IR dynamically ,
-so that they can be changed easily at any time during an interactive
+so that the bindings can be changed easily at any time during an interactive
 session. This is mainly a convenience for interactive usage, but works the
 same no matter whether the source code is entered interactively or being read
-from a script, in order to ensure consistent behaviour between interactive
-and batch mode operation.
+from a script, in order to ensure consistent behaviour between interactive and
+batch mode operation.
 .PP
 So, for instance, you can easily bind a global variable to a new value by just
 entering a corresponding
@@ -1046,12 +1071,12 @@ Parameter names in prototypes only serve informational purposes and are for
 the human reader; they are effectively treated as comments by the compiler.
 .PP
 The interpreter makes sure that the parameters in a call match; if not, the
-call is treated as a normal form expression by default, which enables you to
-extend the external function with your own Pure equations (see below). The
-range of supported C types is a bit limited right now (void, bool, char,
-short, int, long, float, double, as well as arbitrary pointer types, i.e.:
-void*, char*, etc.), but in practice these should cover most kinds of calls
-that need to be done when interfacing to C libraries.
+call is treated as a normal form expression by default, which gives you the
+opportunity to extend the external function with your own Pure equations (see
+below). The range of supported C types is a bit limited right now (void, bool,
+char, short, int, long, float, double, as well as arbitrary pointer types,
+i.e.: void*, char*, etc.), but in practice these should cover most kinds of
+calls that need to be done when interfacing to C libraries.
 .PP
 Single precision float arguments and return values are converted from/to
 Pure's double precision floating point numbers automatically.
@@ -1131,8 +1156,8 @@ External C functions are resolved by the LLVM runtime, which first looks for
 the symbol in the C library and Pure's runtime library (or the interpreter
 executable, if the interpreter was linked statically). Thus all C library and
 Pure runtime functions are readily available in Pure programs. Other functions
-can be provided by including them in the runtime, or by linking the
-interpreter against the corresponding modules. Or, better yet, you can just
+can be provided by adding them to the runtime, or by linking them statically
+into the runtime or the interpreter executable. Better yet, you can just
 ``dlopen'' shared libraries at runtime with a special form of the
 .B using
 clause:
@@ -1411,36 +1436,38 @@ zipwith3 f _ _ _ = [];
 .SH DEFINITION LEVELS AND OVERRIDE MODE
 To help with incremental development, the interpreter also offers some
 facilities to manipulate the current set of definitions interactively. To
-these ends, defined symbols and their definitions are organized into different
-subsets called \fIlevels\fP. The prelude, as well as other source programs
-specified when invoking the interpreter, are always at level 0, while the
-interactive environment starts at level 1.
+these ends, definitions are organized into different subsets called
+\fIlevels\fP. The prelude, as well as other source programs specified when
+invoking the interpreter, are always at level 0, while the interactive
+environment starts at level 1.
 .PP
 Each \fBsave\fP command introduces a new temporary level, and each subsequent
-\fBclear\fP command ``pops'' the symbols and definitions on the current level
-(including any definitions read using the
+\fBclear\fP command ``pops'' the definitions on the current level (including
+any definitions read using the
 .B run
-command) and returns you to the previous one. This gives you a ``stack'' of up
-to 255 temporary environments which enables you to ``plug and play'' in a safe
-fashion, without affecting the rest of your program. Example:
+command) and returns you to the previous one (if any). This gives you a
+``stack'' of up to 255 temporary environments which enables you to ``plug and
+play'' in a safe fashion, without affecting the rest of your program. Example:
 .sp
 .nf
-> \fBsave\fP
-save: now at temporary definitions level #2
 > foo (x:xs) = x+foo xs;
 > foo [] = 0;
-> \fBlist\fP foo
+> \fBlist\fP -t
 foo (x:xs) = x+foo xs;
 foo [] = 0;
 > foo (1..10);
 55
 > \fBclear\fP
-This will clear all temporary definitions at level #2. Continue (y/n)? y
-clear: now at temporary definitions level #1
+This will clear all temporary definitions at level #1. Continue (y/n)? y
 > \fBlist\fP foo
 > foo (1..10);
 foo [1,2,3,4,5,6,7,8,9,10]
 .fi
+.PP
+(Please note that the
+.B clear
+command only works in this way when invoked without arguments. Otherwise the
+symbols given as arguments will be purged unconditionally, at all levels.)
 .PP
 We've seen already that normally, if you enter a sequence of equations, they
 will be recorded in the order in which they were written. However, it is also
