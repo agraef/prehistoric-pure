@@ -892,7 +892,11 @@ static void add_path(list<string>& dirs, const string& path)
 {
   size_t pos = 0;
   while (pos != string::npos) {
+#ifdef _WIN32
+    size_t end = path.find(';', pos);
+#else
     size_t end = path.find(':', pos);
+#endif
     string s;
     if (end == string::npos) {
       s = path.substr(pos);
@@ -906,6 +910,17 @@ static void add_path(list<string>& dirs, const string& path)
       dirs.push_back(s);
     }
   }
+}
+
+static string unixize(const string& s)
+{
+  string t = s;
+#ifdef _WIN32
+  for (size_t i = 0, n = t.size(); i<n; i++)
+    if (t[i] == '\\')
+      t[i] = '/';
+#endif
+  return t;
 }
 
 extern "C"
@@ -931,7 +946,7 @@ pure_interp *pure_create_interp(int argc, char *argv[])
     if (!*end) interpreter::stackmax = n*1024;
   }
   if ((env = getenv("PURELIB"))) {
-    string s = env;
+    string s = unixize(env);
     if (!s.empty() && s[s.size()-1] != '/') s.append("/");
     interp.libdir = s;
   } else
@@ -963,6 +978,7 @@ pure_interp *pure_create_interp(int argc, char *argv[])
 	}
 	s = *args;
       }
+      s = unixize(s);
       if (!s.empty()) {
 	if (s[s.size()-1] != '/') s.append("/");
 	interp.includedirs.push_back(s);
@@ -977,6 +993,7 @@ pure_interp *pure_create_interp(int argc, char *argv[])
 	}
 	s = *args;
       }
+      s = unixize(s);
       if (!s.empty()) {
 	if (s[s.size()-1] != '/') s.append("/");
 	interp.librarydirs.push_back(s);
@@ -1002,8 +1019,10 @@ pure_interp *pure_create_interp(int argc, char *argv[])
       delete _interp;
       return 0;
     }
-  if ((env = getenv("PURE_INCLUDE"))) add_path(interp.includedirs, env);
-  if ((env = getenv("PURE_LIBRARY"))) add_path(interp.librarydirs, env);
+  if ((env = getenv("PURE_INCLUDE")))
+    add_path(interp.includedirs, unixize(env));
+  if ((env = getenv("PURE_LIBRARY")))
+    add_path(interp.librarydirs, unixize(env));
   interp.init_sys_vars(PACKAGE_VERSION, HOST, myargs);
   if (want_prelude) {
     // load the prelude if we can find it
