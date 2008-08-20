@@ -3468,22 +3468,15 @@ pure_expr *interpreter::doeval(expr x, pure_expr*& e)
   else
     fptr->refc--;
   fptr = save_fptr;
-  if (!res) {
+  if (estk.empty()) {
     // collect garbage
     pure_expr *t = tmps;
     while (t) {
       pure_expr *next = t->xp;
-      pure_freenew(t);
+      if (t != res) pure_freenew(t);
       t = next;
     }
   }
-#if DEBUG>1
-  pure_expr *t = tmps;
-  while (t) {
-    if (t != res) std::cerr << "uncollected temporary: " << t << endl;
-    t = t->xp;
-  }
-#endif
   // NOTE: Result (if any) is to be freed by the caller.
   return res;
 }
@@ -3625,21 +3618,16 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
 	globalvars.erase(tag);
       }
     }
+  }
+  if (estk.empty()) {
     // collect garbage
     pure_expr *t = tmps;
     while (t) {
       pure_expr *next = t->xp;
-      pure_freenew(t);
+      if (t != res) pure_freenew(t);
       t = next;
     }
   }
-#if DEBUG>1
-  pure_expr *t = tmps;
-  while (t) {
-    if (t != res) std::cerr << "uncollected temporary: " << t << endl;
-    t = t->xp;
-  }
-#endif
   // NOTE: Result (if any) is to be freed by the caller.
   return res;
 }
