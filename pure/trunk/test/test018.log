@@ -70,12 +70,8 @@ sprintf "%x" (-2147483648L);
 "80000000"
 sprintf "%x" (-4294967295L);
 "1"
-ord$sprintf "%c" 128;
-128
 ord$sprintf "%c" 255;
 255
-ord$sprintf "%c" 128L;
-128
 ord$sprintf "%c" 255L;
 255
 sscanf "ffffffff" "%x";
