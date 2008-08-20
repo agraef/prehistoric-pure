@@ -1,5 +1,7 @@
 2008-08-20  Albert Graef  <Dr.Graef@t-online.de>
 
+	* 0.5 release.
+
 	* expr.cc (env::operator=): Bugfix: Only set temporary level of a
 	constant or free variable if it wasn't defined previously at a
 	lower level.
