@@ -76,11 +76,11 @@ const pi = 4.0*atan 1.0;
 /* Hyperbolic functions. */
 
 extern double sinh(double), double cosh(double), double tanh(double);
-extern double asinh(double);
-extern double acosh(double) = c_acosh, double atanh(double) = c_atanh;
+extern double __asinh(double), double __acosh(double), double __atanh(double);
 
-acosh x::double = c_acosh x if x>=1.0;
-atanh x::double = c_atanh x if abs x<=1.0;
+asinh x::double = __asinh x;
+acosh x::double = __acosh x if x>=1.0;
+atanh x::double = __atanh x if abs x<=1.0;
 
 sinh x::int | sinh x::bigint = sinh (double x);
 cosh x::int | cosh x::bigint = cosh (double x);

@@ -2696,6 +2696,40 @@ int pclose(FILE *stream)
 }
 #endif
 
+/* Horrible kludge to get round, trunc and the inverse hyperbolic functions
+   from libmingwex.a (these are in C99, but not in the Windows system
+   libraries, and LLVM doesn't know how to get them either). */
+
+extern "C"
+double __round(double x)
+{
+  return round(x);
+}
+
+extern "C"
+double __trunc(double x)
+{
+  return trunc(x);
+}
+
+extern "C"
+double __asinh(double x)
+{
+  return asinh(x);
+}
+
+extern "C"
+double __acosh(double x)
+{
+  return acosh(x);
+}
+
+extern "C"
+double __atanh(double x)
+{
+  return atanh(x);
+}
+
 extern "C"
 int pure_fprintf(FILE *fp, const char *format)
 {
