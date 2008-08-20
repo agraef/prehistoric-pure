@@ -442,15 +442,15 @@ static string unixize(const string& s)
   return t;
 }
 
-static bool relname(const string& s)
+static bool absname(const string& s)
 {
-  if (s.empty()) return true;
+  if (s.empty())
+    return false;
+  else
 #ifdef _WIN32
-  size_t pos = fname.find('/');
-  return pos == string::npos || pos == 0 ||
-    pos == 2 && s[1] == ':';
+    return s[0]=='/' || s.size() >= 2 && s[1] == ':';
 #else
-  return s[0]!='/';
+    return s[0]=='/';
 #endif
 }
 
@@ -471,7 +471,7 @@ static string searchdir(const string& srcdir, const string& libdir,
   if (!workdir.empty() && workdir[workdir.size()-1] != '/')
     workdir += "/";
   string fname;
-  if (relname(script)) {
+  if (!absname(script)) {
     // resolve relative pathname
     if (!search) {
       fname = workdir+script;
@@ -495,7 +495,7 @@ static string searchdir(const string& srcdir, const string& libdir,
   } else
     fname = script;
  found:
-  if (relname(fname)) fname = workdir+fname;
+  if (!absname(fname)) fname = workdir+fname;
   char buf[BUFSIZE];
 #ifndef _WIN32
   if (chklink(fname)) {
@@ -546,7 +546,7 @@ static string searchlib(const string& srcdir, const string& libdir,
   if (!workdir.empty() && workdir[workdir.size()-1] != '/')
     workdir += "/";
   string fname;
-  if (relname(lib)) {
+  if (!absname(lib)) {
     // resolve relative pathname
     if (!search) {
       fname = workdir+lib;

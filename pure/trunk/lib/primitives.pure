@@ -108,7 +108,7 @@ ulong x::bigint		= if x>=0 then x else x+0x10000000000000000L;
 /* Rounding functions. */
 
 extern double floor(double), double ceil(double);
-extern double round(double), double trunc(double);
+extern double __round(double) = round, double __trunc(double) = trunc;
 
 floor x::int | floor x::bigint = x;
 ceil x::int | ceil x::bigint = x;
