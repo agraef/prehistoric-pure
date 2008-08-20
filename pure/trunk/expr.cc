@@ -307,8 +307,9 @@ env_info& env_info::operator= (const env_info& e)
     if (m) delete m;
     break;
   }
+  if ((t != cvar && t != fvar) || temp > e.temp)
+    temp = e.temp;
   t = e.t;
-  temp = e.temp;
   switch (t) {
   case none:
     break;
