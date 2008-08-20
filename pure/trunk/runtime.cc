@@ -2694,6 +2694,13 @@ int pclose(FILE *stream)
 {
   return _pclose(stream);
 }
+
+extern "C"
+unsigned int sleep(unsigned int secs)
+{
+  Sleep(secs*1000);
+  return 0;
+}
 #endif
 
 /* Horrible kludge to get round, trunc and the inverse hyperbolic functions
