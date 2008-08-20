@@ -582,9 +582,9 @@ double pure_nanosleep(double t);
 
 #ifdef __MINGW32__
 /* Windows compatibility. */
-
 FILE *popen(const char *command, const char *type);
 int pclose(FILE *stream);
+unsigned int sleep(unsigned int secs);
 #endif
 
 /* printf/scanf support. Since we don't support calling C vararg functions
