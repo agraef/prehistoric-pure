@@ -1857,7 +1857,7 @@ AUXLIBS=
 LD_LIB_PATH="LD_LIBRARY_PATH"
 case "$host" in
     *-*-mingw*)       AUXLIBS="-DLIBGLOB='\"libglob.dll\"' -DLIBREGEX='\"libgnurx-0.dll\"'";
-                      LIBS="$LIBS -limagehlp -lpsapi";
+                      LIBS="$LIBS -limagehlp -lpsapi -lmingwex";
                       LDFLAGS="-Wl,--enable-auto-import"; DLLEXT=".dll";;
     x86_64-*-linux*)  PIC="-fPIC";;
     *-*-darwin*)      LD_LIB_PATH="DYLD_LIBRARY_PATH";
