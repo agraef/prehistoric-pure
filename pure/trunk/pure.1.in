@@ -456,7 +456,7 @@ expression. This operator is useful to write imperative-style code such as the
 following prompt/input interaction:
 .sp
 .nf
-> using system;
+> \fBusing\fP system;
 > puts "Enter a number:" $$ scanf "%g";
 Enter a number:
 21
