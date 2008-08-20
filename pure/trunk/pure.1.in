@@ -725,7 +725,7 @@ which binds the given variable to the expression matched by the subpattern
 (in addition to the variables bound by
 .I pattern
 itself). This is convenient if the value matched by the subpattern is to be
-used on the right-hand side of an equation. Syntactically, `as'' patterns are
+used on the right-hand side of an equation. Syntactically, ``as'' patterns are
 primary expressions; if the subpattern is not a primary expression, it must be
 parenthesized. For instance, the following function duplicates the head
 element of a list:
