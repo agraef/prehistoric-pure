@@ -1,4 +1,49 @@
 
+** Pure 0.5 2008-08-20
+
+This release sports LLVM 2.3 support and a bunch of bug fixes and improvements
+in the language, the standard library and the code generator. As usual, please
+check the ChangeLog for details. Here is a brief rundown of the most important
+changes:
+
+- Language: Haskell-like 'as' patterns. Constant definitions. Revised
+list-of-tuples and 'using' syntax, as discussed on the mailing list. New $$
+sequence operator. The XML entity character escapes were updated to the latest
+from W3C.
+
+- Updated syntax highlighting modes. Kate mode now supports folding of
+comments and block structure.
+
+- Improved script and dynamic library search algorithms, as discussed on the
+mailing list.
+
+- Various improvements in the C interface. Also refactored the runtime library
+to provide a semantically complete public API for module writers.
+
+- Improvements and bugfixes in the code generator.
+
+- Library: Jiri Spitz' port of the Q container types (array.pure, dict.pure,
+heap.pure, set.pure). New math.pure module which implements additional
+mathematical functions as well as complex and rational numbers. New time- and
+signal-related functions in the system module.
+
+- More examples. In particular, make sure you have a look at Libor Spacek's
+cool Mayan calendar and his unbelievingly fast n-queens algorithm. :)
+
+- Better OSX support.
+
+- Thanks to Rooslan S. Khayrov's patches, this release now works with LLVM
+2.3. Please note that LLVM 2.2 support has been dropped, as we encountered
+various issues with the LLVM 2.2 JIT.
+
+- Toni Graffy has contributed openSUSE packages (available via Packman),
+Alvaro Castro Castilla a Gentoo ebuild. Ryan Schmidt continues to maintain the
+MacPorts package.
+
+A big thank you to all who reported bugs and contributed code and patches, in
+particular: Alvaro Castro Castilla, Toni Graffy, Rooslan S. Khayrov, Eddie
+Rucker, Ryan Schmidt, Libor Spacek and Jiri Spitz.
+
 ** Pure 0.4 2008-06-19
 
 This release features some more bug and portability fixes, a cleanup of the
