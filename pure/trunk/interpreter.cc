@@ -431,6 +431,29 @@ static inline bool chklink(const string& s)
 }
 #endif
 
+static string unixize(const string& s)
+{
+  string t = s;
+#ifdef _WIN32
+  for (size_t i = 0, n = t.size(); i<n; i++)
+    if (t[i] == '\\')
+      t[i] = '/';
+#endif
+  return t;
+}
+
+static bool relname(const string& s)
+{
+  if (s.empty()) return true;
+#ifdef _WIN32
+  size_t pos = fname.find('/');
+  return pos == string::npos || pos == 0 ||
+    pos == 2 && s[1] == ':';
+#else
+  return s[0]!='/';
+#endif
+}
+
 #define BUFSIZE 1024
 
 static string searchdir(const string& srcdir, const string& libdir,
@@ -444,11 +467,11 @@ static string searchdir(const string& srcdir, const string& libdir,
     perror("getcwd");
     return script;
   }
-  string workdir = cwd;
+  string workdir = unixize(cwd);
   if (!workdir.empty() && workdir[workdir.size()-1] != '/')
     workdir += "/";
   string fname;
-  if (script[0] != '/') {
+  if (relname(script)) {
     // resolve relative pathname
     if (!search) {
       fname = workdir+script;
@@ -472,7 +495,7 @@ static string searchdir(const string& srcdir, const string& libdir,
   } else
     fname = script;
  found:
-  if (fname[0] != '/') fname = workdir+fname;
+  if (relname(fname)) fname = workdir+fname;
   char buf[BUFSIZE];
 #ifndef _WIN32
   if (chklink(fname)) {
@@ -494,7 +517,7 @@ static string searchdir(const string& srcdir, const string& libdir,
   // canonicalize the pathname
   string dir = dirname(fname), name = basename(fname);
   if (chdir(dir.c_str())==0 && getcwd(buf, BUFSIZE)) {
-    string dir = buf;
+    string dir = unixize(buf);
     if (!dir.empty() && dir[dir.size()-1] != '/')
       dir += "/";
     fname = dir+name;
@@ -519,11 +542,11 @@ static string searchlib(const string& srcdir, const string& libdir,
     perror("getcwd");
     return lib;
   }
-  string workdir = cwd;
+  string workdir = unixize(cwd);
   if (!workdir.empty() && workdir[workdir.size()-1] != '/')
     workdir += "/";
   string fname;
-  if (lib[0] != '/') {
+  if (relname(lib)) {
     // resolve relative pathname
     if (!search) {
       fname = workdir+lib;
@@ -560,8 +583,9 @@ static string searchlib(const string& srcdir, const string& libdir,
 #define DLLEXT ".so"
 #endif
 
-pure_expr* interpreter::run(const string &s, bool check)
+pure_expr* interpreter::run(const string &_s, bool check)
 {
+  string s = unixize(_s);
   // check for library modules
   size_t p = s.find(":");
   if (p != string::npos && s.substr(0, p) == "lib") {
