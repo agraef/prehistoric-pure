@@ -146,7 +146,7 @@ rect x::double = x+:0.0;
 /* Create complex values on the unit circle. Note: To quickly compute
    exp (x+:y) in polar form, use exp x <: y. */
 
-cis t		= rect (1<:t);
+cis t::int | cis t::bigint | cis t::double = rect (1<:t);
 
 /* Modulus (absolute value) and argument (angle). Note that you can also find
    both of these in one go by converting to polar form. */
@@ -427,6 +427,8 @@ polar (x%y)	= x%y <: 0L%1L;
 r@(_%_)<:t	= -r <: t+pi if r<0;
 r<:t@(_%_)	= r <: atan2 (sin t) (cos t) if t<-pi || t>pi;
 		= r <: pi if t==-pi;
+
+cis (x%y)	 = rect (1<:x/y);
 
 /* Numerator and denominator. */
 
