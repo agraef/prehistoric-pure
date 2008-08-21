@@ -132,6 +132,9 @@ complex x::double = x+:0.0;
 polar (x+:y)	= sqrt (x*x+y*y) <: atan2 y x;
 rect  (r<:t)	= r*cos t +: r*sin t;
 
+polar z@(_<:_)	= z;
+rect z@(_+:_)	= z;
+
 /* For convenience, make these work with real values, too. */
 
 polar x::int | polar x::bigint = x<:0;
