@@ -1,6 +1,13 @@
-2008-08-20  Albert Graef  <Dr.Graef@t-online.de>
+2008-08-21  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.5 release.
+
+	* interpreter.cc (subst): Defer const substitutions (and
+	propagation of type tags) until all variable bindings have been
+	processed, to prevent name capture in const substitutions.
+	Reported by Eddie Rucker.
+
+2008-08-20  Albert Graef  <Dr.Graef@t-online.de>
 
 	* expr.cc (env::operator=): Bugfix: Only set temporary level of a
 	constant or free variable if it wasn't defined previously at a

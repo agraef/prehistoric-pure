@@ -740,7 +740,7 @@ pure_expr *interpreter::eval(expr& x, pure_expr*& e)
   save_globals(g);
   compile();
   // promote type tags and substitute constants:
-  env vars; expr u = subst(vars, x);
+  env vars; expr u = csubst(subst(vars, x));
   compile(u);
   x = u;
   pure_expr *res = doeval(u, e);
@@ -767,7 +767,7 @@ pure_expr *interpreter::defn(expr pat, expr& x, pure_expr*& e)
   compile();
   env vars;
   // promote type tags and substitute constants:
-  expr rhs = subst(vars, x);
+  expr rhs = csubst(subst(vars, x));
   expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -864,7 +864,7 @@ pure_expr *interpreter::const_defn(expr pat, expr& x, pure_expr*& e)
   compile();
   env vars;
   // promote type tags and substitute constants:
-  expr rhs = subst(vars, x);
+  expr rhs = csubst(subst(vars, x));
   expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -1368,6 +1368,11 @@ void interpreter::add_rule(env &e, rule &r, bool toplevel)
   assert(!r.lhs.is_null());
   closure(r, false);
   if (toplevel) {
+    // substitute constants:
+    expr u = expr(r.lhs),
+      v = expr(csubst(r.rhs)),
+      w = expr(csubst(r.qual));
+    r = rule(u, v, w);
     compile(r.rhs);
     compile(r.qual);
   }
@@ -1625,14 +1630,7 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
     } else {
       expr u = subst(vars, x.xval1(), idx),
 	v = subst(vars, x.xval2(), idx);
-      expr w = expr(u, v);
-      // promote type tags
-      expr f; uint32_t n = count_args(w, f);
-      if (n == 1)
-	promote_ttags(f, w, w.xval2());
-      else if (n == 2)
-	promote_ttags(f, w, w.xval1().xval2(), w.xval2());
-      return w;
+      return expr(u, v);
     }
   // conditionals:
   case EXPR::COND: {
@@ -1705,15 +1703,105 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
       // not a bound variable
       if (x.ttag() != 0)
 	throw err("error in expression (misplaced type tag)");
-      it = globenv.find(sym.f);
-      if (it != globenv.end() && it->second.t == env_info::cvar)
-	// substitute constant value
-	return *it->second.cval;
-      else
-	return x;
+      return x;
     }
     const env_info& info = it->second;
     return expr(EXPR::VAR, sym.f, idx, info.ttag, *info.p);
+  }
+}
+
+expr interpreter::csubst(expr x)
+{
+  if (x.is_null()) return x;
+  switch (x.tag()) {
+  // constants:
+  case EXPR::VAR:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP:
+    if (x.xval1().tag() == EXPR::APP &&
+	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+      expr u = csubst(x.xval1().xval2()),
+	v = csubst(x.xval2());
+      return expr(symtab.catch_sym().x, u, v);
+    } else {
+      expr u = csubst(x.xval1()),
+	v = csubst(x.xval2());
+      expr w = expr(u, v);
+      // promote type tags
+      expr f; uint32_t n = count_args(w, f);
+      if (n == 1)
+	promote_ttags(f, w, w.xval2());
+      else if (n == 2)
+	promote_ttags(f, w, w.xval1().xval2(), w.xval2());
+      return w;
+    }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = csubst(x.xval1()),
+      v = csubst(x.xval2()),
+      w = csubst(x.xval3());
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    expr u = x.xval1(), v = csubst(x.xval2());
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = csubst(x.xval());
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = csubst(it->rhs),
+	w = csubst(it->qual);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = csubst(it->rhs);
+      s->push_back(rule(u, v));
+    }
+    expr u = csubst(x.xval());
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = csubst(x.xval());
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = csubst(jt->rhs),
+	  w = csubst(jt->qual);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    const symbol& sym = symtab.sym(x.tag());
+    env::const_iterator it = globenv.find(sym.f);
+    if (it != globenv.end() && it->second.t == env_info::cvar)
+      // substitute constant value
+      return *it->second.cval;
+    else
+      return x;
   }
 }
 
