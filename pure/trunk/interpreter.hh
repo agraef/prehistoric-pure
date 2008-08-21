@@ -448,6 +448,7 @@ public:
   void promote_ttags(expr f, expr x, expr u, expr v);
   expr bind(env& vars, expr x, bool b = true, path p = path());
   expr subst(const env& vars, expr x, uint8_t idx = 0);
+  expr csubst(expr x);
   expr fsubst(const env& funs, expr x, uint8_t idx = 0);
   void closure(expr& l, expr& r, bool b = true);
   void closure(rule& r, bool b = true);
