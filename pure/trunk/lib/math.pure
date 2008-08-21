@@ -18,10 +18,6 @@
    You should have received a copy of the GNU General Public License along
    with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-/* IEEE floating point infinities and NaNs. */
-
-const inf = 1.0e307 * 1.0e307; const nan = inf-inf;
-
 /* Random number generator. This uses the Mersenne twister, in order to avoid
    bad generators present in some C libraries. Returns pseudo random ints in
    the range -0x80000000..0x7fffffff. */
@@ -586,8 +582,3 @@ exactp x	= numberp x &&
 		  not (doublep x || doublep (re x) || doublep (im x));
 inexactp x      = numberp x &&
 		  (doublep x || doublep (re x) || doublep (im x));
-
-/* Check for inf and nan values. */
-
-infp x		= case x of x::double = x!==nan && x-x===nan; _ = 0 end;
-nanp x		= case x of x::double = x===nan; _ = 0 end;
