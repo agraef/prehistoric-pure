@@ -359,7 +359,7 @@ pow x::bigint y::double	= c_pow (double x) y if x>=0 || frac y==0.0;
 /* The ^ operator. Works like pow, but always promotes its operands to double
    and returns a double result. */
 
-x::double^y::double	= c_pow x y if x>=0 || frac y==0.0;
+x::double^y::double	= c_pow x y if x>=0 || frac y==0.0 || nanp x || nanp y;
 x::int^y::int		|
 x::bigint^y::bigint	|
 x::int^y::bigint	|
@@ -367,7 +367,7 @@ x::bigint^y::int	= c_pow (double x) (double y);
 x::double^y::int	|
 x::double^y::bigint	= c_pow x (double y);
 x::int^y::double	|
-x::bigint^y::double	= c_pow (double x) y if x>=0 || frac y==0.0;
+x::bigint^y::double	= c_pow (double x) y if x>=0 || frac y==0.0 || nanp y;
 			= double x^y otherwise;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
