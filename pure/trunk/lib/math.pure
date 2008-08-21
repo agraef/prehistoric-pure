@@ -32,15 +32,15 @@ extern int pure_random() = random, void pure_srandom(int) = srandom;
 
 extern double sqrt(double) = c_sqrt;
 
-sqrt x::double = c_sqrt x if x>=0;
+sqrt x::double = c_sqrt x if x>=0 || nanp x;
 sqrt x::int | sqrt x::bigint = sqrt (double x);
 
 /* Exponential function and logarithms. */
 
 extern double exp(double), double log(double) = c_log;
 
-ln x::double = c_log x if x>=0.0;
-log x::double = c_log x/c_log 10.0 if x>=0.0;
+ln x::double = c_log x if x>=0.0 || nanp x;
+log x::double = c_log x/c_log 10.0 if x>=0.0 || nanp x;
 
 exp x::int | exp x::bigint = exp (double x);
 ln x::int | ln x::bigint = ln (double x);
@@ -79,8 +79,8 @@ extern double sinh(double), double cosh(double), double tanh(double);
 extern double __asinh(double), double __acosh(double), double __atanh(double);
 
 asinh x::double = __asinh x;
-acosh x::double = __acosh x if x>=1.0;
-atanh x::double = __atanh x if abs x<=1.0;
+acosh x::double = __acosh x if x>=1.0 || nanp x;
+atanh x::double = __atanh x if abs x<=1.0 || nanp x;
 
 sinh x::int | sinh x::bigint = sinh (double x);
 cosh x::int | cosh x::bigint = cosh (double x);
