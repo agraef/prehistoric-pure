@@ -46,7 +46,6 @@ trunc (-22%7);
 frac (-22%7);
 
 // Rationalizing doubles.
-// FIXME: This should return 3%8, but that doesn't work yet.
 rational (3/8);
 
 // Complex rational arithmetic.
