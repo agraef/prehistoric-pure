@@ -2,6 +2,8 @@
 
 	* 0.5 release.
 
+	* test/test020.pure: Added math.pure tests by Eddie Rucker.
+
 	* runtime.cc (same): Bugfix in comparison of global functions.
 	Handle the case of of an external which may chain to a Pure
 	definition of the same global. In that case we may safely assume
