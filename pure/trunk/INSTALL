@@ -376,21 +376,11 @@ systems. You also have to configure LLVM with --enable-pic. The patch by
 Cyrille Berger, which is to be applied in the llvm-2.3 source directory, is
 available at http://pure-lang.sf.net/X86JITInfo.cpp.pic.2.3.patch.
 
-Also, the debug build currently does *not* work on x86-64 Linux versions. This
-seems to be a bug in LLVM, so there's hope that it will go away in a future
-LLVM version. You can tell that you're bitten by this bug if a normal build
-works, but 'make check' fails on some tests with the debug build (or if you
-manually disable optimization). Fortunately, it seems that you can easily work
-around this by making sure that you have at least -O enabled when compiling
-runtime.cc. Also please note that the default and release builds should work
-fine. 32 bit builds also seem to be unaffected.
-
 LINUX
 -----
 
 Linux is the primary development platform for this software, and the sources
-should build out of the box on all recent Linux distributions. (But note the
-issues on x86-64 Linux systems described above.)
+should build out of the box on all recent Linux distributions.
 
 MAC OSX
 --- ---
