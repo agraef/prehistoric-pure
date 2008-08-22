@@ -1,6 +1,14 @@
-2008-08-21  Albert Graef  <Dr.Graef@t-online.de>
+2008-08-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.5 release.
+
+	* runtime.cc (same): Bugfix in comparison of global functions.
+	Handle the case of of an external which may chain to a Pure
+	definition of the same global. In that case we may safely assume
+	that the functions are the same anyway if they are represented by
+	the same global symbol.
+
+2008-08-21  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc (subst): Defer const substitutions (and
 	propagation of type tags) until all variable bindings have been
