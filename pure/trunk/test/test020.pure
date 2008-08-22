@@ -23,14 +23,23 @@ using system;
 
 /* This will print out each operation, arguments and result as a single
    line. Exceptions are flagged with '__error__', evaluation failures with
-   '__failed__'. */
+   '__failed__'. Floating point values are rounded in the output to 6
+   significant digits, to prevent 'make check' from failing due to small
+   rounding discrepancies. */
 
-test f (x,y) = puts $ str (f,x,y,check f (x,y) (catch __error__ (f x y)));
-test f x = puts $ str (f,x,check f x (catch __error__ (f x)));
+test f (x,y) = puts $ format (f,x,y,check f (x,y) (catch __error__ (f x y)));
+test f x = puts $ format (f,x,check f x (catch __error__ (f x)));
 
-check f (x,y) z@(f1@_ x1 y1) = __failed__ z if f===f1 && x===x1 && y===y1;
-check f x z@(f1@_ x1) = __failed__ z if f===f1 && x===x1;
+check f _ (g@_ _ _) | check f _ (g@_ _) = __failed__ if f===g;
 check _ _ z = z otherwise;
+
+format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
+format (f,x,z) = str f+","+show x+","+show z;
+
+show x::double = sprintf "%#0.6g" x;
+show (x+:y) = show x+"+:"+show y;
+show (x<:y) = show x+"<:"+show y;
+show x = str x otherwise;
 
 puts "*** UNARY ***" $$ void [f,x,test f x; f=f; x=x] $$
 puts "*** BINARY ***" $$ void [f,x,test f x; f=f2; x=x2];
