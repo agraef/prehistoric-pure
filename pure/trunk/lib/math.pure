@@ -461,17 +461,13 @@ round (x%y)	= -round ((-x)%y) if x<0;
 trunc (x%y)	= x div y;
 frac x@(_%_)	= x-trunc x;
 
-/* The pow function. Returns exact results for integer exponents. */
+/* The pow function. Returns exact powers of integers and rationals for all
+   integer exponents. */
 
 pow (x%y) n::int	|
 pow (x%y) n::bigint	= pow x n % pow y n if n>0;
 			= pow y (-n) % pow x (-n) if n<0;
 			= 1L%1L otherwise;
-pow (x%y) n::double	= pow (x/y) n;
-pow (x%y) (n%m)		= pow (x/y) (n/m);
-pow x::int (n%m)        |
-pow x::bigint (n%m)     |
-pow x::double (n%m)     = pow x (n/m);
 
 // Negative powers of integers.
 pow x::int n::int	|
