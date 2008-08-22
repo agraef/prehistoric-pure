@@ -5,10 +5,10 @@ PURE - The Pure programming language.
 Pure is a functional programming language based on term rewriting. It has a
 modern syntax featuring curried function applications, lexical closures and
 equational definitions with pattern matching, and thus is somewhat similar to
-languages of the Haskell and ML variety. But Pure is also a very dynamic and
-reflective language, and is more like Lisp in this respect. The interpreter
-has an LLVM backend to do JIT compilation, hence programs run blazingly fast
-and interfacing to C modules is easy.
+languages of the Haskell and ML variety. But Pure is also a very dynamic
+language, and is more like Lisp in this respect. The interpreter has an LLVM
+backend to do JIT compilation, hence programs run blazingly fast and
+interfacing to C modules is easy.
 
 WHERE TO GET IT
 ----- -- --- --
@@ -41,7 +41,7 @@ USING PURE
 To start the Pure interpreter, just type 'pure' at the command prompt. You'll
 be greeted with a sign-on message, after which the interpreter leaves you at
 its prompt and you can start typing definitions and expressions to be
-evaluated. Use the 'quit' command to exit the interpreter (on Unix systems you
+evaluated. Use the 'quit' command to exit the interpreter (on most systems you
 can also just type EOF a.k.a. Ctrl-D at the beginning of the interpreter's
 command line). For instance:
 
