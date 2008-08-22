@@ -17,6 +17,8 @@
 	processed, to prevent name capture in const substitutions.
 	Reported by Eddie Rucker.
 
+	* test/test019.pure: Regression test for the above.
+
 2008-08-20  Albert Graef  <Dr.Graef@t-online.de>
 
 	* expr.cc (env::operator=): Bugfix: Only set temporary level of a
