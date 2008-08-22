@@ -23,7 +23,7 @@ using system;
 
 /* This will print out each operation, arguments and result as a single
    line. Exceptions are flagged with '__error__', evaluation failures with
-   '__failed__'. Floating point values are rounded in the output to 6
+   '__failed__'. Floating point values are rounded in the output to 4
    significant digits, to prevent 'make check' from failing due to small
    rounding discrepancies. */
 
@@ -36,7 +36,7 @@ check _ _ z = z otherwise;
 format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
 format (f,x,z) = str f+","+show x+","+show z;
 
-show x::double = sprintf "%#0.6g" x;
+show x::double = sprintf "%#0.4g" x;
 show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
