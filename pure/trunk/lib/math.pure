@@ -26,17 +26,16 @@ extern int pure_random() = random, void pure_srandom(int) = srandom;
 
 /* The sqrt function. */
 
-extern double sqrt(double) = c_sqrt;
+extern double sqrt(double);
 
-sqrt x::double = c_sqrt x if x>=0 || nanp x;
 sqrt x::int | sqrt x::bigint = sqrt (double x);
 
 /* Exponential function and logarithms. */
 
 extern double exp(double), double log(double) = c_log;
 
-ln x::double = c_log x if x>=0.0 || nanp x;
-log x::double = c_log x/c_log 10.0 if x>=0.0 || nanp x;
+ln x::double = c_log x;
+log x::double = c_log x/c_log 10.0;
 
 exp x::int | exp x::bigint = exp (double x);
 ln x::int | ln x::bigint = ln (double x);
@@ -75,8 +74,8 @@ extern double sinh(double), double cosh(double), double tanh(double);
 extern double __asinh(double), double __acosh(double), double __atanh(double);
 
 asinh x::double = __asinh x;
-acosh x::double = __acosh x if x>=1.0 || nanp x;
-atanh x::double = __atanh x if abs x<=1.0 || nanp x;
+acosh x::double = __acosh x;
+atanh x::double = __atanh x;
 
 sinh x::int | sinh x::bigint = sinh (double x);
 cosh x::int | cosh x::bigint = cosh (double x);
@@ -188,9 +187,6 @@ sqrt (x+:y)	= sqrt ((r+x)/2) +: sqrt ((r-x)/2)
 		  when r = sqrt (x*x+y*y) end;
 sqrt (r<:t)	= sqrt r <: t/2;
 
-// Complex square roots of negative reals.
-sqrt x::double	= 0.0 +: sqrt (-x) if x<0;
-
 /* Complex exponential and logarithms. */
 
 exp (x+:y)	= exp x * (cos y +: sin y);
@@ -201,10 +197,6 @@ ln (r<:t)	= polar (ln r +: t);
 
 log z@(x+:y)	|
 log z@(r<:t)	= ln z / ln 10;
-
-// Complex logarithms of negative reals.
-ln x::double	= ln (abs x) +: arg x if x<0;
-log x::double	= ln x / ln 10 if x<0;
 
 /* Complex trig functions. */
 
@@ -245,10 +237,6 @@ atanh z@(x+:y)	|
 atanh z@(r<:t)	= inf +: 0.0 if z==1;
 		= -inf +: 0.0 if z==-1;
 		= ln ((1+z)/(1-z))/2;
-
-// These inverse hyperbolic trigs have complex results for some reals.
-acosh x::double	= acosh (x+:0);
-atanh x::double	= atanh (x+:0);
 
 /* Complex arithmetic. */
 
@@ -318,9 +306,6 @@ z1@(x1+:y1)^x2	= z1 ^ (x2+:0);
 x1^z2@(x2+:y2)	= (x1+:0) ^ z2;
 (r1<:t1)^x2	= r1^x2 <: t1*x2;
 x1^z2@(r2<:t2)	= (x1<:0) ^ z2;
-
-// Complex powers of negative reals.
-x1::double^x2::double	= exp (ln x1*x2) if x1<0;
 
 /* Equality. */
 

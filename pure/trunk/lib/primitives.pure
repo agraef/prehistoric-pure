@@ -350,13 +350,11 @@ pow x::int y::bigint	= bigint_pow (bigint x) y if y>=0;
 pow x::bigint y::int	= bigint_pow x y if y>=0;
 
 /* The ^ operator. Computes inexact powers for any combination of int, bigint
-   and double operands. The result is always a double. Note that x may be
-   negative only if y is integer, but see math.pure which deals with the
-   general case x<0 using complex numbers. */
+   and double operands. The result is always a double. */
 
 extern double pow(double, double) = c_pow;
 
-x::double^y::double	= c_pow x y if x>=0 || frac y==0.0 || nanp x || nanp y;
+x::double^y::double	= c_pow x y;
 x::int^y::int		|
 x::bigint^y::bigint	|
 x::int^y::bigint	|
@@ -364,8 +362,7 @@ x::bigint^y::int	= c_pow (double x) (double y);
 x::double^y::int	|
 x::double^y::bigint	= c_pow x (double y);
 x::int^y::double	|
-x::bigint^y::double	= c_pow (double x) y if x>=0 || frac y==0.0 || nanp y;
-			= double x^y otherwise;
+x::bigint^y::double	= c_pow (double x) y;
 
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
    to 64 bit systems. */
