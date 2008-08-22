@@ -32,25 +32,25 @@ using namespace std;
 
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"
 #define USAGE \
-"Usage: pure [options ...] [script ...] [-- args ...]\n\
-       pure [options ...] -x script [args ...]\n\
+"Usage:        pure [options ...] [script ...] [-- args ...]\n\
+              pure [options ...] -x script [args ...]\n\
 Options:\n\
--h: Print this message and exit.\n\
--i: Force interactive mode (read commands from stdin).\n\
--I: Add directory to search for included source files.\n\
--L: Add directory to search for dynamic libraries.\n\
--n: Suppress automatic inclusion of the prelude.\n\
--q: Quiet startup (suppresses sign-on message).\n\
--v: Set verbosity level (useful for debugging purposes).\n\
--x: Execute script with given command line arguments.\n\
---: Stop option processing, pass remaining args in argv variable.\n\
+-h            Print this message and exit.\n\
+-i            Force interactive mode (read commands from stdin).\n\
+-Idirectory   Add directory to search for included source files.\n\
+-Ldirectory   Add directory to search for dynamic libraries.\n\
+-n            Suppress automatic inclusion of the prelude.\n\
+-q            Quiet startup (suppresses sign-on message).\n\
+-v[level]     Set debugging level (default: 1).\n\
+-x            Execute script with given command line arguments.\n\
+--            Stop option processing, pass remaining args in argv variable.\n\
 Environment:\n\
-PURELIB:      Directory to search for library scripts and the prelude.\n\
-PURE_INCLUDE: Path to search for included source files.\n\
-PURE_LIBRARY: Path to search for dynamic libraries.\n\
-PURE_MORE:    Shell command for paging through output of the 'list' command.\n\
-PURE_PS:      Command prompt to be used in the interactive command loop.\n\
-PURE_STACK:   Maximum stack size in kilobytes (default: 0 = unlimited).\n"
+PURELIB       Directory to search for library scripts and the prelude.\n\
+PURE_INCLUDE  Path to search for included source files.\n\
+PURE_LIBRARY  Path to search for dynamic libraries.\n\
+PURE_MORE     Shell command for paging through output of the 'list' command.\n\
+PURE_PS       Command prompt to be used in the interactive command loop.\n\
+PURE_STACK    Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
 static const char *commands[] = {
