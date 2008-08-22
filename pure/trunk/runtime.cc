@@ -2428,13 +2428,19 @@ bool same(const pure_expr *x, const pure_expr *y)
   char test;
   if (x == y)
     return 1;
-  else if (x->tag >= 0 && y->tag >= 0)
-    if (x->data.clos && y->data.clos)
-      return x->tag == y->tag && x->data.clos->fp == y->data.clos->fp;
-    else
-      return x->tag == y->tag && x->data.clos == y->data.clos;
   else if (x->tag != y->tag)
     return 0;
+  else if (x->tag >= 0 && y->tag >= 0)
+    if (x->data.clos && y->data.clos)
+      /* Note that for global functions the function pointers may differ in
+	 some cases (specifically in the case of an external which may chain
+	 to a Pure definition of the same global). However, in that case we
+	 may safely assume that the functions are the same anyway, since they
+	 are referred to by the same global symbol. */
+      return !x->data.clos->local && !y->data.clos->local ||
+	x->data.clos->fp == y->data.clos->fp;
+    else
+      return x->data.clos == y->data.clos;
   else {
     switch (x->tag) {
     case EXPR::APP: {
