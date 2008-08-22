@@ -330,9 +330,9 @@ logs and C++ source files generated from Flex and Bison grammars. (Only use
 the latter if you know what you are doing, since it will remove files which
 require special tools to be regenerated.)
 
-There also are a number of targets like 'html' and 'pdf' which generate the
-documentation in a variety of formats (this requires groff); see the Makefile
-for details.
+There also are a number of targets like 'html' (this requires rman) and 'pdf'
+(this requires groff) which generate the documentation in a variety of
+formats; see the Makefile for details.
 
 Maintainers can roll distribution tarballs with 'make dist' and 'make
 distcheck' (the latter is like 'make dist', but also does a test build and
@@ -395,8 +395,8 @@ issues on x86-64 Linux systems described above.)
 MAC OSX
 --- ---
 
-Pure has been reported to work on OSX, and a port by Ryan Schmidt exists in
-the MacPorts collection, see http://www.macports.org/.
+Pure works fine on OSX, and a port by Ryan Schmidt exists in the MacPorts
+collection, see http://www.macports.org/.
 
 Note that with at least some versions of the Apple gcc compiler, with all
 warnings turned on you'll get the (bogus) warning "control reaches end of
@@ -421,6 +421,6 @@ Pure website), which includes all required libraries and some shortcuts to run
 the Pure interpreter and read online documentation in html help format.
 
 
-June 2008
+August 2008
 Albert Graef <Dr.Graef at t-online.de>
 Eddie Rucker <erucker at bmc.edu>
