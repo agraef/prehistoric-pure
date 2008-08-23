@@ -230,8 +230,8 @@ tanh z@(r<:t)	= polar (tanh (rect z));
 asinh z@(x+:y)	|
 asinh z@(r<:t)	= ln (z+sqrt (z*z+1));
 acosh z@(x+:y)	|
-acosh z@(r<:t)	= ln (z+sqrt (z*z-1));
-// Alternative definition (Kahan).
+acosh z@(r<:t)	= ln (z+sqrt (z-1)*sqrt (z+1));
+// Alternative definition by Kahan. Any reason to prefer that one?
 // acosh z@(x+:y)	|
 // acosh z@(r<:t)	= 2*ln (sqrt ((z+1)/2)+sqrt ((z-1)/2));
 atanh z@(x+:y)	|
