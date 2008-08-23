@@ -4,7 +4,7 @@ using math;
 
 // unary operations
 
-let f = [sqrt, sin, cos, tan, ln, log, exp, atan, asin, acos, sinh, cosh, tanh,
+let f = [sqrt, ln, log, exp, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh,
 	 asinh, acosh, atanh, abs, re, im, arg, conj, rect, polar, cis, ceil, 
 	 floor, round, frac, complexp, realp, rationalp, numberp, exactp, 
 	 inexactp, infp, nanp];
