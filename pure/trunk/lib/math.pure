@@ -293,18 +293,10 @@ x1/(r2<:t2)	= x1/r2 <: -t2;
 
 /* Complex powers. */
 
-// These are computed most easily if the 1st operand is in polar form.
-// FIXME: Deal with special cases like 0^0. These always give nan now.
-z1@(x1+:y1)^z2@(x2+:y2)	= polar z1^z2;
-z1@(x1+:y1)^z2@(r2<:t2)	= polar z1^rect z2;
-(r1<:t1)^z2@(x2+:y2)	|
-(r1<:t1)^z2@(r2<:t2)	= exp (ln r1*z2)*exp((0+:t1)*z2);
-
-// Mixed complex/real cases.
-z1@(x1+:y1)^x2	= z1 ^ (x2+:0);
-x1^z2@(x2+:y2)	= (x1+:0) ^ z2;
-(r1<:t1)^x2	= r1^x2 <: t1*x2;
-x1^z2@(r2<:t2)	= (x1<:0) ^ z2;
+z1@(_+:_)^z2	|
+z1^z2@(_+:_)	|
+z1@(_<:_)^z2	|
+z1^z2@(_<:_)	= exp (ln z1*z2);
 
 /* Equality. */
 
