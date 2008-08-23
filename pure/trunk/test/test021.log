@@ -2,8 +2,8 @@ let double_format = "%#0.3g";
 test (f/*0:101*/,x/*0:1101*/,y/*0:111*/) = puts$format (f/*0:101*/,x/*0:1101*/,y/*0:111*/,check (f/*0:101*/,x/*0:1101*/,y/*0:111*/) (catch __error__ (f/*1:101*/ x/*1:1101*/ y/*1:111*/)));
 test (f/*0:101*/,x/*0:11*/) = puts$format (f/*0:101*/,x/*0:11*/,check (f/*0:101*/,x/*0:11*/) (catch __error__ (f/*1:101*/ x/*1:11*/)));
 check _/*0:01*/ z/*0:1*/ = z/*0:1*/ if numberp z/*0:1*/;
-check (f/*0:0101*/,_/*0:011*/) (g@_/*0:100*/ _/*0:101*/ _/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:100*/;
-check (f/*0:0101*/,_/*0:011*/) (g@_/*0:10*/ _/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:10*/;
+check (f/*0:0101*/,x/*0:01101*/,y/*0:0111*/) (g@_/*0:100*/ u/*0:101*/ v/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:100*/&&x/*0:01101*/===u/*0:101*/&&y/*0:0111*/===v/*0:11*/;
+check (f/*0:0101*/,x/*0:011*/) (g@_/*0:10*/ u/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:10*/&&x/*0:011*/===u/*0:11*/;
 check _/*0:01*/ z/*0:1*/ = z/*0:1*/;
 format (f/*0:101*/,x/*0:1101*/,y/*0:11101*/,z/*0:1111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show y/*0:11101*/+","+show z/*0:1111*/;
 format (f/*0:101*/,x/*0:1101*/,z/*0:111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show z/*0:111*/;
@@ -13,8 +13,8 @@ show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
 show x/*0:1*/ = str x/*0:1*/;
 {
   rule #0: check _ z = z if numberp z
-  rule #1: check (f,_) (g@_ _ _) = __failed__ if f===g
-  rule #2: check (f,_) (g@_ _) = __failed__ if f===g
+  rule #1: check (f,x,y) (g@_ u v) = __failed__ if f===g&&x===u&&y===v
+  rule #2: check (f,x) (g@_ u) = __failed__ if f===g&&x===u
   rule #3: check _ z = z
   state 0: #0 #1 #2 #3
 	<var> state 1
@@ -44,23 +44,67 @@ show x/*0:1*/ = str x/*0:1*/;
 	<var> state 13
   state 13: #0 #1 #2 #3
 	<var> state 14
-  state 14: #0 #1 #2 #3
+	<app> state 19
+  state 14: #0 #2 #3
 	<var> state 15
 	<app> state 16
   state 15: #0 #3
-  state 16: #0 #1 #2 #3
+  state 16: #0 #2 #3
 	<var> state 17
-	<app> state 19
   state 17: #0 #2 #3
 	<var> state 18
   state 18: #0 #2 #3
   state 19: #0 #1 #2 #3
 	<var> state 20
-  state 20: #0 #1 #2 #3
+	<app> state 26
+  state 20: #0 #2 #3
 	<var> state 21
-  state 21: #0 #1 #2 #3
+  state 21: #0 #2 #3
 	<var> state 22
-  state 22: #0 #1 #2 #3
+	<app> state 23
+  state 22: #0 #3
+  state 23: #0 #2 #3
+	<var> state 24
+  state 24: #0 #2 #3
+	<var> state 25
+  state 25: #0 #2 #3
+  state 26: #0 #1 #2 #3
+	<var> state 27
+	, state 34
+  state 27: #0 #2 #3
+	<var> state 28
+  state 28: #0 #2 #3
+	<var> state 29
+  state 29: #0 #2 #3
+	<var> state 30
+	<app> state 31
+  state 30: #0 #3
+  state 31: #0 #2 #3
+	<var> state 32
+  state 32: #0 #2 #3
+	<var> state 33
+  state 33: #0 #2 #3
+  state 34: #0 #1 #2 #3
+	<var> state 35
+  state 35: #0 #1 #2 #3
+	<var> state 36
+  state 36: #0 #1 #2 #3
+	<var> state 37
+	<app> state 38
+  state 37: #0 #3
+  state 38: #0 #1 #2 #3
+	<var> state 39
+	<app> state 41
+  state 39: #0 #2 #3
+	<var> state 40
+  state 40: #0 #2 #3
+  state 41: #0 #1 #2 #3
+	<var> state 42
+  state 42: #0 #1 #2 #3
+	<var> state 43
+  state 43: #0 #1 #2 #3
+	<var> state 44
+  state 44: #0 #1 #2 #3
 }
 {
   rule #0: format (f,x,y,z) = str f+","+show x+","+show y+","+show z
