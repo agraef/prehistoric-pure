@@ -1,0 +1,37 @@
+// math.pure tests for exact/inexact and symbolic results
+
+using math, system;
+
+/* This will print out each operation, arguments and result as a single
+   line. Exceptions are flagged with '__error__', evaluation failures with
+   '__failed__'. Floating point values are rounded in the output to 3
+   significant digits by default, to prevent 'make check' from failing due to
+   rounding discrepancies. */
+
+let double_format = "%#0.3g"; // modify as needed, to get more accuracy
+
+test (f,x,y) = puts $ format (f,x,y,check (f,x,y) (catch __error__ (f x y)));
+test (f,x) = puts $ format (f,x,check (f,x) (catch __error__ (f x)));
+
+check _ z = z if numberp z;
+check (f,_) (g@_ _ _) |
+check (f,_) (g@_ _) = __failed__ if f===g;
+check _ z = z otherwise;
+
+format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
+format (f,x,z) = str f+","+show x+","+show z;
+
+show x::double = sprintf double_format x;
+show (x+:y) = show x+"+:"+show y;
+show (x<:y) = show x+"<:"+show y;
+show x = str x otherwise;
+
+puts "*** EXACT/INEXACT ***" $$
+// These should all return exact results, except +/- with polar operands, as
+// well as / and ^ which always return inexact results.
+do test [op,2,a;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+do test [op,a,2;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+puts "*** SYMBOLIC ***" $$
+// If everything is all right here, these should all print __failed__.
+do test [op,x,a;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+do test [op,a,x;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]];
