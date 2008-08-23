@@ -29,11 +29,13 @@ using system;
 
 let double_format = "%#0.3g"; // modify as needed, to get more accuracy
 
-test f (x,y) = puts $ format (f,x,y,check f (x,y) (catch __error__ (f x y)));
-test f x = puts $ format (f,x,check f x (catch __error__ (f x)));
+test (f,x,y) = puts $ format (f,x,y,check (f,x,y) (catch __error__ (f x y)));
+test (f,x) = puts $ format (f,x,check (f,x) (catch __error__ (f x)));
 
-check f _ (g@_ _ _) | check f _ (g@_ _) = __failed__ if f===g;
-check _ _ z = z otherwise;
+check _ z = z if numberp z;
+check (f,_) (g@_ _ _) |
+check (f,_) (g@_ _) = __failed__ if f===g;
+check _ z = z otherwise;
 
 format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
 format (f,x,z) = str f+","+show x+","+show z;
@@ -43,5 +45,5 @@ show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
 
-puts "*** UNARY ***" $$ void [test f x; f=f; x=x] $$
-puts "*** BINARY ***" $$ void [test f x; f=f2; x=x2];
+puts "*** UNARY ***" $$ void [test (f,x); f=f; x=x] $$
+puts "*** BINARY ***" $$ void [test (f,x); f=f2; x=x2];
