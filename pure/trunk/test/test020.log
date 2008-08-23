@@ -4716,23 +4716,23 @@ pow,nan,2L%3L<:2,__failed__
 pow,nan,1L%2L<:3L%4L,__failed__
 pow,nan,-inf,__failed__
 pow,nan,nan,__failed__
-puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [(f/*1:*/,x/*0:*/,test f/*1:*/ x/*0:*/)] {
-  rule #0: x = [(f,x,test f x)]
+puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [test f/*1:*/ x/*0:*/] {
+  rule #0: x = [test f x]
   state 0: #0
 	<var> state 1
   state 1: #0
 }) x {
-  rule #0: f = catmap (\x -> [(f,x,test f x)]) x
+  rule #0: f = catmap (\x -> [test f x]) x
   state 0: #0
 	<var> state 1
   state 1: #0
-}) f)$$puts "*** BINARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [(f/*1:*/,x/*0:*/,test f/*1:*/ x/*0:*/)] {
-  rule #0: x = [(f,x,test f x)]
+}) f)$$puts "*** BINARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [test f/*1:*/ x/*0:*/] {
+  rule #0: x = [test f x]
   state 0: #0
 	<var> state 1
   state 1: #0
 }) x2 {
-  rule #0: f = catmap (\x -> [(f,x,test f x)]) x2
+  rule #0: f = catmap (\x -> [test f x]) x2
   state 0: #0
 	<var> state 1
   state 1: #0
