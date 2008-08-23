@@ -271,32 +271,32 @@ z1@(r1<:t1)/z2@(x2+:y2)	= rect z1 / z2;
 /* Mixed complex/real and real/complex forms yield a rect or polar result,
    depending on what the complex input was. */
 
-(x1+:y1)+x2	= x1+x2 +: y1;
-x1+(x2+:y2)	= x1+x2 +: y2;
-z1@(r1<:t1)+x2	= rect z1 + x2;
-x1+z2@(r2<:t2)	= x1 + rect z2;
+(x1+:y1)+x2	= x1+x2 +: y1 if realp x2;
+x1+(x2+:y2)	= x1+x2 +: y2 if realp x1;
+z1@(r1<:t1)+x2	= rect z1 + x2 if realp x2;
+x1+z2@(r2<:t2)	= x1 + rect z2 if realp x1;
 
-(x1+:y1)-x2	= x1-x2 +: y1;
-x1-(x2+:y2)	= x1-x2 +: -y2;
-z1@(r1<:t1)-x2	= rect z1 - x2;
-x1-z2@(r2<:t2)	= x1 - rect z2;
+(x1+:y1)-x2	= x1-x2 +: y1 if realp x2;
+x1-(x2+:y2)	= x1-x2 +: -y2 if realp x1;
+z1@(r1<:t1)-x2	= rect z1 - x2 if realp x2;
+x1-z2@(r2<:t2)	= x1 - rect z2 if realp x1;
 
-(x1+:y1)*x2	= x1*x2 +: y1*x2;
-x1*(x2+:y2)	= x1*x2 +: x1*y2;
-(r1<:t1)*x2	= r1*x2 <: t1;
-x1*(r2<:t2)	= x1*r2 <: t2;
+(x1+:y1)*x2	= x1*x2 +: y1*x2 if realp x2;
+x1*(x2+:y2)	= x1*x2 +: x1*y2 if realp x1;
+(r1<:t1)*x2	= r1*x2 <: t1 if realp x2;
+x1*(r2<:t2)	= x1*r2 <: t2 if realp x1;
 
-(x1+:y1)/x2	= x1/x2 +: y1/x2;
-x1/z2@(x2+:y2)	= (x1*x2 +: -x1*y2) / (x2*x2+y2*y2);
-(r1<:t1)/x2	= r1/x2 <: t1;
-x1/(r2<:t2)	= x1/r2 <: -t2;
+(x1+:y1)/x2	= x1/x2 +: y1/x2 if realp x2;
+x1/z2@(x2+:y2)	= (x1*x2 +: -x1*y2) / (x2*x2+y2*y2) if realp x1;
+(r1<:t1)/x2	= r1/x2 <: t1 if realp x2;
+x1/(r2<:t2)	= x1/r2 <: -t2 if realp x1;
 
 /* Complex powers. */
 
 z1@(_+:_)^x2	|
-z1@(_<:_)^x2	= exp (ln z1*x2);
-x1^z2@(_+:_)	= exp (ln (rect x1)*z2);
-x1^z2@(_<:_)	= exp (ln (polar x1)*z2);
+z1@(_<:_)^x2	= exp (ln z1*x2) if numberp x2;
+x1^z2@(_+:_)	= exp (ln (rect x1)*z2) if realp x1;
+x1^z2@(_<:_)	= exp (ln (polar x1)*z2) if realp x1;
 
 /* Equality. */
 
@@ -312,15 +312,15 @@ z1@(_<:_)==z2@(_+:_)	= rect z1 == z2;
 z1@(_+:_)!=z2@(_<:_)	= z1 != rect z2;
 z1@(_<:_)!=z2@(_+:_)	= rect z1 != z2;
 
-(x1+:y1)==x2	= x1==x2 && y1==0;
-x1==(x2+:y2)	= x1==x2 && y2==0;
-z1@(r1<:t1)==x2	= z1 == (x2<:0);
-x1==z2@(r2<:t2)	= (x1<:0) == z2;
+(x1+:y1)==x2		= x1==x2 && y1==0 if realp x2;
+x1==(x2+:y2)		= x1==x2 && y2==0 if realp x1;
+z1@(r1<:t1)==x2		= z1 == (x2<:0) if realp x2;
+x1==z2@(r2<:t2)		= (x1<:0) == z2 if realp x1;
 
-(x1+:y1)!=x2	= x1!=x2 || y1!=0;
-x1!=(x2+:y2)	= x1!=x2 || y2!=0;
-z1@(r1<:t1)!=x2	= z1 != (x2<:0);
-x1!=z2@(r2<:t2)	= (x1<:0) != z2;
+(x1+:y1)!=x2		= x1!=x2 || y1!=0 if realp x2;
+x1!=(x2+:y2)		= x1!=x2 || y2!=0 if realp x1;
+z1@(r1<:t1)!=x2		= z1 != (x2<:0) if realp x2;
+x1!=z2@(r2<:t2)		= (x1<:0) != z2 if realp x1;
 
 /* Rational numbers. These are constructed with the exact division operator
    '%' which has the same precedence and fixity as the other division
