@@ -295,8 +295,8 @@ x1/(r2<:t2)	= x1/r2 <: -t2;
 
 z1@(_+:_)^x2	|
 z1@(_<:_)^x2	= exp (ln z1*x2);
-x1^z2@(_+:_)	|
-x1^z2@(_<:_)	= exp (ln (complex x1)*z2);
+x1^z2@(_+:_)	= exp (ln (rect x1)*z2);
+x1^z2@(_<:_)	= exp (ln (polar x1)*z2);
 
 /* Equality. */
 
