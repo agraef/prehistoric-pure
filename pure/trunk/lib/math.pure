@@ -472,8 +472,8 @@ asin (x%y)	= asin (x/y);
 acos (x%y)	= acos (x/y);
 atan (x%y)	= atan (x/y);
 
-atan2 (x%y) z	= atan2 (x/y) z;
-atan2 x (y%z)	= atan2 x (y/z);
+atan2 (x%y) z	= atan2 (x/y) z if realp z;
+atan2 x (y%z)	= atan2 x (y/z) if realp x;
 
 sinh (x%y)	= sinh (x/y);
 cosh (x%y)	= cosh (x/y);
