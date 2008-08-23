@@ -183,8 +183,8 @@ conj x::double	= x;
 
 /* Complex sqrt. */
 
-sqrt (x+:y)	= sqrt ((r+x)/2) +: sqrt ((r-x)/2)
-		  when r = sqrt (x*x+y*y) end;
+sqrt (x+:y)	= sqrt r*(cos t +: sin t)
+		  when r = sqrt (x*x+y*y); t = atan2 y x/2 end;
 sqrt (r<:t)	= sqrt r <: t/2;
 
 /* Complex exponential and logarithms. */
@@ -215,9 +215,7 @@ asin z@(r<:t)	= -i*ln (i*z+sqrt (1-z*z));
 acos z@(x+:y)	|
 acos z@(r<:t)	= -i*ln (z+sqrt (z*z-1));
 atan z@(x+:y)	|
-atan z@(r<:t)	= 0.0 +: inf if z==i;
-		= 0.0 +: -inf if z==-i;
-		= -i*0.5*ln ((1+i*z)/(1-i*z));
+atan z@(r<:t)	= (ln (1+i*z)-ln (1-i*z))/(2*i);
 
 /* Complex hyperbolic functions. */
 
@@ -233,10 +231,11 @@ asinh z@(x+:y)	|
 asinh z@(r<:t)	= ln (z+sqrt (z*z+1));
 acosh z@(x+:y)	|
 acosh z@(r<:t)	= ln (z+sqrt (z*z-1));
+// Alternative definition (Kahan).
+// acosh z@(x+:y)	|
+// acosh z@(r<:t)	= 2*ln (sqrt ((z+1)/2)+sqrt ((z-1)/2));
 atanh z@(x+:y)	|
-atanh z@(r<:t)	= inf +: 0.0 if z==1;
-		= -inf +: 0.0 if z==-1;
-		= ln ((1+z)/(1-z))/2;
+atanh z@(r<:t)	= (ln (1+z)-ln (1-z))/2;
 
 /* Complex arithmetic. */
 
