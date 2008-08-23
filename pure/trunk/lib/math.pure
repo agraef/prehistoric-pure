@@ -213,7 +213,7 @@ tan z@(r<:t)	= polar (tan (rect z));
 asin z@(x+:y)	|
 asin z@(r<:t)	= -i*ln (i*z+sqrt (1-z*z));
 acos z@(x+:y)	|
-acos z@(r<:t)	= -i*ln (z+sqrt (z*z-1));
+acos z@(r<:t)	= -i*ln (z+i*sqrt (1-z*z));
 atan z@(x+:y)	|
 atan z@(r<:t)	= (ln (1+i*z)-ln (1-i*z))/(2*i);
 
