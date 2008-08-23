@@ -349,8 +349,10 @@ x::int % y::int		= bigint x % bigint y;
 
 // rational operands
 (x1%y1)%(x2%y2)		= (x1*y2)%(y1*x2);
-(x1%y1)%x2		= x1%(y1*x2);
-x1%(x2%y2)		= (x1*y2)%x2;
+(x1%y1)%x2::int		|
+(x1%y1)%x2::bigint	= x1%(y1*x2);
+x1::int%(x2%y2)		|
+x1::bigint%(x2%y2)	= (x1*y2)%x2;
 
 // complex operands (these must both use the same representation, otherwise
 // the result won't be exact)
@@ -358,15 +360,19 @@ z1@(_+:_)%z2@(_<:_)	|
 z1@(_<:_)%z2@(_+:_)	= z1/z2;
 (x1+:y1)%(x2+:y2)	= (x1*x2+y1*y2)%d +: (y1*x2-x1*y2)%d
 			    when d = x2*x2+y2*y2 end;
-(x1+:y1)%x2		= (x1*x2)%d +: (y1*x2)%d when d = x2*x2 end;
-x1%(x2+:y2)		= (x1*x2)%d +: (-x1*y2)%d when d = x2*x2+y2*y2 end;
 (r1<:t1)%(r2<:t2)	= r1%r2 <: t1-t2;
-(r1<:t1)%x2		= r1%x2 <: t1;
-x1%(r2<:t2)		= x1%r2 <: -t2;
+
+// mixed complex/real cases
+(x1+:y1)%x2		= (x1*x2)%d +: (y1*x2)%d
+			    when d = x2*x2 end if realp x2;
+x1%(x2+:y2)		= (x1*x2)%d +: (-x1*y2)%d
+			    when d = x2*x2+y2*y2 end if realp x1;
+(r1<:t1)%x2		= r1%x2 <: t1 if realp x2;
+x1%(r2<:t2)		= x1%r2 <: -t2 if realp x1;
 
 // fall back to ordinary inexact division in all other cases
-x::double%y		|
-x%y::double		= x/y;
+x::double%y		= x/y if numberp y;
+x%y::double		= x/y if numberp x;
 
 /* Conversions. */
 
@@ -484,24 +490,37 @@ atanh (x%y)	= atanh (x/y);
 (x1%y1)-(x2%y2)	= (x1*y2-x2*y1) % (y1*y2);
 (x1%y1)*(x2%y2)	= (x1*x2) % (y1*y2);
 
-(x1%y1)+x2	= (x1+x2*y1) % y1;
-(x1%y1)-x2	= (x1-x2*y1) % y1;
-(x1%y1)*x2	= (x1*x2) % y1;
+(x1%y1)+x2::int		|
+(x1%y1)+x2::bigint	= (x1+x2*y1) % y1;
+(x1%y1)-x2::int		|
+(x1%y1)-x2::bigint	= (x1-x2*y1) % y1;
+(x1%y1)*x2::int		|
+(x1%y1)*x2::bigint	= (x1*x2) % y1;
 
-x1+(x2%y2)	= (x1*y2+x2) % y2;
-x1-(x2%y2)	= (x1*y2-x2) % y2;
-x1*(x2%y2)	= (x1*x2) % y2;
+x1::int+(x2%y2)		|
+x1::bigint+(x2%y2)	= (x1*y2+x2) % y2;
+x1::int-(x2%y2)		|
+x1::bigint-(x2%y2)	= (x1*y2-x2) % y2;
+x1::int*(x2%y2)		|
+x1::bigint*(x2%y2)	= (x1*x2) % y2;
 
-/* / and ^ yield inexact results. */
+/* Fallback rules. */
 
-(x1%y1)/(x2%y2)	= (x1*y2) / (y1*x2);
+// / and ^ always yield inexact results.
+(x1%y1)/(x2%y2)	= (x1/y1) / (x2/y2);
 (x1%y1)^(x2%y2)	= (x1/y1) ^ (x2/y2);
 
-(x1%y1)/x2	= x1 / (y1*x2);
-(x1%y1)^x2	= (x1/y1) ^ x2;
+(x1%y1)+x2	= (x1/y1)+x2 if numberp x2;
+(x1%y1)-x2	= (x1/y1)-x2 if numberp x2;
+(x1%y1)*x2	= (x1/y1)*x2 if numberp x2;
+(x1%y1)/x2	= (x1/y1)/x2 if numberp x2;
+(x1%y1)^x2	= (x1/y1)^x2 if numberp x2;
 
-x1/(x2%y2)	= (x1*y2) / x2;
-x1^(x2%y2)	= x1 ^ (x2/y2);
+x1+(x2%y2)	= x1+(x2/y2) if numberp x1;
+x1-(x2%y2)	= x1-(x2/y2) if numberp x1;
+x1*(x2%y2)	= x1*(x2/y2) if numberp x1;
+x1/(x2%y2)	= x1/(x2/y2) if numberp x1;
+x1^(x2%y2)	= x1^(x2/y2) if numberp x1;
 
 /* Comparisons. */
 
@@ -512,19 +531,19 @@ x1%y1 <= x2%y2	= x1*y2 <= x2*y1;
 x1%y1 >  x2%y2	= x1*y2 >  x2*y1;
 x1%y1 >= x2%y2	= x1*y2 >= x2*y1;
 
-x1%y1 == x2	= x1 == x2*y1;
-x1%y1 != x2	= x1 != x2*y1;
-x1%y1 <  x2	= x1 <  x2*y1;
-x1%y1 <= x2	= x1 <= x2*y1;
-x1%y1 >  x2	= x1 >  x2*y1;
-x1%y1 >= x2	= x1 >= x2*y1;
+x1%y1 == x2	= x1 == x2*y1 if numberp x2;
+x1%y1 != x2	= x1 != x2*y1 if numberp x2;
+x1%y1 <  x2	= x1 <  x2*y1 if realp x2;
+x1%y1 <= x2	= x1 <= x2*y1 if realp x2;
+x1%y1 >  x2	= x1 >  x2*y1 if realp x2;
+x1%y1 >= x2	= x1 >= x2*y1 if realp x2;
 
-x1 == x2%y2	= x1*y2 == x2;
-x1 != x2%y2	= x1*y2 != x2;
-x1 <  x2%y2	= x1*y2 <  x2;
-x1 <= x2%y2	= x1*y2 <= x2;
-x1 >  x2%y2	= x1*y2 >  x2;
-x1 >= x2%y2	= x1*y2 >= x2;
+x1 == x2%y2	= x1*y2 == x2 if numberp x2;
+x1 != x2%y2	= x1*y2 != x2 if numberp x2;
+x1 <  x2%y2	= x1*y2 <  x2 if realp x2;
+x1 <= x2%y2	= x1*y2 <= x2 if realp x2;
+x1 >  x2%y2	= x1*y2 >  x2 if realp x2;
+x1 >= x2%y2	= x1*y2 >= x2 if realp x2;
 
 /* Additional number predicates. */
 
