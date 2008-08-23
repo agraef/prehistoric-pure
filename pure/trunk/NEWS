@@ -1,5 +1,5 @@
 
-** Pure 0.5 2008-08-22
+** Pure 0.5 2008-08-24
 
 This release sports LLVM 2.3 support and a bunch of bug fixes and improvements
 in the language, the standard library and the code generator. As usual, please
