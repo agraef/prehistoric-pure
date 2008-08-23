@@ -24,8 +24,10 @@ using system;
 /* This will print out each operation, arguments and result as a single
    line. Exceptions are flagged with '__error__', evaluation failures with
    '__failed__'. Floating point values are rounded in the output to 3
-   significant digits, to prevent 'make check' from failing due to small
+   significant digits by default, to prevent 'make check' from failing due to
    rounding discrepancies. */
+
+let double_format = "%#0.3g"; // modify as needed, to get more accuracy
 
 test f (x,y) = puts $ format (f,x,y,check f (x,y) (catch __error__ (f x y)));
 test f x = puts $ format (f,x,check f x (catch __error__ (f x)));
@@ -36,7 +38,7 @@ check _ _ z = z otherwise;
 format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
 format (f,x,z) = str f+","+show x+","+show z;
 
-show x::double = sprintf "%#0.3g" x;
+show x::double = sprintf double_format x;
 show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
