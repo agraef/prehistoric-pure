@@ -36,6 +36,7 @@ let x2 = catmap (\i/*0:*/ -> catmap (\j/*0:*/ -> [(i/*1:*/,j/*0:*/)] {
 	<var> state 1
   state 1: #0
 }) x;
+let double_format = "%#0.3g";
 test f/*0:01*/ (x/*0:101*/,y/*0:11*/) = puts$format (f/*0:01*/,x/*0:101*/,y/*0:11*/,check f/*0:01*/ (x/*0:101*/,y/*0:11*/) (catch __error__ (f/*1:01*/ x/*1:101*/ y/*1:11*/)));
 test f/*0:01*/ x/*0:1*/ = puts$format (f/*0:01*/,x/*0:1*/,check f/*0:01*/ x/*0:1*/ (catch __error__ (f/*1:01*/ x/*1:1*/)));
 check f/*0:001*/ _/*0:01*/ (g@_/*0:100*/ _/*0:101*/ _/*0:11*/) = __failed__ if f/*0:001*/===g/*0:100*/;
@@ -43,7 +44,7 @@ check f/*0:001*/ _/*0:01*/ (g@_/*0:10*/ _/*0:11*/) = __failed__ if f/*0:001*/===
 check _/*0:001*/ _/*0:01*/ z/*0:1*/ = z/*0:1*/;
 format (f/*0:101*/,x/*0:1101*/,y/*0:11101*/,z/*0:1111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show y/*0:11101*/+","+show z/*0:1111*/;
 format (f/*0:101*/,x/*0:1101*/,z/*0:111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show z/*0:111*/;
-show x/*0:1*/::double = sprintf "%#0.3g" x/*0:1*/;
+show x/*0:1*/::double = sprintf double_format x/*0:1*/;
 show (x/*0:101*/+:y/*0:11*/) = show x/*0:101*/+"+:"+show y/*0:11*/;
 show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
 show x/*0:1*/ = str x/*0:1*/;
@@ -146,7 +147,7 @@ show x/*0:1*/ = str x/*0:1*/;
   state 12: #0 #1
 }
 {
-  rule #0: show x::double = sprintf "%#0.3g" x
+  rule #0: show x::double = sprintf double_format x
   rule #1: show (x+:y) = show x+"+:"+show y
   rule #2: show (x<:y) = show x+"<:"+show y
   rule #3: show x = str x
