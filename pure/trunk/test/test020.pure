@@ -8,6 +8,8 @@ let f = [sqrt, sin, cos, tan, ln, log, exp, atan, asin, acos, sinh, cosh, tanh,
 	 asinh, acosh, atanh, abs, re, im, arg, conj, rect, polar, cis, ceil, 
 	 floor, round, frac, complexp, realp, rationalp, numberp, exactp, 
 	 inexactp, infp, nanp];
+// Note: the symbolic constant 'x' at the end of the list is for testing
+// operations with symbolic arguments (these should all yield '__failed__').
 let x = [1, -1, 0, 0.0, 1.2, -1.2, 1%3, -1%4, 1+:2, -1+:2, 1+:-2, -1.2+:4.3,
 	 1.2+:-4.3, 1%2+:1, 1%2+:3%4, 3<:1, -3<:1, 3.0<:-3, 3.1<:2.5, (2%3)<:2,
 	 (1%2)<:(3%4), -inf, nan, x];
