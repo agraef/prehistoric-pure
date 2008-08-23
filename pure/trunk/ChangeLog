@@ -1,6 +1,36 @@
-2008-08-22  Albert Graef  <Dr.Graef@t-online.de>
+2008-08-24  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.5 release.
+
+	* test/test020.pure, test/test021.pure: Cosmetic changes, added
+	math.pure tests for checking exact/inexact/symbolic results.
+
+	NOTE: test020.log is fairly big and thus still needs to be
+	reviewed more thoroughly. If you can provide a helping hand there
+	by checking at least some of the tested operations and post
+	suspicious results to the mailing list, it will be much
+	appreciated. :-)
+
+	* lib/math.pure: Fixed the broken definition of the complex sqrt,
+	and did some cosmetic surgery on some operations, to make them
+	more compatible with established standards (IEEE 754, POSIX). This
+	probably isn't perfect yet, so please report any suspicious
+	results or glitches in branch cuts and the like.
+
+	I also checked some of the complex trig and hyperbolic operations
+	manually against my HP-50G calculator (whose numeric algorithms
+	are based on earlier HP calculator software designed by William
+	Kahan, the architect of IEEE 754), and they seem to provide the
+	proper branch cuts now, so that results are identical with the
+	calculator up to rounding discrepancies.
+
+	Note that operations will now return complex results only if
+	invoked with complex (or mixed complex/real) arguments, as
+	suggested by Eddie Rucker. I also added the necessary type guards
+	to ensure that operations are irreducible when invoked with
+	non-numeric arguments.
+
+2008-08-22  Albert Graef  <Dr.Graef@t-online.de>
 
 	* test/test020.pure: Added math.pure tests by Eddie Rucker.
 
