@@ -1545,9 +1545,23 @@ below existing ones:
 > \fBunderride\fP
 .fi
 .SH CAVEATS AND NOTES
-This section is a grab bag of useful tips and tricks, common pitfalls, quirks
-and limitations of the current implementation and information on how to deal
-with them.
+This section is a grab bag of casual remarks, useful tips and tricks, and
+information on common pitfalls, quirks and limitations of the current
+implementation and how to deal with them.
+.PP
+.B Purity.
+People keep asking me what's so ``pure'' about Pure. The long and apologetic
+answer is that at its core, Pure is in fact purely algebraic and purely
+functional. Pure doesn't get in your way if you want to call external
+operations with side effects (it does allow you to call any C function after
+all), but with a few exceptions the standard library operations are free of
+those. Just stay away from operations marked ``IMPURE'' in the library sources
+(most notably, eval and catch/throw) and avoid the system module, then your
+program will behave according to the semantics of term rewriting.
+.PP
+The short answer is that I simply liked the name, and there wasn't any
+programming language named ``Pure'' yet (quite a feat nowadays), so there's
+one now. :)
 .PP
 .B Debugging.
 There's no symbolic debugger yet. So
