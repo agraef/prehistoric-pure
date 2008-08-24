@@ -26,6 +26,7 @@ show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
 
+tests =
 puts "*** EXACT/INEXACT ***" $$
 // These should all return exact results, except +/- with polar operands, as
 // well as / and ^ which always return inexact results.
@@ -35,3 +36,5 @@ puts "*** SYMBOLIC ***" $$
 // If everything is all right here, these should all print __failed__.
 do test [op,x,a;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
 do test [op,a,x;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]];
+
+tests;

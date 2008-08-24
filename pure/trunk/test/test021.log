@@ -11,6 +11,47 @@ show x/*0:1*/::double = sprintf double_format x/*0:1*/;
 show (x/*0:101*/+:y/*0:11*/) = show x/*0:101*/+"+:"+show y/*0:11*/;
 show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
 show x/*0:1*/ = str x/*0:1*/;
+tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,2,a/*0:*/)] {
+  rule #0: a = [(op,2,a)]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [2+:3,2<:3,2%3] {
+  rule #0: op = catmap (\a -> [(op,2,a)]) [2+:3,2<:3,2%3]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,a/*0:*/,2)] {
+  rule #0: a = [(op,a,2)]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [2+:3,2<:3,2%3] {
+  rule #0: op = catmap (\a -> [(op,a,2)]) [2+:3,2<:3,2%3]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [(+),(-),(*),(%),(/),(^)])$$puts "*** SYMBOLIC ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,x,a/*0:*/)] {
+  rule #0: a = [(op,x,a)]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [2+:3,2<:3,2%3] {
+  rule #0: op = catmap (\a -> [(op,x,a)]) [2+:3,2<:3,2%3]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,a/*0:*/,x)] {
+  rule #0: a = [(op,a,x)]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [2+:3,2<:3,2%3] {
+  rule #0: op = catmap (\a -> [(op,a,x)]) [2+:3,2<:3,2%3]
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}) [(+),(-),(*),(%),(/),(^)]);
 {
   rule #0: check _ z = z if numberp z
   rule #1: check (f,x,y) (g@_ u v) = __failed__ if f===g&&x===u&&y===v
@@ -221,6 +262,10 @@ show x/*0:1*/ = str x/*0:1*/;
 	<var> state 15
   state 15: #2 #3
 }
+{
+  rule #0: tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op -> catmap (\a -> [(op,2,a)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op -> catmap (\a -> [(op,a,2)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$puts "*** SYMBOLIC ***"$$do test (catmap (\op -> catmap (\a -> [(op,x,a)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op -> catmap (\a -> [(op,a,x)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])
+  state 0: #0
+}
 *** EXACT/INEXACT ***
 (+),2,2+:3,4+:3
 (+),2,2<:3,0.0200+:0.282
@@ -295,45 +340,5 @@ show x/*0:1*/ = str x/*0:1*/;
 (^),2+:3,x,__failed__
 (^),2<:3,x,__failed__
 (^),2L%3L,x,__failed__
-puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,2,a/*0:*/)] {
-  rule #0: a = [(op,2,a)]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [2+:3,2<:3,2%3] {
-  rule #0: op = catmap (\a -> [(op,2,a)]) [2+:3,2<:3,2%3]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,a/*0:*/,2)] {
-  rule #0: a = [(op,a,2)]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [2+:3,2<:3,2%3] {
-  rule #0: op = catmap (\a -> [(op,a,2)]) [2+:3,2<:3,2%3]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [(+),(-),(*),(%),(/),(^)])$$puts "*** SYMBOLIC ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,x,a/*0:*/)] {
-  rule #0: a = [(op,x,a)]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [2+:3,2<:3,2%3] {
-  rule #0: op = catmap (\a -> [(op,x,a)]) [2+:3,2<:3,2%3]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,a/*0:*/,x)] {
-  rule #0: a = [(op,a,x)]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [2+:3,2<:3,2%3] {
-  rule #0: op = catmap (\a -> [(op,a,x)]) [2+:3,2<:3,2%3]
-  state 0: #0
-	<var> state 1
-  state 1: #0
-}) [(+),(-),(*),(%),(/),(^)]);
+tests;
 ()
