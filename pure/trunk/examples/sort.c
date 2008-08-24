@@ -17,12 +17,6 @@
    On Windows you might wish to add the '-Wl,--enable-auto-import' linker
    option.)
 
-   I suggest that you also set up your LD_LIBRARY_PATH environment variable
-   (DYLD_LIBRARY_PATH on OSX) so that the dynamic loader finds sort.so without
-   further ado. Something like 'export LD_LIBRARY_PATH=.' should do the trick.
-   Windows doesn't need this since it always searches the current directory
-   for dlls.
-
    Now start the interpreter and enter the following to "dlopen" sort.so and
    declare the sort function:
 
