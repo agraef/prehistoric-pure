@@ -1,0 +1,427 @@
+
+/* Pure's standard prelude. */
+
+/* Copyright (c) 2008 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure programming language and system.
+
+   Pure is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* Signature of commonly used constant and operator symbols. This should be
+   the first thing in the prelude, as these symbols are heavily used almost
+   everywhere. */
+
+/* Built-in exception values. */
+
+nullary	   failed_cond;		// failed conditional (guard, if-then-else)
+nullary	   failed_match;	// failed pattern match (lambda, case, etc.)
+nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
+
+/* Other exceptions defined by the prelude. We use exceptions sparingly, to
+   not interfere with symbolic evaluation, but in some cases it makes sense to
+   raise special kinds of exceptions in response to obvious error conditions.
+   In particular, the 'bad_list_value' exception is raised by functions which
+   need to work from the end of a list towards its front. */
+
+nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
+//         bad_list_value xs;	// not a proper list value (reverse, etc.)
+				// xs denotes the offending tail of the list
+
+/* Other constants. */
+
+nullary    [] ();		// empty list and tuple
+
+/* Operators. Note that the parser will automagically give unary minus the
+   same precedence level as the corresponding binary operator. */
+
+infixl 0   $$ ;			// sequence operator
+infixr 0   $ ;			// right-associative application
+infixr 1   , ;			// pair (tuple)
+infix  2   => ;			// mapsto constructor
+infixr 2   || ;			// logical or (short-circuit)
+infixr 3   && ;			// logical and (short-circuit)
+prefix 3   not ;		// logical negation
+infix  4   < > <= >= == != ;	// relations
+infix  4   === !== ;		// syntactic equality
+infixr 4   : ;			// list cons
+infixl 5   << >> ;		// bit shifts
+infixl 6   + - or ;		// addition, bitwise or
+infixl 7   * / div mod and ;	// multiplication, bitwise and
+prefix 7   ~ ;			// bitwise not
+infixr 8   ^ ;			// exponentiation
+prefix 8   # ;			// size operator
+infixl 9   ! !! ;		// indexing, slicing
+infixr 9   . ;			// function composition
+
+/* The truth values. These are just integers in Pure, but sometimes it's
+   convenient to refer to them using these symbolic constants. */
+
+const false, true = 0, 1;
+
+/* Pull in the primitives (arithmetic etc.) and the standard string functions.
+   Note that the math and system modules are *not* included here, so you have
+   to do that yourself if your program requires any of those operations. */
+
+using primitives, strings;
+
+/* Basic combinators. */
+
+f $ x		= f x;
+(f . g) x	= f (g x);
+
+void _		= ();
+id x		= x;
+cst x y		= x;
+
+flip f x y	= f y x;
+curry f x y	= f (x,y);
+curry3 f x y z	= f (x,y,z);
+uncurry f (x,y)	= f x y;
+uncurry3 f (x,y,z)
+		= f x y z;
+
+/* "Mapsto" operator. This constructor is declared here so that it can be used
+   in other standard library modules to denote special kind of pairs which map
+   keys to values. Here we only define equality of such pairs. */
+
+(x=>v)==(y=>w)	= if x==y then v==w else 0;
+(x=>v)!=(y=>w)	= if x!=y then 1 else v!=w;
+
+/* Poor man's tuples(TM). These are constructed with the pairing operator ',',
+   are always flat and associate to the right. The empty tuple, denoted (), is
+   neutral with respect to ','. Operations are provided to test for equality/
+   inequality and emptiness, to determine the size of a tuple, for zero-based
+   indexing, and to reverse a tuple. */
+
+x,()		= x;
+(),y		= y;
+(x,y),z		= x,(y,z);
+
+()==()		= 1;
+(x,xs)==()	= 0;
+()==(x,xs)	= 0;
+(x,xs)==(y,ys)	= if x==y then xs==ys else 0;
+
+()!=()		= 0;
+(x,xs)!=()	= 1;
+()!=(x,xs)	= 1;
+(x,xs)!=(y,ys)	= if x!=y then 1 else xs!=ys;
+
+null ()		= 1;
+null (x,xs)	= 0;
+
+#()		= 0;
+#(x,xs)		= accum 1 xs with
+  accum n::int (x,xs)	= accum (n+1) xs;
+  accum n::int x	= n+1;
+end;
+
+(x,xs)!n::int	= throw out_of_bounds if n<0;
+(x,xs)!0	= x;
+(x,y,xs)!n::int	= (y,xs)!(n-1);
+(x,y)!1		= y;
+
+reverse ()	= ();
+reverse (x,xs)	= accum x xs with
+  accum ys (x,xs)	= accum (x,ys) xs;
+  accum ys x		= x,ys;
+end;
+
+/* Lists are the usual "conses" written using the infix ':' operator. '[]'
+   denotes the empty list. Moreover, the parser provides the customary sugar
+   for proper list values [x] where x is any singleton or tuple (in the latter
+   case you'll get a list made from all the elements of x). The usual basic
+   operations are provided to test for equality/inequality and emptiness, to
+   compute the size of a list, for indexing and concatenation, and for
+   reversing a list. */
+
+[]==[]		= 1;
+(x:xs)==[]	= 0;
+[]==(x:xs)	= 0;
+(x:xs)==(y:ys)	= if x==y then xs==ys else 0;
+
+[]!=[]		= 0;
+(x:xs)!=[]	= 1;
+[]!=(x:xs)	= 1;
+(x:xs)!=(y:ys)	= if x!=y then 1 else xs!=ys;
+
+null []		= 1;
+null (x:xs)	= 0;
+
+#[]		= 0;
+#(x:xs)		= accum 1 xs with
+  accum n::int (x:xs)	= accum (n+1) xs;
+  accum n::int []	= n;
+  accum	n::int xs	= n+#xs;
+end;
+
+(x,xs)!n::int	= throw out_of_bounds if n<0;
+(x:xs)!0	= x;
+(x:xs)!n::int	= xs!(n-1);
+[]!n::int	= throw out_of_bounds;
+
+[]+ys		= ys;
+(x:xs)+ys	= x : accum ys (reverse xs) with
+  accum ys (x:xs)	= accum (x:ys) xs;
+  accum ys []		= ys;
+end;
+
+reverse []	= [];
+reverse (x:xs)	= accum [x] xs with
+  accum ys (x:xs)	= accum (x:ys) xs;
+  accum ys []		= ys;
+  accum	_ xs		= throw (bad_list_value xs);
+end;
+
+/* Convert between lists and tuples. */
+
+list ()		= [];
+list (x,xs)	= accum [x] xs with
+  accum ys (x,xs)	= accum (x:ys) xs;
+  accum ys x		= reverse (x:ys);
+end;
+
+tuple []	= ();
+tuple (x:xs)	= accum x xs with
+  accum ys (x:xs)	= accum (x,ys) xs;
+  accum ys []		= if tuplep ys then reverse ys else ys;
+  accum	ys xs		= ys,xs;
+end;
+
+/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
+   list ns which are in the range 0..#xs-1. xs must be a (proper) list or
+   tuple, and the indices must be machine ints. */
+
+xs!!ns		= [xs!n; n=ns; n>=0 && n<m] when m::int = #xs end
+		  if listp xs || tuplep xs;
+
+/* Arithmetic sequences. */
+
+infix 1 .. ;
+
+n1,n2..m	= while (\i->s*i<=s*m) (\x->x+k) n1
+		  when k = n2-n1; s = if k>0 then 1 else -1 end if n1!=n2;
+n..m		= while (\i->i<=m) (\x->x+1) n;
+
+/* Common list functions. This mostly comes straight from the Q prelude which
+   in turn was based on the first edition of the Bird/Wadler book, and is very
+   similar to what you can find in the Haskell prelude. Some functions have
+   slightly different names, though, and some of the definitions were massaged
+   to make them tail-recursive. */
+
+all p []	= 1;
+all p (x:xs)	= if p x then all p xs else 0;
+
+any p []	= 0;
+any p (x:xs)	= if p x then 1 else any p xs;
+
+do f []		= ();
+do f (x:xs)	= f x $$ do f xs;
+
+drop n::int []	= [];
+drop n::int (x:xs)
+		= drop (n-1) xs if n>0;
+		= x:xs otherwise;
+
+dropwhile p []	= [];
+dropwhile p (x:xs)
+		= dropwhile p xs if p x;
+		= x:xs otherwise;
+
+filter p []	= [];
+filter p (x:xs)	= accum [] (x:xs) with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs if p x;
+					= accum ys xs otherwise;
+		    accum ys xs		= reverse ys+filter p xs;
+		  end;
+
+foldl f a []	= a;
+foldl f a (x:xs)
+		= foldl f (f a x) xs;
+
+foldl1 f (x:xs)	= foldl f x xs;
+
+foldr f a []	= a;
+foldr f a (x:xs)
+		= f x (foldl (flip f) a (reverse xs));
+
+foldr1 f [x]	= x;
+foldr1 f (x:xs)	= f x (foldl1 (flip f) (reverse xs));
+
+head (x:xs)	= x;
+
+init [x]	= [];
+init (x:xs)	= accum [x] xs with
+		    accum ys [x]	= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs;
+		    accum ys xs		= reverse ys+init xs;
+		  end;
+
+last [x]	= x;
+last (x:xs)	= last xs;
+
+map f []	= [];
+map f (x:xs)	= accum [f x] xs with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (f x:ys) xs;
+		    accum ys xs		= reverse ys+map f xs;
+		  end;
+
+scanl f a []	= [a];
+scanl f a (x:xs)
+		= accum [a] (f a x) xs with
+		    accum ys a []	= reverse (a:ys);
+		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
+		    accum _ _ xs	= throw (bad_list_value xs);
+		  end;
+
+scanl1 f []	= [];
+scanl1 f (x:xs)	= accum [] x xs with
+		    accum ys a []	= reverse (a:ys);
+		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
+		    accum _ _ xs	= throw (bad_list_value xs);
+		  end;
+
+scanr f a []	= [a];
+scanr f a (x:xs)
+		= f x y:ys when
+		    ys = reverse (scanl (flip f) a (reverse xs));
+		    y:_ = ys;
+		  end;
+
+scanr1 f []	= [];
+scanr1 f [x]	= [x];
+scanr1 f (x:xs)	= f x y:ys when
+		    ys = reverse (scanl1 (flip f) (reverse xs));
+		    y:_ = ys;
+		  end;
+
+tail (x:xs)	= xs;
+
+take n::int []	= [];
+take n::int (x:xs)
+		= accum n [] (x:xs) with
+		    accum _ ys []	= reverse ys;
+		    accum n::int ys _	= reverse ys if n<=0;
+		    accum n::int ys (x:xs)
+					= accum (n-1) (x:ys) xs;
+		    accum n ys xs	= reverse ys+take n xs;
+		  end;
+
+takewhile p []	= [];
+takewhile p (x:xs)
+		= accum [] (x:xs) with
+		    accum ys []		= reverse ys;
+		    accum ys (x:xs)	= accum (x:ys) xs if p x;
+					= reverse ys otherwise;
+		    accum ys xs		= reverse ys+takewhile p xs;
+		  end;
+
+/* Concatenate a list of lists. */
+
+cat []		= [];
+cat [xs]	= xs;
+cat (xs:xss)	= accum (reverse xs) xss with
+  accum xs []		= reverse xs;
+  accum xs ([]:yss)	= accum xs yss;
+  accum xs ((y:ys):yss)	= accum (y:xs) (ys:yss);
+  accum _ (ys:_)	= throw (bad_list_value ys);
+  accum _ yss		= throw (bad_list_value yss);
+end;
+
+/* Combine cat and map. This is used by list comprehensions. */
+
+catmap f xs	= cat (map f xs);
+
+/* Search an element in a list. Returns -1 if not found, index of first
+   occurrence otherwise. */
+
+index [] _	= -1;
+index (x:xs) y	= search 0 (x:xs) with
+  search _ []		= -1;
+  search n::int (x:xs)	= n if x==y;
+			= search (n+1) xs;
+  search _ xs		= index xs y;
+end;
+
+/* Some useful list generators. */
+
+repeat n::int x	= accum [] n x with
+  accum xs n::int x	= xs if n<=0;
+			= accum (x:xs) (n-1) x;
+end;
+
+cycle n::int []	= [];
+cycle n::int (x:xs)
+		= [] if n<=0;
+		= accum [] n with
+		    accum ys n::int = cat ys+take n xs if n<=m;
+		                    = accum (xs:ys) (n-m) otherwise;
+		  end when xs = x:xs; m::int = #xs end if listp xs;
+
+while p f a	= accum [] p f a with
+		    accum as p f a = accum (a:as) p f (f a) if p a;
+		                   = reverse as otherwise;
+		  end;
+
+until p f a	= accum [] p f a with
+		    accum as p f a = reverse as if p a;
+		                   = accum (a:as) p f (f a) otherwise;
+		  end;
+
+/* zip, unzip and friends. */
+
+zip xs ys		= accum [] xs ys with
+  accum us (x:xs) (y:ys)	= accum ((x,y):us) xs ys;
+  accum us _ _			= reverse us;
+end;
+
+zip3 xs ys zs		= accum [] xs ys zs with
+  accum us (x:xs) (y:ys) (z:zs)	= accum ((x,y,z):us) xs ys zs;
+  accum us _ _ _		= reverse us;
+end;
+
+zipwith f xs ys		= accum [] xs ys with
+  accum us (x:xs) (y:ys)	= accum (f x y:us) xs ys;
+  accum us _ _			= reverse us;
+end;
+
+zipwith3 f xs ys zs	= accum [] xs ys zs with
+  accum us (x:xs) (y:ys) (z:zs)	= accum (f x y z:us) xs ys zs;
+  accum us _ _ _		= reverse us;
+end;
+
+dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
+dowith f _ _		= () otherwise;
+
+dowith3 f (x:xs) (y:ys) (z:zs)
+			= f x y z $$ dowith3 f xs ys zs;
+dowith3 f _ _ _		= () otherwise;
+
+unzip []		= [],[];
+unzip ((x,y):us)	= x:xs,y:ys when xs,ys = accum [] [] us end
+with
+  accum xs ys []		= reverse xs,reverse ys;
+  accum xs ys ((x,y):us)	= accum (x:xs) (y:ys) us;
+  accum _ _ us			= throw (bad_list_value us);
+end;
+
+unzip3 []		= [],[],[];
+unzip3 ((x,y,z):us)	= x:xs,y:ys,z:zs when xs,ys,zs = accum [] [] [] us end
+with
+  accum xs ys zs []		= reverse xs,reverse ys,reverse zs;
+  accum xs ys zs ((x,y,z):us)	= accum (x:xs) (y:ys) (z:zs) us;
+  accum _ _ _ us		= throw (bad_list_value us);
+end;
