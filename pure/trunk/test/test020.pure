@@ -1,5 +1,9 @@
 // math.pure tests by Eddie Rucker
 
+/* CAVEAT: This test may fail on some systems (most notably, Windows) which
+   lack a POSIX-conformant implementation of the mathematical functions in the
+   C library. */
+
 using math;
 
 // unary operations
@@ -43,8 +47,10 @@ format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
 format (f,x,z) = str f+","+show x+","+show z;
 
 show x::double
-= str x if infp x || nanp x; // fix Windoze quirks
-= sprintf double_format 0.0 if x==0.0; // work around +/-0.0 issues
+= str x if infp x || nanp x; // Windoze compatibility
+// Kludge: Some systems have -0.0, some don't, on some it's broken. Simply
+// ignore the sign of floating point zeros for now.
+= sprintf double_format 0.0 if x==0.0;
 = sprintf double_format x otherwise;
 
 show (x+:y) = show x+"+:"+show y;
