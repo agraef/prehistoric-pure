@@ -2,6 +2,8 @@
 
 	* 0.5 release.
 
+	* lib/prelude.pure: do operations now implemented with $$.
+
 	* test/test020.pure, test/test021.pure: Cosmetic changes, added
 	math.pure tests for checking exact/inexact/symbolic results.
 
