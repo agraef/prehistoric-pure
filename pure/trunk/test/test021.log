@@ -7,6 +7,8 @@ check (f/*0:0101*/,x/*0:011*/) (g@_/*0:10*/ u/*0:11*/) = __failed__ if f/*0:0101
 check _/*0:01*/ z/*0:1*/ = z/*0:1*/;
 format (f/*0:101*/,x/*0:1101*/,y/*0:11101*/,z/*0:1111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show y/*0:11101*/+","+show z/*0:1111*/;
 format (f/*0:101*/,x/*0:1101*/,z/*0:111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show z/*0:111*/;
+show x/*0:1*/::double = str x/*0:1*/ if infp x/*0:1*/||nanp x/*0:1*/;
+show x/*0:1*/::double = sprintf double_format 0.0 if x/*0:1*/==0.0;
 show x/*0:1*/::double = sprintf double_format x/*0:1*/;
 show (x/*0:101*/+:y/*0:11*/) = show x/*0:101*/+"+:"+show y/*0:11*/;
 show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
@@ -226,41 +228,43 @@ tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*
   state 15: #0 #1
 }
 {
-  rule #0: show x::double = sprintf double_format x
-  rule #1: show (x+:y) = show x+"+:"+show y
-  rule #2: show (x<:y) = show x+"<:"+show y
-  rule #3: show x = str x
-  state 0: #0 #1 #2 #3
+  rule #0: show x::double = str x if infp x||nanp x
+  rule #1: show x::double = sprintf double_format 0.0 if x==0.0
+  rule #2: show x::double = sprintf double_format x
+  rule #3: show (x+:y) = show x+"+:"+show y
+  rule #4: show (x<:y) = show x+"<:"+show y
+  rule #5: show x = str x
+  state 0: #0 #1 #2 #3 #4 #5
 	<var> state 1
 	<var>::double state 2
 	<app> state 3
-  state 1: #3
-  state 2: #0 #3
-  state 3: #1 #2 #3
+  state 1: #5
+  state 2: #0 #1 #2 #5
+  state 3: #3 #4 #5
 	<var> state 4
 	<app> state 6
-  state 4: #3
+  state 4: #5
 	<var> state 5
-  state 5: #3
-  state 6: #1 #2 #3
+  state 5: #5
+  state 6: #3 #4 #5
 	<var> state 7
 	+: state 10
 	<: state 13
-  state 7: #3
+  state 7: #5
 	<var> state 8
-  state 8: #3
+  state 8: #5
 	<var> state 9
-  state 9: #3
-  state 10: #1 #3
+  state 9: #5
+  state 10: #3 #5
 	<var> state 11
-  state 11: #1 #3
+  state 11: #3 #5
 	<var> state 12
-  state 12: #1 #3
-  state 13: #2 #3
+  state 12: #3 #5
+  state 13: #4 #5
 	<var> state 14
-  state 14: #2 #3
+  state 14: #4 #5
 	<var> state 15
-  state 15: #2 #3
+  state 15: #4 #5
 }
 {
   rule #0: tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op -> catmap (\a -> [(op,2,a)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op -> catmap (\a -> [(op,a,2)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$puts "*** SYMBOLIC ***"$$do test (catmap (\op -> catmap (\a -> [(op,x,a)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])$$do test (catmap (\op -> catmap (\a -> [(op,a,x)]) [2+:3,2<:3,2%3]) [(+),(-),(*),(%),(/),(^)])
