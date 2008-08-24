@@ -104,7 +104,10 @@ is working correctly on your computer:
 $ make check
 
 If all is well, all tests should pass. If not, email the author or the Pure
-mailing list for help.
+mailing list for help. (Note that under MS Windows this step is expected to
+fail on some math-related tests such as test020.pure which stress-test the
+system's math routines, because some of these are broken in Microsoft's C
+library.)
 
 STEP 6. The Pure interpreter should be ready to go now.
 
