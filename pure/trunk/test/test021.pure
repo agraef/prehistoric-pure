@@ -21,7 +21,11 @@ check _ z = z otherwise;
 format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
 format (f,x,z) = str f+","+show x+","+show z;
 
-show x::double = sprintf double_format x;
+show x::double
+= str x if infp x || nanp x; // fix Windoze quirks
+= sprintf double_format 0.0 if x==0.0; // work around +/-0.0 issues
+= sprintf double_format x otherwise;
+
 show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
