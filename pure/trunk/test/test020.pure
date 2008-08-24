@@ -47,5 +47,8 @@ show (x+:y) = show x+"+:"+show y;
 show (x<:y) = show x+"<:"+show y;
 show x = str x otherwise;
 
+tests =
 puts "*** UNARY ***" $$ void [test (f,x); f=f; x=x] $$
 puts "*** BINARY ***" $$ void [test (f,x); f=f2; x=x2];
+
+tests;
