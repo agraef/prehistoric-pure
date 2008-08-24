@@ -232,7 +232,6 @@ main(int argc, char *argv[])
     want_prelude = true, have_prelude = false;
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
-  // make sure that SIGPIPE is ignored
   /* Set up handlers for all standard POSIX termination signals (except
      SIGKILL which is unmaskable). SIGPIPE is ignored by default, all others
      are mapped to Pure exceptions of the form 'signal SIG', so that they can
