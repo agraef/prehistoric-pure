@@ -161,7 +161,7 @@ struct matcher {
   state *match(const exprl& xs)
   { assert(start!=0); return match(start, xs); }
   state *match(state *st, expr x);
-  state *match(state *st, const exprl& x); // XXXTODO
+  state *match(state *st, const exprl& x);
 
 private: // these are used internally by the TA construction algorithm
 

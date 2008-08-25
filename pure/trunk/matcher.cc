@@ -126,6 +126,14 @@ state *matcher::match(state *st, expr x)
   return 0;
 }
 
+state *matcher::match(state *st, const exprl& x)
+{
+  for (exprl::const_iterator it = x.begin(), end = x.end();
+       it != end && st; it++)
+    st = match(st, *it);
+  return st;
+}
+
 /* TA construction algorithm. */
 
 state *matcher::make(const rule& ru, uint32_t skip)
