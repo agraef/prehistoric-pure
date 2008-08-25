@@ -835,6 +835,8 @@ same value, e.g.:
 .nf
 \fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
 .fi
+.SH MACROS
+To be written.
 .SH DECLARATIONS
 As you probably noticed, Pure is very terse. That's because, in contrast to
 hopelessly verbose languages like Java, you don't declare much stuff in Pure,
