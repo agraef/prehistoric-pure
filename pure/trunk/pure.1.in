@@ -191,8 +191,9 @@ with additional debugging information.
 Pure is a fairly simple but very powerful language. Programs are collections
 of equational rules defining functions, and expressions to be
 evaluated. Moreover, the \fBconst\fP and \fBlet\fP commands can be used to
-assign the value of an expression to a global constant or a variable,
-respectively.
+assign the value of an expression to a global constant or a variable, and the
+\fBdef\fP command can be used to define macros (a kind of ``preprocessing''
+functions to be executed at compile time).
 .PP
 Here's a simple example, entered interactively in the interpreter (note that
 the ``>'' symbol at the beginning of each input line is the interpreter's
@@ -504,6 +505,16 @@ sugar to point out the ``default'' case of a definition; the interpreter just
 treats this as a comment). Pure also provides some abbreviations for factoring
 out common left-hand or right-hand sides in collections of rules; see section
 RULE SYNTAX below for details.
+.sp
+A rule starting with the keyword
+.B def
+defines a
+.I macro
+function. Such functions are executed at compile time to rewrite expression on
+the right-hand side of other definitions, and are typically used to handle
+user-defined special forms and simple kinds of optimizations to be performed
+at ``preprocessing'' time. Macro rules are described in their own section, see
+MACROS below.
 .TP
 .B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
 Binds every variable in the left-hand side pattern to the corresponding
