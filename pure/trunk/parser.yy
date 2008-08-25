@@ -279,6 +279,8 @@ item
 { action(interp.define($2), delete $2); }
 | CONST simple_rule
 { action(interp.define_const($2), delete $2); }
+| DEF simple_rule
+{ action(interp.add_macro_rule($2), delete $2); }
 | rule
 { rulel *rl = 0;
   action(interp.add_rules(interp.globenv,
@@ -632,7 +634,8 @@ pat_rulel
   catch (err &e) { if (rl) delete rl; interp.error(yyloc, e.what()); } }
 ;
 
-/* Same for simple rules (pattern binding in 'when' clauses, no guards). */
+/* Same for simple rules (pattern binding in 'when' clauses or 'let', 'const',
+   'def', no guards in these cases). */
 
 simple_rule
 : expr '=' expr

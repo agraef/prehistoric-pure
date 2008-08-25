@@ -773,8 +773,11 @@ pure_expr *interpreter::defn(expr pat, expr& x, pure_expr*& e)
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
     int32_t f = it->first;
     const symbol& sym = symtab.sym(f);
-    env::const_iterator jt = globenv.find(f);
-    if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+    env::const_iterator jt = globenv.find(f), kt = macenv.find(f);
+    if (kt != macenv.end()) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a macro");
+    } else if (jt != globenv.end() && jt->second.t == env_info::cvar) {
       restore_globals(g);
       throw err("symbol '"+sym.s+"' is already defined as a constant");
     } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
@@ -870,8 +873,11 @@ pure_expr *interpreter::const_defn(expr pat, expr& x, pure_expr*& e)
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
     int32_t f = it->first;
     const symbol& sym = symtab.sym(f);
-    env::const_iterator jt = globenv.find(f);
-    if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+    env::const_iterator jt = globenv.find(f), kt = macenv.find(f);
+    if (kt != macenv.end()) {
+      restore_globals(g);
+      throw err("symbol '"+sym.s+"' is already defined as a macro");
+    } else if (jt != globenv.end() && jt->second.t == env_info::cvar) {
       restore_globals(g);
       throw err("symbol '"+sym.s+"' is already defined as a constant");
     } else if (jt != globenv.end() && jt->second.t == env_info::fvar) {
@@ -916,8 +922,11 @@ void interpreter::const_defn(int32_t tag, pure_expr *x)
   globals g;
   save_globals(g);
   symbol& sym = symtab.sym(tag);
-  env::const_iterator jt = globenv.find(tag);
-  if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+  env::const_iterator jt = globenv.find(tag), kt = macenv.find(tag);
+  if (kt != macenv.end()) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a macro");
+  } else if (jt != globenv.end() && jt->second.t == env_info::cvar) {
     restore_globals(g);
     throw err("symbol '"+sym.s+"' is already defined as a constant");
   } else if (jt != globenv.end() && jt->second.t == env_info::fvar) {
@@ -1289,8 +1298,11 @@ void interpreter::clear(int32_t f)
       globenv.erase(it);
       clearsym(f);
     }
+    it = macenv.find(f);
+    if (it != macenv.end())
+      macenv.erase(it);
   } else if (f == 0 && temp > 0) {
-    // purge all temporary functions and variables
+    // purge all temporary symbols
     for (env::iterator it = globenv.begin(); it != globenv.end(); ) {
       env::iterator jt = it; ++it;
       int32_t f = jt->first;
@@ -1311,6 +1323,30 @@ void interpreter::clear(int32_t f)
 	if (d) {
 	  assert(!r.empty());
 	  mark_dirty(f);
+	}
+      }
+    }
+    for (env::iterator it = macenv.begin(); it != macenv.end(); ) {
+      env::iterator jt = it; ++it;
+      env_info& info = jt->second;
+      if (info.temp >= temp)
+	macenv.erase(jt);
+      else {
+	// purge temporary rules for non-temporary macros
+	bool d = false;
+	rulel& r = *info.rules;
+	for (rulel::iterator it = r.begin(); it != r.end(); )
+	  if (it->temp >= temp) {
+	    d = true;
+	    it = r.erase(it);
+	  } else
+	    ++it;
+	if (d) {
+	  assert(!r.empty());
+	  if (info.m) {
+	    delete info.m;
+	    info.m = 0;
+	  }
 	}
       }
     }
@@ -1426,6 +1462,48 @@ void interpreter::add_simple_rule(rulel &rl, rule *r)
 {
   assert(!r->lhs.is_null());
   rl.push_back(*r);
+  delete r;
+}
+
+void interpreter::add_macro_rule(rule *r)
+{
+  assert(!r->lhs.is_null() && r->qual.is_null());
+  closure(*r, false);
+  int32_t f; uint32_t argc = count_args(r->lhs, f);
+  if (f <= 0)
+    throw err("error in macro definition (invalid head symbol)");
+  env::iterator it = macenv.find(f), jt = globenv.find(f);
+  const symbol& sym = symtab.sym(f);
+  if (jt != globenv.end()) {
+    if (it->second.t == env_info::cvar)
+      throw err("symbol '"+sym.s+"' is already defined as a constant");
+    else if (it->second.t == env_info::fvar)
+      throw err("symbol '"+sym.s+"' is already defined as a variable");
+  } else if (it != macenv.end()) {
+    if (it->second.argc != argc) {
+      ostringstream msg;
+      msg << "symbol '" << sym.s
+	  << "' was previously defined with " << it->second.argc << " args";
+      throw err(msg.str());
+    }
+  }
+  env_info &info = macenv[f];
+  if (info.t == env_info::none)
+    info = env_info(argc, rulel(), temp);
+  assert(info.argc == argc);
+  r->temp = temp;
+  if (override) {
+    rulel::iterator p = info.rules->begin();
+    for (; p != info.rules->end() && p->temp >= temp; p++) ;
+    info.rules->insert(p, *r);
+  } else
+    info.rules->push_back(*r);
+  if ((verbose&verbosity::defs) != 0) cout << "def " << *r << ";\n";
+  if (info.m) {
+    // this will be recomputed the next time the macro is needed
+    delete info.m;
+    info.m = 0;
+  }
   delete r;
 }
 
@@ -2187,8 +2265,11 @@ void interpreter::defn(int32_t tag, pure_expr *x)
   globals g;
   save_globals(g);
   symbol& sym = symtab.sym(tag);
-  env::const_iterator jt = globenv.find(tag);
-  if (jt != globenv.end() && jt->second.t == env_info::cvar) {
+  env::const_iterator jt = globenv.find(tag), kt = macenv.find(tag);
+  if (kt != macenv.end()) {
+    restore_globals(g);
+    throw err("symbol '"+sym.s+"' is already defined as a macro");
+  } else if (jt != globenv.end() && jt->second.t == env_info::cvar) {
     restore_globals(g);
     throw err("symbol '"+sym.s+"' is already defined as a constant");
   } else if (jt != globenv.end() && jt->second.t == env_info::fun) {
