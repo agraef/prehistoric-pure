@@ -1,3 +1,22 @@
+2008-08-25  Albert Graef  <Dr.Graef@t-online.de>
+
+	* parser.yy, lexer.ll, interpreter.cc: Added macro substitution
+	facility. Pure macros are meta functions executed at compile time,
+	which are defined by any number of equations (rewriting rules)
+	prefixed with the 'def' keyword, e.g.:
+
+	def foo (bar x) = foo x+1;
+	def foo x = x;
+
+	Only simple, unconditional rules are supported by now, but these
+	are quite powerful already, since, as shown above, the macro
+	parameters can be arbitrary patterns and macro definitions can
+	also be recursive.
+
+	Pure macros are lexically scoped, i.e., symbols on the rhs of a
+	macro definition can never refer to anything outside the macro
+	definition. (These are also known as "hygienic" macros.)
+
 2008-08-24  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.5 release.
