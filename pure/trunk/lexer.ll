@@ -111,11 +111,12 @@ typedef map<int32_t,ExternInfo> extmap;
 
 struct env_sym {
   const symbol* sym;
-  env::const_iterator it;
+  env::const_iterator it, jt;
   extmap::const_iterator xt;
   env_sym(const symbol& _sym, env::const_iterator _it,
+	  env::const_iterator _jt,
 	  extmap::const_iterator _xt)
-    : sym(&_sym), it(_it), xt(_xt) { }
+    : sym(&_sym), it(_it), jt(_jt), xt(_xt) { }
 };
 
 static bool env_compare(env_sym s, env_sym t)
@@ -172,6 +173,7 @@ command_generator(const char *text, int state)
     int32_t f = it->second.f;
     /* Skip non-toplevel symbols. */
     if (interp.globenv.find(f) == interp.globenv.end() &&
+	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
       it++;
@@ -361,7 +363,7 @@ ptrtag  ::{blank}*pointer
   uint8_t s_verbose = interpreter::g_verbose;
   uint8_t tflag = 0;
   bool aflag = false, dflag = false, eflag = false;
-  bool cflag = false, fflag = false, vflag = false;
+  bool cflag = false, fflag = false, mflag = false, vflag = false;
   bool gflag = false, lflag = false, sflag = false;
   const char *s = yytext+4;
   if (*s && !isspace(*s)) REJECT;
@@ -372,7 +374,7 @@ ptrtag  ::{blank}*pointer
   // process option arguments
   for (arg = args.l.begin(); arg != args.l.end(); arg++) {
     const char *s = arg->c_str();
-    if (s[0] != '-' || !s[1] || !strchr("acdefghlstv", s[1])) break;
+    if (s[0] != '-' || !s[1] || !strchr("acdefghlmstv", s[1])) break;
     while (*++s) {
       switch (*s) {
       case 'a': aflag = true; break;
@@ -382,6 +384,7 @@ ptrtag  ::{blank}*pointer
       case 'f': fflag = true; break;
       case 'g': gflag = true; break;
       case 'l': lflag = true; break;
+      case 'm': mflag = true; break;
       case 's': sflag = true; break;
       case 'v': vflag = true; break;
       case 't':
@@ -406,6 +409,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -h  Print this list.\n\
 -l  Long format, prints definitions along with the summary symbol\n\
     information. This implies -s.\n\
+-m  Print information about defined macros.\n\
 -s  Summary format, print just summary information about listed symbols.\n\
 -t[level] List only symbols and definitions at the given temporary level\n\
     (the current level by default) or above. Level 1 denotes all temporary\n\
@@ -422,10 +426,12 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   if (eflag) interpreter::g_verbose |= verbosity::envs;
   if (aflag) interpreter::g_verbose |= verbosity::code;
   if (dflag) interpreter::g_verbose |= verbosity::dump;
-  if (!cflag && !fflag && !vflag) cflag = fflag = vflag = true;
+  if (!cflag && !fflag && !mflag && !vflag)
+    cflag = fflag = mflag = vflag = true;
   if (lflag) sflag = true;
   {
-    size_t maxsize = 0, nfuns = 0, nvars = 0, ncsts = 0, nrules = 0;
+    size_t maxsize = 0, nfuns = 0, nmacs = 0, nvars = 0, ncsts = 0,
+      nrules = 0, mrules = 0;
     list<env_sym> l; set<int32_t> syms;
     for (env::const_iterator it = interp.globenv.begin();
 	 it != interp.globenv.end(); ++it) {
@@ -462,7 +468,8 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       }
       if (!matches) continue;
       syms.insert(f);
-      l.push_back(env_sym(sym, it, interp.externals.find(f)));
+      l.push_back(env_sym(sym, it, interp.macenv.find(f),
+			  interp.externals.find(f)));
       if (sym.s.size() > maxsize) maxsize = sym.s.size();
     }
     if (fflag && tflag == 0) {
@@ -484,7 +491,48 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	    }
 	  }
 	  if (!matches) continue;
-	  l.push_back(env_sym(sym, interp.globenv.end(), it));
+	  l.push_back(env_sym(sym, interp.globenv.end(),
+			      interp.macenv.find(f), it));
+	  if (sym.s.size() > maxsize) maxsize = sym.s.size();
+	}
+      }
+    }
+    if (mflag) {
+      // also list any symbols defined as macros, unless they've already been
+      // considered
+      for (env::const_iterator it = interp.macenv.begin();
+	   it != interp.macenv.end(); ++it) {
+	int32_t f = it->first;
+	if (syms.find(f) == syms.end()) {
+	  const env_info& e = it->second;
+	  const symbol& sym = interp.symtab.sym(f);
+	  bool matches = e.temp >= tflag;
+	  if (!matches && !sflag && args.l.empty()) {
+	    // if not in summary mode, also list temporary rules for a
+	    // non-temporary symbol
+	    rulel::const_iterator r;
+	    for (r = e.rules->begin(); r != e.rules->end(); r++)
+	      if (r->temp >= tflag) {
+		matches = true;
+		break;
+	      }
+	  }
+	  if (!matches) continue;
+	  if (!args.l.empty()) {
+	    // see whether we actually want the defined symbol to be listed
+	    matches = false;
+	    for (arg = args.l.begin(); arg != args.l.end(); ++arg) {
+	      if (gflag ? (!fnmatch(arg->c_str(), sym.s.c_str(), 0)) :
+		  (*arg == sym.s)) {
+		matches = true;
+		break;
+	      }
+	    }
+	  }
+	  if (!matches) continue;
+	  syms.insert(f);
+	  l.push_back(env_sym(sym, interp.globenv.end(), it,
+			      interp.externals.end()));
 	  if (sym.s.size() > maxsize) maxsize = sym.s.size();
 	}
       }
@@ -499,9 +547,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       const symbol& sym = *it->sym;
       int32_t ftag = sym.f;
       map<int32_t,Env>::iterator fenv = interp.globalfuns.find(ftag);
-      const env::const_iterator jt = it->it;
+      const env::const_iterator jt = it->it, kt = it->jt;
       const extmap::const_iterator xt = it->xt;
-      if (jt == interp.globenv.end()) {
+      if (jt == interp.globenv.end() && kt == interp.macenv.end()) {
 	assert(xt != interp.externals.end());
 	const ExternInfo& info = xt->second;
 	sout << info << ";";
@@ -511,7 +559,8 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	} else
 	  sout << endl;
 	++nfuns;
-      } else if (jt->second.t == env_info::fvar) {
+      } else if (jt != interp.globenv.end() &&
+		 jt->second.t == env_info::fvar) {
 	nvars++;
 	if (sflag) {
 	  sout << sym.s << string(maxsize-sym.s.size(), ' ')
@@ -522,7 +571,8 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	} else
 	  sout << "let " << sym.s << " = " << *(pure_expr**)jt->second.val
 	       << ";\n";
-      } else if (jt->second.t == env_info::cvar) {
+      } else if (jt != interp.globenv.end() &&
+		 jt->second.t == env_info::cvar) {
 	ncsts++;
 	if (sflag) {
 	  sout << sym.s << string(maxsize-sym.s.size(), ' ')
@@ -553,7 +603,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  }
 	  sout << " " << (int)sym.prec << " " << sym.s << ";\n";
 	}
-	if (xt != interp.externals.end()) {
+	if (fflag && xt != interp.externals.end()) {
 	  const ExternInfo& info = xt->second;
 	  sout << info << ";";
 	  if ((!sflag||lflag) && dflag) {
@@ -562,58 +612,85 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	  } else
 	    sout << endl;
 	}
-	uint32_t argc = jt->second.argc;
-	const rulel& rules = *jt->second.rules;
-	const matcher *m = jt->second.m;
-	if (sflag) {
-	  ++nfuns; nrules += rules.size();
-	  sout << sym.s << string(maxsize-sym.s.size(), ' ') << "  fun";
-	  if (lflag) {
-	    sout << "  " << rules << ";";
-	    if (aflag && m) sout << endl << *m;
-	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
-	      fenv->second.print(sout);
+	if (mflag && kt != interp.macenv.end()) {
+	  uint32_t argc = kt->second.argc;
+	  const rulel& rules = *kt->second.rules;
+	  const matcher *m = kt->second.m;
+	  if (sflag) {
+	    ++nmacs; mrules += rules.size();
+	    sout << sym.s << string(maxsize-sym.s.size(), ' ') << "  mac";
+	    if (lflag) {
+	      sout << "  " << rules << ";";
+	      if (aflag && m) sout << endl << *m;
+	    } else {
+	      sout << " " << argc << " args, " << rules.size() << " rules";
+	    }
+	    sout << endl;
 	  } else {
-	    sout << " " << argc << " args, " << rules.size() << " rules";
-	  }
-	  sout << endl;
-	} else {
-	  size_t n = 0;
-	  for (rulel::const_iterator it = rules.begin();
-	       it != rules.end(); ++it) {
-	    if (it->temp >= tflag) {
-	      sout << *it << ";\n";
-	      ++n;
+	    size_t n = 0;
+	    for (rulel::const_iterator it = rules.begin();
+		 it != rules.end(); ++it) {
+	      if (it->temp >= tflag) {
+		sout << "def " << *it << ";\n";
+		++n;
+	      }
+	    }
+	    if (n > 0) {
+	      if (aflag && m) sout << *m << endl;
+	      mrules += n;
+	      ++nmacs;
 	    }
 	  }
-	  if (n > 0) {
-	    if (aflag && m) sout << *m << endl;
-	    if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
-	      fenv->second.print(sout);
-	    nrules += n;
-	    ++nfuns;
+	}
+	if (fflag && jt != interp.globenv.end()) {
+	  uint32_t argc = jt->second.argc;
+	  const rulel& rules = *jt->second.rules;
+	  const matcher *m = jt->second.m;
+	  if (sflag) {
+	    ++nfuns; nrules += rules.size();
+	    sout << sym.s << string(maxsize-sym.s.size(), ' ') << "  fun";
+	    if (lflag) {
+	      sout << "  " << rules << ";";
+	      if (aflag && m) sout << endl << *m;
+	      if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
+		fenv->second.print(sout);
+	    } else {
+	      sout << " " << argc << " args, " << rules.size() << " rules";
+	    }
+	    sout << endl;
+	  } else {
+	    size_t n = 0;
+	    for (rulel::const_iterator it = rules.begin();
+		 it != rules.end(); ++it) {
+	      if (it->temp >= tflag) {
+		sout << *it << ";\n";
+		++n;
+	      }
+	    }
+	    if (n > 0) {
+	      if (aflag && m) sout << *m << endl;
+	      if (dflag && fenv != interp.globalfuns.end() && fenv->second.f)
+		fenv->second.print(sout);
+	      nrules += n;
+	      ++nfuns;
+	    }
 	  }
 	}
       }
     }
     if (sflag) {
-      if (fflag && vflag && cflag)
-	sout << ncsts << " constants, " << nvars << " variables, "
-	     << nfuns << " functions, " << nrules << " rules\n";
-      else if (fflag && cflag)
-	sout << ncsts << " constants, " << nfuns << " functions, "
-	     << nrules << " rules\n";
-      else if (fflag && vflag)
-	sout << nvars << " variables, " << nfuns << " functions, "
-	     << nrules << " rules\n";
-      else if (cflag && vflag)
-	sout << ncsts << " constants, " << nvars << " variables\n";
-      else if (cflag)
-	sout << ncsts << " constants\n";
-      else if (vflag)
-	sout << nvars << " variables\n";
-      else if (fflag)
-	sout << nfuns << " functions, " << nrules << " rules\n";
+      ostringstream summary;
+      if (cflag)
+	summary << ncsts << " constants, ";
+      if (vflag)
+	summary << nvars << " variables, ";
+      if (mflag)
+	summary << nmacs << " macros (" << mrules << " rules), ";
+      if (fflag)
+	summary << nfuns << " functions (" << nrules << " rules), ";
+      string s = summary.str();
+      if (!s.empty())
+	sout << s.substr(0, s.size()-2) << endl;
     }
     FILE *fp;
     const char *more = getenv("PURE_MORE");
