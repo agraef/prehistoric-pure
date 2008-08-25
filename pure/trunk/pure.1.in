@@ -494,7 +494,7 @@ At the toplevel, a Pure program basically consists of equations defining
 functions (also called ``rules''), constant and variable bindings, and
 expressions to be evaluated:
 .TP
-.B Rules: \fIlhs\fR = \fIrhs\fR;
+.B Rules: \fIlhs\fR = \fIrhs\fR; \fBdef\fR \fIlhs\fR = \fIrhs\fR;
 The basic form can also be augmented with a condition \fBif\fP\ \fIguard\fP
 tacked on to the end of the rule (which restricts the applicability of the
 rule to the case that the guard evaluates to a nonzero integer), or the
@@ -734,14 +734,14 @@ queens n        = search n 1 [] \fBwith\fP
 .SH RULE SYNTAX
 Basically, the same rule syntax is used to define functions at the toplevel
 and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP,
-\fBlet\fP and \fBconst\fP constructs for the purpose of binding variable values
-(however, for obvious reasons guards are not permitted in \fBwhen\fP,
-\fBlet\fP and \fBconst\fP clauses). When matching against a function call or the
-subject term in a \fBcase\fP expression, the rules are always considered in
-the order in which they are written, and the first matching rule (whose guard
-evaluates to a nonzero value, if applicable) is picked. (Again, the \fBwhen\fP
-construct is treated differently, because each rule is actually a separate
-definition.)
+\fBlet\fP and \fBconst\fP constructs for the purpose of binding variable
+values (however, for obvious reasons guards are not permitted in \fBwhen\fP,
+\fBlet\fP and \fBconst\fP clauses). When matching against a function call or
+the subject term in a \fBcase\fP expression, the rules are always considered
+in the order in which they are written, and the first matching rule (whose
+guard evaluates to a nonzero value, if applicable) is picked. (Again, the
+\fBwhen\fP construct is treated differently, because each rule is actually a
+separate definition.)
 .PP
 In any case, the left-hand side pattern must not contain repeated variables
 (i.e., rules must be ``left-linear''), except for the anonymous variable `_'
@@ -836,7 +836,125 @@ same value, e.g.:
 \fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
 .fi
 .SH MACROS
-To be written.
+As already mentioned, macros are a special type of functions to be executed as
+a kind of ``preprocessing stage'' at compile time. They are useful for many
+things, such as the definition of user-defined special forms and optimization
+rules to be applied to the source program in its symbolic form.
+.PP
+Whereas the macro facilities of most programming languages simply provide a
+kind of textual substitution mechanism, Pure macros operate on symbolic
+expressions and are implemented by the same kind of rewriting rules that are
+also used to define ordinary functions in Pure. However, macro rules start out
+with the keyword
+.BR def ,
+and only simple kinds of rules without any guards or multiple left-hand and
+right-hand sides are permitted. Thus, syntactically, a macro definition looks
+just like a variable or constant definition, using
+.B def
+in lieu of
+.B let
+or
+.BR const ,
+but they are processed in an entirely different way.
+.PP
+Macros are substituted into the right-hand sides of function, constant and
+variable definitions, pretty much like constants are substituted into
+definitions. All macro substitution happens before constant substitutions and
+the actual compilation step.
+.PP
+Here is a simple example, showing a rule which expands saturated calls of the
+.B succ
+function (defined in the prelude) at compile time:
+.sp
+.nf
+> \fBdef\fP succ x = x+1;
+> foo x::int = succ (succ x);
+> \fBlist\fP foo
+foo x::int = x+1+1;
+.fi
+.PP
+This can be useful to help the compiler generate better code. (E.g., if you
+have a look at the assembler code for the above function, you'll see that it's
+basically just a single integer increment instruction, plus the usual
+(un)boxing of the integer argument and the result value.)
+.PP
+Note that a macro may have the same name as an ordinary Pure function, which
+is useful for optimizing calls to an existing Pure function, as shown in the
+example above. As a slightly more practical example, as of Pure 0.6 the
+following rule has been added to the prelude to eliminate saturated function
+compositions:
+.sp
+.nf
+\fBdef\fP (f.g) x = f (g x);
+.fi
+.sp
+Example:
+.sp
+.nf
+> foo x = (succ.succ) x;
+> \fBlist\fP foo
+foo x = x+1+1;
+.fi
+.PP
+Macros can also be recursive, consist of multiple rules and make use of
+pattern-matching like ordinary function definitions. Example:
+.sp
+.nf
+> \fBdef\fP foo (bar x) = foo x+1;
+> \fBdef\fP foo x = x;
+> baz = foo (bar (bar (bar x)));
+> \fBlist\fP baz
+baz = x+1+1+1;
+.fi
+.PP
+Note that, whereas the right-hand side of a constant definition really gets
+evaluated to a normal form at the time the definition is processed, the only
+things that get evaluated during macro substitution are other macros. The
+right-hand side may be an arbitrarily complex Pure expression involving
+conditional expressions, binding clauses, etc., but these are
+.I not
+be evaluated during macro substitution, they just become part of the macro
+expansion (after substituting the macro parameters). For instance, here is a
+useful little macro `timex', which employs the system function `clock' to
+report the cpu time in seconds needed to evaluate a given expression, along
+with the computed result:
+.sp
+.nf
+> using system;
+> \fBdef\fP timex x = (clock-t0)/CLOCKS_PER_SEC,y \fBwhen\fP t0 = clock; y = x \fBend\fP;
+> sum = foldl (+) 0;
+> timex $ sum (1..100000);
+0.21,705082704
+.fi
+.PP
+The `timex' macro also provides a useful example of how you can use macros to
+define your own special forms, since macro arguments are always called by
+name. (Note that the above definition of `timex' wouldn't work as an ordinary
+function definition, since the x parameter would have been evaluated already
+before it is passed to `timex', making `timex' always return a zero time
+value. Try it.)
+.PP
+A final remark about the scoping rules used in macros is in order. Pure macros
+are lexically scoped, i.e., symbols on the right-hand-side of a macro
+definition can never refer to anything outside of the macro definition, and
+macro parameter substitution also takes into account binding constructs, such
+as
+.B with
+and
+.B when
+clauses, in the right-hand side of the definition. Macro facilities with these
+properties are also known as
+.I hygienic
+macros. They are not susceptible to so-called ``name capture,'' which makes
+macros in less sophisticated languages bug-ridden, hard to use and mostly
+useless.
+.PP
+Despite their simplicity and ease of use, Pure's macros are an incredibly
+powerful feature. But with power comes responsibility. If over-used, or used
+in inappropriate ways, macros can make your code incromprehensible and
+bloated, and a buggy macro may well kick the Pure compiler into an endless
+loop. In other words, macros are a good way to shoot yourself in the foot. So
+use them with care, ``or else!''
 .SH DECLARATIONS
 As you probably noticed, Pure is very terse. That's because, in contrast to
 hopelessly verbose languages like Java, you don't declare much stuff in Pure,
