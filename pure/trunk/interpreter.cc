@@ -739,8 +739,8 @@ pure_expr *interpreter::eval(expr& x, pure_expr*& e)
   globals g;
   save_globals(g);
   compile();
-  // promote type tags and substitute constants:
-  env vars; expr u = csubst(subst(vars, x));
+  // promote type tags and substitute macros and constants:
+  env vars; expr u = csubst(macsubst(subst(vars, x)));
   compile(u);
   x = u;
   pure_expr *res = doeval(u, e);
@@ -766,8 +766,8 @@ pure_expr *interpreter::defn(expr pat, expr& x, pure_expr*& e)
   save_globals(g);
   compile();
   env vars;
-  // promote type tags and substitute constants:
-  expr rhs = csubst(subst(vars, x));
+  // promote type tags and substitute macros and constants:
+  expr rhs = csubst(macsubst(subst(vars, x)));
   expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -866,8 +866,8 @@ pure_expr *interpreter::const_defn(expr pat, expr& x, pure_expr*& e)
   save_globals(g);
   compile();
   env vars;
-  // promote type tags and substitute constants:
-  expr rhs = csubst(subst(vars, x));
+  // promote type tags and substitute macros and constants:
+  expr rhs = csubst(macsubst(subst(vars, x)));
   expr lhs = bind(vars, pat);
   build_env(vars, lhs);
   for (env::const_iterator it = vars.begin(); it != vars.end(); ++it) {
@@ -1404,10 +1404,10 @@ void interpreter::add_rule(env &e, rule &r, bool toplevel)
   assert(!r.lhs.is_null());
   closure(r, false);
   if (toplevel) {
-    // substitute constants:
+    // substitute macros and constants:
     expr u = expr(r.lhs),
-      v = expr(csubst(r.rhs)),
-      w = expr(csubst(r.qual));
+      v = expr(csubst(macsubst(r.rhs))),
+      w = expr(csubst(macsubst(r.qual)));
     r = rule(u, v, w);
     compile(r.rhs);
     compile(r.qual);
@@ -1788,101 +1788,6 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
   }
 }
 
-expr interpreter::csubst(expr x)
-{
-  if (x.is_null()) return x;
-  switch (x.tag()) {
-  // constants:
-  case EXPR::VAR:
-  case EXPR::FVAR:
-  case EXPR::INT:
-  case EXPR::BIGINT:
-  case EXPR::DBL:
-  case EXPR::STR:
-  case EXPR::PTR:
-    return x;
-  // application:
-  case EXPR::APP:
-    if (x.xval1().tag() == EXPR::APP &&
-	x.xval1().xval1().tag() == symtab.catch_sym().f) {
-      expr u = csubst(x.xval1().xval2()),
-	v = csubst(x.xval2());
-      return expr(symtab.catch_sym().x, u, v);
-    } else {
-      expr u = csubst(x.xval1()),
-	v = csubst(x.xval2());
-      expr w = expr(u, v);
-      // promote type tags
-      expr f; uint32_t n = count_args(w, f);
-      if (n == 1)
-	promote_ttags(f, w, w.xval2());
-      else if (n == 2)
-	promote_ttags(f, w, w.xval1().xval2(), w.xval2());
-      return w;
-    }
-  // conditionals:
-  case EXPR::COND: {
-    expr u = csubst(x.xval1()),
-      v = csubst(x.xval2()),
-      w = csubst(x.xval3());
-    return expr::cond(u, v, w);
-  }
-  // nested closures:
-  case EXPR::LAMBDA: {
-    expr u = x.xval1(), v = csubst(x.xval2());
-    return expr::lambda(u, v);
-  }
-  case EXPR::CASE: {
-    expr u = csubst(x.xval());
-    const rulel *r = x.rules();
-    rulel *s = new rulel;
-    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
-      expr u = it->lhs,	v = csubst(it->rhs),
-	w = csubst(it->qual);
-      s->push_back(rule(u, v, w));
-    }
-    return expr::cases(u, s);
-  }
-  case EXPR::WHEN: {
-    const rulel *r = x.rules();
-    rulel *s = new rulel;
-    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
-      expr u = it->lhs, v = csubst(it->rhs);
-      s->push_back(rule(u, v));
-    }
-    expr u = csubst(x.xval());
-    return expr::when(u, s);
-  }
-  case EXPR::WITH: {
-    expr u = csubst(x.xval());
-    const env *e = x.fenv();
-    env *f = new env;
-    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
-      int32_t g = it->first;
-      const env_info& info = it->second;
-      const rulel *r = info.rules;
-      rulel s;
-      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
-	expr u = jt->lhs, v = csubst(jt->rhs),
-	  w = csubst(jt->qual);
-	s.push_back(rule(u, v, w));
-      }
-      (*f)[g] = env_info(info.argc, s, info.temp);
-    }
-    return expr::with(u, f);
-  }
-  default:
-    assert(x.tag() > 0);
-    const symbol& sym = symtab.sym(x.tag());
-    env::const_iterator it = globenv.find(sym.f);
-    if (it != globenv.end() && it->second.t == env_info::cvar)
-      // substitute constant value
-      return *it->second.cval;
-    else
-      return x;
-  }
-}
-
 expr interpreter::fsubst(const env& funs, expr x, uint8_t idx)
 {
   if (x.is_null()) return x;
@@ -1978,6 +1883,431 @@ expr interpreter::fsubst(const env& funs, expr x, uint8_t idx)
     else
       return x;
   }
+}
+
+expr interpreter::csubst(expr x)
+{
+  if (x.is_null()) return x;
+  switch (x.tag()) {
+  // constants:
+  case EXPR::VAR:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP:
+    if (x.xval1().tag() == EXPR::APP &&
+	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+      expr u = csubst(x.xval1().xval2()),
+	v = csubst(x.xval2());
+      return expr(symtab.catch_sym().x, u, v);
+    } else {
+      expr u = csubst(x.xval1()),
+	v = csubst(x.xval2());
+      expr w = expr(u, v);
+      // promote type tags
+      expr f; uint32_t n = count_args(w, f);
+      if (n == 1)
+	promote_ttags(f, w, w.xval2());
+      else if (n == 2)
+	promote_ttags(f, w, w.xval1().xval2(), w.xval2());
+      return w;
+    }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = csubst(x.xval1()),
+      v = csubst(x.xval2()),
+      w = csubst(x.xval3());
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    expr u = x.xval1(), v = csubst(x.xval2());
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = csubst(x.xval());
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = csubst(it->rhs),
+	w = csubst(it->qual);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = csubst(it->rhs);
+      s->push_back(rule(u, v));
+    }
+    expr u = csubst(x.xval());
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = csubst(x.xval());
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = csubst(jt->rhs),
+	  w = csubst(jt->qual);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    const symbol& sym = symtab.sym(x.tag());
+    env::const_iterator it = globenv.find(sym.f);
+    if (it != globenv.end() && it->second.t == env_info::cvar)
+      // substitute constant value
+      return *it->second.cval;
+    else
+      return x;
+  }
+}
+
+/* Perform simple macro substitutions on a compile time expression. Does
+   applicative-order (depth-first) evaluation using the defined macro
+   substitution rules (which are simple, unconditional term rewriting
+   rules). Everything else but macro applications is considered constant
+   here. When we match a macro call, we perform the corresponding reduction
+   and evaluate the result recursively.
+
+   Note that in contrast to compiled rewriting rules this is essentially a
+   little term rewriting interpreter here, so it's kind of slow compared to
+   compiled code, but for macro substitution it should be good enough. (We
+   can't use compiled code here, since the runtime expression data structure
+   cannot represent special kinds of expressions like anonymous closures, with
+   and when clauses, etc.) */
+
+expr interpreter::macsubst(expr x)
+{
+  char test;
+  if (x.is_null()) return x;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax)
+    throw err("recursion too deep in macro expansion");
+  switch (x.tag()) {
+  // constants:
+  case EXPR::VAR:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP: {
+    expr u = macsubst(x.xval1()),
+      v = macsubst(x.xval2());
+    expr w = expr(u, v);
+    return macval(w);
+  }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = macsubst(x.xval1()),
+      v = macsubst(x.xval2()),
+      w = macsubst(x.xval3());
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    expr u = x.xval1(), v = macsubst(x.xval2());
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = macsubst(x.xval());
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = macsubst(it->rhs),
+	w = macsubst(it->qual);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = macsubst(it->rhs);
+      s->push_back(rule(u, v));
+    }
+    expr u = macsubst(x.xval());
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = macsubst(x.xval());
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = macsubst(jt->rhs),
+	  w = macsubst(jt->qual);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    return macval(x);
+  }
+}
+
+/* Perform a single macro reduction step. */
+
+expr interpreter::varsubst(expr x, uint8_t offs)
+{
+  char test;
+  if (x.is_null()) return x;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax)
+    throw err("recursion too deep in macro expansion");
+  switch (x.tag()) {
+  case EXPR::VAR:
+  case EXPR::FVAR:
+    if (((uint32_t)x.vidx()) + offs > 0xff)
+      throw err("error in expression (too many nested closures)");
+    if (x.tag() == EXPR::VAR)
+      return expr(EXPR::VAR, x.vtag(), x.vidx()+offs, x.ttag(), x.vpath());
+    else
+      return expr(EXPR::FVAR, x.vtag(), x.vidx()+offs);
+  // constants:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return x;
+  // application:
+  case EXPR::APP: {
+    expr u = varsubst(x.xval1(), offs),
+      v = varsubst(x.xval2(), offs);
+    expr w = expr(u, v);
+    return macval(w);
+  }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = varsubst(x.xval1(), offs),
+      v = varsubst(x.xval2(), offs),
+      w = varsubst(x.xval3(), offs);
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    expr u = x.xval1(), v = varsubst(x.xval2(), offs);
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = varsubst(x.xval(), offs);
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = varsubst(it->rhs, offs),
+	w = varsubst(it->qual, offs);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = x.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = varsubst(it->rhs, offs);
+      s->push_back(rule(u, v));
+    }
+    expr u = varsubst(x.xval(), offs);
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = varsubst(x.xval(), offs);
+    const env *e = x.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = varsubst(jt->rhs, offs),
+	  w = varsubst(jt->qual, offs);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(x.tag() > 0);
+    return x;
+  }
+}
+
+expr interpreter::macred(expr x, expr y, uint8_t idx)
+{
+  char test;
+  if (y.is_null()) return y;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax)
+    throw err("recursion too deep in macro expansion");
+  switch (y.tag()) {
+  // constants:
+  case EXPR::FVAR:
+  case EXPR::INT:
+  case EXPR::BIGINT:
+  case EXPR::DBL:
+  case EXPR::STR:
+  case EXPR::PTR:
+    return y;
+  // lhs variable
+  case EXPR::VAR:
+    if (y.vidx() == idx) {
+      /* Substitute the macro variables, which are the lhs values whose idx
+	 match the current idx. Note that the deBruijn indices inside the
+	 substituted value must then be shifted by idx, to accommodate for any
+	 local environments inside the macro definition. */
+      expr v = varsubst(subterm(x, y.vpath()), idx);
+#if DEBUG>1
+      std::cerr << "macro var: " << y << " = " << v
+		<< " (" << (uint32_t)idx << ")" << endl;
+#endif
+      return v;
+    } else
+      return y;
+  // application:
+  case EXPR::APP:
+    if (x.xval1().tag() == EXPR::APP &&
+	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+      expr u = macred(x, y.xval1().xval2(), idx);
+      expr v = macred(x, y.xval2(), idx);
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      return expr(symtab.catch_sym().x, u, v);
+    } else {
+      expr u = macred(x, y.xval1(), idx),
+	v = macred(x, y.xval2(), idx);
+      return expr(u, v);
+    }
+  // conditionals:
+  case EXPR::COND: {
+    expr u = macred(x, y.xval1(), idx),
+      v = macred(x, y.xval2(), idx),
+      w = macred(x, y.xval3(), idx);
+    return expr::cond(u, v, w);
+  }
+  // nested closures:
+  case EXPR::LAMBDA: {
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    expr u = y.xval1(), v = macred(x, y.xval2(), idx);
+    return expr::lambda(u, v);
+  }
+  case EXPR::CASE: {
+    expr u = macred(x, y.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const rulel *r = y.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs,	v = macred(x, it->rhs, idx),
+	w = macred(x, it->qual, idx);
+      s->push_back(rule(u, v, w));
+    }
+    return expr::cases(u, s);
+  }
+  case EXPR::WHEN: {
+    const rulel *r = y.rules();
+    rulel *s = new rulel;
+    for (rulel::const_iterator it = r->begin(); it != r->end(); ++it) {
+      expr u = it->lhs, v = macred(x, it->rhs, idx);
+      s->push_back(rule(u, v));
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+    }
+    expr u = macred(x, y.xval(), idx);
+    return expr::when(u, s);
+  }
+  case EXPR::WITH: {
+    expr u = macred(x, y.xval(), idx);
+    if (++idx == 0)
+      throw err("error in expression (too many nested closures)");
+    const env *e = y.fenv();
+    env *f = new env;
+    for (env::const_iterator it = e->begin(); it != e->end(); ++it) {
+      int32_t g = it->first;
+      const env_info& info = it->second;
+      const rulel *r = info.rules;
+      rulel s;
+      for (rulel::const_iterator jt = r->begin(); jt != r->end(); ++jt) {
+	expr u = jt->lhs, v = macred(x, jt->rhs, idx),
+	  w = macred(x, jt->qual, idx);
+	s.push_back(rule(u, v, w));
+      }
+      (*f)[g] = env_info(info.argc, s, info.temp);
+    }
+    return expr::with(u, f);
+  }
+  default:
+    assert(y.tag() > 0);
+    return y;
+  }
+}
+
+/* Evaluate a macro call. */
+
+static exprl get_args(expr x)
+{
+  expr y, z;
+  exprl xs;
+  while (x.is_app(y, z)) xs.push_front(z), x = y;
+  return xs;
+}
+
+expr interpreter::macval(expr x)
+{
+  char test;
+  if (x.is_null()) return x;
+  if (stackmax > 0 && stackdir*(&test - baseptr) >= stackmax)
+    throw err("recursion too deep in macro expansion");
+  int32_t f; uint32_t argc = count_args(x, f);
+  if (f <= 0) return x;
+  env::iterator it = macenv.find(f);
+  if (it == macenv.end()) return x;
+  env_info &info = it->second;
+  if (argc != info.argc) return x;
+  if (!info.m)
+    info.m = new matcher(*info.rules, info.argc+1);
+  assert(info.m);
+  exprl args = get_args(x);
+  assert(args.size() == argc);
+  state *st = info.m->match(args);
+  if (st) {
+    assert(!st->r.empty());
+    expr y = macred(x, info.m->r[st->r.front()].rhs);
+#if DEBUG>1
+    std::cerr << "macro expansion: " << x << " -> " << y << endl;
+#endif
+    return macsubst(y);
+  }
+  return x;
 }
 
 expr* interpreter::uminop(expr *op, expr *x)

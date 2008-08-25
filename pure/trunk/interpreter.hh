@@ -450,8 +450,12 @@ public:
   void promote_ttags(expr f, expr x, expr u, expr v);
   expr bind(env& vars, expr x, bool b = true, path p = path());
   expr subst(const env& vars, expr x, uint8_t idx = 0);
-  expr csubst(expr x);
   expr fsubst(const env& funs, expr x, uint8_t idx = 0);
+  expr csubst(expr x);
+  expr macsubst(expr x);
+  expr varsubst(expr x, uint8_t offs);
+  expr macred(expr x, expr y, uint8_t idx = 0);
+  expr macval(expr x);
   void closure(expr& l, expr& r, bool b = true);
   void closure(rule& r, bool b = true);
   expr *uminop(expr *op, expr *x);
