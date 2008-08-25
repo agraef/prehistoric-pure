@@ -91,6 +91,12 @@ uncurry f (x,y)	= f x y;
 uncurry3 f (x,y,z)
 		= f x y z;
 
+/* Some convenient optimization rules which eliminate saturated calls of the
+   function composition combinators. */
+
+def f $ x	= f x;
+def (f . g) x	= f (g x);
+
 /* "Mapsto" operator. This constructor is declared here so that it can be used
    in other standard library modules to denote special kind of pairs which map
    keys to values. Here we only define equality of such pairs. */

@@ -1,3 +1,8 @@
+2008-08-26  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/prelude.pure: Add optimization rules for ($) and (.) so that
+	they are expanded at compile time if possible.
+
 2008-08-25  Albert Graef  <Dr.Graef@t-online.de>
 
 	* parser.yy, lexer.ll, interpreter.cc: Added macro substitution
