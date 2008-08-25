@@ -17,6 +17,8 @@
 	macro definition can never refer to anything outside the macro
 	definition. (These are also known as "hygienic" macros.)
 
+	* configure.ac: Bump version number. (Needs reconfigure.)
+
 2008-08-24  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.5 release.
