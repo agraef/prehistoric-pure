@@ -70,15 +70,15 @@ sprintf "%x" (-2147483648L);
 "80000000"
 sprintf "%x" (-4294967295L);
 "1"
-ord$sprintf "%c" 255;
+ord (sprintf "%c" 255);
 255
-ord$sprintf "%c" 255L;
+ord (sprintf "%c" 255L);
 255
 sscanf "ffffffff" "%x";
 -1
-uint$sscanf "ffffffff" "%x";
+uint (sscanf "ffffffff" "%x");
 4294967295L
 sscanf "4294967295" "%u";
 -1
-uint$sscanf "4294967295" "%u";
+uint (sscanf "4294967295" "%u");
 4294967295L

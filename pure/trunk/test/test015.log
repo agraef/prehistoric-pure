@@ -196,36 +196,36 @@ let b = dict (catmap (\i/*0:*/ -> [i/*0:*/=>double i/*0:*/] {
   state 1: #0
 }) (11..20));
 {
-  rule #0: c = hdict$zipwith (=>) (catmap (\i -> [(i,double i,str i)]) (1..10)) (1..10)
+  rule #0: c = hdict (zipwith (=>) (catmap (\i -> [(i,double i,str i)]) (1..10)) (1..10))
   state 0: #0
 	<var> state 1
   state 1: #0
 }
-let c = hdict$zipwith (=>) (catmap (\i/*0:*/ -> [(i/*0:*/,double i/*0:*/,str i/*0:*/)] {
+let c = hdict (zipwith (=>) (catmap (\i/*0:*/ -> [(i/*0:*/,double i/*0:*/,str i/*0:*/)] {
   rule #0: i = [(i,double i,str i)]
   state 0: #0
 	<var> state 1
   state 1: #0
-}) (1..10)) (1..10);
+}) (1..10)) (1..10));
 {
-  rule #0: d = hdict$zipwith (=>) (catmap (\i -> [(i,double i,str i)]) (11..20)) (11..20)
+  rule #0: d = hdict (zipwith (=>) (catmap (\i -> [(i,double i,str i)]) (11..20)) (11..20))
   state 0: #0
 	<var> state 1
   state 1: #0
 }
-let d = hdict$zipwith (=>) (catmap (\i/*0:*/ -> [(i/*0:*/,double i/*0:*/,str i/*0:*/)] {
+let d = hdict (zipwith (=>) (catmap (\i/*0:*/ -> [(i/*0:*/,double i/*0:*/,str i/*0:*/)] {
   rule #0: i = [(i,double i,str i)]
   state 0: #0
 	<var> state 1
   state 1: #0
-}) (11..20)) (11..20);
+}) (11..20)) (11..20));
 {
-  rule #0: e = dict$zipwith (=>) (map str (1..10)) (map str (1..10))
+  rule #0: e = dict (zipwith (=>) (map str (1..10)) (map str (1..10)))
   state 0: #0
 	<var> state 1
   state 1: #0
 }
-let e = dict$zipwith (=>) (map str (1..10)) (map str (1..10));
+let e = dict (zipwith (=>) (map str (1..10)) (map str (1..10)));
 a;
 Dict (bin 4 4.0 (-1) (bin 2 2.0 0 (bin 1 1.0 0 nil nil) (bin 3 3.0 0 nil nil)) (bin 8 8.0 0 (bin 6 6.0 0 (bin 5 5.0 0 nil nil) (bin 7 7.0 0 nil nil)) (bin 9 9.0 (-1) nil (bin 10 10.0 0 nil nil))))
 b;

@@ -37,8 +37,8 @@ let x2 = catmap (\i/*0:*/ -> catmap (\j/*0:*/ -> [(i/*1:*/,j/*0:*/)] {
   state 1: #0
 }) x;
 let double_format = "%#0.3g";
-test (f/*0:101*/,x/*0:1101*/,y/*0:111*/) = puts$format (f/*0:101*/,x/*0:1101*/,y/*0:111*/,check (f/*0:101*/,x/*0:1101*/,y/*0:111*/) (catch __error__ (f/*1:101*/ x/*1:1101*/ y/*1:111*/)));
-test (f/*0:101*/,x/*0:11*/) = puts$format (f/*0:101*/,x/*0:11*/,check (f/*0:101*/,x/*0:11*/) (catch __error__ (f/*1:101*/ x/*1:11*/)));
+test (f/*0:101*/,x/*0:1101*/,y/*0:111*/) = puts (format (f/*0:101*/,x/*0:1101*/,y/*0:111*/,check (f/*0:101*/,x/*0:1101*/,y/*0:111*/) (catch __error__ (f/*1:101*/ x/*1:1101*/ y/*1:111*/))));
+test (f/*0:101*/,x/*0:11*/) = puts (format (f/*0:101*/,x/*0:11*/,check (f/*0:101*/,x/*0:11*/) (catch __error__ (f/*1:101*/ x/*1:11*/))));
 check _/*0:01*/ z/*0:1*/ = z/*0:1*/ if numberp z/*0:1*/;
 check (f/*0:0101*/,x/*0:01101*/,y/*0:0111*/) (g@_/*0:100*/ u/*0:101*/ v/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:100*/&&x/*0:01101*/===u/*0:101*/&&y/*0:0111*/===v/*0:11*/;
 check (f/*0:0101*/,x/*0:011*/) (g@_/*0:10*/ u/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:10*/&&x/*0:011*/===u/*0:11*/;
@@ -211,8 +211,8 @@ tests = puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [tes
   state 19: #0 #1
 }
 {
-  rule #0: test (f,x,y) = puts$format (f,x,y,check (f,x,y) (catch __error__ (f x y)))
-  rule #1: test (f,x) = puts$format (f,x,check (f,x) (catch __error__ (f x)))
+  rule #0: test (f,x,y) = puts (format (f,x,y,check (f,x,y) (catch __error__ (f x y))))
+  rule #1: test (f,x) = puts (format (f,x,check (f,x) (catch __error__ (f x))))
   state 0: #0 #1
 	<app> state 1
   state 1: #0 #1
