@@ -32,13 +32,16 @@ public:
 
 class symtable {
   int32_t fno;
-public:
   map<string, symbol> tab;
   vector<symbol*> rtab;
+public:
   symtable();
   // add default declarations for the builtin constants and operators (to be
   // invoked *after* possibly reading the prelude)
   void init_builtins();
+  // get current number of symbols in table (symbols are always numbered
+  // consecutively from 1 to nsyms())
+  int32_t nsyms() { return fno; }
   // look up an existing symbol (return 0 if not in table)
   symbol* lookup(const string& s);
   // get a symbol by its name (create if necessary)
