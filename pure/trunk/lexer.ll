@@ -143,7 +143,7 @@ static char *
 command_generator(const char *text, int state)
 {
   static int list_index, len;
-  static symbol_map::iterator it, end;
+  static int32_t f, n;
   const char *name;
   assert(interpreter::g_interp);
   interpreter& interp = *interpreter::g_interp;
@@ -154,8 +154,7 @@ command_generator(const char *text, int state)
     /* Must do this here, so that symbols are entered into the globalvars
        table. */
     interp.compile();
-    it = interp.symtab.tab.begin();
-    end = interp.symtab.tab.end();
+    f = 1; n = interp.symtab.nsyms();
     len = strlen(text);
   }
 
@@ -169,18 +168,17 @@ command_generator(const char *text, int state)
 
   /* Return the next name which partially matches from the
      symbol list. */
-  while (it != end) {
-    int32_t f = it->second.f;
+  while (f <= n) {
     /* Skip non-toplevel symbols. */
     if (interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
-      it++;
+      f++;
       continue;
     }
-    const string& s = it->first;
-    it++;
+    const string& s = interp.symtab.sym(f).s;
+    f++;
     if (strncmp(s.c_str(), text, len) == 0)
       return strdup(s.c_str());
   }
