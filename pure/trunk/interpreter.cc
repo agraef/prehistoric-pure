@@ -2197,9 +2197,9 @@ expr interpreter::macred(expr x, expr y, uint8_t idx)
     if (y.xval1().tag() == EXPR::APP &&
 	y.xval1().xval1().tag() == symtab.catch_sym().f) {
       expr u = macred(x, y.xval1().xval2(), idx);
-      expr v = macred(x, y.xval2(), idx);
       if (++idx == 0)
 	throw err("error in expression (too many nested closures)");
+      expr v = macred(x, y.xval2(), idx);
       return expr(symtab.catch_sym().x, u, v);
     } else {
       expr u = macred(x, y.xval1(), idx),
