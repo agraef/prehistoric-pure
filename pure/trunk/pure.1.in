@@ -188,16 +188,16 @@ command (see the INTERACTIVE USAGE section below) to list definitions along
 with additional debugging information.
 .SH PURE OVERVIEW
 .PP
-Pure is a fairly simple but very powerful language. Programs are collections
-of equational rules defining functions, and expressions to be
-evaluated. Moreover, the \fBconst\fP and \fBlet\fP commands can be used to
-assign the value of an expression to a global constant or a variable, and the
-\fBdef\fP command can be used to define macros (a kind of ``preprocessing''
-functions to be executed at compile time).
+Pure is a fairly simple yet powerful language. Programs are basically
+collections of rewriting rules and expressions to be evaluated. For
+convenience, it is also possible to define global variables and constants, and
+for advanced uses Pure offers macro functions as a kind of preprocessing
+facility. These are all described below and in the following sections.
 .PP
-Here's a simple example, entered interactively in the interpreter (note that
-the ``>'' symbol at the beginning of each input line is the interpreter's
-default command prompt):
+Here's a first example which demonstrates how to define a simple recursive
+function in Pure, entered interactively in the interpreter (note that the
+``>'' symbol at the beginning of each input line is the interpreter's default
+command prompt):
 .sp
 .nf
 > // my first Pure example
@@ -214,6 +214,15 @@ and /* ... */ for multiline comments; the latter may not be nested). Lines
 beginning with #! are treated as comments, too; as already discussed above, on
 Unix-like systems this allows you to add a ``shebang'' to your main script in
 order to turn it into an executable program.
+.PP
+There are a few reserved keywords which cannot be used as identifiers. These
+are: case const def else end extern if infix infixl infixr let nullary of
+otherwise postfix prefix then using when with.
+.PP
+Pure is a terse language. You won't see many declarations, and often your
+programs will read more like a collection of algebraic specifications (which
+in fact they are, only that the specifications are executable). This is
+intended and keeps the code tidy and clean.
 .PP
 On the surface, Pure is quite similar to other modern functional languages
 like Haskell and ML. But under the hood it is a much more dynamic language,
@@ -274,9 +283,11 @@ first, i.e., using
 .I "call by value"
 semantics. Pure also has a few built-in special forms (most notably,
 conditional expressions, the short-circuit logical connectives && and || and
-the sequencing operator $$) which take some of their arguments using
-.I "call by name"
-semantics.
+the sequencing operator $$) which take some of their arguments unevaluated,
+using
+.IR "call by name" .
+(User-defined special forms can be created with macros. More about that
+later.)
 .PP
 The Pure language provides built-in support for machine integers (32 bit),
 bigints (implemented using GMP), floating point values (double precision
@@ -490,11 +501,11 @@ Enter a number:
 .fi
 .PP
 .B Toplevel.
-At the toplevel, a Pure program basically consists of equations defining
-functions (also called ``rules''), constant and variable bindings, and
-expressions to be evaluated:
+At the toplevel, a Pure program basically consists of rewriting rules (which
+are used to define functions and macros), constant and variable definitions,
+and expressions to be evaluated:
 .TP
-.B Rules: \fIlhs\fR = \fIrhs\fR; \fBdef\fR \fIlhs\fR = \fIrhs\fR;
+.B Rules: \fIlhs\fR = \fIrhs\fR;
 The basic form can also be augmented with a condition \fBif\fP\ \fIguard\fP
 tacked on to the end of the rule (which restricts the applicability of the
 rule to the case that the guard evaluates to a nonzero integer), or the
@@ -505,22 +516,23 @@ sugar to point out the ``default'' case of a definition; the interpreter just
 treats this as a comment). Pure also provides some abbreviations for factoring
 out common left-hand or right-hand sides in collections of rules; see section
 RULE SYNTAX below for details.
-.sp
+.TP
+.B Macro rules: def\fR \fIlhs\fR = \fIrhs\fR;
 A rule starting with the keyword
 .B def
 defines a
 .I macro
-function. Such functions are executed at compile time to rewrite expression on
-the right-hand side of other definitions, and are typically used to handle
-user-defined special forms and simple kinds of optimizations to be performed
-at ``preprocessing'' time. Macro rules are described in their own section, see
-MACROS below.
+function. No guards or multiple left-hand and right-hand sides are permitted
+here. Macro rules are used to preprocess expressions on the right-hand side of
+other definitions at compile time, and are typically employed to implement
+user-defined special forms and simple kinds of optimizations rules. See the
+MACROS section below for details and examples.
 .TP
 .B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
 Binds every variable in the left-hand side pattern to the corresponding
-subterm of the evaluated right-hand side. This works like a \fBwhen\fP clause,
-but serves to bind \fIglobal\fP variables occurring free on the right-hand
-side of other function and variable definitions.
+subterm of the right-hand side (after evaluating it). This works like a
+\fBwhen\fP clause, but serves to bind \fIglobal\fP variables occurring free on
+the right-hand side of other function and variable definitions.
 .TP
 .B Constant bindings: const\fR \fIlhs\fR = \fIrhs\fR;
 An alternative form of \fBlet\fP which defines constants rather than
@@ -528,7 +540,7 @@ variables. (These are not to be confused with
 .B nullary
 symbols which simply stand for themselves!) Like \fBlet\fP, this construct
 binds the variable symbols on the left-hand side to the corresponding values
-on the evaluated right-hand side. The difference is that
+on the right-hand side (after evaluation). The difference is that
 .B const
 symbols can only be defined once, after which their values are substituted
 directly into the right-hand sides of other definitions, rather than being
@@ -597,11 +609,11 @@ c*99
 .fi
 .PP
 This works pretty much like global variables in imperative languages, but note
-that in Pure the value of a global variable can \fInot\fP be changed inside a
-function definition. Thus referential transparency is unimpaired; while the
-value of an expression depending on a global variable may change between
-different computations, the variable will always take the same value in a
-single evaluation.
+that in Pure the value of a global variable can \fIonly\fP be changed with a
+.B let
+command at the toplevel. Thus referential transparency is unimpaired; while
+the value of a global variable may change between different toplevel
+expressions, it will always take the same value in a single evaluation.
 .PP
 Similarly, you can also add new equations to an existing function at any time:
 .sp
@@ -620,20 +632,18 @@ fact 10.0
 3628800
 .fi
 .PP
-(In interactive mode, it is even possible to completely erase constant,
-variable and function definitions. See section INTERACTIVE USAGE for details.)
+(In interactive mode, it is even possible to completely erase a definition,
+see section INTERACTIVE USAGE for details.)
 .PP
 So, while the meaning of a local symbol never changes once its definition has
-been processed, the definition of global functions and variables may well
-evolve while the program is being processed. When you evaluate an expression,
-the interpreter will always use the
+been processed, toplevel definitions may well evolve while the program is
+being processed, and the interpreter will always use the
 .I latest
-definitions of all global constants, variables and functions used in the
-expression, up to the current point in the source where the expression is
-evaluated. (This also applies to scripts read from a file, thus you have to
-make sure that all required functions, constants and variables have been
-defined at each point in a script where an expression is evaluated or assigned
-to a global variable or constant.)
+definitions at a given point in the source when an expression is
+evaluated. This means that, even in a script file, you have to define all
+symbols needed in an evaluation
+.I before
+entering the expression to be evaluated.
 .PP
 .B Examples.
 Here are a few examples of simple Pure programs (see the following section for
@@ -732,27 +742,27 @@ queens n        = search n 1 [] \fBwith\fP
 \fBend\fP;
 .fi
 .SH RULE SYNTAX
-Basically, the same rule syntax is used to define functions at the toplevel
-and in \fBwith\fP expressions, as well as inside \fBcase\fP, \fBwhen\fP,
-\fBlet\fP and \fBconst\fP constructs for the purpose of binding variable
-values (however, for obvious reasons guards are not permitted in \fBwhen\fP,
-\fBlet\fP and \fBconst\fP clauses). When matching against a function call or
-the subject term in a \fBcase\fP expression, the rules are always considered
-in the order in which they are written, and the first matching rule (whose
-guard evaluates to a nonzero value, if applicable) is picked. (Again, the
-\fBwhen\fP construct is treated differently, because each rule is actually a
-separate definition.)
+Basically, the same rule syntax is used in all kinds of global and local
+definitions. However, some constructs (specifically, \fBwhen\fP, \fBlet\fP,
+\fBconst\fP and \fBdef\fP) use a restricted rule syntax where no guards or
+multiple left-hand and right-hand sides are permitted. When matching against a
+function or macro call, or the subject term in a \fBcase\fP expression, the
+rules are always considered in the order in which they are written, and the
+first matching rule (whose guard evaluates to a nonzero value, if applicable)
+is picked. (Again, the \fBwhen\fP construct is treated differently, because
+each rule is actually a separate definition.)
 .PP
 In any case, the left-hand side pattern must not contain repeated variables
 (i.e., rules must be ``left-linear''), except for the anonymous variable `_'
 which matches an arbitrary value without binding a variable symbol.
 .PP
-A left-hand side variable may be followed by one of the special type tags
-\fB::int\fP, \fB::bigint\fP, \fB::double\fP, \fB::string\fP, to indicate that
-it can only match a constant value of the corresponding built-in type. (This
-is useful if you want to write rules matching \fIany\fP object of one of these
-types; note that there is no way to write out all ``constructors'' for the
-built-in types, as there are infinitely many.)
+A left-hand side variable (including the anonymous variable) may be followed
+by one of the special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP,
+\fB::string\fP, to indicate that it can only match a constant value of the
+corresponding built-in type. (This is useful if you want to write rules
+matching \fIany\fP object of one of these types; note that there is no way to
+write out all ``constructors'' for the built-in types, as there are infinitely
+many.)
 .PP
 Pure also supports Haskell-style ``as'' patterns of the form
 .IB variable @ pattern
@@ -836,31 +846,33 @@ same value, e.g.:
 \fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
 .fi
 .SH MACROS
-As already mentioned, macros are a special type of functions to be executed as
-a kind of ``preprocessing stage'' at compile time. They are useful for many
-things, such as the definition of user-defined special forms and optimization
-rules to be applied to the source program in its symbolic form.
+Macros are a special type of functions to be executed as a kind of
+``preprocessing stage'' at compile time. In Pure these are typically used to
+define custom special forms and to perform inlining of simple function calls.
 .PP
 Whereas the macro facilities of most programming languages simply provide a
 kind of textual substitution mechanism, Pure macros operate on symbolic
 expressions and are implemented by the same kind of rewriting rules that are
-also used to define ordinary functions in Pure. However, macro rules start out
-with the keyword
+also used to define ordinary functions in Pure. In difference to these, macro
+rules start out with the keyword
 .BR def ,
 and only simple kinds of rules without any guards or multiple left-hand and
-right-hand sides are permitted. Thus, syntactically, a macro definition looks
-just like a variable or constant definition, using
+right-hand sides are permitted.
+.PP
+Syntactically, a macro definition looks just like a variable or constant
+definition, using
 .B def
 in lieu of
 .B let
 or
 .BR const ,
-but they are processed in an entirely different way.
-.PP
-Macros are substituted into the right-hand sides of function, constant and
-variable definitions, pretty much like constants are substituted into
-definitions. All macro substitution happens before constant substitutions and
-the actual compilation step.
+but they are processed in a different way. Macros are substituted into the
+right-hand sides of function, constant and variable definitions. All macro
+substitution happens before constant substitutions and the actual compilation
+step. Macros can be defined in terms of other macros (also recursively), and
+will be expanded using the leftmost-innermost reduction strategy (i.e., macro
+calls in macro arguments are expanded before the macro gets applied to its
+parameters).
 .PP
 Here is a simple example, showing a rule which expands saturated calls of the
 .B succ
@@ -873,27 +885,44 @@ function (defined in the prelude) at compile time:
 foo x::int = x+1+1;
 .fi
 .PP
-This can be useful to help the compiler generate better code. (E.g., if you
-have a look at the assembler code for the above function, you'll see that it's
-basically just a single integer increment instruction, plus the usual
-(un)boxing of the integer argument and the result value.)
+Rules like these can be useful to help the compiler generate better
+code. E.g., try the following interactive command to have a look at the
+assembler code for the above `foo' function (\fIwarning:\fP this is not for
+the faint at heart):
+.sp
+.nf
+> \fBlist\fP -d foo
+.fi
+.PP
+You'll see that (ignoring the function header and the boilerplate code for
+boxing and unboxing Pure expressions generated by the compiler) it essentially
+boils down to just a single integer increment instruction:
+.sp
+.nf
+        ...
+        %intval = load i32* %1          ; <i32> [#uses=1]
+        add i32 %intval, 2              ; <i32>:2 [#uses=1]
+        ...
+.fi
 .PP
 Note that a macro may have the same name as an ordinary Pure function, which
-is useful for optimizing calls to an existing Pure function, as shown in the
-example above. As a slightly more practical example, as of Pure 0.6 the
-following rule has been added to the prelude to eliminate saturated function
-compositions:
+is useful for optimizing calls to an existing function, as shown in the
+example above. As a somewhat more practical example, since Pure 0.6 the
+following rule has been added to the prelude to eliminate saturated instances
+of the right-associative function application operator:
 .sp
 .nf
-\fBdef\fP (f.g) x = f (g x);
+\fBdef\fP f $ x = f x;
 .fi
 .sp
-Example:
+Like in Haskell, this low-priority operator is handy to write cascading
+function calls. With the above macro rule, these will be ``inlined'' as
+ordinary function applications automagically. Example:
 .sp
 .nf
-> foo x = (succ.succ) x;
+> foo x = bar $ bar $ 2*x;
 > \fBlist\fP foo
-foo x = x+1+1;
+foo x = bar (bar (2*x));
 .fi
 .PP
 Macros can also be recursive, consist of multiple rules and make use of
@@ -910,59 +939,58 @@ baz = x+1+1+1;
 Note that, whereas the right-hand side of a constant definition really gets
 evaluated to a normal form at the time the definition is processed, the only
 things that get evaluated during macro substitution are other macros. The
-right-hand side may be an arbitrarily complex Pure expression involving
-conditional expressions, binding clauses, etc., but these are
+right-hand side may be an arbitrary Pure expression involving conditional
+expressions, lambdas, binding clauses, etc., but these are
 .I not
-be evaluated during macro substitution, they just become part of the macro
+evaluated during macro substitution, they just become part of the macro
 expansion (after substituting the macro parameters). For instance, here is a
 useful little macro `timex', which employs the system function `clock' to
 report the cpu time in seconds needed to evaluate a given expression, along
 with the computed result:
 .sp
 .nf
-> using system;
+> \fBusing\fP system;
 > \fBdef\fP timex x = (clock-t0)/CLOCKS_PER_SEC,y \fBwhen\fP t0 = clock; y = x \fBend\fP;
-> sum = foldl (+) 0;
-> timex $ sum (1..100000);
-0.21,705082704
+> sum = foldl (+) 0L;
+> timex $ sum (1L..100000L);
+0.43,5000050000L
 .fi
 .PP
 The `timex' macro also provides a useful example of how you can use macros to
-define your own special forms, since macro arguments are always called by
-name. (Note that the above definition of `timex' wouldn't work as an ordinary
-function definition, since the x parameter would have been evaluated already
-before it is passed to `timex', making `timex' always return a zero time
-value. Try it.)
+define your own special forms, since the (expanded) macro arguments are
+effectively called by name at runtime. (Note that the above definition of
+`timex' wouldn't work as an ordinary function definition, since the x
+parameter would have been evaluated already before it is passed to `timex',
+making `timex' always return a zero time value. Try it.)
 .PP
-A final remark about the scoping rules used in macros is in order. Pure macros
-are lexically scoped, i.e., symbols on the right-hand-side of a macro
-definition can never refer to anything outside of the macro definition, and
-macro parameter substitution also takes into account binding constructs, such
-as
+Finally, note that Pure macros are lexically scoped, i.e., symbols on the
+right-hand-side of a macro definition can never refer to anything outside the
+macro definition, and macro parameter substitution also takes into account
+binding constructs, such as
 .B with
 and
 .B when
 clauses, in the right-hand side of the definition. Macro facilities with these
-properties are also known as
+pleasant properties are also known as
 .I hygienic
 macros. They are not susceptible to so-called ``name capture,'' which makes
-macros in less sophisticated languages bug-ridden, hard to use and mostly
-useless.
+macros in less sophisticated languages bug-ridden and hard to use.
 .PP
 Despite their simplicity and ease of use, Pure's macros are an incredibly
 powerful feature. But with power comes responsibility. If over-used, or used
 in inappropriate ways, macros can make your code incromprehensible and
 bloated, and a buggy macro may well kick the Pure compiler into an endless
-loop. In other words, macros are a good way to shoot yourself in the foot. So
-use them with care, ``or else!''
+loop (usually resulting in a stack overflow at compile time). In other words,
+macros are a good way to shoot yourself in the foot. So use them thoughtfully
+and with care.
 .SH DECLARATIONS
-As you probably noticed, Pure is very terse. That's because, in contrast to
-hopelessly verbose languages like Java, you don't declare much stuff in Pure,
-you just define it and be done with it. Usually, all necessary information
-about the defined symbols is inferred automatically. However, there are a few
-toplevel constructs which let you declare special symbol attributes and manage
-programs consisting of several source modules. These are: operator and
-constant symbol declarations,
+You probably noticed by now that Pure is a very terse language. That's
+because, in contrast to hopelessly verbose languages like Java, you don't
+declare much stuff in Pure, you just define it and be done with it. Usually,
+all necessary information about the defined symbols is inferred
+automatically. However, there are a few toplevel constructs which let you
+declare special symbol attributes and manage programs consisting of several
+source modules. These are: operator and constant symbol declarations,
 .B extern
 declarations for external C functions (described in the C INTERFACE section),
 and
@@ -1005,8 +1033,8 @@ denoting the empty list and tuple, respectively.
 Causes each given script to be included, at the position of the
 .B using
 clause, but only if the script was not included already. Note that the
-constants, variables and functions defined by the included script are then
-available anywhere in the program, not just the module that contains the
+constants, variables, functions and macros defined by the included script are
+then available anywhere in the program, not just the module that contains the
 .B using
 clause.
 .sp
@@ -1375,8 +1403,8 @@ Shell escape.
 Change the current working dir.
 .TP
 .B "clear \fR[\fIsymbol\fP ...]\fP"
-Purge the definitions of the given symbols (functions, constants or global
-variables). If no symbols are given, purge \fIall\fP definitions (after
+Purge the definitions of the given symbols (functions, macros, constants or
+global variables). If no symbols are given, purge \fIall\fP definitions (after
 confirmation) made after the most recent
 .B save
 command (or the beginning of the interactive session). See the DEFINITION
@@ -1490,6 +1518,9 @@ Print a short help message.
 Long format, prints definitions along with the summary symbol information.
 This implies \fB-s\fP.
 .TP
+.B -m
+Print information about defined macros.
+.TP
 .B -s
 Summary format, print just summary information about listed symbols.
 .TP
@@ -1507,11 +1538,12 @@ Print information about defined variables.
 .PP
 If none of the
 .BR -c ,
-.B -f
+.BR -f ,
+.B -m
 and
 .B -v
-options are specified, then all kinds of symbols (constants, functions,
-variables) are printed, otherwise only the specified categories will be
+options are specified, then all kinds of symbols (constants, functions, macros
+and variables) are printed, otherwise only the specified categories will be
 listed.
 .PP
 Note that some of the options (in particular,
@@ -1823,9 +1855,9 @@ you'll have to use the ``big L'' notation `0L'.
 When definining a function in terms of constant values which have to be
 computed beforehand, it's usually better to use a
 .B const
-definition (rather than defining a variable or a parameterless function) for
-that purpose, since this will often allow the compiler to generate better code
-using constant folding and similar techniques. Example:
+definition (rather than defining a variable or a parameterless function or
+macro) for that purpose, since this will often allow the compiler to generate
+better code using constant folding and similar techniques. Example:
 .sp
 .nf
 > \fBextern\fP double atan(double);
@@ -1836,11 +1868,24 @@ foo x = 2*3.14159265358979*x;
 .fi
 .PP
 (If you take a look at the disassembled code for this function, you will find
-that the value 2*3.14159265358979 has actually been computed at compile time.)
+that the value 2*3.14159265358979 = 6.28318530717959 has actually been
+computed at compile time.)
 .PP
-Also, the LLVM backend will eliminate dead code automagically, which enables
-you to employ a constant computed at runtime to configure your code for
-different environments, without any runtime penalties:
+Note that constant definitions differ from parameterless macros in that the
+right-hand side of the definition is in fact evaluated at compile time. E.g.,
+compare the above with the following macro definition:
+.sp
+.nf
+> \fBclear\fP pi foo
+> \fBdef\fP pi = 4*atan 1.0;
+> foo x = 2*pi*x;
+> \fBlist\fP foo
+foo x = 2*(4*atan 1.0)*x;
+.fi
+.PP
+The LLVM backend also eliminates dead code automagically, which enables you to
+employ a constant computed at runtime to configure your code for different
+environments, without any runtime penalties:
 .sp
 .nf
 \fBconst\fP win = index sysinfo "mingw32" >= 0;
@@ -1892,7 +1937,7 @@ bar x = 3*x;
 (You'll also have to purge any existing definition of a variable if you want
 to redefine it as a constant, or vice versa, since Pure won't let you redefine
 an existing constant or variable as a different kind of symbol. The same also
-holds if a symbol is currently defined as a function.)
+holds if a symbol is currently defined as a function or a macro.)
 .PP
 .B External C functions.
 The interpreter always takes your
