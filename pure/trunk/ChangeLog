@@ -1,5 +1,7 @@
 2008-08-26  Albert Graef  <Dr.Graef@t-online.de>
 
+	* test/test022.pure: Add macro test script.
+
 	* lib/prelude.pure: Add optimization rules for ($) and (.) so that
 	they are expanded at compile time if possible.
 
