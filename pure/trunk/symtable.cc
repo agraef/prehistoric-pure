@@ -59,7 +59,7 @@ symbol* symtable::lookup(const string& s, int32_t modno)
 symbol& symtable::sym(const string& s, int32_t modno)
 {
   symbol* _symp = lookup(s, modno);
-  if (_symp) modno = _symp->modno;
+  modno = _symp?_symp->modno:-1;
   symbol& _sym = tab[modno][s];
   if (_sym.f == 0) {
     if ((uint32_t)++fno > rtab.capacity())
@@ -75,7 +75,7 @@ symbol& symtable::sym(const string& s, prec_t prec, fix_t fix, int32_t modno)
 {
   assert(prec <= 10);
   symbol* _symp = lookup(s, modno);
-  if (_symp) modno = _symp->modno;
+  modno = _symp?_symp->modno:-1;
   symbol& _sym = tab[modno][s];
   if (_sym.f == 0) {
     if ((uint32_t)++fno > rtab.capacity())
