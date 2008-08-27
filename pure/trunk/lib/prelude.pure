@@ -98,8 +98,8 @@ def f $ x	= f x;
 def (f . g) x	= f (g x);
 
 /* "Mapsto" operator. This constructor is declared here so that it can be used
-   in other standard library modules to denote special kind of pairs which map
-   keys to values. Here we only define equality of such pairs. */
+   in other standard library modules to denote special kinds of pairs which
+   map keys to values. Here we only define equality of such pairs. */
 
 (x=>v)==(y=>w)	= if x==y then v==w else 0;
 (x=>v)!=(y=>w)	= if x!=y then 1 else v!=w;
