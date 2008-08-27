@@ -1,5 +1,8 @@
 2008-08-27  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll: Added limited support for unicode symbols. These can
+	now be declared as operator or nullary symbols.
+
 	* parser.yy, etc.: Symbols can now be declared 'private'. These
 	aren't visible anywhere except in the module that declares them.
 
