@@ -47,8 +47,12 @@ symbol* symtable::lookup(const string& s, int32_t modno)
   sym_map& m = tab[modno];
   sym_map::iterator it = m.find(s);
   if (it == m.end() && modno >= 0) {
-    m = tab[-1];
+    sym_map& m = tab[-1];
     it = m.find(s);
+    if (it == m.end())
+      return 0;
+    else
+      return &it->second;
   }
   if (it == m.end())
     return 0;
