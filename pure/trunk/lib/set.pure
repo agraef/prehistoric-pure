@@ -50,8 +50,9 @@ delete m x			remove x from m
    *************************************************************************/
 
 
-/* Empty tree constant, consider this private. */
-nullary nil;
+/* Tree constructors. */
+private nullary nil;
+private bin;
 
 /*****
 Tree for set and bag is either:
@@ -61,6 +62,8 @@ Tree for set and bag is either:
 
 Balance: ( 1), ( 0), or (-1) denoting |L|-|R| = 1, 0, or -1, respectively
 *****/
+
+private adjustd avl_geq;
 
 // set and bag type checks
 bagp (Bag _)			= 1;
@@ -109,7 +112,7 @@ with
 	= bin k b l r;
 
   rebal 1  oldTree _
-	= (Set_avl_geq oldTree)!0;
+	= (avl_geq oldTree)!0;
 /*
 // Balance rules for insertions
 //	balance	where		balance	  whole tree	to be
@@ -145,7 +148,7 @@ with
 				= [l, 1] if key == k;
 
   delete (bin k         b::int x@(bin kl         bl::int rl ll) r) key
-			= Set_adjustd leftHasChanged (bin lk b newL r) (-1)
+			= adjustd leftHasChanged (bin lk b newL r) (-1)
 		when
 			lk			= last x;
 			[newL, leftHasChanged]	= rmlast x
@@ -153,14 +156,14 @@ with
 		if key == k;
 
   delete (bin k         b::int l r) key
-		= Set_adjustd leftHasChanged (bin k b newL r) (-1)
+		= adjustd leftHasChanged (bin k b newL r) (-1)
 		when
 			[newL, leftHasChanged] = delete l key
 		end
 		if key < k;
 
   delete (bin k         b::int l r) key
-		= Set_adjustd rightHasChanged (bin k b l newR) ( 1)
+		= adjustd rightHasChanged (bin k b l newR) ( 1)
 		when
 			[newR, rightHasChanged] = delete r key
                 end
@@ -169,7 +172,7 @@ with
   rmlast nil			= [nil, 0];
   rmlast (bin _ _      l nil)	= [l,   1];
   rmlast (bin k b::int l r  )
-		= Set_adjustd rightHasChanged (bin k b l newR) ( 1)
+		= adjustd rightHasChanged (bin k b l newR) ( 1)
 		when [newR, rightHasChanged] = rmlast r end;
 
   last (bin x _ _ nil)		= x;
@@ -245,7 +248,7 @@ with
   rmfirst nil			= [nil, 0];
   rmfirst (bin _ _      nil r)	= [r,   1];
   rmfirst (bin k b::int l   r)
-	= Set_adjustd leftHasChanged (bin k b newL r) (-1)
+	= adjustd leftHasChanged (bin k b newL r) (-1)
 	when [newL, leftHasChanged] = rmfirst l end
 end;
 
@@ -257,7 +260,7 @@ with
   rmlast nil			= [nil, 0];
   rmlast (bin _ _      l nil)	= [l,   1];
   rmlast (bin k b::int l r  )
-	= Set_adjustd rightHasChanged (bin k b l newR) ( 1)
+	= adjustd rightHasChanged (bin k b l newR) ( 1)
 	when [newR, rightHasChanged] = rmlast r end
 end;
 
@@ -300,9 +303,9 @@ m1@(Bag _) * m2@(Bag _)
 				= m1 -  (m1 - m2);
 
 
-/* Private functions, don't invoke these directly. */
+/* Private functions. */
 
-Set_adjustd ToF::int tree LoR::int
+adjustd ToF::int tree LoR::int
 				= adjust ToF tree LoR
 with
   adjust 0 oldTree _ 		= [oldTree, 0];
@@ -321,7 +324,7 @@ with
   rebal 0 (bin k         _ l r) b::int whatHasChanged
 				= [bin k b l r, whatHasChanged];
 
-  rebal 1 oldTree _ _ = Set_avl_geq oldTree;
+  rebal 1 oldTree _ _ = avl_geq oldTree;
 
 // Balance rules for deletions
 /*
@@ -360,7 +363,7 @@ end;
   a height change.
 */
 
-Set_avl_geq x	= avl_geq x
+avl_geq x = avl_geq x
 with
   avl_geq (bin a         (-1) alpha (bin b         (-1) beta gamma))
 	= [bin b ( 0) (bin a ( 0) alpha beta) gamma, 1];

@@ -41,8 +41,9 @@
 
    *************************************************************************/
 
-/* Empty tree constant, consider this private. */
-nullary nil;
+/* Tree constructors. */
+private nullary nil;
+private bin;
 
 // create an empty heap
 emptyheap			= Heap nil;

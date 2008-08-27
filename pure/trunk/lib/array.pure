@@ -55,8 +55,11 @@
 
    *************************************************************************/
 
-/* Empty tree constant, consider this private. */
-nullary nil;
+/* Tree constructors. */
+private nullary nil;
+private tip bin;
+
+private mkbin;
 
 // array type check
 arrayp (Array _)		= 1;
@@ -76,7 +79,7 @@ mkarray x n::int		= Array (mkarray x n)
 with
   mkarray x n::int		= nil if n <= 0;
 				= tip x if n == 1;
-				= array_mkbin (n mod 2)
+				= mkbin (n mod 2)
 				  (mkarray x (n - n div 2))
 				  (mkarray x (n div 2));
 end;
@@ -150,16 +153,16 @@ end;
 rmfirst (Array a)		= Array (rmfirst a)
 with
   rmfirst (tip _)		= nil;
-  rmfirst (bin 0 a1 a2)		= array_mkbin 1 a2 (rmfirst a1);
-  rmfirst (bin 1 a1 a2)		= array_mkbin 0 a2 (rmfirst a1);
+  rmfirst (bin 0 a1 a2)		= mkbin 1 a2 (rmfirst a1);
+  rmfirst (bin 1 a1 a2)		= mkbin 0 a2 (rmfirst a1);
 end;
 
 // remove the last member from an array
 rmlast (Array a)		= Array (rmlast a)
 with
   rmlast (tip _)		= nil;
-  rmlast (bin 0 a1 a2)		= array_mkbin 1 a1 (rmlast a2);
-  rmlast (bin 1 a1 a2)		= array_mkbin 0 (rmlast a1) a2;
+  rmlast (bin 0 a1 a2)		= mkbin 1 a1 (rmlast a2);
+  rmlast (bin 1 a1 a2)		= mkbin 0 (rmlast a1) a2;
 end;
 
 // insert a new member at the beginning of an array
@@ -167,8 +170,8 @@ insert (Array a) y		= Array (insert a y)
 with
   insert nil y			= tip y;
   insert (tip x) y		= bin 0 (tip y) (tip x);
-  insert (bin 0 a1 a2) y	= array_mkbin 1 (insert a2 y) a1;
-  insert (bin 1 a1 a2) y	= array_mkbin 0 (insert a2 y) a1;
+  insert (bin 0 a1 a2) y	= mkbin 1 (insert a2 y) a1;
+  insert (bin 1 a1 a2) y	= mkbin 0 (insert a2 y) a1;
 end;
 
 // append a new member at the end of an array
@@ -176,8 +179,8 @@ append (Array a) y		= Array (append a y)
 with
   append nil y			= tip y;
   append (tip x) y		= bin 0 (tip x) (tip y);
-  append (bin 0 a1 a2) y	= array_mkbin 1 (append a1 y) a2;
-  append (bin 1 a1 a2) y	= array_mkbin 0 a1 (append a2 y);
+  append (bin 0 a1 a2) y	= mkbin 1 (append a1 y) a2;
+  append (bin 1 a1 a2) y	= mkbin 0 a1 (append a2 y);
 end;
 
 // update a given array position with a new value
@@ -225,9 +228,9 @@ with
 				= b1 != b2 || neq a1 a3 || neq a2 a4;
 end;
 
-/* Private functions, don't invoke these directly. */
+/* Private functions. */
 
 // construct a binary array node
-array_mkbin _ nil a2		= a2;
-array_mkbin _ a1 nil		= a1;
-array_mkbin b::int a1 a2	= bin b a1 a2;
+mkbin _ nil a2			= a2;
+mkbin _ a1 nil			= a1;
+mkbin b::int a1 a2		= bin b a1 a2;
