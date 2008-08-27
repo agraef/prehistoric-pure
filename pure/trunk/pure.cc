@@ -362,6 +362,7 @@ main(int argc, char *argv[])
     }
   }
   // load scripts specified on the command line
+  int32_t last_modno = interp.modno;
   for (; *argv; ++argv)
     if (string(*argv).substr(0,2) == "-v") {
       uint8_t level = 1;
@@ -371,6 +372,7 @@ main(int argc, char *argv[])
     } else if (*argv == string("-x")) {
       if (*++argv) {
 	count++; interp.modname = *argv;
+	last_modno = interp.modctr;
 	interp.run(*argv, false);
       } else {
 	interp.error(prog + ": missing script name");
@@ -387,6 +389,7 @@ main(int argc, char *argv[])
       ;
     else if (**argv) {
       if (count++ == 0) interp.modname = *argv;
+      last_modno = interp.modctr;
       interp.run(*argv, false);
     }
   if (count > 0 && !force_interactive) {
@@ -420,7 +423,9 @@ main(int argc, char *argv[])
     histfile = strdup(interp.histfile.c_str());
   }
   interp.temp = 1;
-  interp.run("", false);
+  if (last_modno < 0) force_interactive = false;
+  if (force_interactive) interp.modno = last_modno;
+  interp.run("", false, force_interactive);
   if (interp.ttymode) cout << endl;
   return 0;
 }

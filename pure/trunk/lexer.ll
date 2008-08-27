@@ -773,7 +773,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   else if (args.c > 1)
     cerr << "run: extra parameter\n";
   else
-    interp.run(*args.l.begin(), false);
+    interp.run(*args.l.begin(), false, true);
 }
 ^override.* {
   // override command is only permitted in interactive mode
