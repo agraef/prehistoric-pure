@@ -56,7 +56,7 @@ PURE_STACK    Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 static const char *commands[] = {
   "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
   "infixr", "let", "list", "ls", "nullary", "override", "postfix", "prefix",
-  "pwd", "quit", "run", "save", "stats", "underride", "using", 0
+  "private", "pwd", "quit", "run", "save", "stats", "underride", "using", 0
 };
 
 /* Generator functions for command completion. */
