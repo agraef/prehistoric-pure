@@ -30,8 +30,9 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-/* Empty tree constant, consider this private. */
-nullary nil;
+/* Tree constructors. */
+private nullary nil;
+private bin;
 
 /*****
 Tree for dict and hdict is either:
@@ -69,6 +70,7 @@ delete d x			remove x from d
 
    *************************************************************************/
 
+private adjustd avl_geq;
 
 // Dict and hdict type checks
 dictp (Dict _)			= 1;
@@ -148,7 +150,7 @@ with
   rebal 0 (bin k         v _ l r) b
 				= bin k v b l r;
 
-  rebal 1  oldTree _		= (Dict_avl_geq oldTree)!0;
+  rebal 1  oldTree _		= (avl_geq oldTree)!0;
 
 /*
 // Balance rules for insertions
@@ -187,7 +189,7 @@ with
 				= [l, 1] if key == k;
 
   deleted (bin k _         b (bin kl         vl bl rl ll) r  ) key
-	= Dict_adjustd leftHasChanged (bin lastk lastv b newl r) (-1)
+	= adjustd leftHasChanged (bin lastk lastv b newl r) (-1)
 	when
 		[lastk, lastv]	= last (bin kl vl bl rl ll);
 		[newl, leftHasChanged]
@@ -196,14 +198,14 @@ with
 	if key == k;
 
   deleted (bin k v b l r) key
-	= Dict_adjustd leftHasChanged (bin k v b newl r) (-1)
+	= adjustd leftHasChanged (bin k v b newl r) (-1)
 	when
 		[newl, leftHasChanged] = deleted l key
 	end
 	if key < k;
 
   deleted (bin k         v b l r) key
-	= Dict_adjustd rightHasChanged (bin k v b l newr) ( 1)
+	= adjustd rightHasChanged (bin k v b l newr) ( 1)
 	when
 		[newr, rightHasChanged] = deleted r key
 	end
@@ -230,7 +232,7 @@ with
 	if k == key;
 
   deleteh (bin k::int xys b (bin kl vl bl rl ll) r) key::int x
-	= Dict_adjustd leftHasChanged (bin lastk lastv b newl r) (-1)
+	= adjustd leftHasChanged (bin lastk lastv b newl r) (-1)
 	when
 		[lastk, lastv]	= last (bin kl vl bl rl ll);
 		[newl, leftHasChanged]	= rmlast (bin kl vl bl rl ll)
@@ -242,14 +244,14 @@ with
 	if k == key;
 
   deleteh (bin k::int v b l r) key::int x
-	= Dict_adjustd leftHasChanged (bin k v b newl r) (-1)
+	= adjustd leftHasChanged (bin k v b newl r) (-1)
 	when
 		[newl, leftHasChanged] = deleteh l key x
 	end
 	if key < k;
 
   deleteh (bin k::int v b l r) key::int x
-	= Dict_adjustd rightHasChanged (bin k v b l newr) ( 1)
+	= adjustd rightHasChanged (bin k v b l newr) ( 1)
 	when
 		[newr, rightHasChanged] = deleteh r key x
 	end
@@ -262,7 +264,7 @@ with
   rmlast nil			= [nil, 0];
   rmlast (bin _ _ _      l nil)	= [l,   1];
   rmlast (bin k v b::int l r  )
-	= Dict_adjustd rightHasChanged (bin k v b l newr) ( 1)
+	= adjustd rightHasChanged (bin k v b l newr) ( 1)
 	when [newr, rightHasChanged] = rmlast r end;
 
   last (bin x y _ _ nil)	= [x, y];
@@ -356,7 +358,7 @@ with
   rmfirst nil			= [nil, 0];
   rmfirst (bin _ _ _ nil r)	= [r, 1];
   rmfirst (bin k v b l   r)
-	= Dict_adjustd leftHasChanged (bin k v b newl r) (-1)
+	= adjustd leftHasChanged (bin k v b newl r) (-1)
 	when
 		[newl, leftHasChanged] = rmfirst l
 	end
@@ -368,7 +370,7 @@ with
   rmlast nil			= [nil 0];
   rmlast (bin _ _ _ l nil)	= [l, 1];
   rmlast (bin k v b l   r)
-	= Dict_adjustd rightHasChanged (bin k v b l newr) ( 1)
+	= adjustd rightHasChanged (bin k v b l newr) ( 1)
 	when
 		[newr, rightHasChanged] = rmlast r
 	end
@@ -489,9 +491,9 @@ d1@(Hdict _) == d2@(Hdict _)
 d1@(Dict  _) != d2@(Dict  _)	= (members d1) != (members d2);
 d1@(Hdict _) != d2@(Hdict _)	= not (d1 == d2);
 
-/* Private functions, don't invoke these directly. */
+/* Private functions. */
 
-Dict_adjustd ToF::int tree LoR::int
+adjustd ToF::int tree LoR::int
 				= adjust ToF tree LoR
 with
   adjust 0 oldTree _		= [oldTree, 0];
@@ -505,7 +507,7 @@ with
   rebal 0 (bin k         v _ l r) b whatHasChanged
 				= [bin k v b l r, whatHasChanged];
 
-  rebal 1  oldTree _ _		= Dict_avl_geq oldTree;
+  rebal 1  oldTree _ _		= avl_geq oldTree;
 
 /*
 // Balance rules for deletions
@@ -543,7 +545,7 @@ end;
   deletion any pattern can occur and so we return 1 or 0 as a flag of
   a height change.
 */
-Dict_avl_geq d = avl_geq d
+avl_geq d = avl_geq d
 with
   avl_geq (bin a         va (-1) alpha (bin b         vb (-1) beta gamma))
 	= [bin b vb ( 0) (bin a va ( 0) alpha beta) gamma, 1];
