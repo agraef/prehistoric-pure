@@ -2612,8 +2612,14 @@ void interpreter::defn(int32_t tag, pure_expr *x)
   }
   GlobalVar& v = globalvars[tag];
   if (!v.v) {
-    v.v = new GlobalVariable
-      (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
+    if (sym.modno >= 0)
+      v.v = new GlobalVariable
+	(ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+	 "$$private."+sym.s, module);
+    else
+      v.v = new GlobalVariable
+	(ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0,
+	 sym.s, module);
     JIT->addGlobalMapping(v.v, &v.x);
   }
   if (v.x) pure_free(v.x); v.x = pure_new(x);
@@ -4016,9 +4022,14 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
 	const symbol& sym = symtab.sym(tag);
 	GlobalVar& v = globalvars[tag];
 	if (!v.v) {
-	  v.v = new GlobalVariable
-	    (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s,
-	     module);
+	  if (sym.modno >= 0)
+	    v.v = new GlobalVariable
+	      (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+	       "$$private."+sym.s, module);
+	  else
+	    v.v = new GlobalVariable
+	      (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0,
+	       sym.s, module);
 	  JIT->addGlobalMapping(v.v, &v.x);
 	}
 	if (v.x) pure_free(v.x);
@@ -4071,8 +4082,14 @@ pure_expr *interpreter::dodefn(env vars, expr lhs, expr rhs, pure_expr*& e)
     const symbol& sym = symtab.sym(tag);
     GlobalVar& v = globalvars[tag];
     if (!v.v) {
-      v.v = new GlobalVariable
-	(ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0, sym.s, module);
+      if (sym.modno >= 0)
+	v.v = new GlobalVariable
+	  (ExprPtrTy, false, GlobalVariable::InternalLinkage, 0,
+	   "$$private."+sym.s, module);
+      else
+	v.v = new GlobalVariable
+	  (ExprPtrTy, false, GlobalVariable::ExternalLinkage, 0,
+	   sym.s, module);
       JIT->addGlobalMapping(v.v, &v.x);
     }
     if (v.x) call("pure_free", f.builder.CreateLoad(v.v));
@@ -5511,29 +5528,35 @@ Function *interpreter::fun_prolog(string name)
        whether global or local) we create a C-callable function in LLVM
        IR. (This is necessary also for local functions, since these might need
        to be called from the runtime.) In the case of a global function, this
-       function is also externally visible, *unless* there's already a
-       callable C function of that name (in which case we also mangle the name
-       to prevent name collisions). However, in order to enable tail call
-       elimination (on platforms where LLVM supports this), suitable functions
-       are internally implemented using the fast calling convention (if
-       enabled, which it is by default). In this case, the C-callable function
-       is just a stub calling the internal function. */
+       function is also externally visible, *unless* the function symbol is
+       private or there's already a callable C function of that name (in which
+       case we also mangle the name to prevent name collisions). However, in
+       order to enable tail call elimination (on platforms where LLVM supports
+       this), suitable functions are internally implemented using the fast
+       calling convention (if enabled, which it is by default). In this case,
+       the C-callable function is just a stub calling the internal
+       function. */
     Function::LinkageTypes scope = Function::ExternalLinkage;
     CallingConv::ID cc = CallingConv::C;
     if (f.local ||
 	// global Pure functions use internal linkage if they would shadow a C
 	// function:
 	have_c_func ||
-	// anonymous functions and operators use internal linkage, too:
-	f.tag == 0 || symtab.sym(f.tag).prec < 10)
+	// anonymous and private functions and operators use internal linkage,
+	// too:
+	f.tag == 0 || symtab.sym(f.tag).modno >= 0 ||
+	symtab.sym(f.tag).prec < 10)
       scope = Function::InternalLinkage;
 #if USE_FASTCC
     if (!name.empty()) cc = CallingConv::Fast;
 #endif
-    /* Mangle the name of the C-callable wrapper if it would shadow another C
-       function. */
+    /* Mangle the name of the C-callable wrapper if it's private, or would
+       shadow another C function. */
     string pure_name = name;
-    if (have_c_func) pure_name = "$$pure."+name;
+    if (f.tag > 0 && symtab.sym(f.tag).modno >= 0)
+      pure_name = "$$private."+name;
+    else if (have_c_func)
+      pure_name = "$$pure."+name;
     if (cc == CallingConv::Fast) {
       // create the function
       f.f = Function::Create(ft, Function::InternalLinkage,
