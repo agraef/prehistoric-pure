@@ -631,7 +631,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   source = s; declare_op = false;
   source_s = 0;
   srcdir = dirname(fname);
-  modno = modctr++;
+  if (!l_interactive || check) modno = modctr++;
   errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin(fname);
