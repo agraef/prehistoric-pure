@@ -344,19 +344,26 @@ public:
    *************************************************************************/
 
   /* Parse and execute the given source file (stdin if empty), or the given
-     list of files. If check is true (the default), a full search is performed
-     for relative pathnames (checking include directories and PURELIB to
-     locate the script file) and the script is only loaded if it wasn't
-     included before. Returns the last computed expression (if any). (This
-     expression is owned by the interpreter and must *not* be freed by the
-     caller.) This is the main interface function. If interactive is true,
-     readline is used to get interactive input from the user, using ps as the
-     prompt string. Please note that due to some global data shared by
-     different interpreter instances, you can't run two interpreters
-     concurrently right now. (It is possible to run them sequentially,
-     though.) */
-  pure_expr *run(const string& source, bool check = true);
-  pure_expr *run(const list<string>& sources, bool check = true);
+     list of files. If 'check' is true (the default), a full search is
+     performed for relative pathnames (checking include directories and
+     PURELIB to locate the script file) and the script is only loaded if it
+     wasn't included before. If 'sticky' is true (default is false), the
+     current module namespace is kept, otherwise a new namespace is created
+     for the loaded module. Using this option isn't recommended, but it is
+     used internally by the 'run' command and the '-i' option to give access
+     to the private symbols of the executed script when running interactively.
+
+     Returns the last computed expression (if any). (This expression is owned
+     by the interpreter and must *not* be freed by the caller.) This is the
+     main interface function. If interactive is true, readline is used to get
+     interactive input from the user, using ps as the prompt string. Please
+     note that due to some global data shared by different interpreter
+     instances, you can't run two interpreters concurrently right now. (It is
+     possible to run them sequentially, though.) */
+  pure_expr *run(const string& source, bool check = true,
+		 bool sticky = false);
+  pure_expr *run(const list<string>& sources, bool check = true,
+		 bool sticky = false);
 
   /* This works like run() above, but takes the source directly from a
      string. No error messages will be printed, instead any errors reported

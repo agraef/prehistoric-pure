@@ -583,7 +583,7 @@ static string searchlib(const string& srcdir, const string& libdir,
 #define DLLEXT ".so"
 #endif
 
-pure_expr* interpreter::run(const string &_s, bool check)
+pure_expr* interpreter::run(const string &_s, bool check, bool sticky)
 {
   string s = unixize(_s);
   // check for library modules
@@ -631,7 +631,10 @@ pure_expr* interpreter::run(const string &_s, bool check)
   source = s; declare_op = false;
   source_s = 0;
   srcdir = dirname(fname);
-  if (!l_interactive || check) modno = modctr++;
+  if (sticky)
+    ; // keep the current module
+  else
+    modno = modctr++;
   errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin(fname);
@@ -663,7 +666,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   return result;
 }
 
-pure_expr* interpreter::run(const list<string> &sl, bool check)
+pure_expr* interpreter::run(const list<string> &sl, bool check, bool sticky)
 {
   uint8_t s_verbose = verbose;
   // Temporarily suppress verbose output for using clause.
@@ -672,7 +675,7 @@ pure_expr* interpreter::run(const list<string> &sl, bool check)
     verbose = 0;
   }
   for (list<string>::const_iterator s = sl.begin(); s != sl.end(); s++)
-    run(*s, check);
+    run(*s, check, sticky);
   if (s_verbose) {
     compile();
     verbose = s_verbose;
