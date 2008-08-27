@@ -170,7 +170,8 @@ command_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.symtab.sym(f).modno >= 0 ||
+    const symbol& sym = interp.symtab.sym(f);
+    if (sym.modno >= 0 && sym.modno != interp.modno ||
 	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
@@ -178,7 +179,7 @@ command_generator(const char *text, int state)
       f++;
       continue;
     }
-    const string& s = interp.symtab.sym(f).s;
+    const string& s = sym.s;
     f++;
     if (strncmp(s.c_str(), text, len) == 0)
       return strdup(s.c_str());
@@ -437,7 +438,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       int32_t f = it->first;
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
-      if (sym.modno >= 0 || // skip private symbols
+      if (sym.modno >= 0 && sym.modno != interp.modno ||
 	  !((e.t == env_info::fun)?fflag:
 	    (e.t == env_info::cvar)?cflag:
 	    (e.t == env_info::fvar)?vflag:0))
@@ -479,7 +480,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	int32_t f = it->first;
 	if (syms.find(f) == syms.end()) {
 	  const symbol& sym = interp.symtab.sym(f);
-	  if (sym.modno >= 0) continue; // skip private symbols
+	  if (sym.modno >= 0 && sym.modno != interp.modno) continue;
 	  bool matches = true;
 	  if (!args.l.empty()) {
 	    matches = false;
@@ -507,7 +508,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	if (syms.find(f) == syms.end()) {
 	  const env_info& e = it->second;
 	  const symbol& sym = interp.symtab.sym(f);
-	  if (sym.modno >= 0) continue; // skip private symbols
+	  if (sym.modno >= 0 && sym.modno != interp.modno) continue;
 	  bool matches = e.temp >= tflag;
 	  if (!matches && !sflag && args.l.empty()) {
 	    // if not in summary mode, also list temporary rules for a
@@ -737,7 +738,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
   else if (args.c > 0) {
     list<string>::iterator s;
     for (s = args.l.begin(); s != args.l.end(); s++) {
-      const symbol *sym = interp.symtab.lookup(*s);
+      const symbol *sym = interp.symtab.lookup(*s, interp.modno);
       if (sym && sym->f > 0)
 	interp.clear(sym->f);
       else
