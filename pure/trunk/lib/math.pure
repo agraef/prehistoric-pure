@@ -32,6 +32,7 @@ sqrt x::int | sqrt x::bigint = sqrt (double x);
 
 /* Exponential function and logarithms. */
 
+private c_log;
 extern double exp(double), double log(double) = c_log;
 
 ln x::double = c_log x;
@@ -71,11 +72,8 @@ const pi = 4.0*atan 1.0;
 /* Hyperbolic functions. */
 
 extern double sinh(double), double cosh(double), double tanh(double);
-extern double __asinh(double), double __acosh(double), double __atanh(double);
-
-asinh x::double = __asinh x;
-acosh x::double = __acosh x;
-atanh x::double = __atanh x;
+extern double __asinh(double) = asinh, double __acosh(double) = acosh,
+  double __atanh(double) = atanh;
 
 sinh x::int | sinh x::bigint = sinh (double x);
 cosh x::int | cosh x::bigint = cosh (double x);
@@ -376,8 +374,6 @@ x%y::double		= x/y if numberp x;
 
 /* Conversions. */
 
-extern expr* pure_rational(double);
-
 rational x@(_%_)	= x;
 rational x::int		|
 rational x::bigint	= x%1;
@@ -385,6 +381,8 @@ rational x::bigint	= x%1;
 /* The conversion from double doesn't do any rounding, so it is guaranteed
    that converting the resulting rational back to double reconstructs the
    original value. */
+private pure_rational;
+extern expr* pure_rational(double);
 rational x::double	= n%d when n,d = pure_rational x end;
 
 rational (x+:y)	= rational x +: rational y;
