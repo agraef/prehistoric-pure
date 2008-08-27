@@ -1535,8 +1535,9 @@ the command prompt. That is,
 doesn't check whether the script is being used already and it puts the
 definitions on the current temporary level (so that
 .B clear
-can be used to remove them again). In particular, this makes it possible to
-quickly reload a script without exiting the interpreter, by issuing the
+can be used to remove them again). This also gives you access to all private
+symbols of the script, and it makes it possible to quickly reload a script
+without exiting the interpreter, by issuing the
 .B clear
 command followed by
 .BR run .
