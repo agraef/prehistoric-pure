@@ -59,8 +59,8 @@ interpreter::interpreter()
   : verbose(0), interactive(false), ttymode(false), override(false),
     stats(false), temp(0),
     ps("> "), libdir(""), histfile("/.pure_history"), modname("pure"),
-    nerrs(0), modno(-1), source_s(0), result(0), mem(0), exps(0), tmps(0),
-    module(0), JIT(0), FPM(0), fptr(0)
+    nerrs(0), modno(-1), modctr(0), source_s(0), result(0), mem(0), exps(0),
+    tmps(0), module(0), JIT(0), FPM(0), fptr(0)
 {
   if (!g_interp) {
     g_interp = this;
@@ -618,6 +618,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   uint8_t l_temp = temp;
   const char *l_source_s = source_s;
   string l_srcdir = srcdir;
+  int32_t l_modno = modno;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -630,6 +631,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   source = s; declare_op = false;
   source_s = 0;
   srcdir = dirname(fname);
+  modno = (temp == 0 && !s.empty())?modctr++:-1;
   errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin(fname);
@@ -656,6 +658,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   temp = l_temp;
   source_s = l_source_s;
   srcdir = l_srcdir;
+  modno = l_modno;
   // return last computed result, if any
   return result;
 }
@@ -685,6 +688,7 @@ pure_expr *interpreter::runstr(const string& s)
   int l_nerrs = nerrs;
   const char *l_source_s = source_s;
   string l_srcdir = srcdir;
+  int32_t l_modno = modno;
   // save global data
   uint8_t s_verbose = g_verbose;
   bool s_interactive = g_interactive;
@@ -697,6 +701,7 @@ pure_expr *interpreter::runstr(const string& s)
   source = ""; declare_op = false;
   source_s = s.c_str();
   srcdir = "";
+  modno = -1;
   errmsg.clear();
   bool ok = lex_begin();
   if (ok) {
@@ -718,6 +723,7 @@ pure_expr *interpreter::runstr(const string& s)
   nerrs = l_nerrs;
   source_s = l_source_s;
   srcdir = l_srcdir;
+  modno = l_modno;
   // return last computed result, if any
   return result;
 }

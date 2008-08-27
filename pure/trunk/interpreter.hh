@@ -324,6 +324,7 @@ public:
   int nerrs;	     // current error count
   string errmsg;     // last reported error (runstr)
   int32_t modno;     // current module key
+  int32_t modctr;    // next available module key
   string source;     // the source being parsed
   const char *source_s; // source pointer if input comes from a string
   set<string> sources; // the list of all scripts which have been loaded
