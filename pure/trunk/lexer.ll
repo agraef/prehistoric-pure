@@ -134,7 +134,7 @@ static bool env_compare(env_sym s, env_sym t)
 static const char *commands[] = {
   "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
   "infixr", "let", "list", "ls", "nullary", "override", "postfix", "prefix",
-  "pwd", "quit", "run", "save", "stats", "underride", "using", 0
+  "private", "pwd", "quit", "run", "save", "stats", "underride", "using", 0
 };
 
 typedef map<string, symbol> symbol_map;
@@ -897,6 +897,7 @@ infixr     yylval->fix = infixr; return token::FIX;
 prefix     yylval->fix = prefix; return token::FIX;
 postfix    yylval->fix = postfix; return token::FIX;
 nullary    return token::NULLARY;
+private    return token::PRIVATE;
 const      return token::CONST;
 def        return token::DEF;
 let        return token::LET;

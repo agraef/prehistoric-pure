@@ -32,7 +32,7 @@ syn match    pureComment	+//.*+
 syn region   pureString		start=+"+ skip=+\\"+ end=+"+
 
 " keywords
-syn keyword pureKeyword	infix infixl infixr prefix postfix nullary
+syn keyword pureKeyword	infix infixl infixr prefix postfix nullary private
 syn keyword pureKeyword	case const def else end extern if let of otherwise then
 syn keyword pureKeyword	using when with
 syn keyword pureSpecial catch throw

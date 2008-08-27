@@ -96,6 +96,7 @@ typedef list<comp_clause> comp_clause_list;
 #include "interpreter.hh"
 %}
 
+%token		PRIVATE	"private"
 %token		NULLARY	"nullary"
 %token <fix>	FIX	"fixity"
 

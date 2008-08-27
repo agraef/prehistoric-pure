@@ -217,7 +217,7 @@ order to turn it into an executable program.
 .PP
 There are a few reserved keywords which cannot be used as identifiers. These
 are: case const def else end extern if infix infixl infixr let nullary of
-otherwise postfix prefix then using when with.
+otherwise postfix prefix private then using when with.
 .PP
 Pure is a terse language. You won't see many declarations, and often your
 programs will read more like a collection of algebraic specifications (which
