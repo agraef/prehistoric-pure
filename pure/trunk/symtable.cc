@@ -42,36 +42,82 @@ void symtable::init_builtins()
   segfault_sym();
 }
 
-symbol* symtable::lookup(const string& s)
+symbol* symtable::lookup(const string& s, int32_t modno)
 {
-  map<string, symbol>::iterator it = tab.find(s);
-  if (it == tab.end())
+  sym_map& m = tab[modno];
+  sym_map::iterator it = m.find(s);
+  if (it == m.end() && modno >= 0) {
+    m = tab[-1];
+    it = m.find(s);
+  }
+  if (it == m.end())
     return 0;
   else
     return &it->second;
 }
 
-symbol& symtable::sym(const string& s)
+symbol& symtable::sym(const string& s, int32_t modno)
 {
-  symbol& _sym = tab[s];
+  symbol* _symp = lookup(s, modno);
+  if (_symp) modno = _symp->modno;
+  symbol& _sym = tab[modno][s];
   if (_sym.f == 0) {
     if ((uint32_t)++fno > rtab.capacity())
       rtab.reserve(rtab.capacity()+1024);
-    _sym = symbol(s, fno);
+    _sym = symbol(s, fno, modno);
     //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
     rtab[fno] = &_sym;
   }
   return _sym;
 }
 
-symbol& symtable::sym(const string& s, prec_t prec, fix_t fix)
+symbol& symtable::sym(const string& s, prec_t prec, fix_t fix, int32_t modno)
 {
   assert(prec <= 10);
-  symbol& _sym = tab[s];
+  symbol* _symp = lookup(s, modno);
+  if (_symp) modno = _symp->modno;
+  symbol& _sym = tab[modno][s];
   if (_sym.f == 0) {
     if ((uint32_t)++fno > rtab.capacity())
       rtab.reserve(rtab.capacity()+1024);
-    _sym = symbol(s, fno, prec, fix);
+    _sym = symbol(s, fno, prec, fix, modno);
+    //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
+    rtab[fno] = &_sym;
+  }
+  return _sym;
+}
+
+symbol* symtable::xlookup(const string& s, int32_t modno)
+{
+  sym_map& m = tab[modno];
+  sym_map::iterator it = m.find(s);
+  if (it == m.end())
+    return 0;
+  else
+    return &it->second;
+}
+
+symbol& symtable::xsym(const string& s, int32_t modno)
+{
+  symbol& _sym = tab[modno][s];
+  if (_sym.f == 0) {
+    if ((uint32_t)++fno > rtab.capacity())
+      rtab.reserve(rtab.capacity()+1024);
+    _sym = symbol(s, fno, modno);
+    //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
+    rtab[fno] = &_sym;
+  }
+  return _sym;
+}
+
+symbol& symtable::xsym(const string& s, prec_t prec, fix_t fix, int32_t modno)
+{
+  assert(prec <= 10);
+  symbol& _sym = tab[modno][s];
+  if (_sym.f == 0) {
+    if ((uint32_t)++fno > rtab.capacity())
+      rtab.reserve(rtab.capacity()+1024);
+    _sym = symbol(s, fno, prec, fix, modno);
     //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
     rtab[fno] = &_sym;
   }

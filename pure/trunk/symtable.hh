@@ -20,19 +20,24 @@ public:
   string s; // print name
   prec_t prec; // precedence level
   fix_t fix; // fixity
+  int32_t modno; // module key for private symbol, -1 for global symbol
   symbol() : // constructor for dummy entries
-    f(0), s(""), prec(10), fix(infix) { }
-  symbol(const string& _s, int _f) :
-    f(_f), s(_s), prec(10), fix(infix) { x = expr(f); }
-  symbol(const string& _s, int _f, prec_t _prec, fix_t _fix) :
-    f(_f), s(_s), prec(_prec), fix(_fix) { x = expr(f); }
+    f(0), s(""), prec(10), fix(infix), modno(-1) { }
+  symbol(const string& _s, int _f, int32_t _modno = -1) :
+    f(_f), s(_s), prec(10), fix(infix), modno(_modno) { x = expr(f); }
+  symbol(const string& _s, int _f, prec_t _prec, fix_t _fix,
+	 int32_t _modno = -1) :
+    f(_f), s(_s), prec(_prec), fix(_fix), modno(_modno) { x = expr(f); }
 };
 
 /* Symbol table. */
 
+typedef map<string, symbol> sym_map;
+typedef map<int32_t, sym_map> sym_tab;
+
 class symtable {
   int32_t fno;
-  map<string, symbol> tab;
+  sym_tab tab;
   vector<symbol*> rtab;
 public:
   symtable();
@@ -42,11 +47,21 @@ public:
   // get current number of symbols in table (symbols are always numbered
   // consecutively from 1 to nsyms())
   int32_t nsyms() { return fno; }
-  // look up an existing symbol (return 0 if not in table)
-  symbol* lookup(const string& s);
+  /* The following routines first search for a symbol in the given module,
+     failing that they will also search for a global symbol. (If modno==-1
+     then only global symbols will be searched.) */
+  // look up an existing symbol in given module (return 0 if not in table)
+  symbol* lookup(const string& s, int32_t modno = -1);
   // get a symbol by its name (create if necessary)
-  symbol& sym(const string& s);
-  symbol& sym(const string& s, prec_t prec, fix_t fix);
+  symbol& sym(const string& s, int32_t modno = -1);
+  symbol& sym(const string& s, prec_t prec, fix_t fix, int32_t modno = -1);
+  /* These work like the above, but will only return exact matches in the
+     given module. */
+  symbol* xlookup(const string& s, int32_t modno = -1);
+  symbol& xsym(const string& s, int32_t modno = -1);
+  symbol& xsym(const string& s, prec_t prec, fix_t fix, int32_t modno = -1);
+  // get a symbol by its number
+  symbol& sym(int32_t f);
   // retrieve various builtin symbols (create when necessary)
   symbol& nil_sym();
   symbol& cons_sym();
@@ -80,8 +95,6 @@ public:
   symbol& failed_cond_sym() { return sym("failed_cond"); }
   symbol& signal_sym() { return sym("signal"); }
   symbol& segfault_sym() { return sym("stack_fault"); }
-  // get a symbol by its number
-  symbol& sym(int32_t f);
 };
 
 #endif // ! SYMTABLE_HH
