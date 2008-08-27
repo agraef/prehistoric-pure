@@ -3403,14 +3403,10 @@ Function *interpreter::declare_extern(string name, string restype,
       argt[i] = Type::Int64Ty;
   if (asname.empty()) asname = name;
   symbol& sym = symtab.sym(asname, modno);
-  if (sym.modno >= 0)
-    // We don't allow private externals for now.
-    throw err("symbol '"+name+"' is private in this context");
-  else if (globenv.find(sym.f) != globenv.end() &&
-	   externals.find(sym.f) == externals.end())
-    // There already is a Pure function or global variable for this
-    // symbol. This is an error (unless the symbol is already declared as an
-    // external, too).
+  if (globenv.find(sym.f) != globenv.end() &&
+      externals.find(sym.f) == externals.end())
+    // There already is a Pure function or global variable for this symbol.
+    // This is an error (unless the symbol is already declared as an external).
     throw err("symbol '"+name+"' is already defined as a Pure "+
 	      ((globenv[sym.f].t == env_info::fun) ? "function" :
 	       (globenv[sym.f].t == env_info::fvar) ? "variable" :
