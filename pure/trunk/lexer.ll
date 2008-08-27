@@ -361,7 +361,7 @@ ptrtag  ::{blank}*pointer
   // list command is only permitted in interactive mode
   if (!interp.interactive) REJECT;
   uint8_t s_verbose = interpreter::g_verbose;
-  uint8_t tflag = 0;
+  uint8_t tflag = 0; int pflag = -1;
   bool aflag = false, dflag = false, eflag = false;
   bool cflag = false, fflag = false, mflag = false, vflag = false;
   bool gflag = false, lflag = false, sflag = false;
@@ -374,7 +374,7 @@ ptrtag  ::{blank}*pointer
   // process option arguments
   for (arg = args.l.begin(); arg != args.l.end(); arg++) {
     const char *s = arg->c_str();
-    if (s[0] != '-' || !s[1] || !strchr("acdefghlmstv", s[1])) break;
+    if (s[0] != '-' || !s[1] || !strchr("acdefghlmpstv", s[1])) break;
     while (*++s) {
       switch (*s) {
       case 'a': aflag = true; break;
@@ -385,6 +385,13 @@ ptrtag  ::{blank}*pointer
       case 'g': gflag = true; break;
       case 'l': lflag = true; break;
       case 'm': mflag = true; break;
+      case 'p':
+	if (isdigit(s[1])) {
+	  pflag = strtoul(s+1, 0, 10)>0;
+	  while (isdigit(s[1])) ++s;
+	} else
+	  pflag = 1;
+	break;
       case 's': sflag = true; break;
       case 'v': vflag = true; break;
       case 't':
@@ -410,6 +417,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -l  Long format, prints definitions along with the summary symbol\n\
     information. This implies -s.\n\
 -m  Print information about defined macros.\n\
+-p[flag] List only private symbols in the current module if flag is\n\
+    nonzero (the default), otherwise list only public symbols of all\n\
+    modules. List both private and public symbols if -p is omitted.\n\
 -s  Summary format, print just summary information about listed symbols.\n\
 -t[level] List only symbols and definitions at the given temporary level\n\
     (the current level by default) or above. Level 1 denotes all temporary\n\
@@ -439,6 +449,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
       if (sym.modno >= 0 && sym.modno != interp.modno ||
+	  pflag >= 0 && (pflag > 0) != (sym.modno >= 0) ||
 	  !((e.t == env_info::fun)?fflag:
 	    (e.t == env_info::cvar)?cflag:
 	    (e.t == env_info::fvar)?vflag:0))
@@ -480,7 +491,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	int32_t f = it->first;
 	if (syms.find(f) == syms.end()) {
 	  const symbol& sym = interp.symtab.sym(f);
-	  if (sym.modno >= 0 && sym.modno != interp.modno) continue;
+	  if (sym.modno >= 0 && sym.modno != interp.modno ||
+	      pflag >= 0 && (pflag > 0) != (sym.modno >= 0))
+	    continue;
 	  bool matches = true;
 	  if (!args.l.empty()) {
 	    matches = false;
@@ -508,7 +521,9 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	if (syms.find(f) == syms.end()) {
 	  const env_info& e = it->second;
 	  const symbol& sym = interp.symtab.sym(f);
-	  if (sym.modno >= 0 && sym.modno != interp.modno) continue;
+	  if (sym.modno >= 0 && sym.modno != interp.modno ||
+	      pflag >= 0 && (pflag > 0) != (sym.modno >= 0))
+	    continue;
 	  bool matches = e.temp >= tflag;
 	  if (!matches && !sflag && args.l.empty()) {
 	    // if not in summary mode, also list temporary rules for a

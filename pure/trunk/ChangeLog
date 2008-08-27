@@ -1,3 +1,8 @@
+2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lexer.ll: Add option -p to list only private/public symbols to
+	the 'list' command.
+
 2008-08-27  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/: Clean up the public namespace.
