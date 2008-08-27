@@ -291,7 +291,8 @@ item
 /* Lexical tie-in: We need to tell the lexer that we're defining new operator
    symbols (interp.declare_op = true) instead of searching for existing ones
    in the symbol table. */
-{ if ($1->fix != nullary && $1->prec > 9) {
+{ if ($1->priv && $1->prec > 10 ||
+      !$1->priv && $1->fix != nullary && $1->prec > 9) {
     error(yylloc, "invalid fixity declaration"); YYERROR;
   } else
     interp.declare_op = true; }
@@ -307,6 +308,9 @@ item
 fixity
 : FIX INT		{ $$ = new sym_info(false,$2,$1); }
 | NULLARY		{ $$ = new sym_info(false,10,nullary); }
+| PRIVATE FIX INT	{ $$ = new sym_info(true,$3,$2); }
+| PRIVATE NULLARY	{ $$ = new sym_info(true,10,nullary); }
+| PRIVATE		{ $$ = new sym_info(true,10,infix); }
 ;
 
 ids
