@@ -28,6 +28,7 @@
    was encountered during the most recent invokation of eval(). In that case
    each reported error message is terminated with a newline character. */
 
+private pure_str;
 extern void* str(expr*) = pure_str;
 extern expr* eval(char*); // IMPURE!
 extern char* lasterr();
@@ -36,6 +37,7 @@ str x			= cstring (pure_str x);
 
 /* Convert between Unicode character codes and single character strings. */
 
+private string_chr string_ord;
 extern expr* string_chr(int);
 extern expr* string_ord(void*);
 
@@ -51,6 +53,7 @@ ord s::string		= string_ord s if #s==1;
    to be malloc'ed). The _cstring routines also convert from the system
    encoding. */
 
+private pure_string pure_cstring pure_string_dup pure_cstring_dup;
 extern expr* pure_string(void* s);
 extern expr* pure_cstring(void* s);
 extern expr* pure_string_dup(void* s);
@@ -68,6 +71,7 @@ cstring_dup s::pointer	= pure_cstring_dup s;
    char* (employing pointer arithmetic etc.; the usual caveats apply), and has
    to be freed explicitly by the caller when no longer needed. */
 
+private pure_byte_string pure_byte_cstring;
 extern expr* pure_byte_string(void *s);
 extern expr* pure_byte_cstring(void *s);
 
@@ -86,6 +90,7 @@ c::string-d::string	= ord c-ord d if #c==1 && #d==1;
    string takes quadratic time; as a remedy, we also offer a linear-time
    operation to determine the list of all characters of a string in one go. */
 
+private string_null string_size string_concat string_char_at string_chars;
 extern bool string_null(void*);
 extern int string_size(void*);
 extern expr* string_concat(void*, void*);
@@ -100,6 +105,7 @@ chars s::string		= string_chars s;
 
 /* Lexicographic string comparison. */
 
+private strcmp;
 extern int strcmp(void*, void*);
 
 x::string<y::string	= strcmp x y < 0;
@@ -111,6 +117,7 @@ x::string!=y::string	= strcmp x y != 0;
 
 /* Compute and find substrings of a string. */
 
+private string_substr string_index;
 extern expr* string_substr(void*, int, int);
 extern int string_index(void*, void*);
 
@@ -122,6 +129,7 @@ index s::string u::string
 
 /* Concatenate a list of strings. */
 
+private string_concat_list;
 extern expr* string_concat_list(expr*);
 strcat xs		= string_concat_list xs if listp xs && all stringp xs;
 

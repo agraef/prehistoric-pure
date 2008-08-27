@@ -77,6 +77,7 @@ extern int hash(expr*);
 
 /* Conversions between the different numeric and pointer types. */
 
+private pure_intval pure_dblval pure_bigintval pure_pointerval;
 extern expr* pure_intval(expr*), expr* pure_dblval(expr*),
   expr* pure_bigintval(expr*), expr* pure_pointerval(expr*);
 
@@ -221,6 +222,8 @@ x$$y			= y;
 
 /* Bigint arithmetic. */
 
+private bigint_neg bigint_not bigint_add bigint_sub bigint_mul bigint_div
+  bigint_mod bigint_shl bigint_shr bigint_and bigint_or bigint_cmp;
 extern expr* bigint_neg(void*);
 extern expr* bigint_not(void*);
 extern expr* bigint_add(void*, void*);
@@ -322,6 +325,7 @@ x::double!=y::bigint	= x!=double y;
 /* The gcd and lcm functions from the GMP library. These return a bigint if at
    least one of the arguments is a bigint, a machine int otherwise. */
 
+private bigint_gcd bigint_lcm;
 extern expr* bigint_gcd(void*, void*);
 extern expr* bigint_lcm(void*, void*);
 
@@ -340,6 +344,7 @@ lcm x::int y::int	= int (bigint_lcm (bigint x) (bigint y));
    always a bigint. Note that y must always be nonnegative here, but see
    math.pure which deals with the case y<0 using rational numbers. */
 
+private bigint_pow;
 extern expr* bigint_pow(void*, int);
 
 pow x::int y::int	= bigint_pow (bigint x) y if y>=0;
@@ -352,6 +357,7 @@ pow x::bigint y::int	= bigint_pow x y if y>=0;
 /* The ^ operator. Computes inexact powers for any combination of int, bigint
    and double operands. The result is always a double. */
 
+private c_pow;
 extern double pow(double, double) = c_pow;
 
 x::double^y::double	= c_pow x y;
@@ -382,6 +388,8 @@ x::pointer!=y::pointer	= bigint x != bigint y;
 
 /* Direct memory accesses. Use with care ... or else! */
 
+private pointer_get_byte pointer_get_int pointer_get_double
+  pointer_get_string pointer_get_pointer;
 extern int pointer_get_byte(void *ptr);
 extern int pointer_get_int(void *ptr);
 extern double pointer_get_double(void *ptr);
@@ -394,6 +402,8 @@ get_double x::pointer = pointer_get_double x;
 get_string x::pointer = pointer_get_string x;
 get_pointer x::pointer = pointer_get_pointer x;
 
+private pointer_put_byte pointer_put_int pointer_put_double
+  pointer_put_string pointer_put_pointer;
 extern void pointer_put_byte(void *ptr, int x); // IMPURE!
 extern void pointer_put_int(void *ptr, int x); // IMPURE!
 extern void pointer_put_double(void *ptr, double x); // IMPURE!
