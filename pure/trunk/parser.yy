@@ -294,7 +294,7 @@ item
 { if ($1->priv && $1->prec > 10 ||
       !$1->priv && $1->fix != nullary && $1->prec > 9) {
     error(yylloc, "invalid fixity declaration"); YYERROR;
-  } else
+  } else if ($1->fix == nullary || $1->prec < 10)
     interp.declare_op = true; }
   ids
 { interp.declare_op = false;

@@ -94,7 +94,8 @@ command_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.symtab.sym(f).modno >= 0 ||
+    const symbol& sym = interp.symtab.sym(f);
+    if (sym.modno >= 0 && sym.modno != interp.modno ||
 	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
@@ -102,7 +103,7 @@ command_generator(const char *text, int state)
       f++;
       continue;
     }
-    const string& s = interp.symtab.sym(f).s;
+    const string& s = sym.s;
     f++;
     if (strncmp(s.c_str(), text, len) == 0)
       return strdup(s.c_str());
@@ -133,7 +134,8 @@ symbol_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.symtab.sym(f).modno >= 0 ||
+    const symbol& sym = interp.symtab.sym(f);
+    if (sym.modno >= 0 && sym.modno != interp.modno ||
 	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
@@ -141,7 +143,7 @@ symbol_generator(const char *text, int state)
       f++;
       continue;
     }
-    const string& s = interp.symtab.sym(f).s;
+    const string& s = sym.s;
     f++;
     if (strncmp(s.c_str(), text, len) == 0)
       return strdup(s.c_str());

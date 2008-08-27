@@ -631,7 +631,7 @@ pure_expr* interpreter::run(const string &_s, bool check)
   source = s; declare_op = false;
   source_s = 0;
   srcdir = dirname(fname);
-  modno = (temp == 0 && !s.empty())?modctr++:-1;
+  modno = modctr++;
   errmsg.clear();
   if (check && !interactive) temp = 0;
   bool ok = lex_begin(fname);
@@ -701,7 +701,7 @@ pure_expr *interpreter::runstr(const string& s)
   source = ""; declare_op = false;
   source_s = s.c_str();
   srcdir = "";
-  modno = -1;
+  modno = modctr++;
   errmsg.clear();
   bool ok = lex_begin();
   if (ok) {
