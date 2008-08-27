@@ -170,7 +170,8 @@ command_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.globenv.find(f) == interp.globenv.end() &&
+    if (interp.symtab.sym(f).modno >= 0 ||
+	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
@@ -436,7 +437,8 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
       int32_t f = it->first;
       const env_info& e = it->second;
       const symbol& sym = interp.symtab.sym(f);
-      if (!((e.t == env_info::fun)?fflag:
+      if (sym.modno >= 0 || // skip private symbols
+	  !((e.t == env_info::fun)?fflag:
 	    (e.t == env_info::cvar)?cflag:
 	    (e.t == env_info::fvar)?vflag:0))
 	continue;
@@ -504,6 +506,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	if (syms.find(f) == syms.end()) {
 	  const env_info& e = it->second;
 	  const symbol& sym = interp.symtab.sym(f);
+	  if (sym.modno >= 0) continue; // skip private symbols
 	  bool matches = e.temp >= tflag;
 	  if (!matches && !sflag && args.l.empty()) {
 	    // if not in summary mode, also list temporary rules for a
@@ -912,7 +915,7 @@ using      BEGIN(xusing); return token::USING;
     yylval->sval = new string(yytext);
     return token::ID;
   }
-  symbol* sym = interp.symtab.lookup(yytext);
+  symbol* sym = interp.symtab.lookup(yytext, interp.modno);
   if (sym && sym->prec >= 0 && sym->prec < 10) {
     yylval->xval = new expr(sym->x);
     return optoken[sym->prec][sym->fix];
@@ -930,12 +933,12 @@ using      BEGIN(xusing); return token::USING;
     yylval->sval = new string(yytext);
     return token::ID;
   }
-  symbol* sym = interp.symtab.lookup(yytext);
+  symbol* sym = interp.symtab.lookup(yytext, interp.modno);
   while (!sym && yyleng > 1) {
     if (yyleng == 2 && yytext[0] == '-' && yytext[1] == '>')
       return token::MAPSTO;
     yyless(yyleng-1);
-    sym = interp.symtab.lookup(yytext);
+    sym = interp.symtab.lookup(yytext, interp.modno);
   }
   if (sym) {
     if (sym->prec < 10) {

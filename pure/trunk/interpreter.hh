@@ -323,6 +323,7 @@ public:
   // Interpreter state. For internal use only.
   int nerrs;	     // current error count
   string errmsg;     // last reported error (runstr)
+  int32_t modno;     // current module key
   string source;     // the source being parsed
   const char *source_s; // source pointer if input comes from a string
   set<string> sources; // the list of all scripts which have been loaded
@@ -434,7 +435,7 @@ public:
   void build_env(env& vars, expr x);
   void mark_dirty(int32_t f);
   void compile(expr x);
-  void declare(prec_t prec, fix_t fix, list<string> *ids);
+  void declare(bool priv, prec_t prec, fix_t fix, list<string> *ids);
   void define(rule *r);
   void define_const(rule *r);
   void exec(expr *x);

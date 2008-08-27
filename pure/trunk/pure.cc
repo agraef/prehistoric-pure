@@ -94,7 +94,8 @@ command_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.globenv.find(f) == interp.globenv.end() &&
+    if (interp.symtab.sym(f).modno >= 0 ||
+	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {
@@ -132,7 +133,8 @@ symbol_generator(const char *text, int state)
      symbol list. */
   while (f <= n) {
     /* Skip non-toplevel symbols. */
-    if (interp.globenv.find(f) == interp.globenv.end() &&
+    if (interp.symtab.sym(f).modno >= 0 ||
+	interp.globenv.find(f) == interp.globenv.end() &&
 	interp.macenv.find(f) == interp.macenv.end() &&
 	interp.globalvars.find(f) == interp.globalvars.end() &&
 	interp.externals.find(f) == interp.externals.end()) {

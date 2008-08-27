@@ -59,7 +59,7 @@ interpreter::interpreter()
   : verbose(0), interactive(false), ttymode(false), override(false),
     stats(false), temp(0),
     ps("> "), libdir(""), histfile("/.pure_history"), modname("pure"),
-    nerrs(0), source_s(0), result(0), mem(0), exps(0), tmps(0),
+    nerrs(0), modno(-1), source_s(0), result(0), mem(0), exps(0), tmps(0),
     module(0), JIT(0), FPM(0), fptr(0)
 {
   if (!g_interp) {
@@ -1166,11 +1166,11 @@ void interpreter::compile(expr x)
   }
 }
 
-void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
+void interpreter::declare(bool priv, prec_t prec, fix_t fix, list<string> *ids)
 {
   for (list<string>::const_iterator it = ids->begin();
        it != ids->end(); ++it) {
-    symbol* sym = symtab.lookup(*it);
+    symbol* sym = symtab.xlookup(*it, priv?modno:-1);
     if (sym) {
       // crosscheck declarations
       if (sym->prec != prec || sym->fix != fix) {
@@ -1179,7 +1179,7 @@ void interpreter::declare(prec_t prec, fix_t fix, list<string> *ids)
 	throw err("conflicting fixity declaration for symbol '"+id+"'");
       }
     } else {
-      int32_t tag = symtab.sym(*it, prec, fix).f;
+      int32_t tag = symtab.xsym(*it, prec, fix, priv?modno:-1).f;
       /* KLUDGE: Already create a globalvars entry here, so that the symbol is
 	 properly recognized by the completion routines. */
       pure_expr *cv = pure_const(tag);
@@ -2352,7 +2352,7 @@ expr *interpreter::mkexpr(expr *x, expr *y, expr *z)
 expr *interpreter::mksym_expr(string *s, int8_t tag)
 {
   expr *x;
-  const symbol &sym = symtab.sym(*s);
+  const symbol &sym = symtab.sym(*s, modno);
   if (tag == 0)
     if (*s == "_")
       // Return a new instance here, since the anonymous variable may have
@@ -2373,7 +2373,7 @@ expr *interpreter::mksym_expr(string *s, int8_t tag)
 
 expr *interpreter::mkas_expr(string *s, expr *x)
 {
-  const symbol &sym = symtab.sym(*s);
+  const symbol &sym = symtab.sym(*s, modno);
   if (sym.f <= 0 || sym.prec < 10 || sym.fix == nullary)
     throw err("error in pattern (bad variable symbol '"+sym.s+"')");
   if (x->tag() > 0) {
@@ -3405,9 +3405,12 @@ Function *interpreter::declare_extern(string name, string restype,
   // First check whether there already is a Pure function or global variable
   // for this symbol. This is an error (unless it's already declared as an
   // external, too).
-  symbol& sym = symtab.sym(asname);
-  if (globenv.find(sym.f) != globenv.end() &&
-      externals.find(sym.f) == externals.end())
+  symbol& sym = symtab.sym(asname, modno);
+  if (sym.modno >= 0)
+    throw err("symbol '"+name+
+	      "' is private in this context");
+  else if (globenv.find(sym.f) != globenv.end() &&
+	   externals.find(sym.f) == externals.end())
     throw err("symbol '"+name+
 	      "' is already defined as a Pure function or variable");
   // Create the function type and check for an existing declaration of the

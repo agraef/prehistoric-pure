@@ -54,9 +54,10 @@ class interpreter;
 
 %{
 struct sym_info {
+  bool priv;
   prec_t prec;
   fix_t fix;
-  sym_info(prec_t p, fix_t f) : prec(p), fix(f) { }
+  sym_info(bool v, prec_t p, fix_t f) : priv(v), prec(p), fix(f) { }
 };
 struct rule_info {
   exprl l;
@@ -295,15 +296,16 @@ item
     interp.declare_op = true; }
   ids
 { interp.declare_op = false;
-  action(interp.declare($1->prec, $1->fix, $3), delete $3); delete $1; }
+  action(interp.declare($1->priv, $1->prec, $1->fix, $3), delete $3);
+  delete $1; }
 | USING names
 { action(interp.run(*$2), {}); delete $2; }
 | EXTERN prototypes
 ;
 
 fixity
-: FIX INT		{ $$ = new sym_info($2,$1); }
-| NULLARY		{ $$ = new sym_info(10,nullary); }
+: FIX INT		{ $$ = new sym_info(false,$2,$1); }
+| NULLARY		{ $$ = new sym_info(false,10,nullary); }
 ;
 
 ids
