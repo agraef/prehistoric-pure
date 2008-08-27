@@ -343,22 +343,29 @@ on the left-hand side of an equation, is special; it denotes the
 The case of identifiers is significant, but it doesn't carry any meaning
 (that's in contrast to languages like Prolog and Q, where variables must be
 capitalized). Instead, Pure distinguishes function and variable symbols by
-their position on the left-hand side of an equation, using the ``head =
-function'' rule: Any symbol (except the anonymous variable) which occurs as
-the head symbol of a function application is a function symbol, all other
-symbols are variables (except symbols explicitly declared as ``constant''
-a.k.a.
+their position on the left-hand side of an equation, using the following
+.I head = function
+rule: Any symbol (except the anonymous variable) which occurs as the head
+symbol of a function application is a function symbol, all other symbols are
+variables (except symbols explicitly declared as ``constant'' a.k.a.
 .B nullary
 symbols, see below).
 .TP
 .B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x, []
-As indicated, these take the form of an identifier or a sequence of ASCII
-punctuation symbols, as defined in the source using corresponding
-\fBprefix\fP, \fBpostfix\fP, \fBinfix\fP and \fBnullary\fP declarations, which
-are discussed in section DECLARATIONS. Enclosing an operator in parentheses,
-such as (+) or (\fBnot\fP), turns it into an ordinary function symbol. Symbols
-declared as \fBnullary\fP denote special constant symbols which simply stand
-for themselves. Technically, these are just ordinary identifiers; however, the
+As indicated, these take the form of an identifier or a sequence of
+punctuation symbols. As of Pure 0.6, operator and constant symbols may also
+contain arbitrary extended (non-ASCII) Unicode characters, which makes it
+possible, e.g., to use symbols from the math and APL symbol sets offered by
+Unicode.
+.sp
+Operator and constant symbols must always be declared before they can be used,
+using corresponding \fBprefix\fP, \fBpostfix\fP, \fBinfix\fP and \fBnullary\fP
+declarations, which are discussed in section DECLARATIONS.
+.sp
+Note that enclosing an operator in parentheses, such as (+) or (\fBnot\fP),
+turns it into an ordinary function symbol. Symbols declared as \fBnullary\fP
+denote special constant symbols which simply stand for themselves.
+Technically, these are just ordinary identifiers; however, the
 .B nullary
 attribute tells the compiler that when such an identifier occurs on the
 left-hand side of an equation, it is to be interpreted as a constant rather
