@@ -957,11 +957,13 @@ with the computed result:
 .fi
 .PP
 The `timex' macro also provides a useful example of how you can use macros to
-define your own special forms, since the (expanded) macro arguments are
-effectively called by name at runtime. (Note that the above definition of
-`timex' wouldn't work as an ordinary function definition, since the x
-parameter would have been evaluated already before it is passed to `timex',
-making `timex' always return a zero time value. Try it.)
+define your own special forms, since the macro arguments will only be
+evaluated at runtime and can thus be passed to built-in special forms and
+other constructs which defer their evaluation. (Note that the above definition
+of `timex' wouldn't work as an ordinary function definition, since by virtue
+of Pure's basic eager evaluation strategy the x parameter would have been
+evaluated already before it is passed to `timex', making `timex' always return
+a zero time value. Try it.)
 .PP
 Finally, note that Pure macros are lexically scoped, i.e., symbols on the
 right-hand-side of a macro definition can never refer to anything outside the
@@ -984,20 +986,47 @@ loop (usually resulting in a stack overflow at compile time). In other words,
 macros are a good way to shoot yourself in the foot. So use them thoughtfully
 and with care.
 .SH DECLARATIONS
-You probably noticed by now that Pure is a very terse language. That's
-because, in contrast to hopelessly verbose languages like Java, you don't
-declare much stuff in Pure, you just define it and be done with it. Usually,
-all necessary information about the defined symbols is inferred
-automatically. However, there are a few toplevel constructs which let you
-declare special symbol attributes and manage programs consisting of several
-source modules. These are: operator and constant symbol declarations,
+Pure is a very terse language by design; you don't declare much stuff, you
+just define it and be done with it. Usually, all necessary information about
+the defined symbols is inferred automatically. However, there are a few
+toplevel constructs which let you declare special symbol attributes and manage
+programs consisting of several source modules. These are:
+.BR private ,
+fixity (operator) and
+.B nullary
+(constant symbol) declarations,
 .B extern
 declarations for external C functions (described in the C INTERFACE section),
 and
 .B using
-clauses which provide a simple include file mechanism.
+clauses which let you include other scripts in a Pure script.
 .TP
-.B Operator and constant declarations: infix \fIlevel\fP \fIop\fP\fR ...;\fP nullary \fIsymbol\fP\fR ...;\fP
+.B Private symbol declarations: private \fIsymbol\fP\fR ...;\fP
+Declares the listed symbols as
+.IR private .
+Pure programs usually consist of several source scripts (see the description
+of the
+.B using
+clauses below). By default, all global symbols are
+.I public
+symbols which are visible throughout the entire Pure program. Symbols
+explicitly declared as private are only visible in the script which declares
+them. This must be done before using these symbols. Example:
+.sp
+.nf
+\fBprivate\fP foo bar;
+foo (bar x) = x+1; // foo and bar symbols are private here
+.fi
+.sp
+Note that to declare multiple symbols in a single declaration, you just list
+them all with whitespace in between. The same applies to the other types of
+symbol declarations discussed below.
+.TP
+.B Operator declarations: infix \fIlevel\fP \fIop\fP\fR ...;\fP
+These may also be prefixed with the keyword
+.B private
+to indicate a private operator symbol (see above).
+.sp
 Ten different precedence levels are available for user-defined operators,
 numbered 0 (lowest) thru 9 (highest). On each precedence level, you can
 declare (in order of increasing precedence)
@@ -1013,34 +1042,92 @@ operators. For instance:
 \fBinfixl\fP 7 * / div mod ;
 .fi
 .sp
-Note that to declare multiple symbols in a single declaration, you just list
-them all with whitespace in between.
-.sp
-Similarly, constant symbols are introduced using a
+One thing worth noting here is that unary minus plays a special role in the
+syntax. Like in Haskell, unary minus is the only prefix operator symbol which
+is also used as an infix operator, and it always has the same precedence as
+binary minus (whose precedence may be chosen freely in the prelude). Thus,
+with the standard prelude, -x+y will be parsed as (-x)+y, whereas -x*y is the
+same as -(x*y). Also note that the notation `(-)' always denotes the binary
+minus operator; the unary minus operation can be denoted using the built-in
+`neg' function.
+.TP
+.B Constant symbol declarations: nullary \fIsymbol\fP\fR ...;\fP
+Constant symbols are introduced using a
 .B nullary
-declaration, e.g.:
+declaration (again, a
+.B private
+prefix may be used to denote private constant symbols), e.g.:
 .sp
 .nf
-\fBnullary\fP [] () nil;
+\fBnullary\fP [] ();
+\fBprivate\fP \fBnullary\fP nil;
 .fi
 .sp
-Examples for all of these can be found in the prelude which declares a bunch
-of standard (arithmetic, relational, logical) operator symbols as well as the
-list and pair constructors `:' and `,' and the constant symbols `[]' and `()'
-denoting the empty list and tuple, respectively.
+As explained in the PURE OVERVIEW section,
+.B nullary
+symbols are like ordinary identifiers, but are treated as constants rather
+than variables when they occur on the left-hand side of an equation.
+.sp
+Examples for all types of symbol declarations can be found in the prelude
+which declares a bunch of standard (arithmetic, relational, logical) operator
+symbols as well as the list and pair constructors `:' and `,' and the empty
+list and tuple constants `[]' and `()'.
 .TP
 .B Using clause: using \fIname\fR, ...;
-Causes each given script to be included, at the position of the
+Causes each given script to be included in the Pure program. Each included
+script is loaded only
+.IR once ,
+when the first
 .B using
-clause, but only if the script was not included already. Note that the
-constants, variables, functions and macros defined by the included script are
-then available anywhere in the program, not just the module that contains the
-.B using
-clause.
+clause for the script is encountered. This kind of clause is discussed in
+further detail below.
 .sp
-The script name can be specified either as a string denoting the proper
-filename (possibly including path and/or filename extension), or as an
-identifier. In the latter case, the
+Note that the
+.B using
+clause also has an alternative form which allows dynamic libraries to be
+loaded, this will be discussed in the C INTERFACE section.
+.PP
+The
+.B using
+declaration provides a simple but effective way to assemble a Pure program
+from several source modules. The Pure program is just the concatenation of all
+the source modules listed as command line arguments and included through
+.B using
+clauses. Public constants, variables, functions and macros defined anywhere in
+the program share one big happy namespace and are available throughout the
+entire program (not just the module that contains a
+.B using
+clause for the script containing a given symbol). This approach has its
+drawbacks, but it makes it easy to define polymorphic functions and macros
+across separate modules.
+.PP
+To facilitate modular development, each script also has a separate namespace
+for private symbols which are only visible in the script which declares them
+(see the explanation of the
+.B private
+declaration above). This makes it possible to hide away internal operations,
+prevent name clashes between symbols of different modules, and keep the public
+namespace tidy and clean. A
+.B private
+declaration shadows a public symbol with the same print name, but this takes
+effect only
+.I after
+the
+.B private
+declaration of the symbol, so you can easily define yourself an alias for the
+public symbol before that, e.g.:
+.sp
+.nf
+public_foo = foo;
+\fBprivate\fP foo;
+foo x = public_foo (bar x);
+.fi
+.PP
+The script name in a
+.B using
+clause can be specified either as a string denoting the proper filename
+(possibly including path and/or filename extension), or as an identifier. In
+the latter case, the
 .B .pure
 filename extension is added automatically. In both cases, the interpreter
 performs a search to locate the script, unless an absolute pathname was
@@ -1064,9 +1151,9 @@ adding the option
 to the command line, or by including `.' in the
 .B PURE_INCLUDE
 variable.
-.sp
-For the purpose of comparing and loading scripts, the interpreter always uses
-the canonicalized full pathname of the script, following symbolic links to the
+.PP
+For the purpose of comparing script names, the interpreter always uses the
+canonicalized full pathname of the script, following symbolic links to the
 destination file (albeit only one level). Thus different scripts with the same
 basename, such as
 .B foo/utils.pure
@@ -1083,11 +1170,6 @@ clauses will use the real script directory and thus other required scripts can
 be located in the script directory. This is the recommended practice for
 installing standalone Pure applications in source form which are to be run
 directly from the shell.
-.PP
-Note that the
-.B using
-clause also has an alternative form which allows dynamic libraries to be
-loaded, this will be discussed in the C INTERFACE section below.
 .SH EXCEPTION HANDLING
 Pure also offers a useful exception handling facility. To raise an exception,
 you just invoke the built-in function
