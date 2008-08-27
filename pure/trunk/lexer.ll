@@ -479,6 +479,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 	int32_t f = it->first;
 	if (syms.find(f) == syms.end()) {
 	  const symbol& sym = interp.symtab.sym(f);
+	  if (sym.modno >= 0) continue; // skip private symbols
 	  bool matches = true;
 	  if (!args.l.empty()) {
 	    matches = false;
