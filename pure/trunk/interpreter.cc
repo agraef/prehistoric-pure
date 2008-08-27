@@ -3428,7 +3428,7 @@ Function *interpreter::declare_extern(string name, string restype,
   // function won't be accessible in the Pure program at all.
   if (it == externals.end() && g && !g->isDeclaration())
     throw err("symbol '"+name+
-	      "' is already defined as a Pure function or variable");
+	      "' is already defined as a Pure function");
   if (it == externals.end() && g) {
     // Cross-check with a builtin declaration.
     assert(g->isDeclaration() && gt);
