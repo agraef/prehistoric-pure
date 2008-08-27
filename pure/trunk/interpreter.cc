@@ -1424,7 +1424,7 @@ void interpreter::add_rule(env &e, rule &r, bool toplevel)
       throw err("symbol '"+sym.s+"' is already defined as a variable");
     else if (it->second.argc != argc) {
       ostringstream msg;
-      msg << "symbol '" << sym.s
+      msg << "function '" << sym.s
 	  << "' was previously defined with " << it->second.argc << " args";
       throw err(msg.str());
     }
@@ -1432,7 +1432,7 @@ void interpreter::add_rule(env &e, rule &r, bool toplevel)
     map<int32_t,ExternInfo>::const_iterator it = externals.find(f);
     if (it != externals.end() && it->second.argtypes.size() != argc) {
       ostringstream msg;
-      msg << "symbol '" << sym.s
+      msg << "function '" << sym.s
 	  << "' was previously declared as an external with "
 	  << it->second.argtypes.size() << " args";
       throw err(msg.str());
@@ -1482,7 +1482,7 @@ void interpreter::add_macro_rule(rule *r)
   } else if (it != macenv.end()) {
     if (it->second.argc != argc) {
       ostringstream msg;
-      msg << "symbol '" << sym.s
+      msg << "macro '" << sym.s
 	  << "' was previously defined with " << it->second.argc << " args";
       throw err(msg.str());
     }
@@ -3402,17 +3402,20 @@ Function *interpreter::declare_extern(string name, string restype,
     else if (argt[i] == Type::Int32Ty && sizeof(int) > 4)
       argt[i] = Type::Int64Ty;
   if (asname.empty()) asname = name;
-  // First check whether there already is a Pure function or global variable
-  // for this symbol. This is an error (unless it's already declared as an
-  // external, too).
   symbol& sym = symtab.sym(asname, modno);
   if (sym.modno >= 0)
-    throw err("symbol '"+name+
-	      "' is private in this context");
+    // We don't allow private externals for now.
+    throw err("symbol '"+name+"' is private in this context");
   else if (globenv.find(sym.f) != globenv.end() &&
 	   externals.find(sym.f) == externals.end())
-    throw err("symbol '"+name+
-	      "' is already defined as a Pure function or variable");
+    // There already is a Pure function or global variable for this
+    // symbol. This is an error (unless the symbol is already declared as an
+    // external, too).
+    throw err("symbol '"+name+"' is already defined as a Pure "+
+	      ((globenv[sym.f].t == env_info::fun) ? "function" :
+	       (globenv[sym.f].t == env_info::fvar) ? "variable" :
+	       (globenv[sym.f].t == env_info::cvar) ? "constant" :
+	       "gizmo" /* this can't happen, or at least it shouldn't ;-) */));
   // Create the function type and check for an existing declaration of the
   // external.
   FunctionType *ft = FunctionType::get(type, argt, false);
