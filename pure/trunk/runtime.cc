@@ -102,6 +102,50 @@ static void mem_mark(pure_expr *x)
 #define SSTK_DEBUG 0
 #endif
 
+static inline pure_expr* pure_apply2(pure_expr *x, pure_expr *y)
+{
+  // Count references and construct a function application.
+  pure_new_args(2, x, y);
+  return pure_apply(x, y);
+}
+
+static inline pure_expr* signal_exception(int sig)
+{
+  if (!interpreter::g_interp) return 0;
+  pure_expr *f = pure_const(interpreter::g_interp->symtab.signal_sym().f);
+  pure_expr *x = pure_int(sig);
+  return pure_apply2(f, x);
+}
+
+static inline pure_expr* stack_exception()
+{
+  if (!interpreter::g_interp) return 0;
+  return pure_const(interpreter::g_interp->symtab.segfault_sym().f);
+}
+
+static inline pure_expr *get_sentry(pure_expr *x)
+{
+  if (x==0)
+    return 0;
+  else if (x->tag == EXPR::APP || x->tag == EXPR::PTR)
+    return x->data.x[2];
+  else
+    return 0;
+}
+
+static inline void free_sentry(pure_expr *x)
+{
+  if (x->tag == EXPR::APP || x->tag == EXPR::PTR) {
+    pure_expr *s = x->data.x[2];
+    if (s) {
+      ++x->refc;
+      pure_freenew(pure_apply2(s, x));
+      pure_free(s);
+      --x->refc;
+    }
+  }
+}
+
 // Expression pointers are allocated in larger chunks for better performance.
 // NOTE: Only internal fields get initialized by new_expr(), the remaining
 // fields *must* be initialized as appropriate by the caller.
@@ -123,6 +167,7 @@ static inline pure_expr *new_expr()
   }
   x->refc = 0;
   x->xp = interp.tmps;
+  x->data.x[2] = 0; // initialize the sentry
   interp.tmps = x;
   return x;
 }
@@ -197,6 +242,7 @@ void pure_free_internal(pure_expr *x)
   pure_expr *xp = 0, *y;
  loop:
   if (--x->refc == 0) {
+    free_sentry(x);
     switch (x->tag) {
     case EXPR::APP:
       y = x->data.x[0];
@@ -242,6 +288,7 @@ static
 void pure_free_internal(pure_expr *x)
 {
   if (--x->refc == 0) {
+    free_sentry(x);
     switch (x->tag) {
     case EXPR::APP:
       pure_free_internal(x->data.x[0]);
@@ -285,27 +332,6 @@ pure_unref_internal(pure_expr *x)
       interp.tmps = x;
     }
   }
-}
-
-static inline pure_expr* pure_apply2(pure_expr *x, pure_expr *y)
-{
-  // Count references and construct a function application.
-  pure_new_args(2, x, y);
-  return pure_apply(x, y);
-}
-
-static inline pure_expr* signal_exception(int sig)
-{
-  if (!interpreter::g_interp) return 0;
-  pure_expr *f = pure_const(interpreter::g_interp->symtab.signal_sym().f);
-  pure_expr *x = pure_int(sig);
-  return pure_apply2(f, x);
-}
-
-static inline pure_expr* stack_exception()
-{
-  if (!interpreter::g_interp) return 0;
-  return pure_const(interpreter::g_interp->symtab.segfault_sym().f);
 }
 
 /* PUBLIC API. **************************************************************/
@@ -809,6 +835,32 @@ extern "C"
 void pure_unref(pure_expr *x)
 {
   pure_unref_internal(x);
+}
+
+extern "C"
+pure_expr *pure_sentry(pure_expr *sentry, pure_expr *x)
+{
+  if (x==0)
+    return 0;
+  else if (x->tag == EXPR::APP || x->tag == EXPR::PTR) {
+    if (x->data.x[2])
+      pure_free_internal(x->data.x[2]);
+    x->data.x[2] = sentry?pure_new_internal(sentry):0;
+    return x;
+  } else
+    return 0;
+}
+
+extern "C"
+pure_expr *pure_get_sentry(pure_expr *x)
+{
+  return get_sentry(x);
+}
+
+extern "C"
+pure_expr *pure_clear_sentry(pure_expr *x)
+{
+  return pure_sentry(0, x);
 }
 
 extern "C"

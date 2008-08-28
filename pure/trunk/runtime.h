@@ -38,7 +38,7 @@ typedef struct _pure_expr {
   int32_t tag; // type tag or symbol, see expr.hh for possible values
   uint32_t refc;		// reference counter
   union {
-    struct _pure_expr *x[2];	// application arguments (EXPR::APP)
+    struct _pure_expr *x[3];	// application arguments (EXPR::APP), sentry
     int32_t i;			// integer (EXPR::INT)
     mpz_t z;			// GMP bigint (EXPR::BIGINT)
     double d;			// double (EXPR::DBL)
@@ -216,6 +216,20 @@ void pure_freenew(pure_expr *x);
 
 void pure_ref(pure_expr *x);
 void pure_unref(pure_expr *x);
+
+/* Sentries. These are expression "guards" which are applied to the target
+   expression when it is garbage-collected. pure_sentry places a sentry at an
+   expression (or removes it if sentry is NULL) and returns the modified
+   expression, pure_get_sentry returns the current sentry of an expression, if
+   any (NULL otherwise). pure_clear_sentry(x) is a convenience function for
+   pure_sentry(NULL, x). NOTE: In the current implementation sentries can only
+   be placed at applications and pointer objects, pure_sentry will return NULL
+   if you apply it to other kinds of expressions. The sentry itself can be any
+   type of object (but usually it's a function). */
+
+pure_expr *pure_sentry(pure_expr *sentry, pure_expr *x);
+pure_expr *pure_get_sentry(pure_expr *x);
+pure_expr *pure_clear_sentry(pure_expr *x);
 
 /* Variable and constant definitions. These allow you to directly bind
    variable and constant symbols to pure_expr* values, as the 'let' and 'def'
