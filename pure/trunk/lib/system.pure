@@ -45,6 +45,40 @@ extern void pure_sys_vars(); pure_sys_vars;
 extern int pure_errno() = errno, void pure_set_errno(int) = set_errno;
 extern void perror(char*), char* strerror(int);
 
+/* POSIX locale handling. Details are platform-specific, but you can expect
+   that at least the categories LC_ALL, LC_COLLATE, LC_CTYPE, LC_MONETARY,
+   LC_NUMERIC and LC_TIME are defined, as well as the following values for the
+   locale parameter: "C" or "POSIX" (the default POSIX locale), "" (the system
+   default locale), and NULL, to just query the current locale.
+
+   Other string values which can be passed as the locale argument depend on
+   the implementation, please check your local setlocale(3) documentation for
+   details. If locale is not NULL, the current locale is changed accordingly.
+   The return value is the new locale, or the current locale when passing NULL
+   for the locale parameter. In either case, the string returned by setlocale
+   is such that it can be passed to setlocale to restore the same locale
+   again. In case of an error, setlocale returns a null pointer.
+
+   Please note that calling this function alters the Pure interpreter's idea
+   of what the current locale is, which will affect the expected encoding of
+   subsequently loaded scripts, among other things. When the interpreter
+   starts up, it always sets the default system locale. Unless your scripts
+   rely on a specific encoding, setting the locale to either "C" or "" should
+   always be safe. */
+
+private c_setlocale;
+extern void* setlocale(int category, void* locale) = c_setlocale;
+
+setlocale category::int locale =
+return (check (c_setlocale category buf)) with
+  check res	= cstring_dup res if not null res;
+  		= res otherwise;
+  return res	= free buf $$ res if not null buf;
+		= res otherwise;
+end when
+  buf		= if stringp locale then byte_cstring locale else locale;
+end if stringp locale || pointerp locale && null locale;
+
 /* Signal handling. The action parameter of 'trap' can be one of the
    predefined integer values SIG_TRAP, SIG_IGN and SIG_DFL. SIG_TRAP causes
    the given signal to be handled by mapping it to a Pure exception of the
