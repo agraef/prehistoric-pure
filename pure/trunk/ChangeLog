@@ -1,5 +1,9 @@
 2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/system.pure: New definitions of fopen/popen and
+	fclose/pclose, using sentries which take care of closing a file
+	object automagically when it's garbage-collected.
+
 	* lib/primitives.pure: Add interface to sentries (see below).
 
 	* runtime.cc/h: Added sentries -- expression "guards" which are
