@@ -1465,12 +1465,27 @@ module. In particular, this module also includes operations to do basic
 I/O. More stuff will likely be provided in future releases.
 .SH INTERACTIVE USAGE
 In interactive mode, the interpreter reads definitions and expressions and
-processes them as usual. The input language is just the same as for source
-scripts, and hence individual definitions and expressions \fImust\fP be
-terminated with a semicolon before they are processed. For instance, here is a
-simple interaction which defines the factorial and then uses that definition
-in some evaluations. Input lines begin with ``>'', which is the interpreter's
-default command prompt:
+processes them as usual. If the
+.B -i
+option was used to force interactive mode when invoking the interpreter, the
+last script specified on the command line determines the visible namespace
+(i.e., all public symbols are visible, along with the private symbols of the
+loaded script). Otherwise only the public symbols defined in the prelude are
+available. Additional scripts can be loaded interactively using either a
+.B using
+declaration or the interactive
+.B run
+command (see the description of the
+.B run
+command below for the differences between these). Or you can just start typing
+away, entering your own definitions and expressions to be evaluated.
+.PP
+The input language is just the same as for source scripts, and hence
+individual definitions and expressions \fImust\fP be terminated with a
+semicolon before they are processed. For instance, here is a simple
+interaction which defines the factorial and then uses that definition in some
+evaluations. Input lines begin with ``>'', which is the interpreter's default
+command prompt:
 .sp
 .nf
 > fact 1 = 1;
@@ -1496,8 +1511,9 @@ Purge the definitions of the given symbols (functions, macros, constants or
 global variables). If no symbols are given, purge \fIall\fP definitions (after
 confirmation) made after the most recent
 .B save
-command (or the beginning of the interactive session). See the DEFINITION
-LEVELS AND OVERRIDE MODE section below for details.
+command, or the beginning of the interactive session. (It might be a good
+idea to first check your current definitions with \fBlist -t\fP before you do
+this, though.) See the DEFINITION LEVELS section below for details.
 .TP
 .B "help \fR[\fIargs\fP]\fP"
 Display the
@@ -1516,7 +1532,7 @@ List files (shell \fBls\fP(1) command).
 .B override
 Enter ``override'' mode. This allows you to add equations ``above'' existing
 definitions in the source script, possibly overriding existing equations. See
-the DEFINITION LEVELS AND OVERRIDE MODE section below for details.
+the DEFINITION LEVELS section below for details.
 .TP
 .B pwd
 Print the current working dir (shell \fBpwd\fP(1) command).
@@ -1532,23 +1548,25 @@ clause, but only searches for the script in the current directory and loads
 the script ``anonymously'', as if the contents of the script had been typed at
 the command prompt. That is,
 .B run
-doesn't check whether the script is being used already and it puts the
-definitions on the current temporary level (so that
+will just put the definitions into the current namespace, giving you access to
+all private symbols of the script. Also, the definitions are placed at the
+current temporary level, so that
 .B clear
-can be used to remove them again). This also gives you access to all private
-symbols of the script, and it makes it possible to quickly reload a script
-without exiting the interpreter, by issuing the
+can be used to remove them again. In particular, this makes it possible to
+quickly reload a script without exiting the interpreter, by issuing the
 .B clear
 command followed by
 .BR run .
+(This works best if you start out from a clean environment, with no scripts
+loaded on the command line.)
 .TP
 .B save
 Begin a new level of temporary definitions. A subsequent
 .B clear
 command (see above) will purge all definitions made after the most recent
 .B save
-(or the beginning of the interactive session). See the DEFINITION LEVELS AND
-OVERRIDE MODE section below for details.
+(or the beginning of the interactive session). See the DEFINITION LEVELS
+section below for details.
 .TP
 .B "stats \fR[on|off]\fP"
 Enables (default) or disables ``stats'' mode, in which various statistics are
@@ -1559,7 +1577,7 @@ profiling information may be provided.
 .B underride
 Exits ``override'' mode. This returns you to the normal mode of operation,
 where new equations are added `below'' previous rules of an existing function.
-See the DEFINITION LEVELS AND OVERRIDE MODE section below for details.
+See the DEFINITION LEVELS section below for details.
 .PP
 Note that these special commands are only recognized at the beginning of the
 interactive command line. (Thus you can escape a symbol looking like a command
@@ -1611,6 +1629,12 @@ This implies \fB-s\fP.
 .B -m
 Print information about defined macros.
 .TP
+.B -p[\fIflag\fP]
+List only private symbols in the current module if \fIflag\fP is nonzero (the
+default), otherwise (\fIflag\fP is zero) list only public symbols of all
+modules. List both private and public symbols if -p is omitted. The
+\fIflag\fP parameter, if given, must immediately follow the option character.
+.TP
 .B -s
 Summary format, print just summary information about listed symbols.
 .TP
@@ -1619,9 +1643,8 @@ List only ``temporary'' symbols and definitions at the given \fIlevel\fP (the
 current level by default) or above. The \fIlevel\fP parameter, if given, must
 immediately follow the option character. A \fIlevel\fP of 1 denotes all
 temporary definitions, whereas 0 indicates \fIall\fP definitions (which is the
-default if \fB-t\fP is not specified). See the DEFINITION LEVELS AND OVERRIDE
-MODE section below for information about the notion of temporary definition
-levels.
+default if \fB-t\fP is not specified). See the DEFINITION LEVELS section below
+for information about the notion of temporary definition levels.
 .TP
 .B -v
 Print information about defined variables.
@@ -1673,20 +1696,23 @@ are defined. No sweat, with the Pure interpreter there's no need to dive into
 the sources, the
 .B list
 command can easily do it for you. For instance, here's how you can list the
-definitions of all list ``zipping'' operations from the prelude in one go:
+definitions of all list ``fold'' operations from the prelude in one go:
 .sp
 .nf
-> \fBlist\fP -g zip*
-zip (x:xs) (y:ys) = (x,y):zip xs ys;
-zip _ _ = [];
-zip3 (x:xs) (y:ys) (z:zs) = (x,y,z):zip3 xs ys zs;
-zip3 _ _ _ = [];
-zipwith f (x:xs) (y:ys) = f x y:zipwith f xs ys;
-zipwith f _ _ = [];
-zipwith3 f (x:xs) (y:ys) (z:zs) = f x y z:zipwith3 f xs ys zs;
-zipwith3 f _ _ _ = [];
+> \fBlist\fP -g fold*
+foldl f a s::string = foldl f a (chars s);
+foldl f a [] = a;
+foldl f a (x:xs) = foldl f (f a x) xs;
+foldl1 f s::string = foldl1 f (chars s);
+foldl1 f (x:xs) = foldl f x xs;
+foldr f a s::string = foldr f a (chars s);
+foldr f a [] = a;
+foldr f a (x:xs) = f x (foldl (flip f) a (reverse xs));
+foldr1 f s::string = foldr1 f (chars s);
+foldr1 f [x] = x;
+foldr1 f (x:xs) = f x (foldl1 (flip f) (reverse xs));
 .fi
-.SH DEFINITION LEVELS AND OVERRIDE MODE
+.SH DEFINITION LEVELS
 To help with incremental development, the interpreter also offers some
 facilities to manipulate the current set of definitions interactively. To
 these ends, definitions are organized into different subsets called
@@ -1700,7 +1726,8 @@ any definitions read using the
 .B run
 command) and returns you to the previous one (if any). This gives you a
 ``stack'' of up to 255 temporary environments which enables you to ``plug and
-play'' in a safe fashion, without affecting the rest of your program. Example:
+play'' in a (more or less) safe fashion, without affecting the rest of your
+program. Example:
 .sp
 .nf
 > foo (x:xs) = x+foo xs;
