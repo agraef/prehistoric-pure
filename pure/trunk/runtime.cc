@@ -3088,8 +3088,6 @@ void pure_sys_vars(void)
   df(interp, "stdin",	pure_pointer(stdin));
   df(interp, "stdout",	pure_pointer(stdout));
   df(interp, "stderr",	pure_pointer(stderr));
-  // null pointer
-  cdf(interp, "NULL",	pure_pointer(0));
   // clock
   cdf(interp, "CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
   // fnmatch, glob
