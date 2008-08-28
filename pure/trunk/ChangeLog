@@ -1,5 +1,7 @@
 2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/system.pure: Add setlocale function.
+
 	* runtime.cc (pure_sys_vars): Add NULL and LC_* constants.
 
 	* lexer.ll: Add option -p to list only private/public symbols to
