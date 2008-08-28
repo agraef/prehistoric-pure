@@ -157,10 +157,12 @@ extern void free(void* ptr);
    routines are actually overridden with more convenient Pure wrappers
    below. */
 
+private c_fopen c_popen c_fclose c_pclose;
+extern FILE* fopen(char* name, char* mode) = c_fopen;
+extern FILE* popen(char* cmd, char* mode) = c_popen;
+extern int fclose(FILE* fp) = c_fclose, int pclose(FILE* fp) = c_pclose;
+extern int fflush(FILE* fp);
 private c_fgets c_gets;
-extern FILE* fopen(char* name, char* mode);
-extern FILE* popen(char* cmd, char* mode);
-extern int fflush(FILE* fp), int fclose(FILE* fp), int pclose(FILE* fp);
 extern char* fgets(void* buf, int size, FILE* fp) = c_fgets;
 extern char* gets(void* buf) = c_gets;
 extern int fputs(char* s, FILE* fp), int puts(char* s);
@@ -168,6 +170,22 @@ extern int fread(void* ptr, int size, int nmemb, FILE* fp);
 extern int fwrite(void* ptr, int size, int nmemb, FILE* fp);
 extern void clearerr(FILE* fp);
 extern int feof(FILE* fp), int ferror(FILE* fp);
+
+/* Pure wrappers for fopen/popen and fclose/pclose which take care of closing
+   a file object automagically when it's garbage-collected. */
+
+fopen name::string mode::string = check (c_fopen name mode) with
+  check fp::pointer = sentry c_fclose fp if not null fp;
+  check fp = fp otherwise;
+end;
+
+popen name::string mode::string = check (c_popen name mode) with
+  check fp::pointer = sentry c_pclose fp if not null fp;
+  check fp = fp otherwise;
+end;
+
+fclose fp::pointer = clear_sentry fp $$ c_fclose fp;
+pclose fp::pointer = clear_sentry fp $$ c_pclose fp;
 
 /* Pure wrappers for fgets and gets which handle the necessary buffering
    automatically. */
