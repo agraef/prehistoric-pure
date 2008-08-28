@@ -1,5 +1,9 @@
 2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
 
+	* Makefile.in: Set LC_ALL=C, to work around failed math tests due
+	to locale-related problems on some systems. Note: This requires a
+	reconfigure.
+
 	* lib/system.pure: Add setlocale function.
 
 	* runtime.cc (pure_sys_vars): Add NULL and LC_* constants.

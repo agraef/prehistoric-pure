@@ -259,16 +259,21 @@ logs: $(logs)
 cleanlogs:
 	rm -f $(srcdir)/test/*.log
 
+# Note: Unfortunately, a few tests may produce varying results with different
+# locales, so we have to make sure that we set up a neutral environment
+# here. We therefore set LC_ALL=C below, which should do the job on Linux and
+# other glibc-based systems. Other systems might require some work.
+
 $(srcdir)/test/prelude.log: lib/prelude.pure lib/primitives.pure lib/strings.pure
-	@LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -n -v$(level) $< > $@ 2>&1
+	LC_ALL=C @LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -n -v$(level) $< > $@ 2>&1
 
 %.log: %.pure
-	@LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -v$(level) < $< > $@ 2>&1
+	LC_ALL=C @LD_LIB_PATH@=. PURELIB=$(srcdir)/lib ./pure -v$(level) < $< > $@ 2>&1
 
 check: pure
 	@ echo Running tests.
-	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: $(ECHO_C)"; if ./pure -n -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi)
-	@ (export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: $(ECHO_C)"; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi; done)
+	@ (export LC_ALL=C; export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; echo $(ECHO_N) "prelude.pure: $(ECHO_C)"; if ./pure -n -v$(level) $(srcdir)/lib/prelude.pure 2>&1 | diff -q - $(srcdir)/test/prelude.log > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi)
+	@ (export LC_ALL=C; export @LD_LIB_PATH@=.; export PURELIB=$(srcdir)/lib; for x in $(notdir $(tests)); do echo $(ECHO_N) "$$x: $(ECHO_C)"; if ./pure -v$(level) < $(srcdir)/test/$$x 2>&1 | diff -q - $(srcdir)/test/"`basename $$x .pure`.log" > /dev/null; then echo "$(ECHO_T)passed"; else echo "$(ECHO_T)FAILED"; fi; done)
 
 # DO NOT DELETE
 
