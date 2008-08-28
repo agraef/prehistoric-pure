@@ -337,8 +337,6 @@ void interpreter::init_sys_vars(const string& version,
   defn("argv",		args);
   defn("version",	pure_cstring_dup(version.c_str()));
   defn("sysinfo",	pure_cstring_dup(host.c_str()));
-  // null pointer
-  const_defn("NULL",	pure_pointer(0));
 }
 
 // Errors and warnings.

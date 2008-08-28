@@ -373,6 +373,8 @@ x::bigint^y::double	= c_pow (double x) y;
 /* Pointer arithmetic. We do this using bigints, so that the code is portable
    to 64 bit systems. */
 
+const NULL = pointer 0; // the null pointer
+
 null x::pointer		= bigint x==0;
 
 x::pointer-y::pointer	= bigint x-bigint y;
