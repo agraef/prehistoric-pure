@@ -174,15 +174,11 @@ extern int feof(FILE* fp), int ferror(FILE* fp);
 /* Pure wrappers for fopen/popen and fclose/pclose which take care of closing
    a file object automagically when it's garbage-collected. */
 
-fopen name::string mode::string = check (c_fopen name mode) with
-  check fp::pointer = sentry c_fclose fp if not null fp;
-  check fp = fp otherwise;
-end;
+fopen name::string mode::string = if null fp then fp else sentry c_fclose fp
+when fp = c_fopen name mode end;
 
-popen name::string mode::string = check (c_popen name mode) with
-  check fp::pointer = sentry c_pclose fp if not null fp;
-  check fp = fp otherwise;
-end;
+popen name::string mode::string = if null fp then fp else sentry c_pclose fp
+when fp = c_popen name mode end;
 
 fclose fp::pointer = clear_sentry fp $$ c_fclose fp;
 pclose fp::pointer = clear_sentry fp $$ c_pclose fp;
