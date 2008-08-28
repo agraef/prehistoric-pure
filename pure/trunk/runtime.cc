@@ -27,6 +27,7 @@ char *alloca ();
 #include <stdarg.h>
 #include <unistd.h>
 #include <limits.h>
+#include <locale.h>
 #include <iostream>
 #include <sstream>
 
@@ -3035,6 +3036,8 @@ void pure_sys_vars(void)
   df(interp, "stdin",	pure_pointer(stdin));
   df(interp, "stdout",	pure_pointer(stdout));
   df(interp, "stderr",	pure_pointer(stderr));
+  // null pointer
+  cdf(interp, "NULL",	pure_pointer(0));
   // clock
   cdf(interp, "CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
   // fnmatch, glob
@@ -3139,5 +3142,27 @@ void pure_sys_vars(void)
 #endif
 #ifdef SIGTTOU
   cdf(interp, "SIGTTOU",	pure_int(SIGTTOU));
+#endif
+  // setlocale
+#ifdef LC_ALL
+  cdf(interp, "LC_ALL",		pure_int(LC_ALL));
+#endif
+#ifdef LC_COLLATE
+  cdf(interp, "LC_COLLATE",	pure_int(LC_COLLATE));
+#endif
+#ifdef LC_CTYPE
+  cdf(interp, "LC_CTYPE",	pure_int(LC_CTYPE));
+#endif
+#ifdef LC_MESSAGES
+  cdf(interp, "LC_MESSAGES",	pure_int(LC_MESSAGES));
+#endif
+#ifdef LC_MONETARY
+  cdf(interp, "LC_MONETARY",	pure_int(LC_MONETARY));
+#endif
+#ifdef LC_NUMERIC
+  cdf(interp, "LC_NUMERIC",	pure_int(LC_NUMERIC));
+#endif
+#ifdef LC_TIME
+  cdf(interp, "LC_TIME",	pure_int(LC_TIME));
 #endif
 }
