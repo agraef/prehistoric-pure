@@ -23,11 +23,6 @@
 
 extern void pure_throw(expr*) = throw; // IMPURE!
 
-/* Convenience function to ensure a condition p. Returns 1 (true) if p holds,
-   and throws the given exception e otherwise. */
-
-assert p e	= if p then 1 else throw e;
-
 /* Syntactic equality. */
 
 extern bool same(expr* x, expr* y);
