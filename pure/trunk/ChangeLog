@@ -1,5 +1,7 @@
 2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/primitives.pure: Add interface to sentries (see below).
+
 	* runtime.cc/h: Added sentries -- expression "guards" which are
 	applied to the target expression when it is garbage-collected.
 	Only sentries on applications and pointer objects are supported

@@ -23,6 +23,17 @@
 
 extern void pure_throw(expr*) = throw; // IMPURE!
 
+/* Sentries. These are expression "guards" which are applied to the target
+   expression when it is garbage-collected. The sentry function places a
+   sentry at an expression (and returns the modified expression), clear_sentry
+   removes, get_sentry returns it. NOTE: In the current implementation
+   sentries can only be placed at applications and pointer objects. The sentry
+   itself can be any type of object (but usually it's a function). */
+
+extern expr* pure_sentry(expr*,expr*) = sentry; // IMPURE!
+extern expr* pure_clear_sentry(expr*) = clear_sentry; // IMPURE!
+extern expr* pure_get_sentry(expr*) = get_sentry;
+
 /* Syntactic equality. */
 
 extern bool same(expr* x, expr* y);
