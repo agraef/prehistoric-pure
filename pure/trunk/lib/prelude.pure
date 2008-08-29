@@ -97,6 +97,12 @@ uncurry3 f (x,y,z)
 def f $ x	= f x;
 def (f . g) x	= f (g x);
 
+/* The following rule is always valid and optimizes the case of list
+   comprehensions with throwaway results (useful if a list comprehension is
+   evaluated solely for its side effects). */
+
+def void (catmap f x) = do f x;
+
 /* "Mapsto" operator. This constructor is declared here so that it can be used
    in other standard library modules to denote special kinds of pairs which
    map keys to values. Here we only define equality of such pairs. */
