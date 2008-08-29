@@ -51,6 +51,15 @@ and interfacing to C modules is easy, while the interpreter still provides a
 convenient, fully interactive environment for running Pure scripts and
 evaluating expressions.
 .PP
+Pure programs (a.k.a.
+.IR scripts )
+are just ordinary text files containing Pure code. A bunch of syntax
+highlighting files and programming modes for various popular text editors are
+included in the Pure sources. There's no difference between the Pure
+programming language and the input language accepted by the interpreter,
+except that the interpreter also understands some special commands when
+running in interactive mode; see the INTERACTIVE USAGE section for details.
+.PP
 If any source scripts are specified on the command line, they are loaded and
 executed, after which the interpreter exits. Otherwise the interpreter enters
 the interactive read-eval-print loop. You can also use the
@@ -64,9 +73,9 @@ command line.
 When the interpreter is in interactive mode and reads from a tty, commands are
 read using
 .BR readline (3)
-(providing completion for all commands listed in section INTERACTIVE USAGE
-below, as well as for symbols defined in the running program) and, when
-exiting the interpreter, the command history is stored in
+(providing completion for all commands listed under INTERACTIVE USAGE, as well
+as for symbols defined in the running program) and, when exiting the
+interpreter, the command history is stored in
 .BR ~/.pure_history ,
 from where it is restored the next time you run the interpreter.
 .PP
