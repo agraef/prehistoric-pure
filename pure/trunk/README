@@ -69,8 +69,8 @@ $ pure -i -q -x factorial.pure
 Pure scripts are just ordinary text files, which can be created with any text
 editor. The distribution contains some language definition files and
 programming modes to provide syntax highlighting in various popular text
-editors, such as Emacs, Kate and Vim. The Emacs mode also lets you run the
-Pure interpreter in an Emacs buffer, this is probably the most convenient
+editors, such as Emacs, Gedit, Kate and Vim. The Emacs mode also lets you run
+the Pure interpreter in an Emacs buffer, this is probably the most convenient
 interface to the interpreter if you're friends with Emacs. A syntax file for
 Andre Simon's highlight program is also included, this lets you pretty-print
 Pure source in various output formats such as HTML and LaTeX. You can find all
