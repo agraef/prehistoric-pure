@@ -1,3 +1,8 @@
+2008-08-29  Albert Graef  <Dr.Graef@t-online.de>
+
+	* etc/gpure.lang: Added syntax highlighting for gedit. Contributed
+	by Eddie Rucker.
+
 2008-08-28  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/system.pure: New definitions of fopen/popen and
