@@ -458,12 +458,14 @@ binds most weakly, followed by
 and
 .BR case ,
 followed by conditional expressions (\fBif\fP-\fBthen\fP-\fBelse\fP), followed
-by the ``simple'' expressions (i.e., all other kinds of expressions involving
-operators, function applications, constants, symbols and other primary
-expressions). Precedence and associativity of operator symbols are given by
-their declarations (in the prelude or the user's program), and function
-application binds stronger than all operators. Parentheses can be used to
-override default precedences and associativities as usual.
+by the
+.IR "simple expressions" ,
+i.e., all other kinds of expressions involving operators, function
+applications, constants, symbols and other primary expressions. Precedence and
+associativity of operator symbols are given by their declarations (in the
+prelude or the user's program), and function application binds stronger than
+all operators. Parentheses can be used to override default precedences and
+associativities as usual.
 .PP
 The common operator symbols like +, -, *, / etc. are all declared at the
 beginning of the prelude, see the
@@ -513,10 +515,13 @@ are used to define functions and macros), constant and variable definitions,
 and expressions to be evaluated:
 .TP
 .B Rules: \fIlhs\fR = \fIrhs\fR;
-The basic form can also be augmented with a condition \fBif\fP\ \fIguard\fP
-tacked on to the end of the rule (which restricts the applicability of the
-rule to the case that the guard evaluates to a nonzero integer), or the
-keyword
+These rules always combine a left-hand side
+.I pattern
+(which must be a simple expression) and a right-hand side (which can be any
+kind of Pure expression described above). In some cases, this basic form can
+also be augmented with a condition \fBif\fP\ \fIguard\fP tacked on to the end
+of the rule (which restricts the applicability of the rule to the case that
+the guard evaluates to a nonzero integer), or the keyword
 .B otherwise
 denoting an empty guard which is always true (this is nothing but syntactic
 sugar to point out the ``default'' case of a definition; the interpreter just
@@ -532,7 +537,7 @@ defines a
 function. No guards or multiple left-hand and right-hand sides are permitted
 here. Macro rules are used to preprocess expressions on the right-hand side of
 other definitions at compile time, and are typically employed to implement
-user-defined special forms and simple kinds of optimizations rules. See the
+user-defined special forms and simple kinds of optimization rules. See the
 MACROS section below for details and examples.
 .TP
 .B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
@@ -759,9 +764,10 @@ first matching rule (whose guard evaluates to a nonzero value, if applicable)
 is picked. (Again, the \fBwhen\fP construct is treated differently, because
 each rule is actually a separate definition.)
 .PP
-In any case, the left-hand side pattern must not contain repeated variables
-(i.e., rules must be ``left-linear''), except for the anonymous variable `_'
-which matches an arbitrary value without binding a variable symbol.
+In any case, the left-hand side pattern (which, as already mentioned, is
+always a simple expression) must not contain repeated variables (i.e., rules
+must be ``left-linear''), except for the anonymous variable `_' which matches
+an arbitrary value without binding a variable symbol.
 .PP
 A left-hand side variable (including the anonymous variable) may be followed
 by one of the special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP,
@@ -855,7 +861,13 @@ same value, e.g.:
 .SH MACROS
 Macros are a special type of functions to be executed as a kind of
 ``preprocessing stage'' at compile time. In Pure these are typically used to
-define custom special forms and to perform inlining of simple function calls.
+define custom special forms, and to perform inlining of function calls and
+other simple kinds of source-level optimizations. In the following, these are
+also referred to as
+.I convenience
+and
+.IR "optimization macros" ,
+respectively.
 .PP
 Whereas the macro facilities of most programming languages simply provide a
 kind of textual substitution mechanism, Pure macros operate on symbolic
@@ -881,6 +893,7 @@ will be expanded using the leftmost-innermost reduction strategy (i.e., macro
 calls in macro arguments are expanded before the macro gets applied to its
 parameters).
 .PP
+.B Optimization rules.
 Here is a simple example, showing a rule which expands saturated calls of the
 .B succ
 function (defined in the prelude) at compile time:
@@ -892,36 +905,19 @@ function (defined in the prelude) at compile time:
 foo x::int = x+1+1;
 .fi
 .PP
-Rules like these can be useful to help the compiler generate better
-code. E.g., try the following interactive command to have a look at the
-assembler code for the above `foo' function (\fIwarning:\fP this is not for
-the faint at heart):
-.sp
-.nf
-> \fBlist\fP -d foo
-.fi
+Rules like these can be useful to help the compiler generate better code. Note
+that a macro may have the same name as an ordinary Pure function, which is
+essential if you want to optimize calls to an existing function, as in the
+previous example.
 .PP
-You'll see that (ignoring the function header and the boilerplate code for
-boxing and unboxing Pure expressions generated by the compiler) it essentially
-boils down to just a single integer increment instruction:
-.sp
-.nf
-        ...
-        %intval = load i32* %1          ; <i32> [#uses=1]
-        add i32 %intval, 2              ; <i32>:2 [#uses=1]
-        ...
-.fi
-.PP
-Note that a macro may have the same name as an ordinary Pure function, which
-is useful for optimizing calls to an existing function, as shown in the
-example above. As a somewhat more practical example, since Pure 0.6 the
-following rule has been added to the prelude to eliminate saturated instances
-of the right-associative function application operator:
+A somewhat more practical example is the following rule from the prelude,
+which eliminates saturated instances of the right-associative function
+application operator:
 .sp
 .nf
 \fBdef\fP f $ x = f x;
 .fi
-.sp
+.PP
 Like in Haskell, this low-priority operator is handy to write cascading
 function calls. With the above macro rule, these will be ``inlined'' as
 ordinary function applications automagically. Example:
@@ -932,8 +928,71 @@ ordinary function applications automagically. Example:
 foo x = bar (bar (2*x));
 .fi
 .PP
-Macros can also be recursive, consist of multiple rules and make use of
-pattern-matching like ordinary function definitions. Example:
+Here is slightly more tricky rule from the prelude, which optimizes the case
+of ``throwaway'' list comprehensions. This is useful if a list comprehension
+is evaluated solely for its side effects.
+.sp
+.nf
+\fBdef\fP void (catmap f x) = do f x;
+.fi
+.PP
+Note that the `void' function simply throws away its argument and returns ()
+instead. The `do' function applies a function to every member of a list (like
+`map'), but throws away all intermediate results and just returns (), which is
+much more efficient if you don't need those results anyway. These are both
+defined in the prelude.
+.PP
+Let's see how this rule transforms a list comprehension if we ``voidify'' it:
+.sp
+.nf
+> \fBusing\fP system;
+> f = [printf "%g\n" (2^x+1); x=1..5; x mod 2];
+> g = void [printf "%g\n" (2^x+1); x=1..5; x mod 2];
+> \fBlist\fP f g
+f = catmap (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
+g = do (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
+.fi
+.PP
+Ok, so the `catmap' got replaced with a `do' which is just what we need to
+make this code go essentially as fast as a `for' loop in conventional
+programming languages (up to constant factors, of course). Here's how it looks
+like when we run the `g' function:
+.sp
+.nf
+> g;
+3
+9
+33
+()
+.fi
+.PP
+It's not all roses, however, since the above macro rule will only get rid of
+the outermost `catmap' if the list comprehension binds multiple variables:
+.sp
+.nf
+> u = void [puts $ str (x,y); x=1..2; y=1..3];
+> \fBlist\fP u
+u = do (\ex -> catmap (\ey -> [puts (str (x,y))]) (1..3)) (1..2);
+.fi
+.PP
+If you're bothered by this, you'll have to apply `void' recursively, creating
+a nested list comprehension which expands to a nested `do':
+.sp
+.nf
+> v = void [void [puts $ str (x,y); y=1..3]; x=1..2];
+> \fBlist\fP v
+v = do (\ex -> [do (\ey -> [puts (str (x,y))]) (1..3)]) (1..2);
+.fi
+.PP
+(It would be nice to have this handled automatically, but the left-hand side
+of a macro definition must be a simple expression, and thus it's not possible
+to write a macro which descends recursively into the lambda argument of
+`catmap'.)
+.PP
+.B Recursive macros.
+Macros can also be recursive, in which case they usually consist of multiple
+rules and make use of pattern-matching like ordinary function
+definitions. Example:
 .sp
 .nf
 > \fBdef\fP foo (bar x) = foo x+1;
@@ -943,17 +1002,29 @@ pattern-matching like ordinary function definitions. Example:
 baz = x+1+1+1;
 .fi
 .PP
-Note that, whereas the right-hand side of a constant definition really gets
-evaluated to a normal form at the time the definition is processed, the only
-things that get evaluated during macro substitution are other macros. The
-right-hand side may be an arbitrary Pure expression involving conditional
-expressions, lambdas, binding clauses, etc., but these are
+Note that, technically, Pure macros are just as powerful as (unconditional)
+term rewriting systems and thus they are Turing-complete. This implies that a
+badly written macro may well send the Pure compiler into an infinite
+recursion, which results in a stack overflow at compile time. See the CAVEATS
+AND NOTES section at the end of this manual for information on how to deal
+with these by setting the
+.B PURE_STACK
+environment variable.
+.PP
+.B Convenience macros.
+The following `timex' macro provides an example of how you can use macros to
+define your own special forms. This is made possible by the fact that the
+macro arguments will only be evaluated at runtime and can thus be passed to
+built-in special forms and other constructs which defer their evaluation. In
+fact, the right-hand side of a macro rule may be an arbitrary Pure expression
+involving conditional expressions, lambdas, binding clauses, etc. These are
 .I not
 evaluated during macro substitution, they just become part of the macro
-expansion (after substituting the macro parameters). For instance, here is a
-useful little macro `timex', which employs the system function `clock' to
-report the cpu time in seconds needed to evaluate a given expression, along
-with the computed result:
+expansion (after substituting the macro parameters).
+.PP
+Our definition of `timex' employs the system function `clock' to report the
+cpu time in seconds needed to evaluate a given expression, along with the
+computed result:
 .sp
 .nf
 > \fBusing\fP system;
@@ -963,19 +1034,16 @@ with the computed result:
 0.43,5000050000L
 .fi
 .PP
-The `timex' macro also provides a useful example of how you can use macros to
-define your own special forms, since the macro arguments will only be
-evaluated at runtime and can thus be passed to built-in special forms and
-other constructs which defer their evaluation. (Note that the above definition
-of `timex' wouldn't work as an ordinary function definition, since by virtue
-of Pure's basic eager evaluation strategy the x parameter would have been
-evaluated already before it is passed to `timex', making `timex' always return
-a zero time value. Try it.)
+(Note that the above definition of `timex' wouldn't work as an ordinary
+function definition, since by virtue of Pure's basic eager evaluation strategy
+the x parameter would have been evaluated already before it is passed to
+`timex', making `timex' always return a zero time value. Try it.)
 .PP
-Finally, note that Pure macros are lexically scoped, i.e., symbols on the
-right-hand-side of a macro definition can never refer to anything outside the
-macro definition, and macro parameter substitution also takes into account
-binding constructs, such as
+.B Macro hygiene.
+Pure macros are lexically scoped, i.e., symbols on the right-hand-side of a
+macro definition can never refer to anything outside the macro definition, and
+macro parameter substitution also takes into account binding constructs, such
+as
 .B with
 and
 .B when
@@ -985,13 +1053,11 @@ pleasant properties are also known as
 macros. They are not susceptible to so-called ``name capture,'' which makes
 macros in less sophisticated languages bug-ridden and hard to use.
 .PP
-Despite their simplicity and ease of use, Pure's macros are an incredibly
-powerful feature. But with power comes responsibility. If over-used, or used
-in inappropriate ways, macros can make your code incromprehensible and
-bloated, and a buggy macro may well kick the Pure compiler into an endless
-loop (usually resulting in a stack overflow at compile time). In other words,
-macros are a good way to shoot yourself in the foot. So use them thoughtfully
-and with care.
+Pure macros also have their limitations. Specifically, the left-hand side of a
+macro rule must be a simple expression, just like in ordinary function
+definitions. This restricts the kinds of expressions which can be rewritten by
+a macro. But Pure macros are certainly powerful enough for most common
+preprocessing purposes, while still being robust and easy to use.
 .SH DECLARATIONS
 Pure is a very terse language by design; you don't declare much stuff, you
 just define it and be done with it. Usually, all necessary information about
@@ -1898,6 +1964,47 @@ symbols). On the other hand, generic rules operating on arbitrary function
 applications are not all that common, so having to ``escape'' a variable using
 the anonymous ``as'' pattern trick is a small price to pay for that
 convenience.
+.PP
+Sometimes you may also run into the complementary problem, i.e., to match a
+function argument against a given function. Consider this code fragment:
+.sp
+.nf
+foo x = x+1;
+foop f = \fBcase\fP f \fBof\fP foo = 1; _ = 0 \fBend\fP;
+.fi
+.PP
+You might expect `foop' to return true for `foo', and false on all other
+values. Better think again, because in reality `foop' will
+.I always
+return true! In fact, the Pure compiler will warn you about the second rule
+of the
+.B case
+expression not being used at all:
+.sp
+.nf
+> foop 99;
+warning: rule never reduced: _ = 0;
+1
+.fi
+.PP
+This happens because a non-nullary symbol on the left-hand side of a rule,
+which is not the head symbol of a function application, is always considered
+to be a variable, even if that symbol is defined as a global function
+elsewhere. So `foo' isn't a literal name in the above
+.B case
+expression, it's a variable! (As a matter of fact, this is rather useful,
+since otherwise a rule like `f g = g+1' would suddenly change meaning if you
+happen to add a definition like `g x = x-1' somewhere else in your program,
+which certainly isn't desirable.)
+.PP
+Fortunately, the syntactic equality operator `===' defined in the prelude
+comes to the rescue here. Just define `foop' as follows:
+.sp
+.nf
+> foop f = f===foo;
+> foop foo, foop 99;
+1,0
+.fi
 .PP
 .B With or when?
 A common source of confusion for Haskellers is that Pure provides two
