@@ -3102,6 +3102,14 @@ void pure_sys_vars(void)
   df(interp, "stdin",	pure_pointer(stdin));
   df(interp, "stdout",	pure_pointer(stdout));
   df(interp, "stderr",	pure_pointer(stderr));
+  // memory sizes
+  cdf(interp, "SIZEOF_BYTE",	pure_int(1));
+  cdf(interp, "SIZEOF_SHORT",	pure_int(sizeof(short)));
+  cdf(interp, "SIZEOF_INT",	pure_int(sizeof(int)));
+  cdf(interp, "SIZEOF_LONG",	pure_int(sizeof(long)));
+  cdf(interp, "SIZEOF_FLOAT",	pure_int(sizeof(float)));
+  cdf(interp, "SIZEOF_DOUBLE",	pure_int(sizeof(double)));
+  cdf(interp, "SIZEOF_POINTER",	pure_int(sizeof(void*)));
   // clock
   cdf(interp, "CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
   // fnmatch, glob
