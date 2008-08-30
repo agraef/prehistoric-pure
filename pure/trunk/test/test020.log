@@ -51,7 +51,7 @@ show x/*0:1*/::double = sprintf double_format x/*0:1*/;
 show (x/*0:101*/+:y/*0:11*/) = show x/*0:101*/+"+:"+show y/*0:11*/;
 show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
 show x/*0:1*/ = str x/*0:1*/;
-tests = puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [test (f/*1:*/,x/*0:*/)] {
+tests = puts "*** UNARY ***"$$do (\f/*0:*/ -> catmap (\x/*0:*/ -> [test (f/*1:*/,x/*0:*/)] {
   rule #0: x = [test (f,x)]
   state 0: #0
 	<var> state 1
@@ -61,7 +61,7 @@ tests = puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [tes
   state 0: #0
 	<var> state 1
   state 1: #0
-}) f)$$puts "*** BINARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [test (f/*1:*/,x/*0:*/)] {
+}) f$$puts "*** BINARY ***"$$do (\f/*0:*/ -> catmap (\x/*0:*/ -> [test (f/*1:*/,x/*0:*/)] {
   rule #0: x = [test (f,x)]
   state 0: #0
 	<var> state 1
@@ -71,7 +71,7 @@ tests = puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [tes
   state 0: #0
 	<var> state 1
   state 1: #0
-}) f2);
+}) f2;
 {
   rule #0: check _ z = z if numberp z
   rule #1: check (f,x,y) (g@_ u v) = __failed__ if f===g&&x===u&&y===v
@@ -285,7 +285,7 @@ tests = puts "*** UNARY ***"$$void (catmap (\f/*0:*/ -> catmap (\x/*0:*/ -> [tes
   state 15: #4 #5
 }
 {
-  rule #0: tests = puts "*** UNARY ***"$$void (catmap (\f -> catmap (\x -> [test (f,x)]) x) f)$$puts "*** BINARY ***"$$void (catmap (\f -> catmap (\x -> [test (f,x)]) x2) f2)
+  rule #0: tests = puts "*** UNARY ***"$$do (\f -> catmap (\x -> [test (f,x)]) x) f$$puts "*** BINARY ***"$$do (\f -> catmap (\x -> [test (f,x)]) x2) f2
   state 0: #0
 }
 *** UNARY ***
