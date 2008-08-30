@@ -955,8 +955,8 @@ Let's see how this rule transforms a list comprehension if we ``voidify'' it:
 .sp
 .nf
 > \fBusing\fP system;
-> f = [printf "%g\n" (2^x+1); x=1..5; x mod 2];
-> g = void [printf "%g\n" (2^x+1); x=1..5; x mod 2];
+> f = [printf "%g\en" (2^x+1); x=1..5; x mod 2];
+> g = void [printf "%g\en" (2^x+1); x=1..5; x mod 2];
 > \fBlist\fP f g
 f = catmap (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
 g = do (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
