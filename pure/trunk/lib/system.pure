@@ -252,14 +252,14 @@ end with
       "p", x::string | "p", x::pointer = pure_fprintf_pointer fp s x;
       _ = throw (printf_value_error s arg);
     end;
-    count = if res>=0 then count+res else throw printf_error res;
+    count = if res>=0 then count+res else throw (printf_error res);
   end;
   do_fprintf fp (count,args) (printf_format_str s) = count, args
   when
     res = pure_fprintf fp s;
-    count = if res>=0 then count+res else throw printf_error res;
+    count = if res>=0 then count+res else throw (printf_error res);
   end;
-  do_fprintf fp (count,_) _ = throw printf_arg_error;
+  do_fprintf fp (count,_) _ = throw (this_cant_happen count);
 end;
 
 printf_split_format format = regexg analyze
@@ -319,16 +319,16 @@ end with
       _ = free buf $$ throw (printf_value_error s arg);
     end;
     u = if res>=0 then u + cstring buf
-        else free buf $$ throw printf_error res;
+        else free buf $$ throw (printf_error res);
   end;
   do_sprintf (u,args) (printf_format_str s) = u, args
   when
     size = #s+1000; buf = check_buf (malloc size);
     res = pure_snprintf buf size s;
     u = if res>=0 then u + cstring buf
-        else free buf $$ throw printf_error res;
+        else free buf $$ throw (printf_error res);
   end;
-  do_sprintf (u,_) _ = throw printf_arg_error;
+  do_sprintf (u,_) _ = throw (this_cant_happen u);
   check_buf buf = throw malloc_error if null buf;
                 = buf otherwise;
 end;
