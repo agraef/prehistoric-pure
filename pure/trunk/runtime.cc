@@ -2571,6 +2571,13 @@ void *pointer_get_pointer(void *ptr)
 }
 
 extern "C"
+pure_expr *pointer_get_expr(void *ptr)
+{
+  pure_expr **p = (pure_expr**)ptr;
+  return *p;
+}
+
+extern "C"
 void pointer_put_byte(void *ptr, int32_t x)
 {
   uint8_t *p = (uint8_t*)ptr;
@@ -2602,6 +2609,13 @@ extern "C"
 void pointer_put_pointer(void *ptr, void *x)
 {
   void **p = (void**)ptr;
+  *p = x;
+}
+
+extern "C"
+void pointer_put_expr(void *ptr, pure_expr *x)
+{
+  pure_expr **p = (pure_expr**)ptr;
   *p = x;
 }
 

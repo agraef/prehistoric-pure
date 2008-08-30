@@ -553,12 +553,14 @@ int32_t pointer_get_int(void *ptr);
 double pointer_get_double(void *ptr);
 char *pointer_get_string(void *ptr);
 void *pointer_get_pointer(void *ptr);
+pure_expr *pointer_get_expr(void *ptr);
 
 void pointer_put_byte(void *ptr, int32_t x);
 void pointer_put_int(void *ptr, int32_t x);
 void pointer_put_double(void *ptr, double x);
 void pointer_put_string(void *ptr, const char *x);
 void pointer_put_pointer(void *ptr, void *x);
+void pointer_put_expr(void *ptr, pure_expr *x);
 
 /* Initialize a bunch of variables with useful system constants. */
 
