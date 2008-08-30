@@ -34,6 +34,7 @@ nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
    In particular, the 'bad_list_value' exception is raised by functions which
    need to work from the end of a list towards its front. */
 
+nullary    malloc_error;	// memory allocation error
 nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
 //         bad_list_value xs;	// not a proper list value (reverse, etc.)
 				// xs denotes the offending tail of the list

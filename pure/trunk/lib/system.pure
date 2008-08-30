@@ -329,7 +329,7 @@ end with
         else free buf $$ throw printf_error res;
   end;
   do_sprintf (u,_) _ = throw printf_arg_error;
-  check_buf buf = throw printf_malloc_error if null buf;
+  check_buf buf = throw malloc_error if null buf;
                 = buf otherwise;
 end;
 
@@ -400,7 +400,7 @@ end with
     ret = if res>=0 then ret else throw (scanf_error ret);
   end;
   do_fscanf _ (_,ret) _ = throw (this_cant_happen ret);
-  check_buf buf = throw scanf_malloc_error if null buf;
+  check_buf buf = throw malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
@@ -495,7 +495,7 @@ end with
     u = drop res u;
   end;
   do_sscanf (_,_,ret) _ = throw (this_cant_happen ret);
-  check_buf buf = throw scanf_malloc_error if null buf;
+  check_buf buf = throw malloc_error if null buf;
                 = buf otherwise;
   // Compute a reasonable size for a string buffer; if necessary, modify the
   // field width of the format accordingly.
