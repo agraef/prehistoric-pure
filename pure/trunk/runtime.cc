@@ -3109,6 +3109,8 @@ void pure_sys_vars(void)
   cdf(interp, "SIZEOF_LONG",	pure_int(sizeof(long)));
   cdf(interp, "SIZEOF_FLOAT",	pure_int(sizeof(float)));
   cdf(interp, "SIZEOF_DOUBLE",	pure_int(sizeof(double)));
+  cdf(interp, "SIZEOF_COMPLEX_FLOAT",	pure_int(sizeof(_Complex float)));
+  cdf(interp, "SIZEOF_COMPLEX_DOUBLE",	pure_int(sizeof(_Complex double)));
   cdf(interp, "SIZEOF_POINTER",	pure_int(sizeof(void*)));
   // clock
   cdf(interp, "CLOCKS_PER_SEC",	pure_int(CLOCKS_PER_SEC));
