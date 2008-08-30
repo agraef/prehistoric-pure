@@ -406,7 +406,8 @@ main(int argc, char *argv[])
       cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
 	   << COPYRIGHT << endl << LICENSE;
       if (have_prelude)
-	cout << "Loaded prelude from " << prelude << ".\n\n";
+	cout << "Loaded prelude from " << prelude << ".\n";
+      cout << endl;
     }
     interp.compile();
     interp.ttymode = true;
