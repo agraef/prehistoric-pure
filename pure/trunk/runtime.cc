@@ -133,16 +133,23 @@ static inline pure_expr *get_sentry(pure_expr *x)
     return 0;
 }
 
-static inline void free_sentry(pure_expr *x)
+static inline void call_sentry(pure_expr *x)
 {
   if (x->tag == EXPR::APP || x->tag == EXPR::PTR) {
     pure_expr *s = x->data.x[2];
     if (s) {
       ++x->refc;
       pure_freenew(pure_apply2(s, x));
-      pure_free(s);
       --x->refc;
     }
+  }
+}
+
+static inline void free_sentry(pure_expr *x)
+{
+  if (x->tag == EXPR::APP || x->tag == EXPR::PTR) {
+    pure_expr *s = x->data.x[2];
+    if (s) pure_free(s);
   }
 }
 
@@ -242,7 +249,7 @@ void pure_free_internal(pure_expr *x)
   pure_expr *xp = 0, *y;
  loop:
   if (--x->refc == 0) {
-    free_sentry(x);
+    call_sentry(x);
     switch (x->tag) {
     case EXPR::APP:
       y = x->data.x[0];
@@ -269,10 +276,16 @@ void pure_free_internal(pure_expr *x)
     }
   }
   while (xp && x == xp->data.x[1]) {
-    if (x->refc == 0) free_expr(x);
+    if (x->refc == 0) {
+      free_sentry(x);
+      free_expr(x);
+    }
     x = xp; xp = x->xp;
   }
-  if (x->refc == 0) free_expr(x);
+  if (x->refc == 0) {
+    free_sentry(x);
+    free_expr(x);
+  }
   if (xp) {
     x = xp->data.x[1];
     goto loop;
@@ -288,7 +301,7 @@ static
 void pure_free_internal(pure_expr *x)
 {
   if (--x->refc == 0) {
-    free_sentry(x);
+    call_sentry(x);
     switch (x->tag) {
     case EXPR::APP:
       pure_free_internal(x->data.x[0]);
@@ -310,6 +323,7 @@ void pure_free_internal(pure_expr *x)
       if (x->data.clos) pure_free_clos(x);
       break;
     }
+    free_sentry(x);
     free_expr(x);
   }
 }
