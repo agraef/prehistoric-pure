@@ -424,3 +424,38 @@ put_pointer x::pointer y::pointer = pointer_put_pointer x y;
 extern expr* pure_sentry(expr*,expr*) = sentry; // IMPURE!
 extern expr* pure_clear_sentry(expr*) = clear_sentry; // IMPURE!
 extern expr* pure_get_sentry(expr*) = get_sentry;
+
+/* Expression references. If you need these, then you're doomed. ;-) However,
+   they can be useful as a last resort when you need to keep track of some
+   local state or interface to the messy imperative world. Pure's references
+   are implemented as Pure expression pointers so that you can readily pass
+   them as pointers to a C function which expects a pure_expr** parameter.
+   This may even be useful at times.
+
+   'ref x' creates a reference pointing to x initially, 'put r x' sets a new
+   value (and returns it), 'get r' retrieves the current value, and 'unref r'
+   purges the referenced object and turns the reference into a dangling
+   pointer. (The latter is used as a sentry on reference objects and shouldn't
+   normally be called directly.) The refp predicate can be used to check for
+   reference values. Note that manually removing the unref sentry turns the
+   reference into just a normal pointer object and renders it unusable as a
+   reference. Doing this will also leak memory, so don't! */
+
+private pure_new pure_free pure_expr_pointer;
+private pointer_get_expr pointer_put_expr;
+extern expr* pure_new(expr*), expr* pure_expr_pointer();
+extern void pure_free(expr*);
+extern expr* pointer_get_expr(void*), void pointer_put_expr(void*, expr*);
+
+ref x = pointer_put_expr r (pure_new x) $$
+	sentry unref r when r::pointer = pure_expr_pointer end;
+
+unref r::pointer = pure_free (pointer_get_expr r) $$
+		   clear_sentry r if refp r;
+
+put r::pointer x = pure_free (pointer_get_expr r) $$
+		   pointer_put_expr r (pure_new x) $$ x if refp r;
+
+get r::pointer = pointer_get_expr r if refp r;
+
+refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
