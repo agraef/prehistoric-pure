@@ -447,6 +447,17 @@ pure_expr *pure_pointer(void *p)
 }
 
 extern "C"
+pure_expr *pure_expr_pointer(void)
+{
+  pure_expr **p = (pure_expr**)malloc(sizeof(pure_expr*));
+  if (p) {
+    *p = 0;
+    return pure_pointer(p);
+  } else
+    return 0;
+}
+
+extern "C"
 pure_expr *pure_string_dup(const char *s)
 {
   if (!s) return pure_pointer(0);

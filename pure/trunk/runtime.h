@@ -97,6 +97,12 @@ pure_expr *pure_mpz(const mpz_t z);
 pure_expr *pure_double(double d);
 pure_expr *pure_pointer(void *p);
 
+/* Expression pointers. The following routine returns a Pure pointer object
+   suitably allocated to hold a Pure expression (pure_expr*). The pointer is
+   initialized to hold a null expression. */
+
+pure_expr *pure_expr_pointer(void);
+
 /* String constructors. There are four variations of these, depending on
    whether the original string is already in utf-8 (_string routines) or in
    the system encoding (_cstring), and whether the string should be copied
@@ -546,7 +552,9 @@ bool funp(const pure_expr *x);
 bool lambdap(const pure_expr *x);
 bool varp(const pure_expr *x);
 
-/* Direct memory accesses. */
+/* Direct memory accesses. Use these with care. In particular, note that the
+   pointer_put_expr() routine doesn't do any reference counting by itself, so
+   you'll have to use the memory management routines above to do that. */
 
 int32_t pointer_get_byte(void *ptr);
 int32_t pointer_get_int(void *ptr);
