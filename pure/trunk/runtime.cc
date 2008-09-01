@@ -2673,7 +2673,13 @@ bool funp(const pure_expr *x)
 extern "C"
 bool lambdap(const pure_expr *x)
 {
-  return (x->tag == 0 && x->data.clos);
+  return (x->tag == 0 && x->data.clos && x->data.clos->n > 0);
+}
+
+extern "C"
+bool thunkp(const pure_expr *x)
+{
+  return (x->tag == 0 && x->data.clos && x->data.clos->n == 0);
 }
 
 extern "C"

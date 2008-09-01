@@ -552,10 +552,11 @@ uint32_t hash(const pure_expr *x);
 bool same(pure_expr *x, pure_expr *y);
 
 /* Check whether an object is a named function (closure), an anonymous
-   function (lambda), or a global variable, respectively. */
+   function (lambda or thunk), or a global variable, respectively. */
 
 bool funp(const pure_expr *x);
 bool lambdap(const pure_expr *x);
+bool thunkp(const pure_expr *x);
 bool varp(const pure_expr *x);
 
 /* Direct memory accesses. Use these with care. In particular, note that the
