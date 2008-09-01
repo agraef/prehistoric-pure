@@ -5,9 +5,6 @@ TODO
 While the interpreter is already useful as it is, there's still a lot of
 things that remain to be done. Most important items, in no particular order:
 
-- Resolve any remaining issues on 64 bit systems. See the INSTALL file for
-  details.
-
 - Symbolic (Pure-level) debugger, profiler. The necessary hooks are mostly
   there, we just need to add a few runtime calls in the generated code.
 
@@ -41,9 +38,4 @@ things that remain to be done. Most important items, in no particular order:
 - More aggressive optimizations (common subexpression elimination for "pure"
   a.k.a. side-effect-free function calls, etc.).
 
-- Harvest Q for some of its other nice features: Streams and other "special
-  forms" performing automatic "thunking" and evaluation. Sentinels. (These
-  just need a hook in the expression data structure and a runtime support
-  function to install them.) Wadler views. (This might be more involved, as
-  it's not clear yet how these can be done without explicit Q'ish algebraic
-  type declarations).
+- Support for Wadler views (or similar).
