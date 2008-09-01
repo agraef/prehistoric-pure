@@ -1392,10 +1392,6 @@ pure_expr *pure_force(pure_expr *x)
     size_t m = x->data.clos->m;
     uint32_t env = 0;
     assert(x->refc > 0);
-    // first push the function object on the shadow stack so that it's
-    // garbage-collected in case of an exception
-    resize_sstk(interp.sstk, interp.sstk_cap, interp.sstk_sz, m+2);
-    interp.sstk[interp.sstk_sz++] = x;
     // construct a stack frame for the function call
     if (m>0) {
       size_t sz = interp.sstk_sz;
@@ -1435,8 +1431,6 @@ pure_expr *pure_force(pure_expr *x)
 #if DEBUG>1
 	cerr << "pure_force: result " << x << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
 #endif
-    // pop the function object from the shadow stack
-    --interp.sstk_sz;
     // check whether the result is again a thunk, then we have to evaluate
     // that recursively
     if (ret->tag == 0 && ret->data.clos && ret->data.clos->n == 0)
