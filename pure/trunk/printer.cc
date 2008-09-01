@@ -758,8 +758,6 @@ ostream& operator << (ostream& os, const pure_expr *x)
       return os << pure_paren(95, u) << " " << pure_paren(100, v);
   }
   default: {
-    if (x->data.clos && x->data.clos->xp)
-      return os << x->data.clos->xp;
     if (x->tag == 0) {
       const char *s = (x->data.clos && x->data.clos->n==0)?"thunk":"closure";
       return os << "<<" << s << " " << (void*)x << ">>";

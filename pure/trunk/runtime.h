@@ -26,7 +26,6 @@ typedef struct {
   void *ep;			// pointer to compile time environment (Env*)
   uint32_t n, m;		// number of arguments and environment size
   struct _pure_expr **env;	// captured environment (if m>0, 0 otherwise)
-  struct _pure_expr *xp;	// pointer to memoized result
   bool local;			// local function?
   bool thunked;			// thunked closure? (kept unevaluated)
 } pure_closure;
