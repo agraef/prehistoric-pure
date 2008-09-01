@@ -95,6 +95,7 @@ public:
   symbol& failed_cond_sym() { return sym("failed_cond"); }
   symbol& signal_sym() { return sym("signal"); }
   symbol& segfault_sym() { return sym("stack_fault"); }
+  symbol& amp_sym();
 };
 
 #endif // ! SYMTABLE_HH

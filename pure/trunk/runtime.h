@@ -26,6 +26,7 @@ typedef struct {
   void *ep;			// pointer to compile time environment (Env*)
   uint32_t n, m;		// number of arguments and environment size
   struct _pure_expr **env;	// captured environment (if m>0, 0 otherwise)
+  struct _pure_expr *xp;	// pointer to memoized result
   bool local;			// local function?
   bool thunked;			// thunked closure? (kept unevaluated)
 } pure_closure;
@@ -352,6 +353,12 @@ int32_t pure_get_int(pure_expr *x);
 
 pure_expr *pure_call(pure_expr *x);
 pure_expr *pure_apply(pure_expr *x, pure_expr *y);
+
+/* This is like pure_call above, but only executes anonymous parameterless
+   closures (thunks), and returns the result in that case (which is then
+   memoized). */
+
+pure_expr *pure_force(pure_expr *x);
 
 /* Exception handling stuff. */
 

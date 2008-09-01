@@ -1196,6 +1196,7 @@ pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
   x->data.clos->m = m;
   x->data.clos->fp = f;
   x->data.clos->ep = e;
+  x->data.clos->xp = 0;
   if (e) ((Env*)e)->refc++;
   if (m == 0)
     x->data.clos->env = 0;
@@ -1322,12 +1323,12 @@ pure_expr *pure_call(pure_expr *x)
 {
   char test;
   assert(x);
-  if (x->tag >= 0 && x->data.clos && x->data.clos->n == 0) {
+  if (x->tag > 0 && x->data.clos && x->data.clos->n == 0) {
     void *fp = x->data.clos->fp;
 #if DEBUG>1
     cerr << "pure_call: calling " << x << " -> " << fp << endl;
 #endif
-    assert(x->tag > 0 && x->refc > 0 && !x->data.clos->local);
+    assert(x->refc > 0 && !x->data.clos->local);
     // parameterless call
     checkall(test);
     return ((pure_expr*(*)())fp)();
@@ -1338,6 +1339,37 @@ pure_expr *pure_call(pure_expr *x)
 	   << " (" << x->data.clos->n << " args)" << endl;
     else
       cerr << "pure_call: returning " << x << endl;
+#endif
+    return x;
+  }
+}
+
+extern "C"
+pure_expr *pure_force(pure_expr *x)
+{
+  char test;
+  assert(x);
+  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) {
+    // parameterless anonymous closure (thunk)
+    if (x->data.clos->xp) return x->data.clos->xp; // memoized value
+    void *fp = x->data.clos->fp;
+#if DEBUG>1
+    cerr << "pure_force: calling " << x << " -> " << fp << endl;
+#endif
+    assert(x->refc > 0);
+    // parameterless call
+    checkall(test);
+    pure_expr *ret = ((pure_expr*(*)())fp)();
+    // memoize the result
+    x->data.clos->xp = pure_new_internal(ret);
+    return ret;
+  } else {
+#if DEBUG>2
+    if (x->tag >= 0 && x->data.clos)
+      cerr << "pure_force: returning " << x << " -> " << x->data.clos->fp
+	   << " (" << x->data.clos->n << " args)" << endl;
+    else
+      cerr << "pure_force: returning " << x << endl;
 #endif
     return x;
   }
