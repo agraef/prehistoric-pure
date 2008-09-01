@@ -45,7 +45,8 @@ pointerp x	= case x of _::pointer = 1; _ = 0 end;
 /* Predicates to check for function objects, global (unbound) variables,
    function applications, proper lists, list nodes and tuples. */
 
-extern bool funp(expr*), bool lambdap(expr*), bool varp(expr*);
+extern bool funp(expr*), bool lambdap(expr*), bool thunkp(expr*);
+extern bool varp(expr*);
 
 applp (_ _)	= 1;
 applp _		= 0 otherwise;
