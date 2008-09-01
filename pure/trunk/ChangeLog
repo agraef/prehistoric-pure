@@ -1,3 +1,12 @@
+2008-09-01  Albert Graef  <Dr.Graef@t-online.de>
+
+	* interpreter.cc, runtime.cc, symtable.cc/h, lib/prelude.pure:
+	Added thunks (anonymous parameterless closures), represented using
+	the new postfix operator '&' (see prelude.pure). As usual, these
+	use "call by need", i.e., they will be evaluated (and the results
+	memoized) automatically when the value of a thunk is needed during
+	pattern-matching or when calling a C function.
+
 2008-08-31  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/primitives.pure: Added references (expression pointers).
