@@ -235,6 +235,27 @@ static void pure_free_clos(pure_expr *x)
   delete x->data.clos;
 }
 
+static pure_closure *pure_copy_clos(pure_closure *clos)
+{
+  assert(clos);
+  pure_closure *ret = new pure_closure;
+  ret->local = clos->local;
+  ret->thunked = clos->thunked;
+  ret->n = clos->n;
+  ret->m = clos->m;
+  ret->fp = clos->fp;
+  ret->ep = clos->ep;
+  if (clos->ep) ((Env*)clos->ep)->refc++;
+  if (clos->m == 0)
+    ret->env = 0;
+  else {
+    ret->env = new pure_expr*[clos->m];
+    for (size_t i = 0; i < clos->m; i++)
+      ret->env[i] = pure_new_internal(clos->env[i]);
+  }
+  return ret;
+}
+
 #if 1
 
 /* This is implemented (mostly) non-recursively to prevent stack overflows,
@@ -1196,7 +1217,6 @@ pure_expr *pure_clos(bool local, bool thunked, int32_t tag, uint32_t n,
   x->data.clos->m = m;
   x->data.clos->fp = f;
   x->data.clos->ep = e;
-  x->data.clos->xp = 0;
   if (e) ((Env*)e)->refc++;
   if (m == 0)
     x->data.clos->env = 0;
@@ -1365,7 +1385,6 @@ pure_expr *pure_force(pure_expr *x)
   assert(x);
   if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) {
     // parameterless anonymous closure (thunk)
-    if (x->data.clos->xp) return x->data.clos->xp; // memoized value
     pure_expr *ret;
     interpreter& interp = *interpreter::g_interp;
     void *fp = x->data.clos->fp;
@@ -1417,9 +1436,32 @@ pure_expr *pure_force(pure_expr *x)
 #endif
     // pop the function object from the shadow stack
     --interp.sstk_sz;
+    // check whether the result is again a thunk, then we have to evaluate
+    // that recursively
+    if (ret->tag == 0 && ret->data.clos && ret->data.clos->n == 0)
+      ret = pure_force(pure_new_internal(ret));
     // memoize the result
-    x->data.clos->xp = pure_new_internal(ret);
-    return ret;
+    assert(x!=ret);
+    pure_free_clos(x);
+    x->tag = ret->tag;
+    x->data = ret->data;
+    switch (x->tag) {
+    case EXPR::APP:
+      pure_new_internal(x->data.x[0]);
+      pure_new_internal(x->data.x[1]);
+    case EXPR::PTR:
+      if (x->data.x[2]) pure_new_internal(x->data.x[2]);
+      break;
+    case EXPR::STR:
+      x->data.s = strdup(x->data.s);
+      break;
+    default:
+      if (x->tag >= 0 && x->data.clos)
+	x->data.clos = pure_copy_clos(x->data.clos);
+      break;
+    }
+    pure_freenew(ret);
+    return x;
   } else {
 #if DEBUG>2
     if (x->tag >= 0 && x->data.clos)
