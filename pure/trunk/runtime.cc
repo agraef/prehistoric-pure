@@ -1344,6 +1344,20 @@ pure_expr *pure_call(pure_expr *x)
   }
 }
 
+static inline void resize_sstk(pure_expr**& sstk, size_t& cap,
+			       size_t sz, size_t n)
+{
+  size_t newsz = sz+n;
+  if (newsz > cap) {
+    while (newsz > cap) {
+      assert((cap << 1) > cap);
+      cap = cap << 1;
+    }
+    sstk = (pure_expr**)realloc(sstk, cap*sizeof(pure_expr*));
+    assert(sstk);
+  }
+}
+
 extern "C"
 pure_expr *pure_force(pure_expr *x)
 {
@@ -1352,14 +1366,57 @@ pure_expr *pure_force(pure_expr *x)
   if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) {
     // parameterless anonymous closure (thunk)
     if (x->data.clos->xp) return x->data.clos->xp; // memoized value
+    pure_expr *ret;
+    interpreter& interp = *interpreter::g_interp;
     void *fp = x->data.clos->fp;
+    size_t m = x->data.clos->m;
+    uint32_t env = 0;
+    assert(x->refc > 0);
+    // first push the function object on the shadow stack so that it's
+    // garbage-collected in case of an exception
+    resize_sstk(interp.sstk, interp.sstk_cap, interp.sstk_sz, m+2);
+    interp.sstk[interp.sstk_sz++] = x;
+    // construct a stack frame for the function call
+    if (m>0) {
+      size_t sz = interp.sstk_sz;
+      resize_sstk(interp.sstk, interp.sstk_cap, sz, m+1);
+      pure_expr **sstk = interp.sstk;
+      env = sz+1;
+      sstk[sz++] = 0;
+      for (size_t j = 0; j < m; j++) {
+	sstk[sz++] = x->data.clos->env[j];
+	assert(x->data.clos->env[j]->refc > 0);
+	x->data.clos->env[j]->refc++;
+      }
+#if SSTK_DEBUG
+      cerr << "++ stack: (sz = " << sz << ")\n";
+      for (size_t i = 0; i < sz; i++) {
+	pure_expr *x = sstk[i];
+	if (i == interp.sstk_sz) cerr << "** pushed:\n";
+	if (x)
+	  cerr << i << ": " << (void*)x << ": " << x << endl;
+	else
+	  cerr << i << ": " << "** frame **\n";
+      }
+#endif
+      interp.sstk_sz = sz;
+    }
 #if DEBUG>1
     cerr << "pure_force: calling " << x << " -> " << fp << endl;
+    for (size_t j = 0; j < m; j++)
+      cerr << "env#" << j << " = " << x->data.clos->env[j] << " -> " << (void*)x->data.clos->env[j] << ", refc = " << x->data.clos->env[j]->refc << endl;
 #endif
-    assert(x->refc > 0);
     // parameterless call
     checkall(test);
-    pure_expr *ret = ((pure_expr*(*)())fp)();
+    if (m>0)
+      ret = ((pure_expr*(*)(uint32_t))fp)(env);
+    else
+      ret = ((pure_expr*(*)())fp)();
+#if DEBUG>1
+	cerr << "pure_force: result " << x << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
+#endif
+    // pop the function object from the shadow stack
+    --interp.sstk_sz;
     // memoize the result
     x->data.clos->xp = pure_new_internal(ret);
     return ret;
@@ -1372,20 +1429,6 @@ pure_expr *pure_force(pure_expr *x)
       cerr << "pure_force: returning " << x << endl;
 #endif
     return x;
-  }
-}
-
-static inline void resize_sstk(pure_expr**& sstk, size_t& cap,
-			       size_t sz, size_t n)
-{
-  size_t newsz = sz+n;
-  if (newsz > cap) {
-    while (newsz > cap) {
-      assert((cap << 1) > cap);
-      cap = cap << 1;
-    }
-    sstk = (pure_expr**)realloc(sstk, cap*sizeof(pure_expr*));
-    assert(sstk);
   }
 }
 
