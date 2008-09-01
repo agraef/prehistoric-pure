@@ -1385,6 +1385,7 @@ pure_expr *pure_force(pure_expr *x)
   assert(x);
   if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) {
     // parameterless anonymous closure (thunk)
+    assert(x->data.clos->thunked);
     pure_expr *ret;
     interpreter& interp = *interpreter::g_interp;
     void *fp = x->data.clos->fp;
