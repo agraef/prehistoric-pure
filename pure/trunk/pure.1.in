@@ -291,9 +291,9 @@ Expressions are generally evaluated from left to right, innermost expressions
 first, i.e., using
 .I "call by value"
 semantics. Pure also has a few built-in special forms (most notably,
-conditional expressions, the short-circuit logical connectives && and || and
-the sequencing operator $$) which take some of their arguments unevaluated,
-using
+conditional expressions, the short-circuit logical connectives && and ||, the
+sequencing operator $$, and the lazy evaluation operator &) which take some or
+all of their arguments unevaluated, using
 .IR "call by name" .
 (User-defined special forms can be created with macros. More about that
 later.)
@@ -491,8 +491,7 @@ the bitwise operators are named
 .B and
 and
 .B or
-instead of `&' and `|', because the latter is reserved as a special symbol in
-rules, see RULE SYNTAX below.
+instead of `&' and `|', which are used for other purposes in Pure.
 .PP
 .B Special forms.
 As already mentioned, some operators are actually implemented as special
@@ -504,11 +503,12 @@ the logical connectives && and || evaluate their operands in
 mode just like in C. Thus, e.g., x&&y immediately becomes false if x evaluates
 to false, without ever evaluating y.
 .PP
-Another important special form is the sequencing operator $$, which evaluates
-its left operand, immediately throws the result away and then goes on to
-evaluate the right operand which gives the result of the entire
-expression. This operator is useful to write imperative-style code such as the
-following prompt/input interaction:
+The
+.I sequencing
+operator $$ evaluates its left operand, immediately throws the result away and
+then goes on to evaluate the right operand which gives the result of the
+entire expression. This operator is useful to write imperative-style code such
+as the following prompt/input interaction:
 .sp
 .nf
 > \fBusing\fP system;
@@ -517,6 +517,40 @@ Enter a number:
 21
 21.0
 .fi
+.PP
+The & operator does
+.IR "lazy evaluation" .
+More precisely, it turns its operand into a kind of parameterless anonymous
+closure, deferring its evaluation. These kinds of objects are commonly known
+as
+.I thunks
+or
+.IR futures .
+When the value of a future is actually needed (during pattern-matching, or
+when the value becomes an argument of a C call), it is evaluated automagically
+and gets
+.IR memoized ,
+i.e., the computed result replaces the thunk so that it only has to be
+computed once. Futures are useful to implement all kinds of lazy data
+structures in Pure, in particular: lazy lists a.k.a.
+.IR streams .
+A stream is simply a list with a thunked tail, which allows it to be
+infinite. E.g.:
+.sp
+.nf
+> ints n = n : ints (n+1) &; let nats = ints 1;
+> nats;
+1:<<thunk 0xb6033528>>
+> take 10 nats;
+[1,2,3,4,5,6,7,8,9,10]
+> nats;
+1:2:3:4:5:6:7:8:9:10:11:<<thunk 0xb5fb1a08>>
+> nats!9999;
+10000
+.fi
+.sp
+Note that the prelude defines & as a postfix operator which binds stronger
+than any other operation except function application.
 .PP
 .B Toplevel.
 At the toplevel, a Pure program basically consists of rewriting rules (which
