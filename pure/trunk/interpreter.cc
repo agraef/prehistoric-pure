@@ -3548,7 +3548,7 @@ Function *interpreter::declare_extern(string name, string restype,
   for (size_t i = 0; i < n; i++) {
     Value *x = args[i];
     // check for thunks which must be forced
-    {
+    if (argt[i] != ExprPtrTy) {
 #if 1
       // do a quick check on the tag value
       Value *idx[2] = { Zero, Zero };
