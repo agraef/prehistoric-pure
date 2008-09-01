@@ -220,6 +220,8 @@ interpreter::interpreter()
 		                                 "void*", "void*", "int");
   declare_extern((void*)pure_call,
 		 "pure_call",       "expr*",  1, "expr*");
+  declare_extern((void*)pure_force,
+		 "pure_force",      "expr*",  1, "expr*");
   declare_extern((void*)pure_const,
 		 "pure_const",      "expr*",  1, "int");
   declare_extern((void*)pure_int,
@@ -3545,6 +3547,26 @@ Function *interpreter::declare_extern(string name, string restype,
   bool temps = false;
   for (size_t i = 0; i < n; i++) {
     Value *x = args[i];
+    // check for thunks which must be forced
+    {
+#if 1
+      // do a quick check on the tag value
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      Value *checkv = b.CreateICmpEQ(tagv, Zero, "check");
+      BasicBlock *forcebb = BasicBlock::Create("force");
+      BasicBlock *skipbb = BasicBlock::Create("skip");
+      b.CreateCondBr(checkv, forcebb, skipbb);
+      f->getBasicBlockList().push_back(forcebb);
+      b.SetInsertPoint(forcebb);
+      b.CreateCall(module->getFunction("pure_force"), x);
+      b.CreateBr(skipbb);
+      f->getBasicBlockList().push_back(skipbb);
+      b.SetInsertPoint(skipbb);
+#else
+      b.CreateCall(module->getFunction("pure_force"), x);
+#endif
+    }
     if (argt[i] == Type::Int1Ty) {
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
@@ -5815,6 +5837,25 @@ void interpreter::simple_match(Value *x, state*& s,
     msg << "simple match " << f.name;
     debug(msg.str().c_str()); }
 #endif
+  if (t.tag != EXPR::VAR || t.ttag != 0) {
+    // check for thunks which must be forced
+#if 1
+    // do a quick check on the tag value
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    Value *checkv = f.builder.CreateICmpEQ(tagv, Zero, "check");
+    BasicBlock *forcebb = BasicBlock::Create("force");
+    BasicBlock *skipbb = BasicBlock::Create("skip");
+    f.builder.CreateCondBr(checkv, forcebb, skipbb);
+    f.f->getBasicBlockList().push_back(forcebb);
+    f.builder.SetInsertPoint(forcebb);
+    call("pure_force", x);
+    f.builder.CreateBr(skipbb);
+    f.f->getBasicBlockList().push_back(skipbb);
+    f.builder.SetInsertPoint(skipbb);
+#else
+    call("pure_force", x);
+#endif
+  }
   // match the current symbol
   switch (t.tag) {
   case EXPR::VAR:
@@ -6036,7 +6077,31 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
   // first check for a literal match
   size_t i, n = s->tr.size(), m = 0;
   transl::iterator t0 = s->tr.begin();
-  while (t0 != s->tr.end() && t0->tag == EXPR::VAR) t0++, m++;
+  bool must_force = false;
+  while (t0 != s->tr.end() && t0->tag == EXPR::VAR) {
+    if (t0->ttag != 0) must_force = true;
+    t0++; m++;
+  }
+  must_force = must_force || t0 != s->tr.end();
+  if (must_force) {
+    // check for thunks which must be forced
+#if 1
+    // do a quick check on the tag value
+    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    Value *checkv = f.builder.CreateICmpEQ(tagv, Zero, "check");
+    BasicBlock *forcebb = BasicBlock::Create("force");
+    BasicBlock *skipbb = BasicBlock::Create("skip");
+    f.builder.CreateCondBr(checkv, forcebb, skipbb);
+    f.f->getBasicBlockList().push_back(forcebb);
+    f.builder.SetInsertPoint(forcebb);
+    call("pure_force", x);
+    f.builder.CreateBr(skipbb);
+    f.f->getBasicBlockList().push_back(skipbb);
+    f.builder.SetInsertPoint(skipbb);
+#else
+    call("pure_force", x);
+#endif
+  }
   if (t0 != s->tr.end()) {
     assert(n > m);
     // get the tag value

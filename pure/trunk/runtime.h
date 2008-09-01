@@ -549,7 +549,7 @@ uint32_t hash(const pure_expr *x);
 
 /* Check whether two objects are the "same" (syntactically). */
 
-bool same(const pure_expr *x, const pure_expr *y);
+bool same(pure_expr *x, pure_expr *y);
 
 /* Check whether an object is a named function (closure), an anonymous
    function (lambda), or a global variable, respectively. */

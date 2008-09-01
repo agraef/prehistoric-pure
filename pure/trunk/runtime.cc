@@ -2619,12 +2619,16 @@ uint32_t hash(const pure_expr *x)
 }
 
 extern "C"
-bool same(const pure_expr *x, const pure_expr *y)
+bool same(pure_expr *x, pure_expr *y)
 {
   char test;
   if (x == y)
     return 1;
-  else if (x->tag != y->tag)
+  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0)
+    pure_force(x);
+  if (y->tag == 0 && y->data.clos && y->data.clos->n == 0)
+    pure_force(y);
+  if (x->tag != y->tag)
     return 0;
   else if (x->tag >= 0 && y->tag >= 0)
     if (x->data.clos && y->data.clos)
