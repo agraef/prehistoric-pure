@@ -40,6 +40,7 @@ void symtable::init_builtins()
   failed_cond_sym();
   signal_sym();
   segfault_sym();
+  amp_sym();
 }
 
 symbol* symtable::lookup(const string& s, int32_t modno)
@@ -357,4 +358,13 @@ symbol& symtable::mod_sym()
     return *_sym;
   else
     return sym("mod", 7, infixl);
+}
+
+symbol& symtable::amp_sym()
+{
+  symbol *_sym = lookup("&");
+  if (_sym)
+    return *_sym;
+  else
+    return sym("&", 9, postfix);
 }

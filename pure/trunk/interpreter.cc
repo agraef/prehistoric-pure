@@ -1707,8 +1707,13 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
     return x;
   // application:
   case EXPR::APP:
-    if (x.xval1().tag() == EXPR::APP &&
-	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+    if (x.xval1().tag() == symtab.amp_sym().f) {
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      expr v = subst(vars, x.xval2(), idx);
+      return expr(symtab.amp_sym().x, v);
+    } else if (x.xval1().tag() == EXPR::APP &&
+	       x.xval1().xval1().tag() == symtab.catch_sym().f) {
       expr u = subst(vars, x.xval1().xval2(), idx);
       if (++idx == 0)
 	throw err("error in expression (too many nested closures)");
@@ -1812,8 +1817,13 @@ expr interpreter::fsubst(const env& funs, expr x, uint8_t idx)
     return x;
   // application:
   case EXPR::APP:
-    if (x.xval1().tag() == EXPR::APP &&
-	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+    if (x.xval1().tag() == symtab.amp_sym().f) {
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      expr v = fsubst(funs, x.xval2(), idx);
+      return expr(symtab.amp_sym().x, v);
+    } else if (x.xval1().tag() == EXPR::APP &&
+	       x.xval1().xval1().tag() == symtab.catch_sym().f) {
       expr u = fsubst(funs, x.xval1().xval2(), idx);
       if (++idx == 0)
 	throw err("error in expression (too many nested closures)");
@@ -1909,8 +1919,11 @@ expr interpreter::csubst(expr x)
     return x;
   // application:
   case EXPR::APP:
-    if (x.xval1().tag() == EXPR::APP &&
-	x.xval1().xval1().tag() == symtab.catch_sym().f) {
+    if (x.xval1().tag() == symtab.amp_sym().f) {
+      expr v = csubst(x.xval2());
+      return expr(symtab.amp_sym().x, v);
+    } else if (x.xval1().tag() == EXPR::APP &&
+	       x.xval1().xval1().tag() == symtab.catch_sym().f) {
       expr u = csubst(x.xval1().xval2()),
 	v = csubst(x.xval2());
       return expr(symtab.catch_sym().x, u, v);
@@ -2203,8 +2216,13 @@ expr interpreter::macred(expr x, expr y, uint8_t idx)
       return y;
   // application:
   case EXPR::APP:
-    if (y.xval1().tag() == EXPR::APP &&
-	y.xval1().xval1().tag() == symtab.catch_sym().f) {
+    if (y.xval1().tag() == symtab.amp_sym().f) {
+      if (++idx == 0)
+	throw err("error in expression (too many nested closures)");
+      expr v = macred(x, y.xval2(), idx);
+      return expr(symtab.amp_sym().x, v);
+    } else if (y.xval1().tag() == EXPR::APP &&
+	       y.xval1().xval1().tag() == symtab.catch_sym().f) {
       expr u = macred(x, y.xval1().xval2(), idx);
       if (++idx == 0)
 	throw err("error in expression (too many nested closures)");
@@ -3005,7 +3023,14 @@ void Env::build_map(expr x)
   case EXPR::APP: {
     expr f; uint32_t n = count_args(x, f);
     interpreter& interp = *interpreter::g_interp;
-    if (n == 2 && f.tag() == interp.symtab.catch_sym().f) {
+    if (n == 1 && f.tag() == interp.symtab.amp_sym().f) {
+      expr y = x.xval2();
+      push("&");
+      Env* eptr = fmap.act()[-x.hash()] = new Env(0, 0, y, true, true);
+      Env& e = *eptr;
+      e.build_map(y); e.promote_map();
+      pop();
+    } else if (n == 2 && f.tag() == interp.symtab.catch_sym().f) {
       expr h = x.xval1().xval2(), y = x.xval2();
       push("catch");
       Env* eptr = fmap.act()[-x.hash()] = new Env(0, 0, y, true, true);
@@ -4778,6 +4803,19 @@ Value *interpreter::codegen(expr x)
 	Value *u = codegen(x.xval1().xval2());
 	act_builder().CreateCall(module->getFunction("pure_freenew"), u);
 	return codegen(x.xval2());
+      } else if (n == 1 && f.tag() == symtab.amp_sym().f) {
+	// create a thunk (parameterless anonymous closure)
+	expr y = x.xval2();
+	Env& act = act_env();
+	assert(act.fmap.act().find(-x.hash()) != act.fmap.act().end());
+	Env& e = *act.fmap.act()[-x.hash()];
+	push("&", &e);
+	fun_prolog("anonymous");
+	e.CreateRet(codegen(y));
+	fun_finish();
+	pop(&e);
+	Value *body = fbox(e);
+	return body;
       } else if (n == 2 && f.tag() == symtab.catch_sym().f) {
 	// catch an exception; create a little anonymous closure to be called
 	// through pure_catch()

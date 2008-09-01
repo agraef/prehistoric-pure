@@ -758,8 +758,12 @@ ostream& operator << (ostream& os, const pure_expr *x)
       return os << pure_paren(95, u) << " " << pure_paren(100, v);
   }
   default: {
-    if (x->tag == 0)
-      return os << "<<closure " << (void*)x << ">>";
+    if (x->data.clos && x->data.clos->xp)
+      return os << x->data.clos->xp;
+    if (x->tag == 0) {
+      const char *s = (x->data.clos && x->data.clos->n==0)?"thunk":"closure";
+      return os << "<<" << s << " " << (void*)x << ">>";
+    }
     const symbol& sym = interpreter::g_interp->symtab.sym(x->tag);
     if (x->data.clos && x->data.clos->local)
       return os << "<<closure " << sym.s << ">>";

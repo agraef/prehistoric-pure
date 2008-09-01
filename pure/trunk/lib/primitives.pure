@@ -23,6 +23,11 @@
 
 extern void pure_throw(expr*) = throw; // IMPURE!
 
+/* Force a thunk (x&). This usually happens automagically when the value of a
+   thunk is needed. */
+
+extern expr* pure_force(expr*) = force;
+
 /* Syntactic equality. */
 
 extern bool same(expr* x, expr* y);
