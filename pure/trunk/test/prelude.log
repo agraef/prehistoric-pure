@@ -1187,7 +1187,23 @@ index (x/*0:0101*/:xs/*0:011*/) y/*0:1*/ = search/*0*/ 0 (x/*0:0101*/:xs/*0:011*
 	<var> state 16
   state 16: #1 #2 #3
 } end;
-repeat n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = xs/*0:001*/ if n/*0:01*/<=0; accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = accum/*1*/ (x/*0:1*/:xs/*0:001*/) (n/*0:01*/-1) x/*0:1*/ {
+iterate f/*0:01*/ x/*0:1*/ = x/*0:1*/:iterate f/*1:01*/ (f/*1:01*/ x/*1:1*/)&;
+repeat x/*0:1*/ = x/*0:1*/:repeat x/*1:1*/&;
+cycle ys@(x/*0:101*/:xs/*0:11*/) = x/*0:101*/:(xs/*1:11*/+cycle ys/*1:1*/)&;
+while p/*0:001*/ f/*0:01*/ x/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ x/*0:1*/ with accum xs/*0:0001*/ p/*0:001*/ f/*0:01*/ x/*0:1*/ = accum/*1*/ (x/*0:1*/:xs/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ x/*0:1*/) if p/*0:001*/ x/*0:1*/; accum xs/*0:0001*/ p/*0:001*/ f/*0:01*/ x/*0:1*/ = reverse xs/*0:0001*/ {
+  rule #0: accum xs p f x = accum (x:xs) p f (f x) if p x
+  rule #1: accum xs p f x = reverse xs
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
+	<var> state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+} end;
+repeatn n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = xs/*0:001*/ if n/*0:01*/<=0; accum xs/*0:001*/ n/*0:01*/::int x/*0:1*/ = accum/*1*/ (x/*0:1*/:xs/*0:001*/) (n/*0:01*/-1) x/*0:1*/ {
   rule #0: accum xs n::int x = xs if n<=0
   rule #1: accum xs n::int x = accum (x:xs) (n-1) x
   state 0: #0 #1
@@ -1198,9 +1214,8 @@ repeat n/*0:01*/::int x/*0:1*/ = accum/*0*/ [] n/*0:01*/ x/*0:1*/ with accum xs/
 	<var> state 3
   state 3: #0 #1
 } end;
-cycle n/*0:01*/::int [] = [];
-cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
-cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] n/*2:01*/ with accum ys/*0:01*/ n/*0:1*/::int = cat ys/*0:01*/+take n/*0:1*/ xs/*2:*/ if n/*0:1*/<=m/*1:*/; accum ys/*0:01*/ n/*0:1*/::int = accum/*1*/ (xs/*2:*/:ys/*0:01*/) (n/*0:1*/-m/*1:*/) {
+cyclen n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = [] if n/*0:01*/<=0;
+cyclen n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] n/*2:01*/ with accum ys/*0:01*/ n/*0:1*/::int = cat ys/*0:01*/+take n/*0:1*/ xs/*2:*/ if n/*0:1*/<=m/*1:*/; accum ys/*0:01*/ n/*0:1*/::int = accum/*1*/ (xs/*2:*/:ys/*0:01*/) (n/*0:1*/-m/*1:*/) {
   rule #0: accum ys n::int = cat ys+take n xs if n<=m
   rule #1: accum ys n::int = accum (xs:ys) (n-m)
   state 0: #0 #1
@@ -1219,32 +1234,6 @@ cycle n/*0:01*/::int (x/*0:101*/:xs/*0:11*/) = accum/*0*/ [] n/*2:01*/ with accu
 	<var> state 1
   state 1: #0
 } end if listp xs/*0:11*/;
-while p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ a/*0:1*/ with accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*1*/ (a/*0:1*/:as/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) if p/*0:001*/ a/*0:1*/; accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = reverse as/*0:0001*/ {
-  rule #0: accum as p f a = accum (a:as) p f (f a) if p a
-  rule #1: accum as p f a = reverse as
-  state 0: #0 #1
-	<var> state 1
-  state 1: #0 #1
-	<var> state 2
-  state 2: #0 #1
-	<var> state 3
-  state 3: #0 #1
-	<var> state 4
-  state 4: #0 #1
-} end;
-until p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*0*/ [] p/*0:001*/ f/*0:01*/ a/*0:1*/ with accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = reverse as/*0:0001*/ if p/*0:001*/ a/*0:1*/; accum as/*0:0001*/ p/*0:001*/ f/*0:01*/ a/*0:1*/ = accum/*1*/ (a/*0:1*/:as/*0:0001*/) p/*0:001*/ f/*0:01*/ (f/*0:01*/ a/*0:1*/) {
-  rule #0: accum as p f a = reverse as if p a
-  rule #1: accum as p f a = accum (a:as) p f (f a)
-  state 0: #0 #1
-	<var> state 1
-  state 1: #0 #1
-	<var> state 2
-  state 2: #0 #1
-	<var> state 3
-  state 3: #0 #1
-	<var> state 4
-  state 4: #0 #1
-} end;
 zip [] _/*0:1*/ = [];
 zip _/*0:01*/ [] = [];
 zip xs@(_/*0:0101*/:_/*0:011*/) ys@(_/*0:101*/:_/*0:11*/) = tick/*0*/ [] xs/*0:01*/ ys/*0:1*/ with tick us/*0:001*/ (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = tack/*1*/ ((x/*0:0101*/,y/*0:101*/):us/*0:001*/) (zip xs/*1:011*/ ys/*1:11*/&) if thunkp xs/*0:011*/||thunkp ys/*0:11*/; tick us/*0:001*/ (x/*0:0101*/:xs/*0:011*/) (y/*0:101*/:ys/*0:11*/) = tick/*1*/ ((x/*0:0101*/,y/*0:101*/):us/*0:001*/) xs/*0:011*/ ys/*0:11*/; tick us/*0:001*/ [] _/*0:1*/ = tack/*1*/ us/*0:001*/ []; tick us/*0:001*/ _/*0:01*/ [] = tack/*1*/ us/*0:001*/ []; tick us/*0:001*/ xs/*0:01*/ ys/*0:1*/ = tack/*1*/ us/*0:001*/ (zip xs/*0:01*/ ys/*0:1*/) {
