@@ -139,7 +139,7 @@ pure.o: pure.cc
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LLVM_FLAGS) -DPURELIB='"$(libdir)/pure-$(version)"' -c -o $@ $<
 
 runtime.o: runtime.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LLVM_FLAGS) -DPURELIB='"$(libdir)/pure-$(version)"' -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(PIC) $(CPPFLAGS) $(LLVM_FLAGS) -DPURELIB='"$(libdir)/pure-$(version)"' -c -o $@ $<
 
 interpreter.o: interpreter.cc
 	$(CXX) $(CXXFLAGS) $(PIC) $(CPPFLAGS) $(LLVM_FLAGS) $(AUXLIBS) -c -o $@ $<
