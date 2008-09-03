@@ -947,7 +947,7 @@ scanr1 f/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ [] xs/*0:1*/ with tick zs
 } end;
 tail (x/*0:101*/:xs/*0:11*/) = xs/*0:11*/;
 take n/*0:01*/::int [] = [];
-take n/*0:01*/::int xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ n/*0:01*/ [] xs/*0:1*/ with tick n/*0:001*/::int zs/*0:01*/ xs/*0:1*/ = tack/*1*/ zs/*0:01*/ [] if n/*0:001*/<=0; tick n/*0:001*/::int zs/*0:01*/ xs/*0:1*/ = case xs/*0:1*/ of [] = tack/*2*/ zs/*1:01*/ []; x/*0:01*/:xs/*0:1*/ = tick/*2*/ (n/*1:001*/-1) (x/*0:01*/:zs/*1:01*/) xs/*0:1*/; _/*0:*/ = tack/*2*/ zs/*1:01*/ (take n/*1:001*/ xs/*1:1*/) {
+take n/*0:01*/::int xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ n/*0:01*/ [] xs/*0:1*/ with tick n/*0:001*/::int zs/*0:01*/ xs/*0:1*/ = tack/*1*/ zs/*0:01*/ [] if n/*0:001*/<=0; tick n/*0:001*/::int zs/*0:01*/ xs/*0:1*/ = tack/*1*/ zs/*0:01*/ (take n/*1:001*/ xs/*1:1*/&) if thunkp xs/*0:1*/; tick n/*0:001*/::int zs/*0:01*/ xs/*0:1*/ = case xs/*0:1*/ of [] = tack/*2*/ zs/*1:01*/ []; x/*0:01*/:xs/*0:1*/ = tick/*2*/ (n/*1:001*/-1) (x/*0:01*/:zs/*1:01*/) xs/*0:1*/; _/*0:*/ = tack/*2*/ zs/*1:01*/ (take n/*1:001*/ xs/*1:1*/) {
   rule #0: [] = tack zs []
   rule #1: x:xs = tick (n-1) (x:zs) xs
   rule #2: _ = tack zs (take n xs)
@@ -978,14 +978,15 @@ take n/*0:01*/::int xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ n/*0:01*/ [] xs/*0:1*/
   state 12: #1 #2
 } end {
   rule #0: tick n::int zs xs = tack zs [] if n<=0
-  rule #1: tick n::int zs xs = case xs of [] = tack zs []; x:xs = tick (n-1) (x:zs) xs; _ = tack zs (take n xs) end
-  state 0: #0 #1
+  rule #1: tick n::int zs xs = tack zs (take n xs&) if thunkp xs
+  rule #2: tick n::int zs xs = case xs of [] = tack zs []; x:xs = tick (n-1) (x:zs) xs; _ = tack zs (take n xs) end
+  state 0: #0 #1 #2
 	<var>::int state 1
-  state 1: #0 #1
+  state 1: #0 #1 #2
 	<var> state 2
-  state 2: #0 #1
+  state 2: #0 #1 #2
 	<var> state 3
-  state 3: #0 #1
+  state 3: #0 #1 #2
 }; tack (x/*0:0101*/:xs/*0:011*/) ys/*0:1*/ = tack/*1*/ xs/*0:011*/ (x/*0:0101*/:ys/*0:1*/); tack [] ys/*0:1*/ = ys/*0:1*/ {
   rule #0: tack (x:xs) ys = tack xs (x:ys)
   rule #1: tack [] ys = ys
@@ -1008,38 +1009,44 @@ take n/*0:01*/::int xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ n/*0:01*/ [] xs/*0:1*/
   state 8: #1
 } end;
 takewhile p/*0:01*/ [] = [];
-takewhile p/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ [] xs/*0:1*/ with tick zs/*0:01*/ [] = tack/*1*/ zs/*0:01*/ []; tick zs/*0:01*/ (x/*0:101*/:xs/*0:11*/) = tick/*1*/ (x/*0:101*/:zs/*0:01*/) xs/*0:11*/ if p/*1:01*/ x/*0:101*/; tick zs/*0:01*/ (x/*0:101*/:xs/*0:11*/) = tack/*1*/ zs/*0:01*/ []; tick zs/*0:01*/ xs/*0:1*/ = tack/*1*/ zs/*0:01*/ (takewhile p/*1:01*/ xs/*0:1*/) {
-  rule #0: tick zs [] = tack zs []
-  rule #1: tick zs (x:xs) = tick (x:zs) xs if p x
-  rule #2: tick zs (x:xs) = tack zs []
-  rule #3: tick zs xs = tack zs (takewhile p xs)
+takewhile p/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ [] xs/*0:1*/ with tick zs/*0:01*/ xs/*0:1*/ = tack/*1*/ zs/*0:01*/ (takewhile p/*2:01*/ xs/*1:1*/&) if thunkp xs/*0:1*/; tick zs/*0:01*/ xs/*0:1*/ = case xs/*0:1*/ of [] = tack/*2*/ zs/*1:01*/ []; x/*0:01*/:xs/*0:1*/ = tick/*2*/ (x/*0:01*/:zs/*1:01*/) xs/*0:1*/ if p/*2:01*/ x/*0:01*/; x/*0:01*/:xs/*0:1*/ = tack/*2*/ zs/*1:01*/ []; _/*0:*/ = tack/*2*/ zs/*1:01*/ (takewhile p/*2:01*/ xs/*1:1*/) {
+  rule #0: [] = tack zs []
+  rule #1: x:xs = tick (x:zs) xs if p x
+  rule #2: x:xs = tack zs []
+  rule #3: _ = tack zs (takewhile p xs)
   state 0: #0 #1 #2 #3
 	<var> state 1
-  state 1: #0 #1 #2 #3
-	<var> state 2
-	[] state 3
-	<app> state 4
-  state 2: #3
-  state 3: #0 #3
-  state 4: #1 #2 #3
+	[] state 2
+	<app> state 3
+  state 1: #3
+  state 2: #0 #3
+  state 3: #1 #2 #3
+	<var> state 4
+	<app> state 6
+  state 4: #3
 	<var> state 5
-	<app> state 7
   state 5: #3
-	<var> state 6
-  state 6: #3
-  state 7: #1 #2 #3
+  state 6: #1 #2 #3
+	<var> state 7
+	: state 10
+  state 7: #3
 	<var> state 8
-	: state 11
   state 8: #3
 	<var> state 9
   state 9: #3
-	<var> state 10
-  state 10: #3
+  state 10: #1 #2 #3
+	<var> state 11
   state 11: #1 #2 #3
 	<var> state 12
   state 12: #1 #2 #3
-	<var> state 13
-  state 13: #1 #2 #3
+} end {
+  rule #0: tick zs xs = tack zs (takewhile p xs&) if thunkp xs
+  rule #1: tick zs xs = case xs of [] = tack zs []; x:xs = tick (x:zs) xs if p x; x:xs = tack zs []; _ = tack zs (takewhile p xs) end
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<var> state 2
+  state 2: #0 #1
 }; tack (x/*0:0101*/:xs/*0:011*/) ys/*0:1*/ = tack/*1*/ xs/*0:011*/ (x/*0:0101*/:ys/*0:1*/); tack [] ys/*0:1*/ = ys/*0:1*/ {
   rule #0: tack (x:xs) ys = tack xs (x:ys)
   rule #1: tack [] ys = ys
