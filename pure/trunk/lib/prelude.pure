@@ -400,6 +400,7 @@ take n::int []		= [];
 take n::int xs@(_:_)	= tick n [] xs
 with
   tick n::int zs xs	= tack zs [] if n<=0;
+			= tack zs (take n xs&) if thunkp xs;
 			= case xs of
 			    []   = tack zs [];
 			    x:xs = tick (n-1) (x:zs) xs;
@@ -412,10 +413,13 @@ end;
 takewhile p []	= [];
 takewhile p xs@(_:_)	= tick [] xs
 with
-  tick zs []		= tack zs [];
-  tick zs (x:xs)	= tick (x:zs) xs if p x;
-			= tack zs [];
-  tick zs xs		= tack zs (takewhile p xs);
+  tick zs xs		= tack zs (takewhile p xs&) if thunkp xs;
+			= case xs of
+			    []   = tack zs [];
+			    x:xs = tick (x:zs) xs if p x;
+			         = tack zs [];
+			    _    = tack zs (takewhile p xs);
+			  end;
   tack (x:xs) ys	= tack xs (x:ys);
   tack [] ys		= ys;
 end;
