@@ -460,29 +460,31 @@ index (x:xs) y		= search 0 (x:xs) with
   search _ xs		= index xs y;
 end;
 
-/* Some useful list generators. */
+/* Some useful (infinite) list generators. */
 
-repeat n::int x		= accum [] n x with
+iterate f x		= x : iterate f (f x)&;
+repeat x		= x : repeat x&;
+cycle ys@(x:xs)		= x : (xs+cycle ys)&;
+
+/* Some finite (and strict) generators. These work like the a combination of
+   takewhile/take and the above, but are implemented directly for maximum
+   efficiency. */
+
+while p f x		= accum [] p f x with
+			    accum xs p f x = accum (x:xs) p f (f x) if p x;
+				           = reverse xs otherwise;
+			  end;
+
+repeatn n::int x	= accum [] n x with
   accum xs n::int x	= xs if n<=0;
 			= accum (x:xs) (n-1) x;
 end;
 
-cycle n::int []		= [];
-cycle n::int (x:xs)	= [] if n<=0;
+cyclen n::int (x:xs)	= [] if n<=0;
 			= accum [] n with
 			    accum ys n::int = cat ys+take n xs if n<=m;
 			                    = accum (xs:ys) (n-m) otherwise;
 			  end when xs = x:xs; m::int = #xs end if listp xs;
-
-while p f a		= accum [] p f a with
-			    accum as p f a = accum (a:as) p f (f a) if p a;
-				           = reverse as otherwise;
-			  end;
-
-until p f a		= accum [] p f a with
-			    accum as p f a = reverse as if p a;
-				           = accum (a:as) p f (f a) otherwise;
-			  end;
 
 /* zip, unzip and friends. */
 

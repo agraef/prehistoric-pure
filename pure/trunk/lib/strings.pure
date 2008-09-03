@@ -168,12 +168,8 @@ xs@(_:_)+s::string	= xs+chars s;
 reverse s::string	= strcat (reverse (chars s));
 catmap f s::string	= catmap f (chars s);
 
-cycle n::int ""		= "";
-cycle n::int s::string	= "" if n<=0;
-			= accum [] n with
-			    accum ys n	= strcat ys+take n s if n<=m;
-					= accum (s:ys) (n-m) otherwise;
-			  end when m::int = #s end;
+cycle s::string		= cycle (chars s);
+cyclen n::int s::string	= cyclen n (chars s) if not null s;
 
 all p s::string		= all p (chars s);
 any p s::string		= any p (chars s);
