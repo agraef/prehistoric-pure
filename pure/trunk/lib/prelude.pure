@@ -28,16 +28,12 @@ nullary	   failed_cond;		// failed conditional (guard, if-then-else)
 nullary	   failed_match;	// failed pattern match (lambda, case, etc.)
 nullary    stack_fault;		// not enough stack space (PURE_STACK limit)
 
-/* Other exceptions defined by the prelude. We use exceptions sparingly, to
-   not interfere with symbolic evaluation, but in some cases it makes sense to
-   raise special kinds of exceptions in response to obvious error conditions.
-   In particular, the 'bad_list_value' exception is raised by functions which
-   need to work from the end of a list towards its front. */
+/* Other exceptions defined by the prelude. */
 
 nullary    malloc_error;	// memory allocation error
 nullary    out_of_bounds;	// tuple or list index is out of bounds (!)
 //         bad_list_value xs;	// not a proper list value (reverse, etc.)
-				// xs denotes the offending tail of the list
+//         bad_tuple_value xs;	// not a proper tuple value (unzip, etc.)
 
 /* Other constants. */
 
@@ -180,22 +176,39 @@ null (x:xs)	= 0;
   accum	n::int xs	= n+#xs;
 end;
 
-(x,xs)!n::int	= throw out_of_bounds if n<0;
-(x:xs)!0	= x;
-(x:xs)!n::int	= xs!(n-1);
 []!n::int	= throw out_of_bounds;
+(x:xs)!0	= x;
+(x:xs)!n::int	= xs!(n-1) if n>0;
+		= throw out_of_bounds otherwise;
+
+/* List concatenation. For a robust implementation which works with both
+   ordinary lists and streams, we want this to be tail-recursive *and*
+   non-strict. So we first walk down the list, popping elements from the first
+   operand until we find an empty or thunked tail ('tick'), then walk back up
+   again, pushing elements in front of the result list ('tack'). */
 
 []+ys		= ys;
-(x:xs)+ys	= x : accum ys (reverse xs) with
-  accum ys (x:xs)	= accum (x:ys) xs;
-  accum ys []		= ys;
+xs@(_:_)+ys	= tick [] xs ys
+with
+  tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
+			= tick (x:zs) xs ys;
+  tick zs [] ys		= tack zs ys;
+  /* Handle an improper list tail (xs+ys is in normal form here). */
+  tick zs xs ys		= tack zs (xs+ys);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
 end;
+
+/* List reversal. This is a strict operation, of course, so it will loop on
+   infinite lists. Also, this is one of the few list operations which throws
+   an exception for improper lists, since in that case there really isn't any
+   meaningful value to return. */
 
 reverse []	= [];
 reverse (x:xs)	= accum [x] xs with
   accum ys (x:xs)	= accum (x:ys) xs;
   accum ys []		= ys;
-  accum	_ xs		= throw (bad_list_value xs);
+  accum	ys xs		= throw (bad_list_value xs);
 end;
 
 /* Convert between lists and tuples. */
@@ -213,12 +226,23 @@ tuple (x:xs)	= accum x xs with
   accum	ys xs		= ys,xs;
 end;
 
-/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
-   list ns which are in the range 0..#xs-1. xs must be a (proper) list or
-   tuple, and the indices must be machine ints. */
+/* Convert between lists and streams. */
 
-xs!!ns		= [xs!n; n=ns; n>=0 && n<m] when m::int = #xs end
-		  if listp xs || tuplep xs;
+list []		= [];
+list (x:xs)	= x:list xs;
+
+stream []	= [];
+stream (x:xs)	= x:xs if thunkp xs;
+		= x:stream xs& otherwise;
+
+/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
+   list ns which are in the valid index range. This is a generic definition
+   which will work with any kind of container data structure which defines (!) 
+   in such a manner that it throws an exception when the index is out of
+   bounds. */
+
+xs!!ns		= catmap (nth xs) ns
+		  with nth xs n = catch (cst []) [xs!n] end;
 
 /* Arithmetic sequences. */
 
@@ -231,139 +255,205 @@ n..m		= while (\i->i<=m) (\x->x+1) n;
 /* Common list functions. This mostly comes straight from the Q prelude which
    in turn was based on the first edition of the Bird/Wadler book, and is very
    similar to what you can find in the Haskell prelude. Some functions have
-   slightly different names, though, and some of the definitions were massaged
-   to make them tail-recursive. */
+   slightly different names, though, and of course everything is typed
+   dynamically. Some of the definitions aren't exactly pretty, but they are
+   like that because we want them to be both efficient and robust. In
+   particular, we require that they do all the necessary argument checking,
+   are tail-recursive and handle lazy lists as gracefully as possible. */
 
-all p []	= 1;
-all p (x:xs)	= if p x then all p xs else 0;
+all p []		= 1;
+all p (x:xs)		= if p x then all p xs else 0;
 
-any p []	= 0;
-any p (x:xs)	= if p x then 1 else any p xs;
+any p []		= 0;
+any p (x:xs)		= if p x then 1 else any p xs;
 
-do f []		= ();
-do f (x:xs)	= f x $$ do f xs;
+do f []			= ();
+do f (x:xs)		= f x $$ do f xs;
 
-drop n::int []	= [];
-drop n::int (x:xs)
-		= drop (n-1) xs if n>0;
-		= x:xs otherwise;
+drop n::int []		= [];
+drop n::int ys@(x:xs)	= drop (n-1) xs if n>1;
+			= xs if n==1;
+			= ys otherwise;
 
-dropwhile p []	= [];
-dropwhile p (x:xs)
-		= dropwhile p xs if p x;
-		= x:xs otherwise;
+dropwhile p []		= [];
+dropwhile p ys@(x:xs)	= dropwhile p xs if p x;
+			= ys otherwise;
 
-filter p []	= [];
-filter p (x:xs)	= accum [] (x:xs) with
-		    accum ys []		= reverse ys;
-		    accum ys (x:xs)	= accum (x:ys) xs if p x;
-					= accum ys xs otherwise;
-		    accum ys xs		= reverse ys+filter p xs;
-		  end;
+filter p []		= [];
+filter p xs@(_:_)	= tick [] xs
+with
+  add p x xs		= if p x then x:xs else xs;
+  tick zs (x:xs)	= tack (add p x zs) (filter p xs&) if thunkp xs;
+			= tick (add p x zs) xs;
+  tick zs []		= tack zs [];
+  tick _ xs		= throw (bad_list_value xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
-foldl f a []	= a;
-foldl f a (x:xs)
-		= foldl f (f a x) xs;
+foldl f a []		= a;
+foldl f a (x:xs)	= foldl f (f a x) xs;
 
-foldl1 f (x:xs)	= foldl f x xs;
+foldl1 f (x:xs)		= foldl f x xs;
 
-foldr f a []	= a;
-foldr f a (x:xs)
-		= f x (foldl (flip f) a (reverse xs));
+foldr f a []		= a;
+foldr f a xs@(_:_)	= tick [] xs
+with
+  tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+			= tick (x:zs) xs;
+  tick zs []		= tack zs a;
+  tick zs xs		= tack zs (foldr f a xs);
+  tack (x:xs) y		= tack xs (f x y);
+  tack [] y		= y;
+end;
 
-foldr1 f [x]	= x;
-foldr1 f (x:xs)	= f x (foldl1 (flip f) (reverse xs));
+foldr1 f [x]		= x;
+foldr1 f xs@(_:_)	= tick [] xs
+with
+  /* Do the thunkp check first, before probing the tail. Note that the first
+     foldr1 rule above ensures that the topmost tail is already evaluated, so
+     that we always make some progress here. */
+  tick zs ys@(_:xs)	= tack zs (foldr1 f ys&) if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs x;
+			    x:xs = tick (x:zs) xs;
+			    _    = tack zs (foldr1 f xs);
+			  end;
+  tack (x:xs) y		= tack xs (f x y);
+  tack [] y		= y;
+end;
 
-head (x:xs)	= x;
+head (x:xs)		= x;
 
-init [x]	= [];
-init (x:xs)	= accum [x] xs with
-		    accum ys [x]	= reverse ys;
-		    accum ys (x:xs)	= accum (x:ys) xs;
-		    accum ys xs		= reverse ys+init xs;
-		  end;
+init [x]		= [];
+init xs@(_:_)		= tick [] xs
+with
+  tick zs ys@(_:xs)	= tack zs (init ys&) if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs [];
+			    x:xs = tick (x:zs) xs;
+			    _    = tack zs (init xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
-last [x]	= x;
-last (x:xs)	= last xs;
+last [x]		= x;
+last (x:xs)		= last xs;
 
-map f []	= [];
-map f (x:xs)	= accum [f x] xs with
-		    accum ys []		= reverse ys;
-		    accum ys (x:xs)	= accum (f x:ys) xs;
-		    accum ys xs		= reverse ys+map f xs;
-		  end;
+map f []		= [];
+map f xs@(_:_)		= tick [] xs
+with
+  tick zs (x:xs)	= tack (f x:zs) (map f xs&) if thunkp xs;
+			= tick (f x:zs) xs;
+  tick zs []		= tack zs [];
+  tick zs xs		= tack zs (map f xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
-scanl f a []	= [a];
-scanl f a (x:xs)
-		= accum [a] (f a x) xs with
-		    accum ys a []	= reverse (a:ys);
-		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
-		    accum _ _ xs	= throw (bad_list_value xs);
-		  end;
+scanl f a []		= [a];
+scanl f a xs@(_:_)	= tick a [] xs
+with
+  tick a zs (x:xs)	= tack (a:zs) (scanl f (f a x) xs&) if thunkp xs;
+			= tick (f a x) (a:zs) xs;
+  tick a zs []		= tack zs [a];
+  tick a zs xs		= tack zs (scanl f a xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
-scanl1 f []	= [];
-scanl1 f (x:xs)	= accum [] x xs with
-		    accum ys a []	= reverse (a:ys);
-		    accum ys a (x:xs)	= accum (a:ys) (f a x) xs;
-		    accum _ _ xs	= throw (bad_list_value xs);
-		  end;
+scanl1 f []		= [];
+scanl1 f (x:xs)		= scanl f x xs;
 
-scanr f a []	= [a];
-scanr f a (x:xs)
-		= f x y:ys when
-		    ys = reverse (scanl (flip f) a (reverse xs));
-		    y:_ = ys;
-		  end;
+scanr f a []		= [a];
+scanr f a xs@(_:_)	= tick [] xs
+with
+  /* Hack around with thunks to make these matches irrefutable. */
+  tick zs (x:xs)	= tack zs (f x (y when y:_ = ys end)&:ys
+				   when ys = scanr f a xs& end) if thunkp xs;
+			= tick (x:zs) xs;
+  tick zs []		= tack zs [a];
+  tick zs xs		= throw (bad_list_value xs);
+  tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
+  tack [] ys		= ys;
+end;
 
-scanr1 f []	= [];
-scanr1 f [x]	= [x];
-scanr1 f (x:xs)	= f x y:ys when
-		    ys = reverse (scanl1 (flip f) (reverse xs));
-		    y:_ = ys;
-		  end;
+scanr1 f []		= [];
+scanr1 f [x]		= [x];
+scanr1 f xs@(_:_)	= tick [] xs
+with
+  tick zs (x:xs)	= tack zs (f x (y when y:_ = ys end)&:ys
+				   when ys = scanr1 f xs& end) if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs [x];
+			    x:xs = tick (x:zs) xs;
+			    _    = throw (bad_list_value xs);
+			  end;
+  tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
+  tack [] ys		= ys;
+end;
 
-tail (x:xs)	= xs;
+tail (x:xs)		= xs;
 
-take n::int []	= [];
-take n::int (x:xs)
-		= accum n [] (x:xs) with
-		    accum _ ys []	= reverse ys;
-		    accum n::int ys _	= reverse ys if n<=0;
-		    accum n::int ys (x:xs)
-					= accum (n-1) (x:ys) xs;
-		    accum n ys xs	= reverse ys+take n xs;
-		  end;
+take n::int []		= [];
+take n::int xs@(_:_)	= tick n [] xs
+with
+  tick n::int zs xs	= tack zs [] if n<=0;
+			= case xs of
+			    []   = tack zs [];
+			    x:xs = tick (n-1) (x:zs) xs;
+			    _    = tack zs (take n xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
 takewhile p []	= [];
-takewhile p (x:xs)
-		= accum [] (x:xs) with
-		    accum ys []		= reverse ys;
-		    accum ys (x:xs)	= accum (x:ys) xs if p x;
-					= reverse ys otherwise;
-		    accum ys xs		= reverse ys+takewhile p xs;
-		  end;
+takewhile p xs@(_:_)	= tick [] xs
+with
+  tick zs []		= tack zs [];
+  tick zs (x:xs)	= tick (x:zs) xs if p x;
+			= tack zs [];
+  tick zs xs		= tack zs (takewhile p xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
 
 /* Concatenate a list of lists. */
 
-cat []		= [];
-cat [xs]	= xs;
-cat (xs:xss)	= accum (reverse xs) xss with
-  accum xs []		= reverse xs;
-  accum xs ([]:yss)	= accum xs yss;
-  accum xs ((y:ys):yss)	= accum (y:xs) (ys:yss);
-  accum _ (ys:_)	= throw (bad_list_value ys);
-  accum _ yss		= throw (bad_list_value yss);
+cat []			= [];
+cat xs@(_:_)		= foldr (+) [] xs
+with
+  /* Unfortunately, the global list concatenation operator (+) isn't fully
+     lazy in Pure, because it's also used for arithmetic operations. Using it
+     here would make foldr (and hence cat) eager. Therefore we use our own
+     lazy concatenation operation here. */
+  []+ys			= ys;
+  xs@(_:_)+ys		= tick [] xs ys;
+  tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
+			= tick (x:zs) xs ys;
+  tick zs [] ys		= tack zs ys;
+  tick zs xs ys		= tack zs (xs+ys);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
 end;
 
-/* Combine cat and map. This is used by list comprehensions. */
+/* Map a function to a list and concatenate the results. This is used by list
+   comprehensions. */
 
-catmap f xs	= cat (map f xs);
+catmap f []		= [];
+catmap f xs@(_:_)	= cat (map f xs);
+
+/* NOTE: This definition (from the Haskell prelude) is better, but doesn't
+   preserve left-to-right execution order. */
+//catmap f xs@(_:_)	= foldr ((+).f) [] xs;
 
 /* Search an element in a list. Returns -1 if not found, index of first
    occurrence otherwise. */
 
-index [] _	= -1;
-index (x:xs) y	= search 0 (x:xs) with
+index [] _		= -1;
+index (x:xs) y		= search 0 (x:xs) with
   search _ []		= -1;
   search n::int (x:xs)	= n if x==y;
 			= search (n+1) xs;
@@ -372,49 +462,93 @@ end;
 
 /* Some useful list generators. */
 
-repeat n::int x	= accum [] n x with
+repeat n::int x		= accum [] n x with
   accum xs n::int x	= xs if n<=0;
 			= accum (x:xs) (n-1) x;
 end;
 
-cycle n::int []	= [];
-cycle n::int (x:xs)
-		= [] if n<=0;
-		= accum [] n with
-		    accum ys n::int = cat ys+take n xs if n<=m;
-		                    = accum (xs:ys) (n-m) otherwise;
-		  end when xs = x:xs; m::int = #xs end if listp xs;
+cycle n::int []		= [];
+cycle n::int (x:xs)	= [] if n<=0;
+			= accum [] n with
+			    accum ys n::int = cat ys+take n xs if n<=m;
+			                    = accum (xs:ys) (n-m) otherwise;
+			  end when xs = x:xs; m::int = #xs end if listp xs;
 
-while p f a	= accum [] p f a with
-		    accum as p f a = accum (a:as) p f (f a) if p a;
-		                   = reverse as otherwise;
-		  end;
+while p f a		= accum [] p f a with
+			    accum as p f a = accum (a:as) p f (f a) if p a;
+				           = reverse as otherwise;
+			  end;
 
-until p f a	= accum [] p f a with
-		    accum as p f a = reverse as if p a;
-		                   = accum (a:as) p f (f a) otherwise;
-		  end;
+until p f a		= accum [] p f a with
+			    accum as p f a = reverse as if p a;
+				           = accum (a:as) p f (f a) otherwise;
+			  end;
 
 /* zip, unzip and friends. */
 
-zip xs ys		= accum [] xs ys with
-  accum us (x:xs) (y:ys)	= accum ((x,y):us) xs ys;
-  accum us _ _			= reverse us;
+zip [] _		|
+zip _ []		= [];
+zip xs@(_:_) ys@(_:_)	= tick [] xs ys
+with
+  tick us (x:xs) (y:ys)	= tack ((x,y):us) (zip xs ys&)
+			    if thunkp xs || thunkp ys;
+			= tick ((x,y):us) xs ys;
+  tick us [] _		|
+  tick us _ []		= tack us [];
+  tick us xs ys		= tack us (zip xs ys);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
 end;
 
-zip3 xs ys zs		= accum [] xs ys zs with
-  accum us (x:xs) (y:ys) (z:zs)	= accum ((x,y,z):us) xs ys zs;
-  accum us _ _ _		= reverse us;
+zip3 [] _ _		|
+zip3 _ [] _		|
+zip3 _ _ []		= [];
+zip3 xs@(_:_) ys@(_:_) zs@(_:_)
+			= tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)
+			= tack ((x,y,z):us) (zip3 xs ys zs&)
+			    if thunkp xs || thunkp ys || thunkp zs;
+			= tick ((x,y,z):us) xs ys zs;
+  tick us [] _ _	|
+  tick us _ [] _	|
+  tick us _ _ []	= tack us [];
+  tick us xs ys zs	= tack us (zip3 xs ys zs);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
 end;
 
-zipwith f xs ys		= accum [] xs ys with
-  accum us (x:xs) (y:ys)	= accum (f x y:us) xs ys;
-  accum us _ _			= reverse us;
+zipwith f [] _		|
+zipwith f _ []		= [];
+zipwith f xs@(_:_) ys@(_:_)
+			= tick [] xs ys
+with
+  tick us (x:xs) (y:ys)	= tack (f x y:us) (zipwith f xs ys&)
+			    if thunkp xs || thunkp ys;
+			= tick (f x y:us) xs ys;
+  tick us [] _		|
+  tick us _ []		= tack us [];
+  tick us xs ys		= tack us (zipwith f xs ys);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
 end;
 
-zipwith3 f xs ys zs	= accum [] xs ys zs with
-  accum us (x:xs) (y:ys) (z:zs)	= accum (f x y z:us) xs ys zs;
-  accum us _ _ _		= reverse us;
+zipwith3 f [] _ _		|
+zipwith3 f _ [] _		|
+zipwith3 f _ _ []		= [];
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
+			= tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)
+			= tack (f x y z:us) (zipwith3 f xs ys zs&)
+			    if thunkp xs || thunkp ys || thunkp zs;
+			= tick (f x y z:us) xs ys zs;
+  tick us [] _ _	|
+  tick us _ [] _	|
+  tick us _ _ []	= tack us [];
+  tick us xs ys zs	= tack us (zipwith3 f xs ys zs);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
 end;
 
 dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
@@ -425,17 +559,20 @@ dowith3 f (x:xs) (y:ys) (z:zs)
 dowith3 f _ _ _		= () otherwise;
 
 unzip []		= [],[];
-unzip ((x,y):us)	= x:xs,y:ys when xs,ys = accum [] [] us end
+unzip us@(_:_)		= foldr accum ([],[]) us
 with
-  accum xs ys []		= reverse xs,reverse ys;
-  accum xs ys ((x,y):us)	= accum (x:xs) (y:ys) us;
-  accum _ _ us			= throw (bad_list_value us);
+  accum u@(x,y) us	= x:(xs when xs,_ = us end)&,
+			  y:(ys when _,ys = us end)& if thunkp us;
+			= x:xs,y:ys when xs,ys = us end;
+  accum u _		= throw (bad_tuple_value u);
 end;
 
 unzip3 []		= [],[],[];
-unzip3 ((x,y,z):us)	= x:xs,y:ys,z:zs when xs,ys,zs = accum [] [] [] us end
+unzip3 us@(_:_)		= foldr accum ([],[],[]) us
 with
-  accum xs ys zs []		= reverse xs,reverse ys,reverse zs;
-  accum xs ys zs ((x,y,z):us)	= accum (x:xs) (y:ys) (z:zs) us;
-  accum _ _ _ us		= throw (bad_list_value us);
+  accum u@(x,y,z) us	= x:(xs when xs,_,_ = us end)&,
+			  y:(ys when _,ys,_ = us end)&,
+			  z:(zs when _,_,zs = us end)& if thunkp us;
+			= x:xs,y:ys,z:zs when xs,ys,zs = us end;
+  accum u _		= throw (bad_tuple_value u);
 end;
