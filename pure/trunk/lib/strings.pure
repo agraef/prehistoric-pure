@@ -151,19 +151,22 @@ with
 			  end;
 end when m = #delim end if not null delim;
 
-/* Slicing. */
+/* Conversions between between strings and lists, streams and tuples. */
 
-s::string!!ns		= strcat [s!n; n=ns; n>=0 && n<m]
-			    when m::int = #s end;
+list s::string		= chars s;
+stream s::string	= stream (chars s);
+tuple s::string		= tuple (chars s);
 
 /* Define the customary list operations on strings, so that these can mostly
    be used as if they were lists. */
 
-list s::string		= chars s;
-tuple s::string		= tuple (chars s);
+s::string+[]		= chars s;
+s::string+xs@(_:_)	= chars s+xs;
+[]+s::string+[]		= chars s;
+xs@(_:_)+s::string	= xs+chars s;
 
 reverse s::string	= strcat (reverse (chars s));
-cat (s::string:xs)	= cat (chars s:xs);
+catmap f s::string	= catmap f (chars s);
 
 cycle n::int ""		= "";
 cycle n::int s::string	= "" if n<=0;
