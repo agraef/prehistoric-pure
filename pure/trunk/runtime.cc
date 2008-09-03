@@ -250,8 +250,11 @@ static pure_closure *pure_copy_clos(pure_closure *clos)
     ret->env = 0;
   else {
     ret->env = new pure_expr*[clos->m];
-    for (size_t i = 0; i < clos->m; i++)
-      ret->env[i] = pure_new_internal(clos->env[i]);
+    for (size_t i = 0; i < clos->m; i++) {
+      ret->env[i] = clos->env[i];
+      assert(clos->env[i]->refc > 0);
+      clos->env[i]->refc++;
+    }
   }
   return ret;
 }
