@@ -248,9 +248,11 @@ xs!!ns		= catmap (nth xs) ns
 
 infix 1 .. ;
 
-n1,n2..m	= while (\i->s*i<=s*m) (\x->x+k) n1
+n1,n2..m	= if m===s*inf then iterate (\x->x+k) n1
+		  else while (\i->s*i<=s*m) (\x->x+k) n1
 		  when k = n2-n1; s = if k>0 then 1 else -1 end if n1!=n2;
-n..m		= while (\i->i<=m) (\x->x+1) n;
+n..m		= if m===inf then iterate (\x->x+1) n
+		  else while (\i->i<=m) (\x->x+1) n;
 
 /* Common list functions. This mostly comes straight from the Q prelude which
    in turn was based on the first edition of the Bird/Wadler book, and is very
