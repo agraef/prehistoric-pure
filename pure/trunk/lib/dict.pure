@@ -271,8 +271,8 @@ end;
 
 
 // create dict or hdict from a list of keys and a constant value
-mkdict  y xs			= dict  (zipwith (=>) xs (repeat (#xs) y)) if listp xs;
-mkhdict y xs			= hdict (zipwith (=>) xs (repeat (#xs) y)) if listp xs;
+mkdict  y xs			= dict  (zipwith (=>) xs (repeatn (#xs) y)) if listp xs;
+mkhdict y xs			= hdict (zipwith (=>) xs (repeatn (#xs) y)) if listp xs;
 
 // check for the empty dict or hdict
 null (Dict nil)			= 1;
