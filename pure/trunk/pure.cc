@@ -48,15 +48,16 @@ Environment:\n\
 PURELIB       Directory to search for library scripts and the prelude.\n\
 PURE_INCLUDE  Path to search for included source files.\n\
 PURE_LIBRARY  Path to search for dynamic libraries.\n\
-PURE_MORE     Shell command for paging through output of the 'list' command.\n\
+PURE_MORE     Shell command for paging through output of the 'show' command.\n\
 PURE_PS       Command prompt to be used in the interactive command loop.\n\
 PURE_STACK    Maximum stack size in kilobytes (default: 0 = unlimited).\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
 static const char *commands[] = {
   "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
-  "infixr", "let", "list", "ls", "nullary", "override", "postfix", "prefix",
-  "private", "pwd", "quit", "run", "save", "stats", "underride", "using", 0
+  "infixr", "let", "ls", "nullary", "override", "postfix", "prefix",
+  "private", "pwd", "quit", "run", "save", "show", "stats", "underride",
+  "using", 0
 };
 
 /* Generator functions for command completion. */

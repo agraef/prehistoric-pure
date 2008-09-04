@@ -133,8 +133,9 @@ static bool env_compare(env_sym s, env_sym t)
 
 static const char *commands[] = {
   "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
-  "infixr", "let", "list", "ls", "nullary", "override", "postfix", "prefix",
-  "private", "pwd", "quit", "run", "save", "stats", "underride", "using", 0
+  "infixr", "let", "ls", "nullary", "override", "postfix", "prefix",
+  "private", "pwd", "quit", "run", "save", "show", "stats", "underride",
+  "using", 0
 };
 
 typedef map<string, symbol> symbol_map;
@@ -357,8 +358,8 @@ ptrtag  ::{blank}*pointer
   else if (chdir(args.l.begin()->c_str()))
     perror("cd");
 }
-^list.* {
-  // list command is only permitted in interactive mode
+^show.* {
+  // show command is only permitted in interactive mode
   if (!interp.interactive) REJECT;
   uint8_t s_verbose = interpreter::g_verbose;
   uint8_t tflag = 0; int pflag = -1;
@@ -368,7 +369,7 @@ ptrtag  ::{blank}*pointer
   const char *s = yytext+4;
   if (*s && !isspace(*s)) REJECT;
   yylloc->step();
-  argl args(s, "list");
+  argl args(s, "show");
   list<string>::iterator arg;
   if (!args.ok) goto out;
   // process option arguments
@@ -402,8 +403,8 @@ ptrtag  ::{blank}*pointer
 	  tflag = interp.temp;
 	break;
       case 'h':
-	cout << "list command help: list [options ...] [symbol ...]\n\
-Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
+	cout << "show command help: show [options ...] [symbol ...]\n\
+Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
 -a  Disassembles pattern matching automata. Useful for debugging purposes.\n\
 -c  Print information about defined constants.\n\
 -d  Disassembles LLVM IR, showing the generated LLVM assembler code of a\n\
@@ -427,7 +428,7 @@ Options may be combined, e.g., list -tvl is the same as list -t -v -l.\n\
 -v  Print information about defined variables.\n";
 	goto out;
       default:
-	cerr << "list: invalid option character '" << *s << "'\n";
+	cerr << "show: invalid option character '" << *s << "'\n";
 	goto out;
       }
     }

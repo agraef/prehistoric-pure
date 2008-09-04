@@ -1,3 +1,11 @@
+2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
+
+	* pure.cc, lexer.ll: Renamed the interactive 'list' command to
+	'show', as suggested by John Cowan. This hopefully puts an end to
+	inadvertent execution of that command, since 'show' is no prelude
+	function and is deemed less likely to be used as a function name
+	by the programmer.
+
 2008-09-04  Albert Graef  <Dr.Graef@t-online.de>
 
 	* lib/prelude.pure: Added the normal order fixed point combinator,
