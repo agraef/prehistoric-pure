@@ -614,7 +614,7 @@ returns another function which adds x to its argument:
 .nf
 > foo x = bar \fBwith\fP bar y = x+y \fBend\fP;
 > \fBlet\fP f = foo 99; f;
-<<closure bar>>
+{{closure bar}}
 > f 10, f 20;
 109,119
 .fi
@@ -800,7 +800,7 @@ create the infinite list of all positive integers:
 > ones = 1:ones&;
 > integers = 1 : zipwith (+) ones integers&;
 > \fBlet\fP ints = integers; ints;
-1:<<thunk 0xb5fdd5b8>>
+1:{{thunk 0xb5fdd5b8}}
 .fi
 .PP
 (Note that we use machine integers in this example, so in fact the list will
@@ -815,7 +815,7 @@ with streams just as well as with ``eager'' lists:
 .sp
 .nf
 > take 10 ints;
-1:<<thunk 0xb5fdd5e8>>
+1:{{thunk 0xb5fdd5e8}}
 .fi
 .PP
 Hmm, not much progress there, but that's just how streams work (or rather
@@ -848,7 +848,7 @@ Let's take another look at the `ints' stream now:
 .sp
 .nf
 > ints;
-1:2:3:4:5:6:7:8:9:10:<<thunk 0xb5fddcd8>>
+1:2:3:4:5:6:7:8:9:10:{{thunk 0xb5fddcd8}}
 .fi
 .PP
 As you can see, the invokation of `list' on the result of `take' forced the
@@ -877,7 +877,7 @@ values from streams and return the appropriate stream result:
 .sp
 .nf
 > \fBlet\fP pairs = [i,j; i=1..inf; j=1..i]; pairs;
-(1,1):<<thunk 0xb5f28818>>
+(1,1):{{thunk 0xb5f28818}}
 > takel 10 pairs;
 [(1,1),(2,1),(2,2),(3,1),(3,2),(3,3),(4,1),(4,2),(4,3),(4,4)]
 .fi
