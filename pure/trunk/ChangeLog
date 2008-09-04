@@ -1,3 +1,44 @@
+2008-09-04  Albert Graef  <Dr.Graef@t-online.de>
+
+	* lib/prelude.pure: Added the normal order fixed point combinator,
+	'fix'.
+
+	* lib/prelude.pure: Overhaul of list operations in the prelude, so
+	that they properly work with "thunked" lists (streams). Where
+	possible, these operations have been redesigned to make them
+	non-strict, while keeping them tail-recursive for the parts of a
+	list which have already been evaluated.
+
+	In particular, the cat and catmap operations now handle infinite
+	streams of infinite streams, and hence list comprehensions can
+	draw values from infinite streams as well.
+
+	The 'list' function can be used to convert a (finite) stream to an
+	ordinary list, forcing its evaluation. Conversely, the new
+	'stream' function converts an ordinary list (tuple, string) to a
+	stream.
+
+	There are a few other related changes in the prelude:
+
+	- The slicing operation (!!) is now implemented in a completely
+	generic way which works with any container data structure which
+	implements the indexing (!) operation. It also works properly if
+	both operands are infinite streams.
+
+	- Arithmetic sequences (..) now take an infinity (inf or -inf) as
+	the second operand and will generate the appropriate stream in
+	such cases.
+
+	- The repeat and cycle functions have been rewritten to make them
+	Haskell-compatible, i.e., they only take a single argument now and
+	generate infinite streams. Haskell's iterate function is now also
+	implemented. The previous versions of repeat and cycle, which take
+	an additional integer parameter to denote the desired length of
+	the result and return an ordinary (eager) list, are now available
+	under the names repeatn and cyclen. (To make cyclen compatible
+	with cycle, it now also returns a list if applied to a string, use
+	strcat to convert the result back to a string if needed.)
+
 2008-09-01  Albert Graef  <Dr.Graef@t-online.de>
 
 	* interpreter.cc, runtime.cc, symtable.cc/h, lib/prelude.pure:
