@@ -2020,21 +2020,15 @@ are defined. No sweat, with the Pure interpreter there's no need to dive into
 the sources, the
 .B list
 command can easily do it for you. For instance, here's how you can list the
-definitions of all list ``fold'' operations from the prelude in one go:
+definitions of all ``fold-left'' operations from the prelude in one go:
 .sp
 .nf
-> \fBlist\fP -g fold*
+> \fBlist\fP -g foldl*
 foldl f a s::string = foldl f a (chars s);
 foldl f a [] = a;
 foldl f a (x:xs) = foldl f (f a x) xs;
 foldl1 f s::string = foldl1 f (chars s);
 foldl1 f (x:xs) = foldl f x xs;
-foldr f a s::string = foldr f a (chars s);
-foldr f a [] = a;
-foldr f a (x:xs) = f x (foldl (flip f) a (reverse xs));
-foldr1 f s::string = foldr1 f (chars s);
-foldr1 f [x] = x;
-foldr1 f (x:xs) = f x (foldl1 (flip f) (reverse xs));
 .fi
 .SH DEFINITION LEVELS
 To help with incremental development, the interpreter also offers some
