@@ -793,39 +793,43 @@ just turning the tail of a list into a
 This special kind of list is also called a
 .IR stream .
 Streams enable you to work with infinite lists (or finite lists which are so
-huge that we would never want to keep them in memory). E.g., here's one way to
-create the infinite list of all positive integers:
+huge that you would never want to keep them in memory in their
+entirety). E.g., here's one way to define the infinite stream of all Fibonacci
+numbers:
 .sp
 .nf
-> ones = 1:ones&;
-> integers = 1 : zipwith (+) ones integers&;
-> \fBlet\fP ints = integers; ints;
-1:{{thunk 0xb5fdd5b8}}
+> fibs = 0L : 1L : zipwith (+) fibs (tail fibs) &;
+> fibs;
+0L:1L:{{thunk 0xb5f875e8}}
 .fi
 .PP
-(Note that we use machine integers in this example, so in fact the list will
-wrap around to the smallest negative integer at some point.)
+Note the `&' on the tail of the list. This turns `fibs' into a stream, which
+is required to prevent `fibs' from recursing into samadhi. Also note that we
+work with bigints in this example because the Fibonacci numbers grow quite
+rapidly, so with machine integers the values would soon start wrapping around
+to negative integers.
 .PP
-Of course, care must be taken not to invoke ``eager'' operations such as `#'
-(which computes the size of a list) on infinite streams, since this never
-terminates. However, many list operations work with infinite streams just
-fine, and return the appropriate stream results. E.g., the `take' function
-(which retrieves a given number of elements from the front of a list) works
-with streams just as well as with ``eager'' lists:
+Streams like these can be worked with in pretty much the same way as with
+lists. Of course, care must be taken not to invoke ``eager'' operations such
+as `#' (which computes the size of a list) on infinite streams, to prevent
+infinite recursion. However, many list operations work with infinite streams
+just fine, and return the appropriate stream results. E.g., the `take'
+function (which retrieves a given number of elements from the front of a list)
+works with streams just as well as with ``eager'' lists:
 .sp
 .nf
-> take 10 ints;
-1:{{thunk 0xb5fdd5e8}}
+> take 10 fibs;
+0L:1L:{{thunk 0xb5f87630}}
 .fi
 .PP
 Hmm, not much progress there, but that's just how streams work (or rather
-don't, they're lazy bums indeed!). But the stream computed with `take' is in
-fact finite and we can readily convert it to an ordinary list, forcing its
-evaluation:
+don't, they're lazy bums indeed!). Nevertheless, the stream computed with
+`take' is in fact finite and we can readily convert it to an ordinary list,
+forcing its evaluation:
 .sp
 .nf
-> (list) (take 10 ints);
-[1,2,3,4,5,6,7,8,9,10]
+> (list) (take 10 fibs);
+[0L,1L,1L,2L,3L,5L,8L,13L,21L,34L]
 .fi
 .PP
 (Note that we typed `(list)' instead of just `list' here, so that the
@@ -840,25 +844,98 @@ this operation in the following examples.
 .sp
 .nf
 > takel n xs = list (take n xs);
-> takel 10 ints;
-[1,2,3,4,5,6,7,8,9,10]
+> takel 10 fibs;
+[0L,1L,1L,2L,3L,5L,8L,13L,21L,34L]
 .fi
 .PP
-Let's take another look at the `ints' stream now:
+Well, this naive definition of the Fibonacci stream works, but it's awfully
+inefficient. In fact, it takes exponential running time to determine the
+.IR n th
+member of the sequence, because of the two recursive calls to `fibs' on the
+right-hand side. This defect soon becomes rather annoying if we access larger
+members of the sequence. Just for fun, let's measure some evaluation times
+with the interactive
+.B stats
+command:
 .sp
 .nf
-> ints;
-1:2:3:4:5:6:7:8:9:10:{{thunk 0xb5fddcd8}}
+> \fBstats\fP
+> fibs!25; fibs!26; fibs!27;
+75025L
+2.29s
+121393L
+3.75s
+196418L
+6.12s
+> \fBstats off\fP
 .fi
 .PP
-As you can see, the invokation of `list' on the result of `take' forced the
-corresponding prefix of the `ints' stream to be computed. The result of this
-is memoized, so that this portion of the stream is now readily available in
-case we need to have another look at it again later. By these means, possibly
-costly reevaluations are avoided, trading memory for execution speed.
+It's quite apparent that the ratios between successive running times converge
+to the golden ratio from above (which is of course no accident!). So, assuming
+a fast computer which can produce the first stream element in a nanosecond, a
+conservative estimate of the time needed to compute just the 128th Fibonacci
+number would already exceed the current age of the universe by some 29.6%, if
+done this way. It goes without saying that this kind of algorithm won't even
+pass muster in a computer science freshman course.
 .PP
-A number of convenience operations are available for generating stream values.
-The prelude defines infinite arithmetic sequences, using
+So let's get back to the drawing board. One nice trick of the trade is to have
+the
+.I value
+of the Fibonacci stream refer to itself in its definition, rather than just
+the function generating it. For that we need a kind of ``recursive variable
+definition'' which Pure doesn't have. (Haskellers should note here that the
+values of parameterless functions are never memoized in Pure, because that
+would wreak havoc on functions with side effects.) Fortunately, we can work
+around this quite easily by employing the so-called
+.IR "fixed point combinator" ,
+incidentally called
+.B fix
+in Pure and defined in the prelude as follows:
+.sp
+.nf
+> \fBlist\fP fix
+fix f = y y \fBwhen\fP y = \ex -> f (x x&) \fBend\fP;
+.fi
+.PP
+(Functional programming buffs surely notice that this is an implementation of
+the normal order fixed point combinator, decorated with `&' in the right place
+to make it work with eager evaluation. Aspiring novices may go read Wikipedia
+or a good book on the lambda calculus now.)
+.PP
+So here's how we can define a ``linear-time'' version of the Fibonacci
+stream. (Note that we also define the stream as a variable now, to take full
+advantage of memoization.)
+.sp
+.nf
+> \fBclear\fP fibs
+> \fBlet\fP fibs = fix (\ef -> 0L : 1L : zipwith (+) f (tail f) &);
+> fibs;
+0L:1L:{{thunk 0xb58d8ae0}}
+> takel 10 fibs;
+[0L,1L,1L,2L,3L,5L,8L,13L,21L,34L]
+> fibs;
+0L:1L:1L:2L:3L:5L:8L:13L:21L:34L:{{thunk 0xb4ce5d30}}
+.fi
+.PP
+As you can see, the invokation of our `takel' function forced the
+corresponding prefix of the `fibs' stream to be computed. The result of the
+evaluation is memoized, so that this portion of the stream is now readily
+available in case we need to have another look at it later. By these means,
+possibly costly reevaluations are avoided, trading memory for execution speed.
+.PP
+Also, the trick we played with the fixed point combinator pays off, and in
+fact computing large Fibonacci numbers is a piece of cake now:
+.sp
+.nf
+> \fBstats\fP
+> fibs!199;
+173402521172797813159685037284371942044301L
+0.1s
+> \fBstats off\fP
+.fi
+.PP
+Let's take a look at some of the other convenience operations for generating
+stream values. The prelude defines infinite arithmetic sequences, using
 .B inf
 or
 .B -inf
@@ -872,14 +949,26 @@ to denote an upper (or lower) infinite bound for the sequence, e.g.:
 .fi
 .PP
 Other useful stream generator functions are `iterate', `repeat' and `cycle',
-which have been adopted from Haskell. Moreover, list comprehensions can draw
-values from streams and return the appropriate stream result:
+which have been adopted from Haskell. In fact, infinite arithmetic
+progressions are implemented in terms of `iterate'. The `repeat' function just
+repeats its argument, and `cycle' cycles through the elements of the given
+list until hell freezes over:
 .sp
 .nf
-> \fBlet\fP pairs = [i,j; i=1..inf; j=1..i]; pairs;
-(1,1):{{thunk 0xb5f28818}}
-> takel 10 pairs;
-[(1,1),(2,1),(2,2),(3,1),(3,2),(3,3),(4,1),(4,2),(4,3),(4,4)]
+> takel 10 (repeat 1);
+[1,1,1,1,1,1,1,1,1,1]
+> takel 10 (cycle [0,1]);
+[0,1,0,1,0,1,0,1,0,1]
+.fi
+.PP
+Moreover, list comprehensions can draw values from streams and return the
+appropriate stream result:
+.sp
+.nf
+> \fBlet\fP rats = [m,n-m; n=2..inf; m=1..n-1; gcd m (n-m) == 1]; rats;
+(1,1):{{thunk 0xb5fd08b8}}
+> takel 10 rats;
+[(1,1),(1,2),(2,1),(1,3),(3,1),(1,4),(2,3),(3,2),(4,1),(1,5)]
 .fi
 .PP
 Finally, let's rewrite our prime sieve so that it generates the infinite
@@ -915,6 +1004,12 @@ Ctrl-C when you get bored.
 5
   ...
 .fi
+.PP
+(Make sure that you really use the `all_primes' function instead of the P
+variable to print the stream. Otherwise the stream stored in P will grow with
+the number of elements printed until memory is exhausted. Calling `do' on a
+fresh instance of the stream of primes allows `do' to get rid of each `cons'
+cell after having printed the corresponding stream element.)
 .SH RULE SYNTAX
 Basically, the same rule syntax is used in all kinds of global and local
 definitions. However, some constructs (specifically, \fBwhen\fP, \fBlet\fP,
@@ -2345,10 +2440,48 @@ only the right kind of data is passed to C routines.
 .PP
 .B Special forms.
 Special forms are recognized at compile time only. Thus the catch function as
-well as the logical connectives && and || and the sequencing operator $$ are
-only treated as special forms in direct (saturated) calls. They can still be
-used if you pass them around as function values or partial applications, but
-in this case they lose all their special call-by-name argument processing.
+well as the logical connectives && and ||, the sequencing operator $$ and the
+lazy evaluation operator & are only treated as special forms in direct
+(saturated) calls. They can still be used if you pass them around as function
+values or partial applications, but in this case they lose all their special
+call-by-name argument processing.
+.PP
+.B Laziness.
+Pure approaches lazy evaluation in basically the same as Alice ML, providing
+an explicit operation (&) to defer evaluation and create a ``future'' which is
+called by need. However, note that like any language with a basically eager
+evaluation strategy, Pure cannot really support lazy evaluation in a fully
+automatic way. That is, coding an operation so that it works with infinite
+data structures always requires additional effort to recognize futures in the
+input and handle them accordingly. This can be hard, but of course in the case
+of the prelude operations this work has already been done for you, so as long
+as you stick to these, you'll never have to think about these issues.
+.PP
+Specifically, the prelude goes to great lengths to implement all standard list
+operations in a way that properly deals with streams (a.k.a. list futures).
+What this all boils down to is that all list operations which can reasonably
+be expected to operate in a lazy way on streams, will do so. (Exceptions are
+inherently eager operations such as `#', reverse and foldl.) Only those
+portions of an input stream will be traversed which are strictly required to
+produce the result. For most purposes, this works just like in fully lazy FPLs
+such as Haskell. However, there are some notable differences:
+.IP *
+Since Pure uses dynamic typing, some of the list functions may have to peek
+ahead one element in input streams to check their arguments for validity,
+meaning that these functions will be slightly more eager than their Haskell
+counterparts.
+.IP *
+Pure's list functions never produce truly cyclic list structures such as the
+ones you get, e.g., with Haskell's `cycle' operation. (This is actually a good
+thing, because the current implementation of the interpreter cannot
+garbage-collect cyclic expression data.) Cyclic streams such as `cycle [1]' or
+`fix (\ex -> 1:x)' will of course work as expected, but, depending on the
+algorithm, memory usage may increase linearly as they are traversed.
+.IP *
+Pattern matching is always refutable (and therefore eager) in Pure. If you
+need something like Haskell's irrefutable matches, you'll have to code them
+explicitly using futures. See the definition of the `unzip' function in the
+prelude for an example showing how to do this.
 .PP
 .B Stack size and tail recursion.
 Pure programs may need a considerable amount of stack space to handle
@@ -2485,6 +2618,10 @@ Gutenberg University of Mainz, Germany.
 .B Aardappel
 Another functional programming language based on term rewriting,
 \fIhttp://wouter.fov120.com/aardappel\fP.
+.TP
+.B Alice ML
+A version of ML (see below) with ``futures'',
+\fIhttp://www.ps.uni-sb.de/alice\fP.
 .TP
 .B Haskell
 A popular non-strict FPL, \fIhttp://www.haskell.org\fP.
