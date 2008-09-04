@@ -166,6 +166,26 @@ end;
 
 primes 100;
 
+/* Using streams (lazy lists), we can also compute the infinite list of *all*
+   prime numbers. */
+
+all_primes	= sieve (2..inf) with
+  sieve []	= [];
+  sieve (p:qs)	= p : sieve [q; q = qs; q mod p] &;
+end;
+
+// Assign this to a variable, so we can take advantage of memoization.
+let P = all_primes;
+
+// The primes <=100, this is the same as primes 100.
+let P1 = list $ takewhile (\x->x<=100) P; P1;
+
+// The first 30 primes.
+let P2 = list $ take 30 P; P2;
+
+// The 299th prime.
+P!299;
+
 /* The classical n queens problem: Compute all placements of n queens on an
    n x n board so that no two queens hold each other in check. This algorithm
    demonstrates how you can use list comprehensions to organize backtracking
