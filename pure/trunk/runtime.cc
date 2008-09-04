@@ -1477,6 +1477,8 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
 {
   char test;
   assert(x && y && x->refc > 0 && y->refc > 0);
+  // if the function in this call is a thunk, evaluate it now
+  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) pure_force(x);
   // travel down the spine, count arguments
   pure_expr *f = x, *f0, *ret;
   uint32_t n = 1;
