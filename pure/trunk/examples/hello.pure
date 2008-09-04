@@ -84,9 +84,9 @@ fact5 = \n -> if n>0 then n*fact5 (n-1) else 1;
 // Using fixed points. This technique allows you to define a recursive
 // function without referring to the name of the function in its body. See
 // http://en.wikipedia.org/wiki/Fixed_point_combinator for an explanation.
+// The (normal order) fixed point combinator 'fix' is defined in the prelude.
 
-fact6 = Z (\f n -> if n<=0 then 1 else n*f (n-1));
-Z = \f -> (\x -> f (\y -> x x y)) (\x -> f (\y -> x x y));
+fact6 = fix (\f n -> if n<=0 then 1 else n*f (n-1));
 
 // These should all evaluate to the same list of the first 10 factorials.
 
