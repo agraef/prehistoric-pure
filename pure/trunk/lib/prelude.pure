@@ -89,6 +89,10 @@ uncurry f (x,y)	= f x y;
 uncurry3 f (x,y,z)
 		= f x y z;
 
+/* The (normal order) fixed point combinator. */
+
+fix f = y y when y = \x -> f (x x&) end;
+
 /* Some convenient optimization rules which eliminate saturated calls of the
    function composition combinators. */
 
@@ -211,7 +215,7 @@ reverse (x:xs)	= accum [x] xs with
   accum	ys xs		= throw (bad_list_value xs);
 end;
 
-/* Convert between lists and tuples. */
+/* Conversions between lists, tuples and streams. */
 
 list ()		= [];
 list (x,xs)	= accum [x] xs with
@@ -226,14 +230,15 @@ tuple (x:xs)	= accum x xs with
   accum	ys xs		= ys,xs;
 end;
 
-/* Convert between lists and streams. */
-
 list []		= [];
 list (x:xs)	= x:list xs;
 
 stream []	= [];
 stream (x:xs)	= x:xs if thunkp xs;
 		= x:stream xs& otherwise;
+
+stream ()	= [];
+stream xs@(_,_)	= stream (list xs);
 
 /* Slicing. xs!!ns returns the list of xs!n for all members n of the index
    list ns which are in the valid index range. This is a generic definition
