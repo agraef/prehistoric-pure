@@ -1438,6 +1438,7 @@ pure_expr *pure_force(pure_expr *x)
     // that recursively
     if (ret->tag == 0 && ret->data.clos && ret->data.clos->n == 0)
       ret = pure_force(pure_new_internal(ret));
+    pure_new_internal(ret);
     // memoize the result
     assert(x!=ret);
     pure_free_clos(x);
@@ -1458,7 +1459,7 @@ pure_expr *pure_force(pure_expr *x)
 	x->data.clos = pure_copy_clos(x->data.clos);
       break;
     }
-    pure_freenew(ret);
+    pure_free_internal(ret);
     return x;
   } else {
 #if DEBUG>2
