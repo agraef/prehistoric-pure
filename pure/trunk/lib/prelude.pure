@@ -439,7 +439,8 @@ with
   /* Unfortunately, the global list concatenation operator (+) isn't fully
      lazy in Pure, because it's also used for arithmetic operations. Using it
      here would make foldr (and hence cat) eager. Therefore we use our own
-     lazy concatenation operation here. */
+     concatenation operation here, which properly deals with the case that ys
+     is an infinite stream. */
   []+ys			= ys;
   xs@(_:_)+ys		= tick [] xs ys;
   tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
