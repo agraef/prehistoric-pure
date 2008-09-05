@@ -1,5 +1,8 @@
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lexer.ll: Warn about used identifiers which are also interactive
+	commands.
+
 	* printer.cc: Changed <<...>> syntax for "external" objects such
 	as closures, thunks and pointers to #<...> syntax pilfered from
 	Scheme. This is less likely to be mistaken for a valid Pure
