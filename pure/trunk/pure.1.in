@@ -1813,6 +1813,86 @@ command prompt:
 [1,2,6,24,120,720,5040,40320,362880,3628800]
 .fi
 .PP
+.B Print syntax.
+As indicated, in interactive mode the normal forms of toplevel expressions are
+printed after each expression is entered. We also call this the
+.I read-eval-print
+loop. Normal form expressions are usually printed in the same form as you'd
+enter them. However, there are a few special kinds of objects like closures
+(anonymous and local functions), thunks (``lazy'' values to be evaluated when
+needed) and pointers which don't have a textual representation in the Pure
+syntax and will be printed in the format
+.BR "#<\fIobject description\fP>" .
+.PP
+The interpreter provides a ``hook'' to override the print representations of
+expressions at runtime by means of the
+.B __show__
+function. This is just an ordinary Pure function expected to return a string
+with the desired custom representation of a normal form value given as the
+function's single argument. __show__ is not defined by default, so you are
+free to add any rules that you want. The interpreter prints the strings
+returned by __show__ just as they are. It will
+.I not
+check whether they conform to Pure syntax and/or semantics, or modify them in
+any way.
+.PP
+Custom print representations are most useful for interactive purposes, when
+you're not happy with the default print syntax of some kinds of objects, or if
+you just want to change the format of numeric values. Here are some examples:
+.sp
+.nf
+> \fBusing\fP system;
+> __show__ x::double = sprintf "%0.6f" x;
+> 1/7;
+0.142857
+> __show__ x::int = sprintf "0x%0x" x;
+> 1786;
+0x6fa
+> \fBusing\fP math;
+> __show__ (x::double+:y::double) = sprintf "%0.6f+%0.6fi" (x,y);
+> cis (-pi);
+-1.000000+0.000000i
+.fi
+.PP
+The prelude function
+.BR str ,
+which returns the print representation of any Pure expression, uses __show__
+as well:
+.sp
+.nf
+> str (1/7);
+"0.142857"
+.fi
+.PP
+However, the str function always returns just the default representation of an
+expression if it is invoked through __show__. This prevents __show__ from
+going recursive, and allows you to define your custom representation in terms
+of the default one. E.g., the following rule removes the `L' suffixes from
+bigint values:
+.sp
+.nf
+> __show__ x::bigint = init (str x);
+> fact n = foldl (*) 1L (1..n);
+> fact 30;
+265252859812191058636308480000000
+.fi
+.PP
+By just purging the definition of the __show__ function you can easily go back
+to the standard print syntax:
+.sp
+.nf
+> \fBclear\fP __show__
+> 1/7; 1786; cis (-pi);
+0.142857142857143
+1786
+-1.0+:1.22460635382238e-16
+> str (1/7);
+"0.142857142857143"
+> fact 30;
+265252859812191058636308480000000L
+.fi
+.PP
+.B Interactive commands.
 When running interactively, the interpreter also accepts a number of special
 commands useful for interactive purposes. Here is a quick rundown of the
 currently supported operations:
@@ -1899,9 +1979,9 @@ See the DEFINITION LEVELS section below for details.
 Note that these special commands are only recognized at the beginning of the
 interactive command line (they are not reserved keywords of the Pure
 language). Thus it's possible to ``escape'' identifiers looking like commands
-by entering a space at the start of the line. However, the compiler also warns
-you about identifiers which might be mistaken as command names, so that you
-can avoid this kind of problem.
+by entering a space at the beginning of the line. However, the compiler also
+warns you about identifiers which might be mistaken as command names, so that
+you can avoid this kind of problem.
 .PP
 Some commands which are especially important for effective operation of the
 interpreter are discussed in more detail in the following sections.
@@ -2273,11 +2353,11 @@ Another pitfall is that
 and
 .B when
 clauses are tacked on to the end of the expression they belong to, which
-mimics mathematical notation but may be unfamilar if you're more accustomed to
-languages from the Algol/Pascal/C family. If you want to figure out what is
-actually going on there, it's usually best to read nested scopes ``in
-reverse'' (proceeding from the rightmost/outermost to the leftmost/innermost
-clause).
+mimics mathematical language but may be unfamilar if you're more accustomed to
+programming languages from the Algol/Pascal/C family. If you want to figure
+out what is actually going on there, it's usually best to read nested scopes
+``in reverse'' (proceeding from the rightmost/outermost to the
+leftmost/innermost clause).
 .PP
 Also note that since
 .B with
