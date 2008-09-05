@@ -1,5 +1,8 @@
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (pure_force): Fix a rather obscure segfault in the
+	thunk implementation. See also test/test023.pure.
+
 	* lexer.ll: Warn about used identifiers which are also interactive
 	commands.
 
