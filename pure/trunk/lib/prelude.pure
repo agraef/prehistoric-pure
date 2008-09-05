@@ -440,7 +440,7 @@ with
      lazy in Pure, because it's also used for arithmetic operations. Using it
      here would make foldr (and hence cat) eager. Therefore we use our own
      concatenation operation here, which properly deals with the case that ys
-     is an infinite stream. */
+     is an infinite stream when applied recursively. */
   []+ys			= ys;
   xs@(_:_)+ys		= tick [] xs ys;
   tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
