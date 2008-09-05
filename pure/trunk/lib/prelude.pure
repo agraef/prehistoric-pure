@@ -377,6 +377,15 @@ scanr f a []		= [a];
 scanr f a xs@(_:_)	= tick [] xs
 with
   /* Hack around with thunks to make these matches irrefutable. */
+  tick zs (x:xs)	= tack zs us when
+			    ys = scanr f a xs&;
+			    y  = (case ys of
+				    y:_ = y;
+				    scanr _ _ ys = throw (bad_list_value ys);
+				    _ = throw (bad_list_value ys);
+				  end)&;
+			    us = f x y : ys;
+			  end if thunkp xs;
   tick zs (x:xs)	= tack zs (f x (y when y:_ = ys end)&:ys
 				   when ys = scanr f a xs& end) if thunkp xs;
 			= tick (x:zs) xs;
@@ -390,8 +399,15 @@ scanr1 f []		= [];
 scanr1 f [x]		= [x];
 scanr1 f xs@(_:_)	= tick [] xs
 with
-  tick zs (x:xs)	= tack zs (f x (y when y:_ = ys end)&:ys
-				   when ys = scanr1 f xs& end) if thunkp xs;
+  tick zs (x:xs)	= tack zs us when
+			    ys = scanr1 f xs&;
+			    y  = (case ys of
+				    y:_ = y;
+				    scanr1 _ ys = throw (bad_list_value ys);
+				    _ = throw (bad_list_value ys);
+				  end)&;
+			    us = f x y : ys;
+			  end if thunkp xs;
   tick zs xs		= case xs of
 			    [x]  = tack zs [x];
 			    x:xs = tick (x:zs) xs;
@@ -575,18 +591,24 @@ dowith3 f _ _ _		= () otherwise;
 unzip []		= [],[];
 unzip us@(_:_)		= foldr accum ([],[]) us
 with
-  accum u@(x,y) us	= x:(xs when xs,_ = us end)&,
-			  y:(ys when _,ys = us end)& if thunkp us;
-			= x:xs,y:ys when xs,ys = us end;
+  accum u@(x,y) us	= x:(xs when xs,_ = check us end)&,
+			  y:(ys when _,ys = check us end)& if thunkp us;
+			= x:xs,y:ys when xs,ys = check us end;
   accum u _		= throw (bad_tuple_value u);
+  check us@(_,_)	= us;
+  check (foldr _ _ us)	= throw (bad_list_value us);
+  check us		= throw (bad_tuple_value us);
 end;
 
 unzip3 []		= [],[],[];
 unzip3 us@(_:_)		= foldr accum ([],[],[]) us
 with
-  accum u@(x,y,z) us	= x:(xs when xs,_,_ = us end)&,
-			  y:(ys when _,ys,_ = us end)&,
-			  z:(zs when _,_,zs = us end)& if thunkp us;
-			= x:xs,y:ys,z:zs when xs,ys,zs = us end;
+  accum u@(x,y,z) us	= x:(xs when xs,_,_ = check us end)&,
+			  y:(ys when _,ys,_ = check us end)&,
+			  z:(zs when _,_,zs = check us end)& if thunkp us;
+			= x:xs,y:ys,z:zs when xs,ys,zs = check us end;
   accum u _		= throw (bad_tuple_value u);
+  check us@(_,_,_)	= us;
+  check (foldr _ _ us)	= throw (bad_list_value us);
+  check us		= throw (bad_tuple_value us);
 end;
