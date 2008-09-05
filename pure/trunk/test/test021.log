@@ -5,14 +5,14 @@ check _/*0:01*/ z/*0:1*/ = z/*0:1*/ if numberp z/*0:1*/;
 check (f/*0:0101*/,x/*0:01101*/,y/*0:0111*/) (g@_/*0:100*/ u/*0:101*/ v/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:100*/&&x/*0:01101*/===u/*0:101*/&&y/*0:0111*/===v/*0:11*/;
 check (f/*0:0101*/,x/*0:011*/) (g@_/*0:10*/ u/*0:11*/) = __failed__ if f/*0:0101*/===g/*0:10*/&&x/*0:011*/===u/*0:11*/;
 check _/*0:01*/ z/*0:1*/ = z/*0:1*/;
-format (f/*0:101*/,x/*0:1101*/,y/*0:11101*/,z/*0:1111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show y/*0:11101*/+","+show z/*0:1111*/;
-format (f/*0:101*/,x/*0:1101*/,z/*0:111*/) = str f/*0:101*/+","+show x/*0:1101*/+","+show z/*0:111*/;
-show x/*0:1*/::double = str x/*0:1*/ if infp x/*0:1*/||nanp x/*0:1*/;
-show x/*0:1*/::double = sprintf double_format 0.0 if x/*0:1*/==0.0;
-show x/*0:1*/::double = sprintf double_format x/*0:1*/;
-show (x/*0:101*/+:y/*0:11*/) = show x/*0:101*/+"+:"+show y/*0:11*/;
-show (x/*0:101*/<:y/*0:11*/) = show x/*0:101*/+"<:"+show y/*0:11*/;
-show x/*0:1*/ = str x/*0:1*/;
+format (f/*0:101*/,x/*0:1101*/,y/*0:11101*/,z/*0:1111*/) = str f/*0:101*/+","+print x/*0:1101*/+","+print y/*0:11101*/+","+print z/*0:1111*/;
+format (f/*0:101*/,x/*0:1101*/,z/*0:111*/) = str f/*0:101*/+","+print x/*0:1101*/+","+print z/*0:111*/;
+print x/*0:1*/::double = str x/*0:1*/ if infp x/*0:1*/||nanp x/*0:1*/;
+print x/*0:1*/::double = sprintf double_format 0.0 if x/*0:1*/==0.0;
+print x/*0:1*/::double = sprintf double_format x/*0:1*/;
+print (x/*0:101*/+:y/*0:11*/) = print x/*0:101*/+"+:"+print y/*0:11*/;
+print (x/*0:101*/<:y/*0:11*/) = print x/*0:101*/+"<:"+print y/*0:11*/;
+print x/*0:1*/ = str x/*0:1*/;
 tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*0:*/ -> [(op/*1:*/,2,a/*0:*/)] {
   rule #0: a = [(op,2,a)]
   state 0: #0
@@ -150,8 +150,8 @@ tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*
   state 44: #0 #1 #2 #3
 }
 {
-  rule #0: format (f,x,y,z) = str f+","+show x+","+show y+","+show z
-  rule #1: format (f,x,z) = str f+","+show x+","+show z
+  rule #0: format (f,x,y,z) = str f+","+print x+","+print y+","+print z
+  rule #1: format (f,x,z) = str f+","+print x+","+print z
   state 0: #0 #1
 	<app> state 1
   state 1: #0 #1
@@ -228,12 +228,12 @@ tests = puts "*** EXACT/INEXACT ***"$$do test (catmap (\op/*0:*/ -> catmap (\a/*
   state 15: #0 #1
 }
 {
-  rule #0: show x::double = str x if infp x||nanp x
-  rule #1: show x::double = sprintf double_format 0.0 if x==0.0
-  rule #2: show x::double = sprintf double_format x
-  rule #3: show (x+:y) = show x+"+:"+show y
-  rule #4: show (x<:y) = show x+"<:"+show y
-  rule #5: show x = str x
+  rule #0: print x::double = str x if infp x||nanp x
+  rule #1: print x::double = sprintf double_format 0.0 if x==0.0
+  rule #2: print x::double = sprintf double_format x
+  rule #3: print (x+:y) = print x+"+:"+print y
+  rule #4: print (x<:y) = print x+"<:"+print y
+  rule #5: print x = str x
   state 0: #0 #1 #2 #3 #4 #5
 	<var> state 1
 	<var>::double state 2
