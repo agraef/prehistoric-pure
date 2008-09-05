@@ -63,6 +63,7 @@ public:
   // get a symbol by its number
   symbol& sym(int32_t f);
   // retrieve various builtin symbols (create when necessary)
+  int32_t __show__sym; // This is cached here to improve performance.
   symbol& nil_sym();
   symbol& cons_sym();
   symbol& void_sym();

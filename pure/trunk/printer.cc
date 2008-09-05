@@ -622,6 +622,28 @@ ostream& operator << (ostream& os, const pure_paren& p)
     return os << p.x;
 }
 
+static inline bool pstr(ostream& os, pure_expr *x)
+{
+  interpreter& interp = *interpreter::g_interp;
+  int32_t f = interp.symtab.__show__sym;
+  if (f > 0 && interp.globenv.find(f) != interp.globenv.end()) {
+    assert(x->refc > 0);
+    pure_expr *y = pure_app(pure_symbol(f), x);
+    assert(y);
+    if (y->tag == EXPR::STR) {
+      char *s = fromutf8(y->data.s);
+      pure_freenew(y);
+      if (s) {
+	os << s; free(s);
+	return true;
+      } else
+	return false;
+    } else
+      return false;
+  } else
+    return false;
+}
+
 ostream& operator << (ostream& os, const pure_expr *x)
 {
   char test;
@@ -631,6 +653,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
     throw err("stack overflow in printer");
   char buf[64];
   assert(x);
+  if (pstr(os, (pure_expr*)x)) return os;
   //os << "{" << x->refc << "}";
   switch (x->tag) {
   case EXPR::INT:
