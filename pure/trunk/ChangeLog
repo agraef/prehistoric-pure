@@ -1,5 +1,9 @@
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 
+	* printer.cc (operator << (ostream& os, const pure_expr *x)):
+	Experimental support for calling a user-defined __show__ function
+	to override print representations of expressions at runtime.
+
 	* configure.ac, runtime.cc (pure_sys_vars): Add configure checks
 	for POSIX/ISOC99 complex types. (Requires reconfigure.)
 

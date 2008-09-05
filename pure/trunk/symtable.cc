@@ -2,7 +2,7 @@
 #include "symtable.hh"
 #include <assert.h>
 
-symtable::symtable() : fno(0), rtab(1024)
+symtable::symtable() : fno(0), rtab(1024), __show__sym(0)
 {
   // enter any predefined symbols here, e.g.:
   //sym("-", 6, infixl);
@@ -72,6 +72,7 @@ symbol& symtable::sym(const string& s, int32_t modno)
     _sym = symbol(s, fno, modno);
     //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
     rtab[fno] = &_sym;
+    if (__show__sym == 0 && s == "__show__") __show__sym = fno;
   }
   return _sym;
 }
@@ -88,6 +89,7 @@ symbol& symtable::sym(const string& s, prec_t prec, fix_t fix, int32_t modno)
     _sym = symbol(s, fno, prec, fix, modno);
     //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
     rtab[fno] = &_sym;
+    if (__show__sym == 0 && s == "__show__") __show__sym = fno;
   }
   return _sym;
 }
@@ -125,6 +127,7 @@ symbol& symtable::xsym(const string& s, prec_t prec, fix_t fix, int32_t modno)
     _sym = symbol(s, fno, prec, fix, modno);
     //cout << "new symbol " << _sym.f << ": " << _sym.s << endl;
     rtab[fno] = &_sym;
+    if (__show__sym == 0 && s == "__show__") __show__sym = fno;
   }
   return _sym;
 }
