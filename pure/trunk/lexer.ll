@@ -215,6 +215,27 @@ static void list_completions(const char *s)
     free(matches);
   }
 }
+
+static void check(const yy::location& l, const char* s)
+{
+  static set<string> done;
+  const char *name;
+  size_t i = 0;
+  while ((name = commands[i++]))
+    /* We warn about each identifier at most once. FIXME: We should also check
+       whether the interpreter is running in (global) interactive mode, but at
+       present this information isn't available before we actually enter the
+       interactive loop, when all source files from the command line have
+       already been processed. */
+    if (strcmp(name, s) == 0 && done.find(s) == done.end()) {
+      assert(interpreter::g_interp);
+      interpreter& interp = *interpreter::g_interp;
+      interp.warning(l, "warning: identifier '"+string(s)+
+		     "' is also an interpreter command");
+      done.insert(s);
+      return;
+    }
+}
 %}
 
 %option noyywrap nounput debug
@@ -257,7 +278,7 @@ ptrtag  ::{blank}*pointer
 <comment>[\n]+          yylloc->lines(yyleng); yylloc->step();
 <comment>"*"+"/"        yylloc->step(); BEGIN(INITIAL);
 
-<xdecl>{id}	yylval->sval = new string(yytext); return token::ID;
+<xdecl>{id}	check(*yylloc, yytext); yylval->sval = new string(yytext); return token::ID;
 <xdecl>[()*,=]	return yy::parser::token_type(yytext[0]);
 <xdecl>"//".*	yylloc->step();
 <xdecl>"/*"	BEGIN(xdecl_comment);
@@ -275,7 +296,7 @@ ptrtag  ::{blank}*pointer
 <xdecl_comment>[\n]+          yylloc->lines(yyleng); yylloc->step();
 <xdecl_comment>"*"+"/"        yylloc->step(); BEGIN(xdecl);
 
-<xusing>{id}	yylval->sval = new string(yytext); return token::ID;
+<xusing>{id}	check(*yylloc, yytext); yylval->sval = new string(yytext); return token::ID;
 <xusing>,	return yy::parser::token_type(yytext[0]);
 <xusing>"//".*	yylloc->step();
 <xusing>"/*"	BEGIN(xusing_comment);
@@ -930,6 +951,7 @@ when	   return token::WHEN;
 with	   return token::WITH;
 using      BEGIN(xusing); return token::USING;
 {id}       {
+  check(*yylloc, yytext);
   if (interp.declare_op) {
     yylval->sval = new string(yytext);
     return token::ID;
