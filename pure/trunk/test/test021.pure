@@ -18,19 +18,19 @@ check (f,x,y) (g@_ u v) = __failed__ if f===g && x===u && y===v;
 check (f,x) (g@_ u) = __failed__ if f===g && x===u;
 check _ z = z otherwise;
 
-format (f,x,y,z) = str f+","+show x+","+show y+","+show z;
-format (f,x,z) = str f+","+show x+","+show z;
+format (f,x,y,z) = str f+","+print x+","+print y+","+print z;
+format (f,x,z) = str f+","+print x+","+print z;
 
-show x::double
+print x::double
 = str x if infp x || nanp x; // Windoze compatibility
 // Kludge: Some systems have -0.0, some don't, on some it's broken. Simply
 // ignore the sign of floating point zeros for now.
 = sprintf double_format 0.0 if x==0.0;
 = sprintf double_format x otherwise;
 
-show (x+:y) = show x+"+:"+show y;
-show (x<:y) = show x+"<:"+show y;
-show x = str x otherwise;
+print (x+:y) = print x+"+:"+print y;
+print (x<:y) = print x+"<:"+print y;
+print x = str x otherwise;
 
 tests =
 puts "*** EXACT/INEXACT ***" $$
