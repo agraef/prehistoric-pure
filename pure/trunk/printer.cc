@@ -166,7 +166,7 @@ static inline ostream& print_ttag(ostream& os, int8_t ttag)
 static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
 {
   char buf[64];
-  if (x.is_null()) return os << "{{NULL}}";
+  if (x.is_null()) return os << "#<NULL>";
   //os << "{" << x.refc() << "}";
   // handle "as" patterns
   if (aspat && x.astag()>0) {
@@ -243,7 +243,7 @@ static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
     return os;
   }
   case EXPR::PTR:
-    return os << "{{pointer " << x.pval() << "}}";
+    return os << "#<pointer " << x.pval() << ">";
   case EXPR::APP: {
     expr u, v, w, y;
     exprl xs;
@@ -665,7 +665,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
     return os;
   }
   case EXPR::PTR:
-    return os << "{{pointer " << x->data.p << "}}";
+    return os << "#<pointer " << x->data.p << ">";
   case EXPR::APP: {
     list<const pure_expr*> xs;
     prec_t p;
@@ -760,11 +760,11 @@ ostream& operator << (ostream& os, const pure_expr *x)
   default: {
     if (x->tag == 0) {
       const char *s = (x->data.clos && x->data.clos->n==0)?"thunk":"closure";
-      return os << "{{" << s << " " << (void*)x << "}}";
+      return os << "#<" << s << " " << (void*)x << ">";
     }
     const symbol& sym = interpreter::g_interp->symtab.sym(x->tag);
     if (x->data.clos && x->data.clos->local)
-      return os << "{{closure " << sym.s << "}}";
+      return os << "#<closure " << sym.s << ">";
     if (sym.prec < 10)
       return os << '(' << sym.s << ')';
     else
