@@ -108,7 +108,8 @@
 	* lib/: Clean up the public namespace.
 
 	* lexer.ll: Added limited support for unicode symbols. These can
-	now be declared as operator or nullary symbols.
+	now be declared as operator or nullary symbols. (At present this
+	is only guaranteed to work if your scripts are encoded in UTF-8.)
 
 	* parser.yy, etc.: Symbols can now be declared 'private'. These
 	aren't visible anywhere except in the module that declares them.
