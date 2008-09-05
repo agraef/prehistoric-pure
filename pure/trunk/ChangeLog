@@ -1,5 +1,9 @@
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 
+	* pure.cc (main): In interactive mode, print a warning if -n was
+	not specified and the prelude wasn't found. Suggested by Rob
+	Hubbard.
+
 	* printer.cc (operator << (ostream& os, const pure_expr *x)):
 	Experimental support for calling a user-defined __show__ function
 	to override print representations of expressions at runtime.
