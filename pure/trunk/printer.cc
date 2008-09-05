@@ -624,22 +624,42 @@ ostream& operator << (ostream& os, const pure_paren& p)
 
 static inline bool pstr(ostream& os, pure_expr *x)
 {
+  static bool recursive = false;
+  if (recursive) return false;
   interpreter& interp = *interpreter::g_interp;
   int32_t f = interp.symtab.__show__sym;
   if (f > 0 && interp.globenv.find(f) != interp.globenv.end()) {
     assert(x->refc > 0);
-    pure_expr *y = pure_app(pure_symbol(f), x);
-    assert(y);
-    if (y->tag == EXPR::STR) {
-      char *s = fromutf8(y->data.s);
-      pure_freenew(y);
-      if (s) {
-	os << s; free(s);
-	return true;
+    pure_exception ex; ex.e = 0; ex.sz = interp.sstk_sz;
+    interp.estk.push_front(ex);
+    if (setjmp(interp.estk.front().jmp)) {
+      // caught an exception
+      size_t sz = interp.estk.front().sz;
+      pure_expr* e = interp.estk.front().e;
+      interp.estk.pop_front();
+      if (e) pure_freenew(e);
+      for (size_t i = interp.sstk_sz; i-- > sz; )
+	if (interp.sstk[i] && interp.sstk[i]->refc > 0)
+	  pure_free(interp.sstk[i]);
+      interp.sstk_sz = sz;
+      return false;
+    } else {
+      recursive = true;
+      pure_expr *y = pure_app(pure_symbol(f), x);
+      interp.estk.pop_front();
+      recursive = false;
+      assert(y);
+      if (y->tag == EXPR::STR) {
+	char *s = fromutf8(y->data.s);
+	pure_freenew(y);
+	if (s) {
+	  os << s; free(s);
+	  return true;
+	} else
+	  return false;
       } else
 	return false;
-    } else
-      return false;
+    }
   } else
     return false;
 }
