@@ -192,7 +192,7 @@ file explicitly on the command line. Verbose output is also suppressed for
 modules imported through a
 .B using
 clause. As a remedy, you can use the interactive
-.B list
+.B show
 command (see the INTERACTIVE USAGE section below) to list definitions along
 with additional debugging information.
 .SH PURE OVERVIEW
@@ -738,7 +738,7 @@ whose value is precomputed at compile time:
 > pi;
 3.14159265358979
 > foo x = 2*pi*x;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x = 2*3.14159265358979*x;
 > foo 1;
 6.28318530717958
@@ -765,7 +765,7 @@ If you dare, you can actually have a look at the catmap-lambda-if-then-else
 expression the comprehension expanded to:
 .sp
 .nf
-> \fBlist\fP primes
+> \fBshow\fP primes
 primes n = sieve (2..n) \fBwith\fP sieve [] = []; sieve (p:qs) = p:sieve
 (catmap (\eq -> if q mod p then [q] else []) qs) \fBend\fP;
 .fi
@@ -828,15 +828,9 @@ don't, they're lazy bums indeed!). Nevertheless, the stream computed with
 forcing its evaluation:
 .sp
 .nf
-> (list) (take 10 fibs);
+> list (take 10 fibs);
 [0L,1L,1L,2L,3L,5L,8L,13L,21L,34L]
 .fi
-.PP
-(Note that we typed `(list)' instead of just `list' here, so that the
-interpreter does not mistake this for the interactive
-.B list
-command. This is only necessary at the interactive command prompt, see
-INTERACTIVE USAGE.)
 .PP
 For interactive usage it's often convenient to define an eager variation of
 `take' which combines `take' and `list'. Let's do this now, so that we can use
@@ -876,7 +870,7 @@ a fast computer which can produce the first stream element in a nanosecond, a
 conservative estimate of the time needed to compute just the 128th Fibonacci
 number would already exceed the current age of the universe by some 29.6%, if
 done this way. It goes without saying that this kind of algorithm won't even
-pass muster in a computer science freshman course.
+pass muster in a freshman course.
 .PP
 So let's get back to the drawing board. One nice trick of the trade is to have
 the
@@ -893,7 +887,7 @@ incidentally called
 in Pure and defined in the prelude as follows:
 .sp
 .nf
-> \fBlist\fP fix
+> \fBshow\fP fix
 fix f = y y \fBwhen\fP y = \ex -> f (x x&) \fBend\fP;
 .fi
 .PP
@@ -952,7 +946,7 @@ Other useful stream generator functions are `iterate', `repeat' and `cycle',
 which have been adopted from Haskell. In fact, infinite arithmetic
 progressions are implemented in terms of `iterate'. The `repeat' function just
 repeats its argument, and `cycle' cycles through the elements of the given
-list until hell freezes over:
+list:
 .sp
 .nf
 > takel 10 (repeat 1);
@@ -1158,7 +1152,7 @@ function (defined in the prelude) at compile time:
 .nf
 > \fBdef\fP succ x = x+1;
 > foo x::int = succ (succ x);
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x::int = x+1+1;
 .fi
 .PP
@@ -1181,7 +1175,7 @@ ordinary function applications automagically. Example:
 .sp
 .nf
 > foo x = bar $ bar $ 2*x;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x = bar (bar (2*x));
 .fi
 .PP
@@ -1205,7 +1199,7 @@ Let's see how this rule transforms a list comprehension if we ``voidify'' it:
 > \fBusing\fP system;
 > f = [printf "%g\en" (2^x+1); x=1..5; x mod 2];
 > g = void [printf "%g\en" (2^x+1); x=1..5; x mod 2];
-> \fBlist\fP f g
+> \fBshow\fP f g
 f = catmap (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
 g = do (\ex -> if x mod 2 then [printf "%g\n" (2^x+1)] else []) (1..5);
 .fi
@@ -1228,7 +1222,7 @@ the outermost `catmap' if the list comprehension binds multiple variables:
 .sp
 .nf
 > u = void [puts $ str (x,y); x=1..2; y=1..3];
-> \fBlist\fP u
+> \fBshow\fP u
 u = do (\ex -> catmap (\ey -> [puts (str (x,y))]) (1..3)) (1..2);
 .fi
 .PP
@@ -1237,7 +1231,7 @@ a nested list comprehension which expands to a nested `do':
 .sp
 .nf
 > v = void [void [puts $ str (x,y); y=1..3]; x=1..2];
-> \fBlist\fP v
+> \fBshow\fP v
 v = do (\ex -> [do (\ey -> [puts (str (x,y))]) (1..3)]) (1..2);
 .fi
 .PP
@@ -1255,7 +1249,7 @@ definitions. Example:
 > \fBdef\fP foo (bar x) = foo x+1;
 > \fBdef\fP foo x = x;
 > baz = foo (bar (bar (bar x)));
-> \fBlist\fP baz
+> \fBshow\fP baz
 baz = x+1+1+1;
 .fi
 .PP
@@ -1845,10 +1839,6 @@ manpage, or invoke
 .BR man (1)
 with the given arguments.
 .TP
-.B "list \fR[\fIoption\fP ...]\fP \fR[\fIsymbol\fP ...]\fP"
-List defined symbols in various formats. See the LIST COMMAND section below
-for details.
-.TP
 .B "ls \fR[\fIargs\fP]\fP"
 List files (shell \fBls\fP(1) command).
 .TP
@@ -1891,6 +1881,10 @@ command (see above) will purge all definitions made after the most recent
 (or the beginning of the interactive session). See the DEFINITION LEVELS
 section below for details.
 .TP
+.B "show \fR[\fIoption\fP ...]\fP \fR[\fIsymbol\fP ...]\fP"
+Show the definitions of symbols in various formats. See the SHOW COMMAND
+section below for details.
+.TP
 .B "stats \fR[on|off]\fP"
 Enables (default) or disables ``stats'' mode, in which various statistics are
 printed after an expression has been evaluated. Currently, this just prints
@@ -1909,12 +1903,12 @@ or by wrapping it up in parentheses.)
 .PP
 Some commands which are especially important for effective operation of the
 interpreter are discussed in more detail in the following sections.
-.SH LIST COMMAND
+.SH SHOW COMMAND
 In interactive mode, the
-.B list
+.B show
 command can be used to obtain information about defined symbols in various
 formats. This command recognizes the following options. Options may be
-combined, thus, e.g., \fBlist\fP -tvl is the same as \fBlist\fP -t -v -l.
+combined, thus, e.g., \fBshow\fP -tvl is the same as \fBshow\fP -t -v -l.
 .TP
 .B -a
 Disassembles pattern matching automata. Works like the
@@ -1999,7 +1993,7 @@ For instance, to list all definitions in all loaded scripts (including the
 prelude), simply say:
 .sp
 .nf
-> \fBlist\fP
+> \fBshow\fP
 .fi
 .PP
 This may produce quite a lot of output, depending on which scripts are
@@ -2007,7 +2001,7 @@ loaded. The following command will only show summary information about the
 variable symbols along with their current values (using the ``long format''):
 .sp
 .nf
-> \fBlist\fP -lv
+> \fBshow\fP -lv
 argc     var  argc = 0;
 argv     var  argv = [];
 sysinfo  var  sysinfo = "i686-pc-linux-gnu";
@@ -2018,12 +2012,12 @@ version  var  version = "@version@";
 If you're like me then you'll frequently have to look up how some operations
 are defined. No sweat, with the Pure interpreter there's no need to dive into
 the sources, the
-.B list
+.B show
 command can easily do it for you. For instance, here's how you can list the
 definitions of all ``fold-left'' operations from the prelude in one go:
 .sp
 .nf
-> \fBlist\fP -g foldl*
+> \fBshow\fP -g foldl*
 foldl f a s::string = foldl f a (chars s);
 foldl f a [] = a;
 foldl f a (x:xs) = foldl f (f a x) xs;
@@ -2050,14 +2044,14 @@ program. Example:
 .nf
 > foo (x:xs) = x+foo xs;
 > foo [] = 0;
-> \fBlist\fP -t
+> \fBshow\fP -t
 foo (x:xs) = x+foo xs;
 foo [] = 0;
 > foo (1..10);
 55
 > \fBclear\fP
 This will clear all temporary definitions at level #1. Continue (y/n)? y
-> \fBlist\fP foo
+> \fBshow\fP foo
 > foo (1..10);
 foo [1,2,3,4,5,6,7,8,9,10]
 .fi
@@ -2076,7 +2070,7 @@ command:
 .nf
 > foo (x:xs) = x+foo xs;
 > foo [] = 0;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo (x:xs) = x+foo xs;
 foo [] = 0;
 > foo (1..10);
@@ -2085,7 +2079,7 @@ foo [] = 0;
 save: now at temporary definitions level #2
 > \fBoverride\fP
 > foo (x:xs) = x*foo xs;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo (x:xs) = x*foo xs;
 foo (x:xs) = x+foo xs;
 foo [] = 0;
@@ -2102,7 +2096,7 @@ more high-priority definitions overriding lower-priority ones:
 .sp
 .nf
 > foo [] = 1;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo (x:xs) = x*foo xs;
 foo [] = 1;
 foo (x:xs) = x+foo xs;
@@ -2123,7 +2117,7 @@ previous definition:
 This will clear all temporary definitions at level #2. Continue (y/n)? y
 clear: now at temporary definitions level #1
 clear: override mode is on
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo (x:xs) = x+foo xs;
 foo [] = 0;
 > foo (1..10);
@@ -2339,7 +2333,7 @@ better code using constant folding and similar techniques. Example:
 > \fBextern\fP double atan(double);
 > \fBconst\fP pi = 4*atan 1.0;
 > foo x = 2*pi*x;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x = 2*3.14159265358979*x;
 .fi
 .PP
@@ -2355,7 +2349,7 @@ compare the above with the following macro definition:
 > \fBclear\fP pi foo
 > \fBdef\fP pi = 4*atan 1.0;
 > foo x = 2*pi*x;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x = 2*(4*atan 1.0)*x;
 .fi
 .PP
@@ -2388,7 +2382,7 @@ definitions. E.g.:
 .nf
 > \fBconst\fP c = 2;
 > foo x = c*x;
-> \fBlist\fP foo
+> \fBshow\fP foo
 foo x = 2*x;
 > foo 99;
 198
@@ -2405,7 +2399,7 @@ existing definitions:
 > \fBclear\fP c
 > \fBconst\fP c = 3;
 > bar x = c*x;
-> \fBlist\fP foo bar
+> \fBshow\fP foo bar
 foo x = 2*x;
 bar x = 3*x;
 .fi
@@ -2441,15 +2435,15 @@ values or partial applications, but in this case they lose all their special
 call-by-name argument processing.
 .PP
 .B Laziness.
-Pure approaches lazy evaluation in basically the same as Alice ML, providing
-an explicit operation (&) to defer evaluation and create a ``future'' which is
-called by need. However, note that like any language with a basically eager
-evaluation strategy, Pure cannot really support lazy evaluation in a fully
-automatic way. That is, coding an operation so that it works with infinite
-data structures always requires additional effort to recognize futures in the
-input and handle them accordingly. This can be hard, but of course in the case
-of the prelude operations this work has already been done for you, so as long
-as you stick to these, you'll never have to think about these issues.
+Pure does lazy evaluation in the same way as Alice ML, providing an explicit
+operation (&) to defer evaluation and create a ``future'' which is called by
+need. However, note that like any language with a basically eager evaluation
+strategy, Pure cannot really support lazy evaluation in a fully automatic
+way. That is, coding an operation so that it works with infinite data
+structures always requires additional effort to recognize futures in the input
+and handle them accordingly. This can be hard, but of course in the case of
+the prelude operations this work has already been done for you, so as long as
+you stick to these, you'll never have to think about these issues.
 .PP
 Specifically, the prelude goes to great lengths to implement all standard list
 operations in a way that properly deals with streams (a.k.a. list futures).
@@ -2594,7 +2588,7 @@ libraries.
 .TP
 .B PURE_MORE
 Shell command to be used for paging through output of the
-.B list
+.B show
 command, when the interpreter runs in interactive mode.
 .TP
 .B PURE_PS
