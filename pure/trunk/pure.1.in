@@ -1897,9 +1897,11 @@ where new equations are added `below'' previous rules of an existing function.
 See the DEFINITION LEVELS section below for details.
 .PP
 Note that these special commands are only recognized at the beginning of the
-interactive command line. (Thus you can escape an identifier at the beginning
-of the command line, which looks like a command, by prefixing it with a space
-or by wrapping it up in parentheses.)
+interactive command line (they are not reserved keywords of the Pure
+language). Thus it's possible to ``escape'' identifiers looking like commands
+by entering a space at the start of the line. However, the compiler also warns
+you about identifiers which might be mistaken as command names, so that you
+can avoid this kind of problem.
 .PP
 Some commands which are especially important for effective operation of the
 interpreter are discussed in more detail in the following sections.
