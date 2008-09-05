@@ -91,6 +91,8 @@ dnl Determine how to get alloca.
 AC_FUNC_ALLOCA
 dnl Platform-dependent time functions.
 AC_CHECK_FUNCS(ftime gettimeofday nanosleep usleep)
+dnl Check to see whether we have POSIX/ISOC99 complex numbers.
+AC_CHECK_TYPES([_Complex float, _Complex double])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
