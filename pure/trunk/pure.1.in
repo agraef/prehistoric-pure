@@ -224,9 +224,12 @@ beginning with #! are treated as comments, too; as already discussed above, on
 Unix-like systems this allows you to add a ``shebang'' to your main script in
 order to turn it into an executable program.
 .PP
-There are a few reserved keywords which cannot be used as identifiers. These
-are: case const def else end extern if infix infixl infixr let nullary of
-otherwise postfix prefix private then using when with.
+There are a few reserved keywords which cannot be used as identifiers:
+.if t .PP
+.if t .RS
+case const def else end extern if infix infixl infixr let nullary of
+otherwise postfix prefix private then using when with
+.if t .RE
 .PP
 Pure is a terse language. You won't see many declarations, and often your
 programs will read more like a collection of algebraic specifications (which
@@ -307,11 +310,10 @@ you might expect, zero denotes
 .B false
 and any non-zero value
 .BR true ).
-.PP
-.B Expression syntax.
+.SS Expression Syntax
 Expressions consist of the following elements:
 .TP
-.B Constants: \fR4711, 4711L, 1.2e-3, \(dqHello,\ world!\en\(dq
+\fBConstants:\fP 4711, 4711L, 1.2e-3, \(dqHello,\ world!\en\(dq
 The usual C'ish notations for integers (decimal, hexadecimal, octal), floating
 point values and double-quoted strings are all provided, although the Pure
 syntax differs in some minor ways, as discussed in the following. First, there
@@ -344,7 +346,7 @@ the ``XML Entity definitions for Characters'', see
 Thus, e.g., \(dq\e&copy;\(dq denotes the copyright character (code point
 0x000A9).
 .TP
-.B Function and variable symbols: \fRfoo, foo_bar, BAR, bar2
+\fBFunction and variable symbols:\fP foo, foo_bar, BAR, bar2
 These consist of the usual sequence of ASCII letters (including the
 underscore) and digits, starting with a letter. The `_' symbol, when occurring
 on the left-hand side of an equation, is special; it denotes the
@@ -360,7 +362,7 @@ variables (except symbols explicitly declared as ``constant'' a.k.a.
 .B nullary
 symbols, see below).
 .TP
-.B Operator and constant symbols: \fRx+y, x==y, \fBnot\fP\ x, []
+\fBOperator and constant symbols:\fP x+y, x==y, \fBnot\fP\ x, []
 As indicated, these take the form of an identifier or a sequence of
 punctuation symbols. As of Pure 0.6, operator and constant symbols may also
 contain arbitrary extended (non-ASCII) Unicode characters, which makes it
@@ -380,7 +382,7 @@ attribute tells the compiler that when such an identifier occurs on the
 left-hand side of an equation, it is to be interpreted as a constant rather
 than a variable (see above).
 .TP
-.B Lists and tuples: \fR[x,y,z], x..y, x:xs, x,y,z
+\fBLists and tuples:\fP [x,y,z], x..y, x:xs, x,y,z
 The necessary constructors to build lists and tuples are actually defined in
 the prelude: `[]' and `()' are the empty list and tuple, `:' produces list
 ``conses'', and `,' produces ``pairs''. As indicated, Pure provides the usual
@@ -402,7 +404,7 @@ parentheses. E.g., [(1,2),3,(4,5)] is a three element list consisting of the
 tuple 1,2, the integer 3, and another tuple 4,5. Likewise, [(1,2,3)] is list
 with a single element, the tuple 1,2,3.
 .TP
-.B List comprehensions: \fR[x,y; x = 1..n; y = 1..m; x<y]
+\fBList comprehensions:\fP [x,y; x = 1..n; y = 1..m; x<y]
 Pure also has list comprehensions which generate lists from an expression and
 one or more ``generator'' and ``filter'' clauses (the former bind a pattern to
 values drawn from a list, the latter are just predicates determining which
@@ -413,26 +415,26 @@ combines list concatenation and mapping a function over a list, defined in the
 prelude), but they are often much easier to write. Some examples of list
 comprehensions can be found in the EXAMPLES section below.
 .TP
-.B Function applications: \fRfoo\ x\ y\ z
+\fBFunction applications:\fP foo x y z
 As in other modern FPLs, these are written simply as juxtaposition (i.e., in
 ``curried'' form) and associate to the left. Operator applications are written
 using prefix, postfix or infix notation, as the declaration of the operator
 demands, but are just ordinary function applications in disguise. E.g., x+y is
 exactly the same as (+) x y.
 .TP
-.B Conditional expressions: if\fR\ x\ \fBthen\fR\ y\ \fBelse\fR\ z
+\fBConditional expressions:\fP \fBif\fP x \fBthen\fP y \fBelse\fP z
 Evaluates to y or z depending on whether x is ``true'' (i.e., a nonzero
 integer). An exception is generated if the condition is not an
 integer.
 .TP
-.B Lambdas: \fR\ex\ ->\ y
+\fBLambdas:\fP \ex\ ->\ y
 These work pretty much like in Haskell. More than one variable may be bound
 (e.g, \ex\ y\ ->\ x*y), which is equivalent to a nested lambda
 (\ex\ ->\ \ey\ ->\ x*y). Pure also fully supports pattern-matching lambda
 abstractions which match a pattern against the lambda argument and bind
 multiple lambda variables in one go, such as \e(x,y)\ ->\ x*y.
 .TP
-.B Case expressions: case\fR\ x\ \fBof\fR\ \fIrule\fR;\ ...\ \fBend
+\fBCase expressions:\fP \fBcase\fP x \fBof\fP \fIrule\fP; ... \fBend\fP
 Matches an expression, discriminating over a number of different cases,
 similar to the Haskell \fBcase\fP construct. The expression x is matched in
 turn against each left-hand side pattern in the rule list, and the first
@@ -440,7 +442,7 @@ pattern which matches x gives the value of the entire expression, by
 evaluating the corresponding right-hand side with the variables in the pattern
 bound to their corresponding values.
 .TP
-.B When expressions: \fRx\ \fBwhen\fR\ \fIrule\fR;\ ...\ \fBend
+\fBWhen expressions:\fP x \fBwhen\fP \fIrule\fR; ... \fBend\fP
 An alternative way to bind local variables by matching a collection of subject
 terms against corresponding patterns. Similar to Aardappel's \fBwhen\fP
 construct. A single binding such as x \fBwhen\fP u = v \fBend\fP is equivalent
@@ -452,14 +454,13 @@ ones. In fact, a \fBwhen\fP expression with multiple definitions is treated
 like several nested \fBwhen\fP expressions, with the first binding being the
 ``outermost'' one.
 .TP
-.B With expressions: \fRx\ \fBwith\fR\ \fIrule\fR;\ ...\ \fBend\fR
+\fBWith expressions:\fP x \fBwith\fP \fIrule\fR; ... \fBend\fP
 Defines local functions. Like Haskell's \fBwhere\fP construct, but it can be
 used anywhere inside an expression (just like Aardappel's \fBwhere\fP, but
 Pure uses the keyword \fBwith\fP which better lines up with \fBcase\fP and
 \fBwhen\fP). Several functions can be defined in a single \fBwith\fP clause,
 and the definitions may consist of as many equations as you want.
-.PP
-.B Operators and precedence.
+.SS Operators and Precedence
 Expressions are parsed according to the following precedence rules: Lambda
 binds most weakly, followed by
 .BR when ,
@@ -492,8 +493,7 @@ the bitwise operators are named
 and
 .B or
 instead of `&' and `|', which are used for other purposes in Pure.
-.PP
-.B Special forms.
+.SS Special Forms
 As already mentioned, some operators are actually implemented as special
 forms. In particular, the conditional expression \fBif\fP x \fBthen\fP y
 \fBelse\fP z is a special form with call-by-name arguments y and z; only one
@@ -540,13 +540,12 @@ A stream is simply a list with a thunked tail, which allows it to be
 infinite. The Pure prelude defines many functions for creating and
 manipulating these kinds of objects; further details and examples can be found
 in the EXAMPLES section below.
-.PP
-.B Toplevel.
+.SS Toplevel
 At the toplevel, a Pure program basically consists of rewriting rules (which
 are used to define functions and macros), constant and variable definitions,
 and expressions to be evaluated:
 .TP
-.B Rules: \fIlhs\fR = \fIrhs\fR;
+\fBRules:\fP \fIlhs\fP = \fIrhs\fP;
 These rules always combine a left-hand side
 .I pattern
 (which must be a simple expression) and a right-hand side (which can be any
@@ -561,7 +560,7 @@ treats this as a comment). Pure also provides some abbreviations for factoring
 out common left-hand or right-hand sides in collections of rules; see section
 RULE SYNTAX below for details.
 .TP
-.B Macro rules: def\fR \fIlhs\fR = \fIrhs\fR;
+\fBMacro rules:\fP \fBdef\fP \fIlhs\fP = \fIrhs\fP;
 A rule starting with the keyword
 .B def
 defines a
@@ -572,13 +571,13 @@ other definitions at compile time, and are typically employed to implement
 user-defined special forms and simple kinds of optimization rules. See the
 MACROS section below for details and examples.
 .TP
-.B Global variable bindings: let\fR \fIlhs\fR = \fIrhs\fR;
+\fBGlobal variable bindings:\fP \fBlet\fP \fIlhs\fP = \fIrhs\fP;
 Binds every variable in the left-hand side pattern to the corresponding
 subterm of the right-hand side (after evaluating it). This works like a
 \fBwhen\fP clause, but serves to bind \fIglobal\fP variables occurring free on
 the right-hand side of other function and variable definitions.
 .TP
-.B Constant bindings: const\fR \fIlhs\fR = \fIrhs\fR;
+\fBConstant bindings:\fP \fBconst\fP \fIlhs\fP = \fIrhs\fP;
 An alternative form of \fBlet\fP which defines constants rather than
 variables. (These are not to be confused with
 .B nullary
@@ -590,12 +589,11 @@ symbols can only be defined once, after which their values are substituted
 directly into the right-hand sides of other definitions, rather than being
 looked up at runtime.
 .TP
-.B Toplevel expressions: \fIexpr\fR;
+\fBToplevel expressions:\fP \fIexpr\fP;
 A singleton expression at the toplevel, terminated with a semicolon, simply
 causes the given value to be evaluated (and the result to be printed, when
 running in interactive mode).
-.PP
-.B Scoping rules.
+.SS Scoping Rules
 A few remarks about the scope of identifiers and other symbols are in order
 here. Like most modern functional languages, Pure uses
 .I lexical
@@ -743,9 +741,10 @@ foo x = 2*3.14159265358979*x;
 > foo 1;
 6.28318530717958
 .fi
-.PP
-.B List comprehensions.
-Erathosthenes' classical prime sieve:
+.SS List Comprehensions
+List comprehensions are Pure's main workhorse for generating and processing
+all kinds of list values. Here's a well-known example, Erathosthenes'
+classical prime sieve:
 .sp
 .nf
 primes n        = sieve (2..n) \fBwith\fP
@@ -785,8 +784,7 @@ queens n        = search n 1 [] \fBwith\fP
                 = i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
 \fBend\fP;
 .fi
-.PP
-.B Lazy evaluation and streams.
+.SS Lazy Evaluation and Streams
 As already mentioned, lists can also be evaluated in a ``lazy'' fashion, by
 just turning the tail of a list into a
 .IR future .
@@ -831,6 +829,9 @@ forcing its evaluation:
 > list (take 10 fibs);
 [0L,1L,1L,2L,3L,5L,8L,13L,21L,34L]
 .fi
+.PP
+(Conversely, you can also turn a list into a stream value with the `stream'
+function.)
 .PP
 For interactive usage it's often convenient to define an eager variation of
 `take' which combines `take' and `list'. Let's do this now, so that we can use
@@ -1143,8 +1144,7 @@ step. Macros can be defined in terms of other macros (also recursively), and
 will be expanded using the leftmost-innermost reduction strategy (i.e., macro
 calls in macro arguments are expanded before the macro gets applied to its
 parameters).
-.PP
-.B Optimization rules.
+.SS Optimization Rules
 Here is a simple example, showing a rule which expands saturated calls of the
 .B succ
 function (defined in the prelude) at compile time:
@@ -1239,8 +1239,7 @@ v = do (\ex -> [do (\ey -> [puts (str (x,y))]) (1..3)]) (1..2);
 of a macro definition must be a simple expression, and thus it's not possible
 to write a macro which descends recursively into the lambda argument of
 `catmap'.)
-.PP
-.B Recursive macros.
+.SS Recursive Macros
 Macros can also be recursive, in which case they usually consist of multiple
 rules and make use of pattern-matching like ordinary function
 definitions. Example:
@@ -1261,8 +1260,7 @@ AND NOTES section at the end of this manual for information on how to deal
 with these by setting the
 .B PURE_STACK
 environment variable.
-.PP
-.B Convenience macros.
+.SS Convenience Macros
 The following `timex' macro provides an example of how you can use macros to
 define your own special forms. This is made possible by the fact that the
 macro arguments will only be evaluated at runtime and can thus be passed to
@@ -1289,8 +1287,7 @@ computed result:
 function definition, since by virtue of Pure's basic eager evaluation strategy
 the x parameter would have been evaluated already before it is passed to
 `timex', making `timex' always return a zero time value. Try it.)
-.PP
-.B Macro hygiene.
+.SS Macro Hygiene
 Pure macros are lexically scoped, i.e., symbols on the right-hand-side of a
 macro definition can never refer to anything outside the macro definition, and
 macro parameter substitution also takes into account binding constructs, such
@@ -1325,7 +1322,7 @@ and
 .B using
 clauses which let you include other scripts in a Pure script.
 .TP
-.B Private symbol declarations: private \fIsymbol\fP\fR ...;\fP
+\fBPrivate symbol declarations:\fP \fBprivate\fP \fIsymbol\fP ...;
 Declares the listed symbols as
 .IR private .
 Pure programs usually consist of several source scripts (see the description
@@ -1346,7 +1343,7 @@ Note that to declare multiple symbols in a single declaration, you just list
 them all with whitespace in between. The same applies to the other types of
 symbol declarations discussed below.
 .TP
-.B Operator declarations: infix \fIlevel\fP \fIop\fP\fR ...;\fP
+\fBOperator declarations:\fP \fBinfix\fP \fIlevel op\fP ...;
 These may also be prefixed with the keyword
 .B private
 to indicate a private operator symbol (see above).
@@ -1375,7 +1372,7 @@ same as -(x*y). Also note that the notation `(-)' always denotes the binary
 minus operator; the unary minus operation can be denoted using the built-in
 `neg' function.
 .TP
-.B Constant symbol declarations: nullary \fIsymbol\fP\fR ...;\fP
+\fBConstant symbol declarations:\fP \fBnullary\fP \fIsymbol\fP ...;
 Constant symbols are introduced using a
 .B nullary
 declaration (again, a
@@ -1397,7 +1394,7 @@ which declares a bunch of standard (arithmetic, relational, logical) operator
 symbols as well as the list and pair constructors `:' and `,' and the empty
 list and tuple constants `[]' and `()'.
 .TP
-.B Using clause: using \fIname\fR, ...;
+\fBUsing clause:\fP \fBusing\fP \fIname\fP, ...;
 Causes each given script to be included in the Pure program. Each included
 script is loaded only
 .IR once ,
@@ -1410,7 +1407,7 @@ Note that the
 .B using
 clause also has an alternative form which allows dynamic libraries to be
 loaded, this will be discussed in the C INTERFACE section.
-.PP
+.SS The `using' Declaration
 The
 .B using
 declaration provides a simple but effective way to assemble a Pure program
@@ -1580,9 +1577,11 @@ returns. For instance, here's a variation of our n queens algorithm which only
 returns the first solution. Note the use of
 .B throw
 in the recursive search routine to bail out with a solution as soon as we
-found one. The value thrown there is caught in the main routine. If no value
-gets thrown, the function regularly returns with () to indicate that there is
-no solution.
+found one. The value thrown there is caught in the main routine. Also note the
+use of `void' in the second equation of `search'. This effectively turns the
+list comprehension into a simple loop which suppresses the normal list result
+and just returns () instead. Thus, if no value gets thrown then the function
+regularly returns with () to indicate that there is no solution.
 .sp
 .nf
 queens1 n       = catch reverse (search n 1 []) \fBwith\fP
@@ -1812,8 +1811,7 @@ command prompt:
 > map fact (1..10);
 [1,2,6,24,120,720,5040,40320,362880,3628800]
 .fi
-.PP
-.B Print syntax.
+.SS Print Syntax
 As indicated, in interactive mode the normal forms of toplevel expressions are
 printed after each expression is entered. We also call this the
 .I read-eval-print
@@ -1891,19 +1889,18 @@ to the standard print syntax:
 > fact 30;
 265252859812191058636308480000000L
 .fi
-.PP
-.B Interactive commands.
+.SS Interactive Commands
 When running interactively, the interpreter also accepts a number of special
 commands useful for interactive purposes. Here is a quick rundown of the
 currently supported operations:
 .TP
-.B "! \fIcommand\fP"
+\fB!\fP \fIcommand\fP
 Shell escape.
 .TP
-.B "cd \fIdir\fP"
+\fBcd\fP \fIdir\fP
 Change the current working dir.
 .TP
-.B "clear \fR[\fIsymbol\fP ...]\fP"
+\fBclear\fP [\fIsymbol\fP ...]
 Purge the definitions of the given symbols (functions, macros, constants or
 global variables). If no symbols are given, purge \fIall\fP definitions (after
 confirmation) made after the most recent
@@ -1912,14 +1909,14 @@ command, or the beginning of the interactive session. (It might be a good
 idea to first check your current definitions with \fBlist -t\fP before you do
 this, though.) See the DEFINITION LEVELS section below for details.
 .TP
-.B "help \fR[\fIargs\fP]\fP"
+\fBhelp\fP [\fIargs\fP]
 Display the
 .BR pure (1)
 manpage, or invoke
 .BR man (1)
 with the given arguments.
 .TP
-.B "ls \fR[\fIargs\fP]\fP"
+\fBls\fP [\fIargs\fP]
 List files (shell \fBls\fP(1) command).
 .TP
 .B override
@@ -1933,17 +1930,16 @@ Print the current working dir (shell \fBpwd\fP(1) command).
 .B quit
 Exits the interpreter.
 .TP
-.B "run \fIscript\fP"
+\fBrun\fP \fIscript\fP
 Loads the given script file and adds its definitions to the current
 environment. This works more or less like a
 .B using
 clause, but only searches for the script in the current directory and loads
-the script ``anonymously'', as if the contents of the script had been typed at
-the command prompt. That is,
+the script ``anonymously.'' That is,
 .B run
-will just put the definitions into the current namespace, giving you access to
-all private symbols of the script. Also, the definitions are placed at the
-current temporary level, so that
+puts the definitions into the current namespace, giving you access to all
+private symbols of the script. Also, the definitions are placed at the current
+temporary level, so that
 .B clear
 can be used to remove them again. In particular, this makes it possible to
 quickly reload a script without exiting the interpreter, by issuing the
@@ -1961,11 +1957,11 @@ command (see above) will purge all definitions made after the most recent
 (or the beginning of the interactive session). See the DEFINITION LEVELS
 section below for details.
 .TP
-.B "show \fR[\fIoption\fP ...]\fP \fR[\fIsymbol\fP ...]\fP"
+\fBshow\fP [\fIoption\fP ...] [\fIsymbol\fP ...]
 Show the definitions of symbols in various formats. See the SHOW COMMAND
 section below for details.
 .TP
-.B "stats \fR[on|off]\fP"
+\fBstats\fP [on|off]
 Enables (default) or disables ``stats'' mode, in which various statistics are
 printed after an expression has been evaluated. Currently, this just prints
 the cpu time in seconds for each evaluation, but in the future additional
@@ -2029,7 +2025,7 @@ This implies \fB-s\fP.
 .B -m
 Print information about defined macros.
 .TP
-.B -p[\fIflag\fP]
+\fB-p\fP[\fIflag\fP]
 List only private symbols in the current module if \fIflag\fP is nonzero (the
 default), otherwise (\fIflag\fP is zero) list only public symbols of all
 modules. List both private and public symbols if -p is omitted. The
@@ -2038,7 +2034,7 @@ modules. List both private and public symbols if -p is omitted. The
 .B -s
 Summary format, print just summary information about listed symbols.
 .TP
-.B -t[\fIlevel\fP]
+\fB-t\fP[\fIlevel\fP]
 List only ``temporary'' symbols and definitions at the given \fIlevel\fP (the
 current level by default) or above. The \fIlevel\fP parameter, if given, must
 immediately follow the option character. A \fIlevel\fP of 1 denotes all
@@ -2222,8 +2218,7 @@ below existing ones:
 This section is a grab bag of casual remarks, useful tips and tricks, and
 information on common pitfalls, quirks and limitations of the current
 implementation and how to deal with them.
-.PP
-.B Purity.
+.SS Purity
 People keep asking me what's so ``pure'' about Pure. The long and apologetic
 answer is that at its core, Pure is in fact purely algebraic and purely
 functional. Pure doesn't get in your way if you want to call external
@@ -2236,15 +2231,13 @@ program will behave according to the semantics of term rewriting.
 The short answer is that I simply liked the name, and there wasn't any
 programming language named ``Pure'' yet (quite a feat nowadays), so there's
 one now. :)
-.PP
-.B Debugging.
+.SS Debugging
 There's no symbolic debugger yet. So
 .BR printf (3)
 (available in the
 .B system
 standard library module) should be your friend. ;-)
-.PP
-.B ``As'' patterns.
+.SS ``As'' Patterns
 In the current implementation, ``as'' patterns cannot be placed on the
 ``spine'' of a function definition. Thus rules like the following, which have
 the pattern somewhere in the head of the left-hand side, will all provoke an
@@ -2265,8 +2258,7 @@ value to be matched is available at runtime. For instance:
 > \fBcase\fP bar 99 \fBof\fP y@(bar x) = y,x+1; \fBend\fP;
 bar 99,100
 .fi
-.PP
-.B Head = function.
+.SS Head = Function
 ``As'' patterns are also a useful device if you need to manipulate function
 applications in a generic way. Note that the ``head = function'' rule means
 that the head symbol f of an application f x1 ... xn occurring on (or inside)
@@ -2333,8 +2325,7 @@ comes to the rescue here. Just define `foop' as follows:
 > foop foo, foop 99;
 1,0
 .fi
-.PP
-.B With or when?
+.SS With or when?
 A common source of confusion for Haskellers is that Pure provides two
 different constructs to bind local function and variable symbols,
 respectively. This distinction is necessary because Pure does not segregate
@@ -2368,8 +2359,7 @@ both the right-hand side and the guard of a rule. Usually it's easy to work
 around this with conditional and
 .B case
 expressions, though.
-.PP
-.B Numeric calculations.
+.SS Numeric Calculations
 If possible, you should decorate numeric variables on the left-hand sides of
 function definitions with the appropriate type tags, like
 .B ::int
@@ -2402,8 +2392,7 @@ have to provide equations for both. This also applies to equations matching
 against constant values of these types; in particular, a small integer
 constant like `0' only matches machine integers, not bigints; for the latter
 you'll have to use the ``big L'' notation `0L'.
-.PP
-.B Constant definitions.
+.SS Constant Definitions
 When definining a function in terms of constant values which have to be
 computed beforehand, it's usually better to use a
 .B const
@@ -2490,8 +2479,7 @@ bar x = 3*x;
 to redefine it as a constant, or vice versa, since Pure won't let you redefine
 an existing constant or variable as a different kind of symbol. The same also
 holds if a symbol is currently defined as a function or a macro.)
-.PP
-.B External C functions.
+.SS External C Functions
 The interpreter always takes your
 .B extern
 declarations of C routines at face value. It will not go and read any C header
@@ -2507,16 +2495,14 @@ but also makes it very easy to have your program segfault all over the place.
 Therefore it is highly recommended that you wrap your lowlevel code in Pure
 routines and data structures which do all the checks necessary to ensure that
 only the right kind of data is passed to C routines.
-.PP
-.B Special forms.
+.SS Special Forms
 Special forms are recognized at compile time only. Thus the catch function as
 well as the logical connectives && and ||, the sequencing operator $$ and the
 lazy evaluation operator & are only treated as special forms in direct
 (saturated) calls. They can still be used if you pass them around as function
 values or partial applications, but in this case they lose all their special
 call-by-name argument processing.
-.PP
-.B Laziness.
+.SS Laziness
 Pure does lazy evaluation in the same way as Alice ML, providing an explicit
 operation (&) to defer evaluation and create a ``future'' which is called by
 need. However, note that like any language with a basically eager evaluation
@@ -2552,8 +2538,7 @@ Pattern matching is always refutable (and therefore eager) in Pure. If you
 need something like Haskell's irrefutable matches, you'll have to code them
 explicitly using futures. See the definition of the `unzip' function in the
 prelude for an example showing how to do this.
-.PP
-.B Stack size and tail recursion.
+.SS Stack Size and Tail Recursion
 Pure programs may need a considerable amount of stack space to handle
 recursive function calls, and the interpreter itself also takes its toll. So
 you may have to configure your system accordingly (8 MB of stack space is
@@ -2604,8 +2589,7 @@ anonymous global variable. (This is done so that a global function definition
 can be changed at any time during an interactive session, without having to
 recompile the entire program.) However, mutual tail recursion does work with
 \fIlocal\fP functions, so it's easy to work around this limitation.
-.PP
-.B Handling of asynchronous signals.
+.SS Handling of Asynchronous Signals
 As described in section EXCEPTION HANDLING, signals delivered to the process
 can be caught and handled with Pure's exception handling facilities. Like
 stack checks, checks for pending signals are only performed at certain places,
