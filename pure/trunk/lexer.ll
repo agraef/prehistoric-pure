@@ -1214,6 +1214,7 @@ using      BEGIN(xusing); return token::USING;
 }
 [@=|;()\[\]\\] return yy::parser::token_type(yytext[0]);
 "->"       return token::MAPSTO;
+"#<"{id}(" "{int})?">" return token::BADTOK;
 ([[:punct:]]|[\200-\377])+  {
   if (yytext[0] == '/' && yytext[1] == '*') REJECT; // comment starter
   while (yyleng > 1 && yytext[yyleng-1] == ';') yyless(yyleng-1);
