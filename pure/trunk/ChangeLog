@@ -1,3 +1,8 @@
+2008-09-06  Albert Graef  <Dr.Graef@t-online.de>
+
+	* pure.cc (main): Source interactive startup files (first
+	$HOME/.purerc, then $PWD/.purerc).
+
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 
 	* pure.cc (main): In interactive mode, print a warning if -n was
