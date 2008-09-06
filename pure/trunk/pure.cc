@@ -233,6 +233,7 @@ main(int argc, char *argv[])
   int count = 0;
   bool quiet = false, force_interactive = false,
     want_prelude = true, have_prelude = false;
+  string rcfile;
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
   /* Set up handlers for all standard POSIX termination signals (except
@@ -267,8 +268,10 @@ main(int argc, char *argv[])
   setlocale(LC_ALL, "");
   // get some settings from the environment
   const char *env;
-  if ((env = getenv("HOME")))
+  if ((env = getenv("HOME"))) {
     interp.histfile = string(env)+"/.pure_history";
+    rcfile = string(env)+"/.purerc";
+  }
   if ((env = getenv("PURE_PS")))
     interp.ps = string(env);
   if ((env = getenv("PURE_STACK"))) {
@@ -429,7 +432,17 @@ main(int argc, char *argv[])
   interp.temp = 1;
   if (last_modno < 0) force_interactive = false;
   if (force_interactive) interp.modno = last_modno;
-  interp.run("", false, force_interactive);
+  // source the initialization files, if any
+  bool sticky = force_interactive;
+  if (!rcfile.empty() && chkfile(rcfile)) {
+    interp.run(rcfile, false, sticky);
+    sticky = true;
+  }
+  if (chkfile(".purerc")) {
+    interp.run(".purerc", false, sticky);
+    sticky = true;
+  }
+  interp.run("", false, sticky);
   if (interp.ttymode) cout << endl;
   return 0;
 }
