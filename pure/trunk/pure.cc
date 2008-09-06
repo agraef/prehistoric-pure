@@ -50,7 +50,7 @@ Type 'help' in the interpreter for more help.\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
 static const char *commands[] = {
-  "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
+  "cd", "clear", "const", "def", "dump", "extern", "help", "infix", "infixl",
   "infixr", "let", "ls", "nullary", "override", "postfix", "prefix",
   "private", "pwd", "quit", "run", "save", "show", "stats", "underride",
   "using", 0
@@ -446,6 +446,10 @@ main(int argc, char *argv[])
     }
     if (chkfile(".purerc")) {
       interp.run(".purerc", false, sticky);
+      sticky = true;
+    }
+    if (chkfile(".pure")) {
+      interp.run(".pure", false, sticky);
       sticky = true;
     }
   }
