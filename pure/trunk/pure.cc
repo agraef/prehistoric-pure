@@ -32,25 +32,21 @@ using namespace std;
 
 #define COPYRIGHT "Copyright (c) 2008 by Albert Graef"
 #define USAGE \
-"Usage:        pure [options ...] [script ...] [-- args ...]\n\
-              pure [options ...] -x script [args ...]\n\
-Options:\n\
--h            Print this message and exit.\n\
--i            Force interactive mode (read commands from stdin).\n\
--Idirectory   Add directory to search for included source files.\n\
--Ldirectory   Add directory to search for dynamic libraries.\n\
--n            Suppress automatic inclusion of the prelude.\n\
--q            Quiet startup (suppresses sign-on message).\n\
--v[level]     Set debugging level (default: 1).\n\
--x            Execute script with given command line arguments.\n\
---            Stop option processing, pass remaining args in argv variable.\n\
-Environment:\n\
-PURELIB       Directory to search for library scripts and the prelude.\n\
-PURE_INCLUDE  Path to search for included source files.\n\
-PURE_LIBRARY  Path to search for dynamic libraries.\n\
-PURE_MORE     Shell command for paging through output of the 'show' command.\n\
-PURE_PS       Command prompt to be used in the interactive command loop.\n\
-PURE_STACK    Maximum stack size in kilobytes (default: 0 = unlimited).\n"
+"Usage:           pure [options ...] [script ...] [-- args ...]\n\
+                 pure [options ...] -x script [args ...]\n\
+--help, -h       Print this message and exit.\n\
+-i               Force interactive mode (read commands from stdin).\n\
+-Idirectory      Add directory to search for included source files.\n\
+-Ldirectory      Add directory to search for dynamic libraries.\n\
+--noediting      Do not use readline for command-line editing.\n\
+--noprelude, -n  Do not load the prelude.\n\
+--norc           Do not run the interactive startup files.\n\
+-q               Quiet startup (suppresses sign-on message).\n\
+-v[level]        Set debugging level (default: 1).\n\
+--version        Print version information and exit.\n\
+-x               Execute script with given command line arguments.\n\
+--               Stop option processing.\n\
+Type 'help' in the interpreter for more help.\n"
 #define LICENSE "This program is free software distributed under the GNU Public License\n(GPL V3 or later). Please see the COPYING file for details.\n"
 
 static const char *commands[] = {
@@ -232,7 +228,8 @@ main(int argc, char *argv[])
   interpreter interp;
   int count = 0;
   bool quiet = false, force_interactive = false,
-    want_prelude = true, have_prelude = false;
+    want_prelude = true, have_prelude = false,
+    want_rcfile = true, want_editing = true;
   string rcfile;
   // This is used in advisory stack checks.
   interpreter::baseptr = &base;
@@ -295,14 +292,22 @@ main(int argc, char *argv[])
   const string prog = *argv;
   list<string> myargs;
   for (char **args = ++argv; *args; ++args)
-    if (*args == string("-h")) {
+    if (*args == string("-h") || *args == string("--help")) {
       cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
 	   << COPYRIGHT << endl << USAGE;
       return 0;
+    } else if (*args == string("--version")) {
+      cout << "Pure " << PACKAGE_VERSION << " (" << HOST << ") "
+	   << COPYRIGHT << endl;
+      return 0;
     } else if (*args == string("-i"))
       force_interactive = true;
-    else if (*args == string("-n"))
+    else if (*args == string("-n") || *args == string("--noprelude"))
       want_prelude = false;
+    else if (*args == string("--norc"))
+      want_rcfile = false;
+    else if (*args == string("--noediting"))
+      want_editing = false;
     else if (*args == string("-q"))
       quiet = true;
     else if (string(*args).substr(0,2) == "-I") {
@@ -418,7 +423,7 @@ main(int argc, char *argv[])
     interp.compile();
     interp.ttymode = true;
   }
-  if (isatty(fileno(stdin))) {
+  if (want_editing && isatty(fileno(stdin))) {
     // initialize readline
     extern bool using_readline;
     using_readline = true;
@@ -434,13 +439,15 @@ main(int argc, char *argv[])
   if (force_interactive) interp.modno = last_modno;
   // source the initialization files, if any
   bool sticky = force_interactive;
-  if (!rcfile.empty() && chkfile(rcfile)) {
-    interp.run(rcfile, false, sticky);
-    sticky = true;
-  }
-  if (chkfile(".purerc")) {
-    interp.run(".purerc", false, sticky);
-    sticky = true;
+  if (want_rcfile) {
+    if (!rcfile.empty() && chkfile(rcfile)) {
+      interp.run(rcfile, false, sticky);
+      sticky = true;
+    }
+    if (chkfile(".purerc")) {
+      interp.run(".purerc", false, sticky);
+      sticky = true;
+    }
   }
   interp.run("", false, sticky);
   if (interp.ttymode) cout << endl;
