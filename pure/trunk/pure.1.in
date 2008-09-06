@@ -7,7 +7,7 @@ pure \- the Pure interpreter
 \fBpure\fP [\fIoptions\fP ...] -x \fIscript\fP [\fIargs\fP ...]
 .SH OPTIONS
 .TP
-.B -h
+\fB--help\fP, \fB-h\fP
 Print help message and exit.
 .TP
 .B -i
@@ -19,14 +19,23 @@ Add a directory to be searched for included source scripts.
 .BI -L directory
 Add a directory to be searched for dynamic libraries.
 .TP
-.B -n
-Suppress automatic inclusion of the prelude.
+.B --noediting
+Do not use readline for command-line editing.
+.TP
+\fB--noprelude\fP, \fB-n\fP
+Do not load the prelude.
+.TP
+.B --norc
+Do not run the interactive startup files.
 .TP
 .B -q
 Quiet startup (suppresses sign-on message in interactive mode).
 .TP
 .BR -v [\fIlevel\fP]
 Set verbosity level. See below for details.
+.TP
+.B --version
+Print version information and exit.
 .TP
 .B -x
 Execute script with given command line arguments.
@@ -70,12 +79,27 @@ processing some source scripts. To exit the interpreter, just type the
 command or the end-of-file character (^D on Unix) at the beginning of the
 command line.
 .PP
-When the interpreter is in interactive mode and reads from a tty, commands are
-read using
+Unless the
+.B --norc
+option is specified, in interactive mode the interpreter automatically loads
+some additional startup files if they are present; first
+.B .purerc
+in the user's home directory (provided that the
+.B HOME
+environment variable is set accordingly), then
+.B .purerc
+in the current working directory. These are ordinary Pure scripts which can be
+used to provide additional definitions for interactive usage. See the
+INTERACTIVE USAGE section for details.
+.PP
+Unless the
+.B --noediting
+option is specified, when the interpreter is in interactive mode and reads
+from a tty, commands are read using
 .BR readline (3)
 (providing completion for all commands listed under INTERACTIVE USAGE, as well
-as for symbols defined in the running program) and, when exiting the
-interpreter, the command history is stored in
+as for symbols defined in the running program). When exiting the interpreter,
+the command history is stored in
 .BR ~/.pure_history ,
 from where it is restored the next time you run the interpreter.
 .PP
@@ -1784,7 +1808,8 @@ option was used to force interactive mode when invoking the interpreter, the
 last script specified on the command line determines the visible namespace
 (i.e., all public symbols are visible, along with the private symbols of the
 loaded script). Otherwise only the public symbols defined in the prelude are
-available. Additional scripts can be loaded interactively using either a
+available, as well as the (public or private) definitions in the startup files
+(see below). Additional scripts can be loaded interactively using either a
 .B using
 declaration or the interactive
 .B run
@@ -1872,6 +1897,10 @@ bigint values:
 265252859812191058636308480000000
 .fi
 .PP
+If you have a set of definitions for the __show__ function which should always
+be loaded at startup, you can put them into the interpreter's interactive
+startup files, see below.
+.PP
 By just purging the definition of the __show__ function you can easily go back
 to the standard print syntax:
 .sp
@@ -1886,6 +1915,27 @@ to the standard print syntax:
 > fact 30;
 265252859812191058636308480000000L
 .fi
+.SS Startup Files
+When running the interpreter interactively, it loads some additional scripts
+at startup, after loading the prelude. The interpreter first looks for a
+.B .purerc
+file in the user's home directory (as given by the
+.B HOME
+environment variable) and then for a
+.B .purerc
+file in the current working directory. These are just ordinary Pure scripts
+which may contain any additional definitions that you need. The
+.B .purerc
+file in the home directory is for global definitions which should always be
+available when running interactively, while the
+.B .purerc
+file in the current directory can be used for project-specific definitions.
+.PP
+The interpreter loads these files in the same way as with the
+.B run
+command (see below). When invoking the interpreter, you can specify the
+.B --norc
+option on the command line if you do not wish to load these files.
 .SS Interactive Commands
 When running interactively, the interpreter also accepts a number of special
 commands useful for interactive purposes. Here is a quick rundown of the
@@ -2627,6 +2677,9 @@ check x = ...;
 .TP
 .B ~/.pure_history
 Interactive command history.
+.TP
+\fB~/.purerc\fP, \fB.purerc\fP
+Interactive startup files.
 .TP
 .B prelude.pure
 Standard prelude. If available, this script is loaded before any other
