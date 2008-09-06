@@ -1,10 +1,10 @@
 2008-09-06  Albert Graef  <Dr.Graef@t-online.de>
 
 	* pure.cc, lexer.ll: Add 'dump' command. This is similar to
-	'show', but dumps temporary definitions to a hidden file named
-	'.pure', which, if present, is loaded after .purerc during
-	interactive startup. This provides a quick-and-dirty means to save
-	an interactive session and have it restored later. (This is not
+	'show', but dumps definitions to a file (named '.pure' by default,
+	which, if present, is loaded after .purerc during interactive
+	startup). This provides a quick-and-dirty means to save an
+	interactive session and have it restored later. (This is not
 	perfect, though, as variable values containing special objects
 	such as thunks and pointers can't be reconstructed, and 'using' or
 	'extern' declarations are not recorded. For those you should use
