@@ -1,7 +1,17 @@
 2008-09-06  Albert Graef  <Dr.Graef@t-online.de>
 
+	* runtime.cc (pure_create_interp): Add new command line options
+	(see below).
+
 	* pure.cc (main): Source interactive startup files (first
 	$HOME/.purerc, then $PWD/.purerc).
+
+	Add options --norc to not source the rc files and --noediting to
+	suppress readline editing, as well as --noprelude (long form of
+	-n), --help (long form of -h) and --version (like --help, but only
+	print version information).
+
+	Overhaul help message.
 
 2008-09-05  Albert Graef  <Dr.Graef@t-online.de>
 

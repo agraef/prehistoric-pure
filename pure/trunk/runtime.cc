@@ -1062,12 +1062,18 @@ pure_interp *pure_create_interp(int argc, char *argv[])
   // scan the command line options
   list<string> myargs;
   for (char **args = ++argv; *args; ++args)
-    if (*args == string("-h"))
+    if (*args == string("-h") || *args == string("--help"))
+      /* ignored */;
+    else if (*args == string("--version"))
       /* ignored */;
     else if (*args == string("-i"))
       /* ignored */;
-    else if (*args == string("-n"))
+    else if (*args == string("-n") || *args == string("--noprelude"))
       want_prelude = false;
+    else if (*args == string("--norc"))
+      /* ignored */;
+    else if (*args == string("--noediting"))
+      /* ignored */;
     else if (*args == string("-q"))
       /* ignored */;
     else if (string(*args).substr(0,2) == "-I") {
