@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <string.h>
 #include <fnmatch.h>
+#include <time.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
@@ -750,7 +751,8 @@ Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
   if (!interp.interactive) REJECT;
   uint8_t tflag = 1; int pflag = -1;
   bool cflag = false, fflag = false, mflag = false, vflag = false;
-  bool gflag = false;
+  bool gflag = false, Fflag = false;
+  string fname = ".pure";
   const char *s = yytext+4;
   if (*s && !isspace(*s)) REJECT;
   yylloc->step();
@@ -759,10 +761,12 @@ Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
   if (!args.ok) goto out2;
   // process option arguments
   for (arg = args.l.begin(); arg != args.l.end(); arg++) {
+    if (Fflag) { fname = *arg; Fflag = false; continue; }
     const char *s = arg->c_str();
-    if (s[0] != '-' || !s[1] || !strchr("cfghmptv", s[1])) break;
+    if (s[0] != '-' || !s[1] || !strchr("Fcfghmptv", s[1])) break;
     while (*++s) {
       switch (*s) {
+      case 'F': Fflag = true; break;
       case 'c': cflag = true; break;
       case 'f': fflag = true; break;
       case 'g': gflag = true; break;
@@ -784,7 +788,8 @@ Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
 	break;
       case 'h':
 	cout << "dump command help: dump [options ...] [symbol ...]\n\
-Options may be combined, e.g., dump -cv is the same as show -c -v.\n\
+Options may be combined, e.g., dump -tcv is the same as show -t -c -v.\n\
+-F  Write the dump to the file named in the next arg (default is .pure).\n\
 -c  Dump defined constants.\n\
 -f  Dump defined functions.\n\
 -g  Indicates that the following symbols are actually shell glob patterns\n\
@@ -919,11 +924,13 @@ Options may be combined, e.g., dump -cv is the same as show -c -v.\n\
     }
     l.sort(env_compare);
     if (l.empty()) {
-      unlink(".pure");
+      unlink(fname.c_str());
       goto out2;
     }
     ofstream fout;
-    fout.open(".pure");
+    fout.open(fname.c_str());
+    time_t t; time(&t);
+    fout << "// dump written " << ctime(&t);
     for (list<env_sym>::const_iterator it = l.begin();
 	 it != l.end(); ++it) {
       const symbol& sym = *it->sym;
