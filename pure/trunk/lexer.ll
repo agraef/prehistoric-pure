@@ -8,6 +8,7 @@
 #include <readline/history.h>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include "interpreter.hh"
 #include "parser.hh"
 #include "util.hh"
@@ -132,7 +133,7 @@ static bool env_compare(env_sym s, env_sym t)
    now. */
 
 static const char *commands[] = {
-  "cd", "clear", "const", "def", "extern", "help", "infix", "infixl",
+  "cd", "clear", "const", "def", "dump", "extern", "help", "infix", "infixl",
   "infixr", "let", "ls", "nullary", "override", "postfix", "prefix",
   "private", "pwd", "quit", "run", "save", "show", "stats", "underride",
   "using", 0
@@ -743,6 +744,252 @@ Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
   }
  out:
   interpreter::g_verbose = s_verbose;
+}
+^dump.* {
+  // dump command is only permitted in interactive mode
+  if (!interp.interactive) REJECT;
+  uint8_t tflag = 1; int pflag = -1;
+  bool cflag = false, fflag = false, mflag = false, vflag = false;
+  bool gflag = false;
+  const char *s = yytext+4;
+  if (*s && !isspace(*s)) REJECT;
+  yylloc->step();
+  argl args(s, "dump");
+  list<string>::iterator arg;
+  if (!args.ok) goto out2;
+  // process option arguments
+  for (arg = args.l.begin(); arg != args.l.end(); arg++) {
+    const char *s = arg->c_str();
+    if (s[0] != '-' || !s[1] || !strchr("cfghmptv", s[1])) break;
+    while (*++s) {
+      switch (*s) {
+      case 'c': cflag = true; break;
+      case 'f': fflag = true; break;
+      case 'g': gflag = true; break;
+      case 'm': mflag = true; break;
+      case 'p':
+	if (isdigit(s[1])) {
+	  pflag = strtoul(s+1, 0, 10)>0;
+	  while (isdigit(s[1])) ++s;
+	} else
+	  pflag = 1;
+	break;
+      case 'v': vflag = true; break;
+      case 't':
+	if (isdigit(s[1])) {
+	  tflag = strtoul(s+1, 0, 10);
+	  while (isdigit(s[1])) ++s;
+	} else
+	  tflag = interp.temp;
+	break;
+      case 'h':
+	cout << "dump command help: dump [options ...] [symbol ...]\n\
+Options may be combined, e.g., dump -cv is the same as show -c -v.\n\
+-c  Dump defined constants.\n\
+-f  Dump defined functions.\n\
+-g  Indicates that the following symbols are actually shell glob patterns\n\
+    and that all matching symbols should be dumped.\n\
+-h  Print this list.\n\
+-m  Dump defined macros.\n\
+-p[flag] Dump only private symbols in the current module if flag is\n\
+    nonzero (the default), otherwise dump only public symbols of all\n\
+    modules. Dump both private and public symbols if -p is omitted.\n\
+-t[level] Dump only symbols and definitions at the given temporary level\n\
+    (the current level by default) or above. Level 1 denotes all temporary\n\
+    definitions (the default if -t is omitted), level 0 *all* definitions.\n\
+-v  Dump defined variables.\n";
+	goto out2;
+      default:
+	cerr << "show: invalid option character '" << *s << "'\n";
+	goto out2;
+      }
+    }
+  }
+  args.l.erase(args.l.begin(), arg);
+  if (!cflag && !fflag && !mflag && !vflag)
+    cflag = fflag = mflag = vflag = true;
+  {
+    list<env_sym> l; set<int32_t> syms;
+    for (env::const_iterator it = interp.globenv.begin();
+	 it != interp.globenv.end(); ++it) {
+      int32_t f = it->first;
+      const env_info& e = it->second;
+      const symbol& sym = interp.symtab.sym(f);
+      if (sym.modno >= 0 && sym.modno != interp.modno ||
+	  pflag >= 0 && (pflag > 0) != (sym.modno >= 0) ||
+	  !((e.t == env_info::fun)?fflag:
+	    (e.t == env_info::cvar)?cflag:
+	    (e.t == env_info::fvar)?vflag:0))
+	continue;
+      bool matches = e.temp >= tflag;
+      if (!matches && args.l.empty() &&
+	  e.t == env_info::fun && fflag) {
+	// dump temporary rules for a non-temporary symbol
+	rulel::const_iterator r;
+	for (r = e.rules->begin(); r != e.rules->end(); r++)
+	  if (r->temp >= tflag) {
+	    matches = true;
+	    break;
+	  }
+      }
+      if (!matches) continue;
+      if (!args.l.empty()) {
+	// see whether we actually want the defined symbol to be dumped
+	matches = false;
+	for (arg = args.l.begin(); arg != args.l.end(); ++arg) {
+	  if (gflag ? (!fnmatch(arg->c_str(), sym.s.c_str(), 0)) :
+	      (*arg == sym.s)) {
+	    matches = true;
+	    break;
+	  }
+	}
+      }
+      if (!matches) continue;
+      syms.insert(f);
+      l.push_back(env_sym(sym, it, interp.macenv.find(f),
+			  interp.externals.find(f)));
+    }
+    if (fflag && tflag == 0) {
+      // also process the declared externals which don't have any rules yet
+      for (extmap::const_iterator it = interp.externals.begin();
+	   it != interp.externals.end(); ++it) {
+	int32_t f = it->first;
+	if (syms.find(f) == syms.end()) {
+	  const symbol& sym = interp.symtab.sym(f);
+	  if (sym.modno >= 0 && sym.modno != interp.modno ||
+	      pflag >= 0 && (pflag > 0) != (sym.modno >= 0))
+	    continue;
+	  bool matches = true;
+	  if (!args.l.empty()) {
+	    matches = false;
+	    for (arg = args.l.begin(); arg != args.l.end(); ++arg) {
+	      if (gflag ? (!fnmatch(arg->c_str(), sym.s.c_str(), 0)) :
+		  (*arg == sym.s)) {
+		matches = true;
+		break;
+	      }
+	    }
+	  }
+	  if (!matches) continue;
+	  l.push_back(env_sym(sym, interp.globenv.end(),
+			      interp.macenv.find(f), it));
+	}
+      }
+    }
+    if (mflag) {
+      // also dump any symbols defined as macros, unless they've already been
+      // considered
+      for (env::const_iterator it = interp.macenv.begin();
+	   it != interp.macenv.end(); ++it) {
+	int32_t f = it->first;
+	if (syms.find(f) == syms.end()) {
+	  const env_info& e = it->second;
+	  const symbol& sym = interp.symtab.sym(f);
+	  if (sym.modno >= 0 && sym.modno != interp.modno ||
+	      pflag >= 0 && (pflag > 0) != (sym.modno >= 0))
+	    continue;
+	  bool matches = e.temp >= tflag;
+	  if (!matches && args.l.empty()) {
+	    // also dump temporary rules for a non-temporary symbol
+	    rulel::const_iterator r;
+	    for (r = e.rules->begin(); r != e.rules->end(); r++)
+	      if (r->temp >= tflag) {
+		matches = true;
+		break;
+	      }
+	  }
+	  if (!matches) continue;
+	  if (!args.l.empty()) {
+	    // see whether we actually want the defined symbol to be dumped
+	    matches = false;
+	    for (arg = args.l.begin(); arg != args.l.end(); ++arg) {
+	      if (gflag ? (!fnmatch(arg->c_str(), sym.s.c_str(), 0)) :
+		  (*arg == sym.s)) {
+		matches = true;
+		break;
+	      }
+	    }
+	  }
+	  if (!matches) continue;
+	  syms.insert(f);
+	  l.push_back(env_sym(sym, interp.globenv.end(), it,
+			      interp.externals.end()));
+	}
+      }
+    }
+    l.sort(env_compare);
+    if (l.empty()) {
+      unlink(".pure");
+      goto out2;
+    }
+    ofstream fout;
+    fout.open(".pure");
+    for (list<env_sym>::const_iterator it = l.begin();
+	 it != l.end(); ++it) {
+      const symbol& sym = *it->sym;
+      int32_t ftag = sym.f;
+      map<int32_t,Env>::iterator fenv = interp.globalfuns.find(ftag);
+      const env::const_iterator jt = it->it, kt = it->jt;
+      const extmap::const_iterator xt = it->xt;
+      if (jt == interp.globenv.end() && kt == interp.macenv.end()) {
+	assert(xt != interp.externals.end());
+	const ExternInfo& info = xt->second;
+	fout << info << ";\n";
+      } else if (jt != interp.globenv.end() &&
+		 jt->second.t == env_info::fvar) {
+	fout << "let " << sym.s << " = " << *(pure_expr**)jt->second.val
+	     << ";\n";
+      } else if (jt != interp.globenv.end() &&
+		 jt->second.t == env_info::cvar) {
+	fout << "const " << sym.s << " = " << *jt->second.cval
+	     << ";\n";
+      } else {
+	if (sym.fix == nullary)
+	  fout << "nullary " << sym.s << ";\n";
+	else if (sym.prec < 10) {
+	  switch (sym.fix) {
+	  case infix:
+	    fout << "infix"; break;
+	  case infixl:
+	    fout << "infixl"; break;
+	  case infixr:
+	    fout << "infixr"; break;
+	  case prefix:
+	    fout << "prefix"; break;
+	  case postfix:
+	    fout << "postfix"; break;
+	  case nullary:
+	    assert(0 && "this can't happen"); break;
+	  }
+	  fout << " " << (int)sym.prec << " " << sym.s << ";\n";
+	}
+	if (fflag && xt != interp.externals.end()) {
+	  const ExternInfo& info = xt->second;
+	  fout << info << ";\n";
+	}
+	if (mflag && kt != interp.macenv.end()) {
+	  const rulel& rules = *kt->second.rules;
+	  for (rulel::const_iterator it = rules.begin();
+	       it != rules.end(); ++it) {
+	    if (it->temp >= tflag) {
+	      fout << "def " << *it << ";\n";
+	    }
+	  }
+	}
+	if (fflag && jt != interp.globenv.end()) {
+	  const rulel& rules = *jt->second.rules;
+	  for (rulel::const_iterator it = rules.begin();
+	       it != rules.end(); ++it) {
+	    if (it->temp >= tflag) {
+	      fout << *it << ";\n";
+	    }
+	  }
+	}
+      }
+    }
+  }
+ out2:
+  ;
 }
 ^save.* {
   // save command is only permitted in interactive mode
