@@ -625,7 +625,12 @@ ostream& operator << (ostream& os, const pure_paren& p)
 static inline bool pstr(ostream& os, pure_expr *x)
 {
   static bool recursive = false;
-  if (recursive) return false;
+  if (recursive ||
+      // We don't want to force a thunk here. Unfortunately, this means that
+      // currently you can't define a print representation for a thunk, at
+      // least not directly. :(
+      x->tag == 0 && x->data.clos && x->data.clos->n == 0)
+    return false;
   interpreter& interp = *interpreter::g_interp;
   int32_t f = interp.symtab.__show__sym;
   if (f > 0 && interp.globenv.find(f) != interp.globenv.end()) {
