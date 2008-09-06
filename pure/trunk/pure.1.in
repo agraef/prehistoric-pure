@@ -1931,7 +1931,7 @@ available when running interactively, while the
 .B .purerc
 file in the current directory can be used for project-specific definitions.
 .PP
-The interpreter loads these files in the same way as with the
+The interpreter processes these files in the same way as with the
 .B run
 command (see below). When invoking the interpreter, you can specify the
 .B --norc
