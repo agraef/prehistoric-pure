@@ -347,7 +347,7 @@ void
 interpreter::error(const yy::location& l, const string& m)
 {
   string m1 = m;
-  if (m.find("bad token"))
+  if (m.find("bad token") != string::npos)
     m1 = "bad anonymous function or pointer value";
   nerrs++;
   if (source_s) {
