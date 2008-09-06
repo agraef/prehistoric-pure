@@ -225,11 +225,8 @@ Unix-like systems this allows you to add a ``shebang'' to your main script in
 order to turn it into an executable program.
 .PP
 There are a few reserved keywords which cannot be used as identifiers:
-.if t .PP
-.if t .RS
 case const def else end extern if infix infixl infixr let nullary of
-otherwise postfix prefix private then using when with
-.if t .RE
+otherwise postfix prefix private then using when with.
 .PP
 Pure is a terse language. You won't see many declarations, and often your
 programs will read more like a collection of algebraic specifications (which
@@ -912,7 +909,7 @@ advantage of memoization.)
 0L:1L:1L:2L:3L:5L:8L:13L:21L:34L:#<thunk 0xb4ce5d30>
 .fi
 .PP
-As you can see, the invokation of our `takel' function forced the
+As you can see, the invocation of our `takel' function forced the
 corresponding prefix of the `fibs' stream to be computed. The result of the
 evaluation is memoized, so that this portion of the stream is now readily
 available in case we need to have another look at it later. By these means,
@@ -1820,7 +1817,7 @@ enter them. However, there are a few special kinds of objects like closures
 (anonymous and local functions), thunks (``lazy'' values to be evaluated when
 needed) and pointers which don't have a textual representation in the Pure
 syntax and will be printed in the format
-.BR "#<\fIobject description\fP>" .
+\fB#<\fP\fIobject description\fP\fB>\fP.
 .PP
 The interpreter provides a ``hook'' to override the print representations of
 expressions at runtime by means of the
