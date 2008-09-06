@@ -89,8 +89,11 @@ in the user's home directory (provided that the
 environment variable is set accordingly), then
 .B .purerc
 in the current working directory. These are ordinary Pure scripts which can be
-used to provide additional definitions for interactive usage. See the
-INTERACTIVE USAGE section for details.
+used to provide additional definitions for interactive usage. Finally, a
+.B .pure
+file in the current directory (containing a dump from a previous interactive
+session) is loaded if it is present. See the INTERACTIVE USAGE section for
+details.
 .PP
 Unless the
 .B --noediting
@@ -1929,7 +1932,14 @@ which may contain any additional definitions that you need. The
 file in the home directory is for global definitions which should always be
 available when running interactively, while the
 .B .purerc
-file in the current directory can be used for project-specific definitions.
+file in the current directory can be used for project-specific
+definitions. There can be yet another
+.B .pure
+initialization file in the current directory, which is created by the
+.B dump
+command (see below) and is loaded after the
+.B .purerc
+files if it is present.
 .PP
 The interpreter processes these files in the same way as with the
 .B run
@@ -1955,6 +1965,40 @@ confirmation) made after the most recent
 command, or the beginning of the interactive session. (It might be a good
 idea to first check your current definitions with \fBlist -t\fP before you do
 this, though.) See the DEFINITION LEVELS section below for details.
+.TP
+\fBdump\fP [\fIoption\fP ...] [\fIsymbol\fP ...]
+Dump function, macro, variable and constant definitions to a file. This works
+similar to the
+.B show
+command (see below and the SHOW COMMAND section), but writes the definitions
+to a file. This command only supports a subset of the
+.B show
+options, type
+.B dump -h
+for a description of these.
+.sp
+By default, all definitions made interactively are written to a file named
+.B .pure
+in the current directory, which is then reloaded automatically the next time
+the interpreter starts up in interactive mode in the same directory. This
+provides a quick-and-dirty means to save an interactive session and have it
+restored later. (Please note that this isn't perfect yet, because variable
+values containing special objects such as thunks and pointers can't be
+reconstructed, and
+.B using
+or
+.B extern
+declarations are not recorded at all. For those you'll have to manually create
+a
+.B .purerc
+file instead.)
+.sp
+A different filename can be specified with the
+.B -F
+option. You can then edit that file and use it as a starting point for an
+ordinary script or a
+.B purerc
+file.
 .TP
 \fBhelp\fP [\fIargs\fP]
 Display the
@@ -2678,8 +2722,9 @@ check x = ...;
 .B ~/.pure_history
 Interactive command history.
 .TP
-\fB~/.purerc\fP, \fB.purerc\fP
-Interactive startup files.
+\fB~/.purerc\fP, \fB.purerc\fP, \fB.pure\fP
+Interactive startup files. The latter is usually a dump from a previous
+interactive session.
 .TP
 .B prelude.pure
 Standard prelude. If available, this script is loaded before any other
