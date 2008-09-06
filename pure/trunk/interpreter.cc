@@ -346,14 +346,17 @@ void interpreter::init_sys_vars(const string& version,
 void
 interpreter::error(const yy::location& l, const string& m)
 {
+  string m1 = m;
+  if (m.find("bad token"))
+    m1 = "bad anonymous function or pointer value";
   nerrs++;
   if (source_s) {
     ostringstream msg;
-    msg << l << ": " << m << endl;
+    msg << l << ": " << m1 << endl;
     errmsg += msg.str();
   } else {
     cout.flush();
-    cerr << l << ": " << m << endl;
+    cerr << l << ": " << m1 << endl;
   }
 }
 

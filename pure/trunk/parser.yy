@@ -222,6 +222,7 @@ typedef list<comp_clause> comp_clause_list;
 
 %token		EOFTOK 0 "end of file"
 %token		ERRTOK  "invalid character"
+%token		BADTOK  "bad token"
 %token		MAPSTO  "->"
 %token <sval>	ID	"identifier"
 %token <csval>	STR	"string"
