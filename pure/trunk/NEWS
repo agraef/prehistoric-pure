@@ -4,16 +4,19 @@
 New stuff in this release (please see the ChangeLog and the manual for
 details):
 
-- Macros: rewriting rules applied at compile time, which can be used for
-preprocessing purposes, optimizing and inlining function calls at the source
-level, and implementing user-defined special forms.
+- Macros: These are implemented as rewriting rules which are applied at
+compile time, and can be used for all usual preprocessing purposes, including
+the optimization and inlining of function calls at the source level, and the
+programming of user-defined special forms.
 
-- Thunks a.k.a. "futures": anonymous parameterless closures, which are used to
-implement call-by-need and lazy data structures. In particular, the prelude
-now implements lazy lists a.k.a. "streams".
+- Thunks a.k.a. "futures": These are realized as anonymous parameterless
+closures (a la Alice ML), and are used to implement call-by-need and lazy data
+structures. In particular, the prelude now implements lazy lists a.k.a.
+"streams".
 
 - Private namespaces. You can now declare symbols as private in a module, to
-keep the global public namespace clean.
+hide away internal helper functions and constructor symbols, and to keep the
+global public namespace clean.
 
 - Sentries (object finalizers) and references (mutable expression pointers).
 File objects in the system module now employ sentries in order to close
@@ -24,13 +27,13 @@ with additional definitions for interactive usage.
 
 - The 'list' command was renamed to 'show' (to avoid a clash with the prelude
 function 'list'), and a new 'dump' command was added. The latter is similar to
-'show', but allows you to save a snapshot of your current interactive
-environment in a file.
+'show', but saves a snapshot of your current interactive environment in a
+file.
 
 - User-defined hook for the expression printer (__show__). This allows you to
 define your own custom print representations for expressions at runtime.
 
-- Syntax highlighting for gedit (contributed by Eddie Rucker).
+- Syntax highlighting for gedit (contributed by Eddie Rucker, thanks!).
 
 ** Pure 0.5 2008-08-24
 
