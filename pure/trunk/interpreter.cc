@@ -2663,14 +2663,16 @@ ostream &operator<< (ostream& os, const ExternInfo& info)
 {
   interpreter& interp = *interpreter::g_interp;
   assert(info.tag > 0);
-  os << "extern " << interp.type_name(info.type) << " "
-     << interp.symtab.sym(info.tag).s << "(";
+  const symbol& sym = interp.symtab.sym(info.tag);
+  os << "extern " << interp.type_name(info.type) << " " << info.name << "(";
   size_t n = info.argtypes.size();
   for (size_t i = 0; i < n; i++) {
     if (i > 0) os << ", ";
     os << interp.type_name(info.argtypes[i]);
   }
-  return os << ")";
+  os << ")";
+  if (sym.s != info.name) os << " = " << sym.s;
+  return os;
 }
 
 FMap& FMap::operator= (const FMap& f)
@@ -3452,7 +3454,7 @@ Function *interpreter::declare_extern(string name, string restype,
       externals.find(sym.f) == externals.end())
     // There already is a Pure function or global variable for this symbol.
     // This is an error (unless the symbol is already declared as an external).
-    throw err("symbol '"+name+"' is already defined as a Pure "+
+    throw err("symbol '"+asname+"' is already defined as a Pure "+
 	      ((globenv[sym.f].t == env_info::fun) ? "function" :
 	       (globenv[sym.f].t == env_info::fvar) ? "variable" :
 	       (globenv[sym.f].t == env_info::cvar) ? "constant" :
@@ -3491,7 +3493,7 @@ Function *interpreter::declare_extern(string name, string restype,
 	vector<const Type*> argt(n);
 	for (size_t i = 0; i < n; i++)
 	  argt[i] = gt->getParamType(i);
-	ExternInfo info(sym.f, gt->getReturnType(), argt, g);
+	ExternInfo info(sym.f, name, gt->getReturnType(), argt, g);
 	ostringstream msg;
 	msg << "declaration of extern function '" << name
 	    << "' does not match builtin declaration: " << info;
@@ -3884,7 +3886,7 @@ Function *interpreter::declare_extern(string name, string restype,
   verifyFunction(*f);
   if (FPM) FPM->run(*f);
   if (verbose&verbosity::dump) f->print(std::cout);
-  externals[sym.f] = ExternInfo(sym.f, type, argt, f);
+  externals[sym.f] = ExternInfo(sym.f, name, type, argt, f);
   return f;
 }
 

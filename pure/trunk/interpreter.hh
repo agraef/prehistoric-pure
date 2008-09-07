@@ -274,15 +274,16 @@ private:
 struct ExternInfo {
   // info about extern (C) functions callable from the Pure script
   int32_t tag;				// function symbol
+  string name;				// real function name
   const llvm::Type* type;		// return type
   vector<const llvm::Type*> argtypes;	// argument types
   llvm::Function *f;			// Pure wrapper for the external
   ExternInfo()
     : tag(0), type(0), argtypes(0), f(0)
   {}
-  ExternInfo(int32_t _tag, const llvm::Type *_type,
+  ExternInfo(int32_t _tag, const string&_name, const llvm::Type *_type,
 	     vector<const llvm::Type*> _argtypes, llvm::Function *_f)
-    : tag(_tag), type(_type), argtypes(_argtypes), f(_f)
+    : tag(_tag), name(_name), type(_type), argtypes(_argtypes), f(_f)
   {}
 };
 
