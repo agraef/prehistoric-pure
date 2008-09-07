@@ -91,7 +91,7 @@ uncurry3 f (x,y,z)
 
 /* The (normal order) fixed point combinator. */
 
-fix f = y y when y = \x -> f (x x&) end;
+fix f = y y with y x = f (x x&) end;
 
 /* Some convenient optimization rules which eliminate saturated calls of the
    function composition combinators. */
