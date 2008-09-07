@@ -1,4 +1,37 @@
 
+** Pure 0.6 (in progress)
+
+New stuff in this release (please see the ChangeLog and the manual for
+details):
+
+- Macros: rewriting rules applied at compile time, which can be used for
+preprocessing purposes, optimizing and inlining function calls at the source
+level, and implementing user-defined special forms.
+
+- Thunks a.k.a. "futures": anonymous parameterless closures, which are used to
+implement call-by-need and lazy data structures. In particular, the prelude
+now implements lazy lists a.k.a. "streams".
+
+- Private namespaces. You can now declare symbols as private in a module, to
+keep the global public namespace clean.
+
+- Sentries (object finalizers) and references (mutable expression pointers).
+File objects in the system module now employ sentries in order to close
+themselves when they're garbage-collected.
+
+- New interactive startup files (.purerc). These are just normal Pure scripts
+with additional definitions for interactive usage.
+
+- The 'list' command was renamed to 'show' (to avoid a clash with the prelude
+function 'list'), and a new 'dump' command was added. The latter is similar to
+'show', but allows you to save a snapshot of your current interactive
+environment in a file.
+
+- User-defined hook for the expression printer (__show__). This allows you to
+define your own custom print representations for expressions at runtime.
+
+- Syntax highlighting for gedit (contributed by Eddie Rucker).
+
 ** Pure 0.5 2008-08-24
 
 This release sports LLVM 2.3 support and a bunch of bug fixes and improvements
