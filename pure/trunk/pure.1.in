@@ -79,33 +79,6 @@ processing some source scripts. To exit the interpreter, just type the
 command or the end-of-file character (^D on Unix) at the beginning of the
 command line.
 .PP
-Unless the
-.B --norc
-option is specified, in interactive mode the interpreter automatically loads
-some additional startup files if they are present; first
-.B .purerc
-in the user's home directory (provided that the
-.B HOME
-environment variable is set accordingly), then
-.B .purerc
-in the current working directory. These are ordinary Pure scripts which can be
-used to provide additional definitions for interactive usage. Finally, a
-.B .pure
-file in the current directory (containing a dump from a previous interactive
-session) is loaded if it is present. See the INTERACTIVE USAGE section for
-details.
-.PP
-Unless the
-.B --noediting
-option is specified, when the interpreter is in interactive mode and reads
-from a tty, commands are read using
-.BR readline (3)
-(providing completion for all commands listed under INTERACTIVE USAGE, as well
-as for symbols defined in the running program). When exiting the interpreter,
-the command history is stored in
-.BR ~/.pure_history ,
-from where it is restored the next time you run the interpreter.
-.PP
 Options and source files are processed in the order in which they are given on
 the command line. Processing of options and source files ends when either the
 .B --
@@ -148,6 +121,8 @@ If available, the prelude script
 .B prelude.pure
 is loaded by the interpreter prior to any other other definitions, unless the
 .B -n
+or
+.B --noprelude
 option is specified. The prelude is searched for in the directory specified
 with the
 .B PURELIB
@@ -164,6 +139,31 @@ including the directories named with the
 and
 .B -L
 options; see the sections DECLARATIONS and C INTERFACE below for details.
+.PP
+If the interpreter runs in interactive mode, it may source a few additional
+interactive startup files immediately before entering the interactive loop,
+unless the
+.B --norc
+option is specified. First
+.B .purerc
+in the user's home directory is read, then
+.B .purerc
+in the current working directory. These are ordinary Pure scripts which can be
+used to provide additional definitions for interactive usage. Finally, a
+.B .pure
+file in the current directory (containing a dump from a previous interactive
+session) is loaded if it is present. See the INTERACTIVE USAGE section for
+details.
+.PP
+When the interpreter is in interactive mode and reads from a tty, unless the
+.B --noediting
+option is specified, commands are read using
+.BR readline (3)
+(providing completion for all commands listed under INTERACTIVE USAGE, as well
+as for symbols defined in the running program). When exiting the interpreter,
+the command history is stored in
+.BR ~/.pure_history ,
+from where it is restored the next time you run the interpreter.
 .PP
 The
 .B -v
@@ -286,7 +286,7 @@ binding the variables in the pattern to their actual values accordingly:
 98
 .fi
 .PP
-However, due to its term rewriting semantics, Pure goes beyond most other
+In fact, due to its term rewriting semantics, Pure goes beyond most other
 functional languages in that it can do symbolic evaluations just as well as
 ``normal'' computations:
 .sp
@@ -298,9 +298,11 @@ functional languages in that it can do symbolic evaluations just as well as
 (a+b)*(a+b)
 .fi
 .PP
-In fact, all the Pure interpreter does is evaluating expressions in a symbolic
-fashion, rewriting expressions using the equations supplied by the programmer,
-until no more equations are applicable. The result of this process is called a
+Leaving aside the built-in support for some common data structures such as
+numbers and strings, all the Pure interpreter really does is evaluating
+expressions in a symbolic fashion, rewriting expressions using the equations
+supplied by the programmer, until no more equations are applicable. The result
+of this process is called a
 .I "normal form"
 which represents the ``value'' of the original expression. Keeping with the
 tradition of term rewriting, there's no distinction between ``defined'' and
@@ -844,7 +846,7 @@ works with streams just as well as with ``eager'' lists:
 0L:1L:#<thunk 0xb5f87630>
 .fi
 .PP
-Hmm, not much progress there, but that's just how streams work (or rather
+Hmm, not much progress there, but that's just how streams work (or rather they
 don't, they're lazy bums indeed!). Nevertheless, the stream computed with
 `take' is in fact finite and we can readily convert it to an ordinary list,
 forcing its evaluation:
@@ -913,13 +915,13 @@ in Pure and defined in the prelude as follows:
 .sp
 .nf
 > \fBshow\fP fix
-fix f = y y \fBwhen\fP y = \ex -> f (x x&) \fBend\fP;
+fix f = y y \fBwith\fP y x = f (x x&) \fBend\fP;
 .fi
 .PP
-(Functional programming buffs surely notice that this is an implementation of
-the normal order fixed point combinator, decorated with `&' in the right place
-to make it work with eager evaluation. Aspiring novices may go read Wikipedia
-or a good book on the lambda calculus now.)
+(Functional programming buffs will quickly recognize this as an implementation
+of the normal order fixed point combinator, decorated with `&' in the right
+place to make it work with eager evaluation. Aspiring novices may go read
+Wikipedia or a good book on the lambda calculus now.)
 .PP
 So here's how we can define a ``linear-time'' version of the Fibonacci
 stream. (Note that we also define the stream as a variable now, to take full
@@ -1808,11 +1810,10 @@ In interactive mode, the interpreter reads definitions and expressions and
 processes them as usual. If the
 .B -i
 option was used to force interactive mode when invoking the interpreter, the
-last script specified on the command line determines the visible namespace
-(i.e., all public symbols are visible, along with the private symbols of the
-loaded script). Otherwise only the public symbols defined in the prelude are
-available, as well as the (public or private) definitions in the startup files
-(see below). Additional scripts can be loaded interactively using either a
+last script specified on the command line determines the visible namespace,
+i.e., the private symbols of that script are available in addition to the
+public symbols defined in the prelude and the other scripts specified on the
+command line. Additional scripts can be loaded interactively using either a
 .B using
 declaration or the interactive
 .B run
@@ -1836,7 +1837,7 @@ command prompt:
 > map fact (1..10);
 [1,2,6,24,120,720,5040,40320,362880,3628800]
 .fi
-.SS Print Syntax
+.PP
 As indicated, in interactive mode the normal forms of toplevel expressions are
 printed after each expression is entered. We also call this the
 .I read-eval-print
@@ -1845,108 +1846,11 @@ enter them. However, there are a few special kinds of objects like closures
 (anonymous and local functions), thunks (``lazy'' values to be evaluated when
 needed) and pointers which don't have a textual representation in the Pure
 syntax and will be printed in the format
-\fB#<\fP\fIobject description\fP\fB>\fP.
-.PP
-The interpreter provides a ``hook'' to override the print representations of
-expressions at runtime by means of the
+\fB#<\fP\fIobject description\fP\fB>\fP by default. It is also possible to
+override the print representation of any kind of expression by means of the
 .B __show__
-function. This is just an ordinary Pure function expected to return a string
-with the desired custom representation of a normal form value given as the
-function's single argument. __show__ is not defined by default, so you are
-free to add any rules that you want. The interpreter prints the strings
-returned by __show__ just as they are. It will
-.I not
-check whether they conform to Pure syntax and/or semantics, or modify them in
-any way.
+function, see the CAVEATS AND NOTES section for details.
 .PP
-Custom print representations are most useful for interactive purposes, when
-you're not happy with the default print syntax of some kinds of objects, or if
-you just want to change the format of numeric values. Here are some examples:
-.sp
-.nf
-> \fBusing\fP system;
-> __show__ x::double = sprintf "%0.6f" x;
-> 1/7;
-0.142857
-> __show__ x::int = sprintf "0x%0x" x;
-> 1786;
-0x6fa
-> \fBusing\fP math;
-> __show__ (x::double+:y::double) = sprintf "%0.6f+%0.6fi" (x,y);
-> cis (-pi);
--1.000000+0.000000i
-.fi
-.PP
-The prelude function
-.BR str ,
-which returns the print representation of any Pure expression, uses __show__
-as well:
-.sp
-.nf
-> str (1/7);
-"0.142857"
-.fi
-.PP
-However, the str function always returns just the default representation of an
-expression if it is invoked through __show__. This prevents __show__ from
-going recursive, and allows you to define your custom representation in terms
-of the default one. E.g., the following rule removes the `L' suffixes from
-bigint values:
-.sp
-.nf
-> __show__ x::bigint = init (str x);
-> fact n = foldl (*) 1L (1..n);
-> fact 30;
-265252859812191058636308480000000
-.fi
-.PP
-If you have a set of definitions for the __show__ function which should always
-be loaded at startup, you can put them into the interpreter's interactive
-startup files, see below.
-.PP
-By just purging the definition of the __show__ function you can easily go back
-to the standard print syntax:
-.sp
-.nf
-> \fBclear\fP __show__
-> 1/7; 1786; cis (-pi);
-0.142857142857143
-1786
--1.0+:1.22460635382238e-16
-> str (1/7);
-"0.142857142857143"
-> fact 30;
-265252859812191058636308480000000L
-.fi
-.SS Startup Files
-When running the interpreter interactively, it loads some additional scripts
-at startup, after loading the prelude. The interpreter first looks for a
-.B .purerc
-file in the user's home directory (as given by the
-.B HOME
-environment variable) and then for a
-.B .purerc
-file in the current working directory. These are just ordinary Pure scripts
-which may contain any additional definitions that you need. The
-.B .purerc
-file in the home directory is for global definitions which should always be
-available when running interactively, while the
-.B .purerc
-file in the current directory can be used for project-specific
-definitions. There can be yet another
-.B .pure
-initialization file in the current directory, which is created by the
-.B dump
-command (see below) and is loaded after the
-.B .purerc
-files if it is present.
-.PP
-The interpreter processes these files in the same way as with the
-.B run
-command (see below). When invoking the interpreter, you can specify the
-.B --norc
-option on the command line if you do not wish to load these files.
-.SS Interactive Commands
 When running interactively, the interpreter also accepts a number of special
 commands useful for interactive purposes. Here is a quick rundown of the
 currently supported operations:
@@ -1962,43 +1866,77 @@ Purge the definitions of the given symbols (functions, macros, constants or
 global variables). If no symbols are given, purge \fIall\fP definitions (after
 confirmation) made after the most recent
 .B save
-command, or the beginning of the interactive session. (It might be a good
-idea to first check your current definitions with \fBlist -t\fP before you do
-this, though.) See the DEFINITION LEVELS section below for details.
+command, or the beginning of the interactive session. (It might be a good idea
+to first check your current definitions with \fBshow -t\fP or save them with
+\fBdump\fP before you do this, though.) See the DEFINITION LEVELS section
+below for details.
 .TP
 \fBdump\fP [\fIoption\fP ...] [\fIsymbol\fP ...]
-Dump function, macro, variable and constant definitions to a file. This works
-similar to the
+Dump a snapshot of the current function, macro, constant and variable
+definitions in Pure syntax to a text file. This works similar to the
 .B show
 command (see below and the SHOW COMMAND section), but writes the definitions
-to a file. This command only supports a subset of the
+to a file.
+.sp
+This command only supports a subset of the
 .B show
 options, type
 .B dump -h
-for a description of these.
+for a description of these. Also note that by default the
+.B dump
+command only writes interactive definitions to the output file, which is
+equivalent to the
+.B -t1
+option of the
+.B show
+command. Presumably this is the most common usage, but using the
+.B -t
+option, you can select any definitions level just as with
+.BR show .
+In particular,
+.B dump -t
+saves only the definitions made after the most recent
+.B save
+command, and
+.B dump -t0
+can be used to dump the
+.I entire
+program (including the definitions of the prelude), which can be useful for
+debugging purposes.
 .sp
-By default, all definitions made interactively are written to a file named
+The default output file is
 .B .pure
 in the current directory, which is then reloaded automatically the next time
 the interpreter starts up in interactive mode in the same directory. This
 provides a quick-and-dirty means to save an interactive session and have it
-restored later. (Please note that this isn't perfect yet, because variable
-values containing special objects such as thunks and pointers can't be
-reconstructed, and
-.B using
-or
+restored later. Please note that this isn't perfect; in order to properly
+handle
 .B extern
-declarations are not recorded at all. For those you'll have to manually create
-a
+and
+.B using
+declarations and other special cases such as thunks and pointers stored in
+variables, you'll probably have to prepare a corresponding
 .B .purerc
-file instead.)
+file yourself, see ``Startup Files'' below.
 .sp
 A different filename can be specified with the
 .B -F
 option. You can then edit that file and use it as a starting point for an
 ordinary script or a
-.B purerc
-file.
+.B .purerc
+file, or you can just run the file with the
+.B run
+command (see below) to restore the definitions in a subsequent interpreter
+session.
+.sp
+You can also specify a subset of symbols to be saved. Shell glob patterns can
+be used if the
+.B -g
+option is given. Options may be combined; e.g.,
+.B "dump -Ffg foo.pure foo*"
+is just the same as
+.BR "dump -F foo.pure -f -g foo*" ,
+and dumps all functions whose names start with `foo' to the file `foo.pure'.
 .TP
 \fBhelp\fP [\fIargs\fP]
 Display the
@@ -2072,6 +2010,39 @@ you can avoid this kind of problem.
 .PP
 Some commands which are especially important for effective operation of the
 interpreter are discussed in more detail in the following sections.
+.SS Startup Files
+In interactive mode, the interpreter also runs some additional scripts at
+startup, after loading the prelude and the scripts specified on the command
+line.
+.PP
+The interpreter first looks for a
+.B .purerc
+file in the user's home directory (as given by the
+.B HOME
+environment variable) and then for a
+.B .purerc
+file in the current working directory. These are just ordinary Pure scripts
+which may contain any additional definitions that you need. The
+.B .purerc
+file in the home directory is for global definitions which should always be
+available when running interactively, while the
+.B .purerc
+file in the current directory can be used for project-specific
+definitions.
+.PP
+Finally, you can also have a
+.B .pure
+initialization file in the current directory, which is created by the
+.B dump
+command (see above) and is loaded after the
+.B .purerc
+files if it is present.
+.PP
+The interpreter processes all these files in the same way as with the
+.B run
+command (see above). When invoking the interpreter, you can specify the
+.B --norc
+option on the command line if you wish to skip these initializations.
 .SH SHOW COMMAND
 In interactive mode, the
 .B show
@@ -2328,6 +2299,97 @@ There's no symbolic debugger yet. So
 (available in the
 .B system
 standard library module) should be your friend. ;-)
+.SS The __show__ Function
+As of Pure 0.6, the interpreter provides a ``hook'' to override the print
+representations of expressions at runtime by means of the
+.B __show__
+function, which works in a fashion similar to Haskell's show function. This
+feature is still a bit experimental, but seems to work reasonably well for the
+purposes for which it is intended.
+.PP
+.B __show__
+is just an ordinary Pure function expected to return a string with the desired
+custom representation of a normal form value given as the function's single
+argument. This function is not defined by default, so you are free to add any
+rules that you want. The interpreter prints the strings returned by __show__
+just as they are. It will
+.I not
+check whether they conform to Pure syntax and/or semantics, or modify them in
+any way.
+.PP
+Custom print representations are most useful for interactive purposes, if
+you're not happy with the default print syntax of some kinds of objects. One
+particularly useful application of __show__ is to change the format of numeric
+values. Here are some examples:
+.sp
+.nf
+> \fBusing\fP system;
+> __show__ x::double = sprintf "%0.6f" x;
+> 1/7;
+0.142857
+> __show__ x::int = sprintf "0x%0x" x;
+> 1786;
+0x6fa
+> \fBusing\fP math;
+> __show__ (x::double+:y::double) = sprintf "%0.6f+%0.6fi" (x,y);
+> cis (-pi/2);
+0.000000+-1.000000i
+.fi
+.PP
+The prelude function
+.BR str ,
+which returns the print representation of any Pure expression, calls __show__
+as well:
+.sp
+.nf
+> str (1/7);
+"0.142857"
+.fi
+.PP
+Conversely, you can call the str function from __show__, but in this case it
+always returns the default representation of an expression. This prevents the
+expression printer from going recursive, and allows you to define your custom
+representation in terms of the default one. E.g., the following rule removes
+the `L' suffixes from bigint values:
+.sp
+.nf
+> __show__ x::bigint = init (str x);
+> fact n = foldl (*) 1L (1..n);
+> fact 30;
+265252859812191058636308480000000
+.fi
+.PP
+Of course, your definition of __show__ can also call __show__ itself
+recursively to determine the custom representation of an object.
+.PP
+One case which needs special consideration are thunks (futures). The printer
+will never use __show__ for those, to prevent them from being forced
+inadvertently. In fact, you
+.I can
+use __show__ to define custom representations for thunks, but only in the
+context of a rule for other kinds of objects, such as lists. For instance:
+.sp
+.nf
+> \fBnullary\fP ...;
+> __show__ (x:xs) = str (x:...) \fBif\fP thunkp xs;
+> 1:2:(3..inf);
+1:2:3:...
+.fi
+.PP
+Finally, by just purging the definition of the __show__ function you can
+easily go back to the standard print syntax:
+.sp
+.nf
+> \fBclear\fP __show__
+> 1/7; 1786; cis (-pi/2);
+0.142857142857143
+1786
+6.12303176911189e-17+:-1.0
+.fi
+.PP
+Note that if you have a set of definitions for the __show__ function which
+should always be loaded at startup, you can put them into the interpreter's
+interactive startup files, see INTERACTIVE USAGE.
 .SS ``As'' Patterns
 In the current implementation, ``as'' patterns cannot be placed on the
 ``spine'' of a function definition. Thus rules like the following, which have
