@@ -426,7 +426,8 @@ ptrtag  ::{blank}*pointer
 	  tflag = interp.temp;
 	break;
       case 'h':
-	cout << "show command help: show [options ...] [symbol ...]\n\
+	cout <<
+"show command help: show [options ...] [symbol ...]\n\
 Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
 -a  Disassembles pattern matching automata. Useful for debugging purposes.\n\
 -c  Print information about defined constants.\n\
@@ -787,9 +788,10 @@ Options may be combined, e.g., show -tvl is the same as show -t -v -l.\n\
 	  tflag = interp.temp;
 	break;
       case 'h':
-	cout << "dump command help: dump [options ...] [symbol ...]\n\
-Options may be combined, e.g., dump -tcv is the same as show -t -c -v.\n\
--F  Write the dump to the file named in the next arg (default is .pure).\n\
+	cout <<
+"dump command help: dump [-F filename] [options ...] [symbol ...]\n\
+Options may be combined, e.g., dump -fg f* is the same as dump -f -g f*.\n\
+-F  Write the dump to the given file (default is .pure).\n\
 -c  Dump defined constants.\n\
 -f  Dump defined functions.\n\
 -g  Indicates that the following symbols are actually shell glob patterns\n\
