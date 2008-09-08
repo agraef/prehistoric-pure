@@ -18,6 +18,9 @@
    */
 #undef HAVE_ALLOCA_H
 
+/* Define if BSD signal functions are available. */
+#undef HAVE_BSD_SIGNALS
+
 /* Define to 1 if you have the `ftime' function. */
 #undef HAVE_FTIME
 
@@ -54,6 +57,9 @@
 /* Define to 1 if you have the `nanosleep' function. */
 #undef HAVE_NANOSLEEP
 
+/* Define if POSIX signal functions are available. */
+#undef HAVE_POSIX_SIGNALS
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -75,6 +81,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define if SVR3 signal functions are available. */
+#undef HAVE_USG_SIGHOLD
+
 /* Define to 1 if you have the `usleep' function. */
 #undef HAVE_USLEEP
 
@@ -90,6 +99,9 @@
 /* Define as const if the declaration of iconv() needs const. */
 #undef ICONV_CONST
 
+/* Define if signal handlers must be reinstalled by handler. */
+#undef MUST_REINSTALL_SIGHANDLERS
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
@@ -104,6 +116,9 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#undef RETSIGTYPE
 
 /* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
