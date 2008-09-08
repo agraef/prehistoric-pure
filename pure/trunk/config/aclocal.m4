@@ -82,3 +82,105 @@ AC_DEFUN([AM_LANGINFO_CODESET],
       [Define if you have <langinfo.h> and nl_langinfo(CODESET).])
   fi
 ])
+
+dnl Check type of signal routines (posix, 4.2bsd, 4.1bsd or v7).
+
+AC_DEFUN([AC_SIGNAL_CHECK],
+[AC_REQUIRE([AC_TYPE_SIGNAL])
+AC_MSG_CHECKING(for type of signal functions)
+AC_CACHE_VAL(q_cv_signal_vintage,
+[
+  AC_TRY_LINK([#include <signal.h>],[
+    sigset_t ss;
+    struct sigaction sa;
+    sigemptyset(&ss); sigsuspend(&ss);
+    sigaction(SIGINT, &sa, (struct sigaction *) 0);
+    sigprocmask(SIG_BLOCK, &ss, (sigset_t *) 0);
+  ], q_cv_signal_vintage=posix,
+  [
+    AC_TRY_LINK([#include <signal.h>], [
+	int mask = sigmask(SIGINT);
+	sigsetmask(mask); sigblock(mask); sigpause(mask);
+    ], q_cv_signal_vintage=4.2bsd,
+    [
+      AC_TRY_LINK([
+	#include <signal.h>
+	RETSIGTYPE foo() { }], [
+		int mask = sigmask(SIGINT);
+		sigset(SIGINT, foo); sigrelse(SIGINT);
+		sighold(SIGINT); sigpause(SIGINT);
+        ], q_cv_signal_vintage=svr3, q_cv_signal_vintage=v7
+    )]
+  )]
+)
+])
+AC_MSG_RESULT($q_cv_signal_vintage)
+if test "$q_cv_signal_vintage" = posix; then
+AC_DEFINE(HAVE_POSIX_SIGNALS, 1, [Define if POSIX signal functions are available.])
+elif test "$q_cv_signal_vintage" = "4.2bsd"; then
+AC_DEFINE(HAVE_BSD_SIGNALS, 1, [Define if BSD signal functions are available.])
+elif test "$q_cv_signal_vintage" = svr3; then
+AC_DEFINE(HAVE_USG_SIGHOLD, 1, [Define if SVR3 signal functions are available.])
+fi
+])
+
+dnl Check whether signal handlers must be reinstalled when invoked.
+
+AC_DEFUN([AC_REINSTALL_SIGHANDLERS],
+[AC_REQUIRE([AC_TYPE_SIGNAL])
+AC_REQUIRE([AC_SIGNAL_CHECK])
+AC_MSG_CHECKING([if signal handlers must be reinstalled when invoked])
+AC_CACHE_VAL(q_cv_must_reinstall_sighandlers,
+[AC_TRY_RUN([
+#include <signal.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+typedef RETSIGTYPE sigfunc();
+int nsigint;
+#ifdef HAVE_POSIX_SIGNALS
+sigfunc *
+set_signal_handler(sig, handler)
+     int sig;
+     sigfunc *handler;
+{
+  struct sigaction act, oact;
+  act.sa_handler = handler;
+  act.sa_flags = 0;
+  sigemptyset (&act.sa_mask);
+  sigemptyset (&oact.sa_mask);
+  sigaction (sig, &act, &oact);
+  return (oact.sa_handler);
+}
+#else
+#define set_signal_handler(s, h) signal(s, h)
+#endif
+RETSIGTYPE
+sigint(s)
+    int s;
+{
+  nsigint++;
+}
+main()
+{
+  nsigint = 0;
+  set_signal_handler(SIGINT, sigint);
+  kill((int)getpid(), SIGINT);
+  kill((int)getpid(), SIGINT);
+  exit(nsigint != 2);
+}
+], q_cv_must_reinstall_sighandlers=no, q_cv_must_reinstall_sighandlers=yes,
+if test "$q_cv_signal_vintage" = svr3; then
+  q_cv_must_reinstall_sighandlers=yes
+else
+  q_cv_must_reinstall_sighandlers=no
+fi)])
+if test "$cross_compiling" = yes; then
+  AC_MSG_RESULT([$q_cv_must_reinstall_sighandlers assumed for cross compilation])
+else
+  AC_MSG_RESULT($q_cv_must_reinstall_sighandlers)
+fi
+if test "$q_cv_must_reinstall_sighandlers" = yes; then
+  AC_DEFINE(MUST_REINSTALL_SIGHANDLERS, 1, [Define if signal handlers must be reinstalled by handler.])
+fi
+])
