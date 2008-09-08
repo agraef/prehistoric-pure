@@ -171,6 +171,9 @@ pure_completion(const char *text, int start, int end)
 static void sig_handler(int sig)
 {
   interpreter::brkflag = sig;
+#ifdef MUST_REINSTALL_SIGHANDLERS
+  signal(sig, sig_handler);
+#endif
 }
 
 static const char *histfile = 0;
@@ -179,6 +182,51 @@ static void exit_handler()
 {
   if (histfile) write_history(histfile);
 }
+
+#ifdef _WIN32
+
+/* Crappy Windoze doesn't have kill, so we need to set up a special kind of
+   "console" event handler for Ctrl+C. That at least enables PurePad to signal
+   us. */
+
+#include <windows.h>
+
+static HANDLE hSigInt, hSigTerm, hSignalHandler;
+
+static DWORD WINAPI SignalHandler(LPVOID dummy)
+{
+  HANDLE hEvents[2] = { hSigInt, hSigTerm };
+  while (1) {
+    DWORD ev = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+    switch (ev) {
+    case WAIT_OBJECT_0:
+      raise(SIGINT);
+      break;
+    case WAIT_OBJECT_0+1:
+      raise(SIGTERM);
+      break;
+    default:
+      ExitProcess(0);
+    }
+  }
+}
+
+int InstallSignalHandler()
+{
+  TCHAR szSigInt[MAX_PATH], szSigTerm[MAX_PATH];
+  DWORD dwSignalHandler;
+  sprintf(szSigInt, "PURE_SIGINT-%u", GetCurrentProcessId());
+  sprintf(szSigTerm, "PURE_SIGTERM-%u", GetCurrentProcessId());
+  hSigInt = OpenEvent(EVENT_ALL_ACCESS, FALSE, szSigInt);
+  hSigTerm = OpenEvent(EVENT_ALL_ACCESS, FALSE, szSigTerm);
+  if (hSigInt != NULL && hSigTerm != NULL) {
+    hSignalHandler = CreateThread(NULL, 0, SignalHandler, NULL,
+				  0, &dwSignalHandler);
+    return hSignalHandler != NULL;
+  } else
+    return hSigInt == hSigTerm;
+}
+#endif
 
 static inline bool chkfile(const string& s)
 {
@@ -258,6 +306,9 @@ main(int argc, char *argv[])
 #endif
 #ifdef SIGUSR2
   signal(SIGUSR2, sig_handler);
+#endif
+#ifdef _WIN32
+  InstallSignalHandler();
 #endif
   // set up an exit function which saves the history if needed
   atexit(exit_handler);
