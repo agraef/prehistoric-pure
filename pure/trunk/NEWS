@@ -35,6 +35,8 @@ define your own custom print representations for expressions at runtime.
 
 - Syntax highlighting for gedit (contributed by Eddie Rucker, thanks!).
 
+- "PurePad", a little graphical frontend for the Pure interpreter on Windows.
+
 ** Pure 0.5 2008-08-24
 
 This release sports LLVM 2.3 support and a bunch of bug fixes and improvements
