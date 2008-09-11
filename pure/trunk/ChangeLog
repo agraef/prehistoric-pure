@@ -1,3 +1,9 @@
+2008-09-11  Albert Graef  <Dr.Graef@t-online.de>
+
+	* 0.6 release.
+
+	* runtime.cc, lib/math.pure: More bugfixes.
+
 2008-09-06  Albert Graef  <Dr.Graef@t-online.de>
 
 	* pure.cc, lexer.ll: Add 'dump' command. This is similar to
