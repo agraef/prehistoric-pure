@@ -1,6 +1,10 @@
-2008-09-11  Albert Graef  <Dr.Graef@t-online.de>
+2008-09-12  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.6 release.
+
+	* interpreter.cc: Speedups in pattern-matching code.
+
+2008-09-11  Albert Graef  <Dr.Graef@t-online.de>
 
 	* runtime.cc, lib/math.pure: More bugfixes.
 
