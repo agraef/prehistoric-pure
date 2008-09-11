@@ -1387,12 +1387,14 @@ static inline void resize_sstk(pure_expr**& sstk, size_t& cap,
   }
 }
 
+#define is_thunk(x) ((x)->tag == 0 && (x)->data.clos && (x)->data.clos->n == 0)
+
 extern "C"
 pure_expr *pure_force(pure_expr *x)
 {
   char test;
   assert(x);
-  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) {
+  if (is_thunk(x)) {
     // parameterless anonymous closure (thunk)
     assert(x->data.clos->thunked);
     pure_expr *ret;
@@ -1438,12 +1440,12 @@ pure_expr *pure_force(pure_expr *x)
     else
       ret = ((pure_expr*(*)())fp)();
 #if DEBUG>1
-	cerr << "pure_force: result " << x << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
+    cerr << "pure_force: result " << x << " = " << ret << " -> " << (void*)ret << ", refc = " << ret->refc << endl;
 #endif
     // check whether the result is again a thunk, then we have to evaluate
     // that recursively
-    if (ret->tag == 0 && ret->data.clos && ret->data.clos->n == 0)
-      ret = pure_force(pure_new_internal(ret));
+    if (is_thunk(ret))
+      pure_force(pure_new_internal(ret));
     pure_new_internal(ret);
     // memoize the result
     assert(x!=ret);
@@ -1485,7 +1487,7 @@ pure_expr *pure_apply(pure_expr *x, pure_expr *y)
   char test;
   assert(x && y && x->refc > 0 && y->refc > 0);
   // if the function in this call is a thunk, evaluate it now
-  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0) pure_force(x);
+  if (is_thunk(x)) pure_force(x);
   // travel down the spine, count arguments
   pure_expr *f = x, *f0, *ret;
   uint32_t n = 1;
@@ -2019,6 +2021,7 @@ extern "C"
 pure_expr *pure_intval(pure_expr *x)
 {
   assert(x);
+  if (is_thunk(x)) pure_force(x);
   switch (x->tag) {
   case EXPR::INT:	return x;
   case EXPR::BIGINT:	return pure_int(pure_get_int(x));
@@ -2038,6 +2041,7 @@ extern "C"
 pure_expr *pure_dblval(pure_expr *x)
 {
   assert(x);
+  if (is_thunk(x)) pure_force(x);
   switch (x->tag) {
   case EXPR::INT:	return pure_double((double)x->data.i);
   case EXPR::BIGINT:	return pure_double(mpz_get_d(x->data.z));
@@ -2050,6 +2054,7 @@ extern "C"
 pure_expr *pure_pointerval(pure_expr *x)
 {
   assert(x);
+  if (is_thunk(x)) pure_force(x);
   switch (x->tag) {
   case EXPR::PTR:	return x;
   case EXPR::STR:	return pure_pointer(x->data.s);
@@ -2099,6 +2104,7 @@ extern "C"
 pure_expr *pure_bigintval(pure_expr *x)
 {
   assert(x);
+  if (is_thunk(x)) pure_force(x);
   if (x->tag == EXPR::BIGINT)
     return x;
   else if (x->tag == EXPR::PTR)
@@ -2465,12 +2471,17 @@ extern "C"
 pure_expr *string_concat_list(pure_expr *xs)
 {
   // linear-time concatenation of a list of strings
+  assert(xs);
+  if (is_thunk(xs)) pure_force(xs);
   // calculate the size of the result string
   pure_expr *ys = xs, *z, *zs;
   size_t n = 0;
-  while (is_cons(ys, z, zs) && z->tag == EXPR::STR) {
+  while (is_cons(ys, z, zs)) {
+    if (is_thunk(z)) pure_force(z);
+    if (z->tag != EXPR::STR) break;
     n += strlen(z->data.s);
     ys = zs;
+    if (is_thunk(ys)) pure_force(ys);
   }
   if (!is_nil(ys)) return 0;
   // allocate the result string
@@ -2593,9 +2604,10 @@ static uint32_t string_hash(char *s)
 }
 
 extern "C"
-uint32_t hash(const pure_expr *x)
+uint32_t hash(pure_expr *x)
 {
   char test;
+  if (is_thunk(x)) pure_force(x);
   switch (x->tag) {
   case EXPR::INT:
     return (uint32_t)x->data.i;
@@ -2630,10 +2642,8 @@ bool same(pure_expr *x, pure_expr *y)
   char test;
   if (x == y)
     return 1;
-  if (x->tag == 0 && x->data.clos && x->data.clos->n == 0)
-    pure_force(x);
-  if (y->tag == 0 && y->data.clos && y->data.clos->n == 0)
-    pure_force(y);
+  if (is_thunk(x)) pure_force(x);
+  if (is_thunk(y)) pure_force(y);
   if (x->tag != y->tag)
     return 0;
   else if (x->tag >= 0 && y->tag >= 0)

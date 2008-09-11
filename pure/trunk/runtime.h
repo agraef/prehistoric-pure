@@ -545,7 +545,7 @@ const char *lasterr();
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
 
-uint32_t hash(const pure_expr *x);
+uint32_t hash(pure_expr *x);
 
 /* Check whether two objects are the "same" (syntactically). */
 
