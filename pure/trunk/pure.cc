@@ -185,7 +185,7 @@ static void exit_handler()
 
 #ifdef _WIN32
 
-/* Crappy Windoze doesn't have kill, so we need to set up a special kind of
+/* Braindead Windows doesn't have kill, so we need to set up a special kind of
    "console" event handler for Ctrl+C. That at least enables PurePad to signal
    us. */
 
