@@ -5842,11 +5842,11 @@ void interpreter::simple_match(Value *x, state*& s,
     msg << "simple match " << f.name;
     debug(msg.str().c_str()); }
 #endif
+  Value *tagv = 0;
+  // check for thunks which must be forced
   if (t.tag != EXPR::VAR || t.ttag != 0) {
-    // check for thunks which must be forced
-#if 1
     // do a quick check on the tag value
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     Value *checkv = f.builder.CreateICmpEQ(tagv, Zero, "check");
     BasicBlock *forcebb = BasicBlock::Create("force");
     BasicBlock *skipbb = BasicBlock::Create("skip");
@@ -5857,9 +5857,7 @@ void interpreter::simple_match(Value *x, state*& s,
     f.builder.CreateBr(skipbb);
     f.f->getBasicBlockList().push_back(skipbb);
     f.builder.SetInsertPoint(skipbb);
-#else
-    call("pure_force", x);
-#endif
+    tagv = 0;
   }
   // match the current symbol
   switch (t.tag) {
@@ -5868,7 +5866,7 @@ void interpreter::simple_match(Value *x, state*& s,
       f.builder.CreateBr(matchedbb);
     else {
       // typed variable, must match type tag against value
-      Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+      if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
       f.builder.CreateCondBr
 	(f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
     }
@@ -5878,7 +5876,7 @@ void interpreter::simple_match(Value *x, state*& s,
   case EXPR::DBL: {
     // first check the tag
     BasicBlock *okbb = BasicBlock::Create("ok");
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
     // next check the values (we inline these for max performance)
@@ -5903,7 +5901,7 @@ void interpreter::simple_match(Value *x, state*& s,
     // first do a quick check on the tag so that we may avoid an expensive
     // call if the tags don't match
     BasicBlock *okbb = BasicBlock::Create("ok");
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag), "cmp"), okbb, failedbb);
     // next check the values (like above, but we have to call the runtime for
@@ -5927,7 +5925,7 @@ void interpreter::simple_match(Value *x, state*& s,
     // first match the tag...
     BasicBlock *ok1bb = BasicBlock::Create("arg1");
     BasicBlock *ok2bb = BasicBlock::Create("arg2");
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag)), ok1bb, failedbb);
     s = t.st;
@@ -5946,7 +5944,7 @@ void interpreter::simple_match(Value *x, state*& s,
   default:
     assert(t.tag > 0);
     // just do a quick check on the tag
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     f.builder.CreateCondBr
       (f.builder.CreateICmpEQ(tagv, SInt(t.tag)), matchedbb, failedbb);
     s = t.st;
@@ -6088,11 +6086,11 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     t0++; m++;
   }
   must_force = must_force || t0 != s->tr.end();
+  Value *tagv = 0;
+  // check for thunks which must be forced
   if (must_force) {
-    // check for thunks which must be forced
-#if 1
     // do a quick check on the tag value
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     Value *checkv = f.builder.CreateICmpEQ(tagv, Zero, "check");
     BasicBlock *forcebb = BasicBlock::Create("force");
     BasicBlock *skipbb = BasicBlock::Create("skip");
@@ -6103,14 +6101,12 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
     f.builder.CreateBr(skipbb);
     f.f->getBasicBlockList().push_back(skipbb);
     f.builder.SetInsertPoint(skipbb);
-#else
-    call("pure_force", x);
-#endif
+    tagv = 0;
   }
   if (t0 != s->tr.end()) {
     assert(n > m);
     // get the tag value
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     // set up the switch instruction branching over the different tags
     SwitchInst *sw = f.builder.CreateSwitch(tagv, retrybb, n-m);
     /* NOTE: For constant transitions there may be multiple transitions under
@@ -6228,7 +6224,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
   if (t1->tag == EXPR::VAR && t1->ttag == 0) t1++;
   if (t1 != s->tr.end() && t1->tag == EXPR::VAR) {
     // get the tag value
-    Value *tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
+    if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
     // set up the switch instruction branching over the different type tags
     SwitchInst *sw = f.builder.CreateSwitch(tagv, defaultbb);
     vector<BasicBlock*> vtransbb;
