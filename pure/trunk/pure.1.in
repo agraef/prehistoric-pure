@@ -857,7 +857,8 @@ forcing its evaluation:
 .fi
 .PP
 (Conversely, you can also turn a list into a stream value with the `stream'
-function.)
+function. This is done less frequently, but becomes useful if you want to
+generate a stream from a finite list in a list comprehension.)
 .PP
 For interactive usage it's often convenient to define an eager variation of
 `take' which combines `take' and `list'. Let's do this now, so that we can use
@@ -999,12 +1000,12 @@ prime numbers:
 .sp
 .nf
 all_primes      = sieve (2..inf) \fBwith\fP
-  sieve []      = [];
   sieve (p:qs)  = p : sieve [q; q = qs; q mod p] &;
 \fBend\fP;
 .fi
 .sp
-Example:
+Note that we can omit the empty list case of `sieve' here, since the sieve now
+never becomes empty. Example:
 .sp
 .nf
 > \fBlet\fP P = all_primes;
