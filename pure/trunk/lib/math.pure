@@ -246,10 +246,14 @@ z1@(r1<:t1)+z2@(r2<:t2)	= polar (rect z1 + rect z2);
 (x1+:y1) - (x2+:y2)	= x1-x2 +: y1-y2;
 z1@(r1<:t1)-z2@(r2<:t2)	= polar (rect z1 - rect z2);
 
+// TODO: Review ISO/IEC9899 Annex G recommendations for * and / to fix up
+// nan+:nan results in rectangular representation.
+
 (x1+:y1) * (x2+:y2)	= x1*x2-y1*y2 +: x1*y2+y1*x2;
 (r1<:t1) * (r2<:t2)	= r1*r2 <: t1+t2;
 
-(x1+:y1) / (x2+:y2)	= (x1*x2+y1*y2 +: y1*x2-x1*y2) / (x2*x2+y2*y2);
+(x1+:y1) / (x2+:y2)	= (x1*x2+y1*y2)/d +: (y1*x2-x1*y2)/d
+			  when d = x2*x2+y2*y2 end;
 (r1<:t1) / (r2<:t2)	= r1/r2 <: t1-t2;
 
 /* Mixed rect/polar and polar/rect forms always return a rect result. */
@@ -279,13 +283,13 @@ x1-(x2+:y2)	= x1-x2 +: -y2 if realp x1;
 z1@(r1<:t1)-x2	= rect z1 - x2 if realp x2;
 x1-z2@(r2<:t2)	= x1 - rect z2 if realp x1;
 
-(x1+:y1)*x2	= x1*x2 +: y1*x2 if realp x2;
-x1*(x2+:y2)	= x1*x2 +: x1*y2 if realp x1;
+z1@(x1+:y1)*x2	= z1 * rect x2 if realp x2;
+x1*z2@(x2+:y2)	= rect x1 * z2 if realp x1;
 (r1<:t1)*x2	= r1*x2 <: t1 if realp x2;
 x1*(r2<:t2)	= x1*r2 <: t2 if realp x1;
 
-(x1+:y1)/x2	= x1/x2 +: y1/x2 if realp x2;
-x1/z2@(x2+:y2)	= (x1*x2 +: -x1*y2) / (x2*x2+y2*y2) if realp x1;
+z1@(x1+:y1)/x2	= z1 / rect x2 if realp x2;
+x1/z2@(x2+:y2)	= rect x1 / z2 if realp x1;
 (r1<:t1)/x2	= r1/x2 <: t1 if realp x2;
 x1/(r2<:t2)	= x1/r2 <: -t2 if realp x1;
 
