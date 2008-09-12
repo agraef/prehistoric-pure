@@ -44,10 +44,11 @@ AC_PROG_CXX
 dnl Determine pointer sizes. This will be 8 on 64 bit systems.
 AC_CHECK_SIZEOF(void *)
 dnl Parse --enable options.
-AC_ARG_ENABLE(release,
-  [  --enable-release        enable the release build],
+gsllib=yes
+AC_ARG_ENABLE(gsl,
+  [  --enable-gsl            build with GSL support (default, experimental)],
   [case "${enableval}" in
-    yes)  CPPFLAGS="-DNDEBUG -DDEBUG=0"; CXXFLAGS="-O3" ;;
+    no)   gsllib=no ;;
   esac])
 AC_ARG_ENABLE(debug,
   [  --enable-debug          enable the debug build],
@@ -59,9 +60,14 @@ AC_ARG_ENABLE(debug2,
   [case "${enableval}" in
     yes)  CPPFLAGS="-DDEBUG=2"; CXXFLAGS="-g" ;;
   esac])
+AC_ARG_ENABLE(release,
+  [  --enable-release        enable the release build],
+  [case "${enableval}" in
+    yes)  CPPFLAGS="-DNDEBUG -DDEBUG=0"; CXXFLAGS="-O3" ;;
+  esac])
 sharedlib=yes
 AC_ARG_ENABLE(shared,
-  [  --disable-shared        link the interpreter statically],
+  [  --enable-shared         build the shared runtime library (default)],
   [case "${enableval}" in
     no)   LDFLAGS="$LDFLAGS $rdynamic"; sharedlib=no ;;
   esac])
@@ -74,6 +80,7 @@ AC_ARG_ENABLE(warnings,
 dnl Check for libraries.
 AC_CHECK_LIB(gmp, __gmpz_init)
 AC_CHECK_LIB(readline, readline)
+AC_CHECK_LIB(m, cos)
 dnl On some systems iconv is in a separate library, and may actually be named
 dnl libiconv.
 AC_CHECK_LIB(iconv, libiconv)
@@ -95,6 +102,20 @@ dnl Platform specifics of signal handlers.
 AC_REINSTALL_SIGHANDLERS
 dnl Check to see whether we have POSIX/ISOC99 complex numbers.
 AC_CHECK_TYPES([_Complex float, _Complex double])
+dnl Check for GSL support.
+if test $gsllib = yes; then
+  AC_CHECK_LIB(gslcblas, cblas_dgemm)
+  AC_CHECK_LIB(gsl, gsl_blas_dgemm)
+  AC_CHECK_HEADERS([gsl/gsl_version.h])
+  gsllib=no
+  if test $ac_cv_lib_gsl_gsl_blas_dgemm = yes; then
+    if test $ac_cv_header_gsl_gsl_version_h = yes; then
+      AC_DEFINE(HAVE_GSL, 1, [Define when building with GSL vector/matrix support.])
+      AC_MSG_RESULT([Building with GSL support.])
+      gsllib=yes
+    fi
+  fi
+fi
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
@@ -106,6 +127,7 @@ Pure is now configured for ${host}.
   Compiler:             $CXX $CXXFLAGS $CPPFLAGS
   Linker:               $CXX $LDFLAGS $LIBS
   Build libpure:        $sharedlib
+  GSL support:          $gsllib
 
 Now run 'make' to build everything, and 'make install' to install this
 software on your system. To remove the installed software at a later
