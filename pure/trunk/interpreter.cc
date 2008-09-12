@@ -14,6 +14,10 @@
 
 #include "config.h"
 
+#ifdef HAVE_GSL
+#include <gsl/gsl_version.h>
+#endif
+
 uint8_t interpreter::g_verbose = 0;
 bool interpreter::g_interactive = false;
 interpreter* interpreter::g_interp = 0;
@@ -339,6 +343,9 @@ void interpreter::init_sys_vars(const string& version,
   defn("argv",		args);
   defn("version",	pure_cstring_dup(version.c_str()));
   defn("sysinfo",	pure_cstring_dup(host.c_str()));
+#ifdef HAVE_GSL
+  defn("gsl_version",	pure_cstring_dup(gsl_version));
+#endif
 }
 
 // Errors and warnings.
