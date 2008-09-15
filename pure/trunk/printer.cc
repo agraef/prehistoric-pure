@@ -76,7 +76,9 @@ static prec_t expr_nprec(expr x, bool aspat = true)
     else
       return 100;
   case EXPR::DBL:
-    if (x.dval() < 0.0)
+    /* NOTE: The check for negative zero really needs IEEE 754 floating point
+       numbers, otherwise we'll divide by zero here. */
+    if (x.dval() < 0.0 || x.dval() == 0.0 && 1.0/x.dval() < 0.0)
       // precedence of unary minus:
       return sym_nprec(interpreter::g_interp->symtab.neg_sym().f);
     else
@@ -577,7 +579,9 @@ static prec_t pure_expr_nprec(const pure_expr *x)
     else
       return 100;
   case EXPR::DBL:
-    if (x->data.d < 0.0)
+    /* NOTE: The check for negative zero really needs IEEE 754 floating point
+       numbers, otherwise we'll divide by zero here. */
+    if (x->data.d < 0.0 || x->data.d == 0.0 && 1.0/x->data.d < 0.0)
       // precedence of unary minus:
       return sym_nprec(interpreter::g_interp->symtab.neg_sym().f);
     else
