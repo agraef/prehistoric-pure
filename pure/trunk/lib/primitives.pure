@@ -125,10 +125,13 @@ trunc x::int | trunc x::bigint = x;
 // Fractional part of x.
 frac x::int | frac x::bigint | frac x::double = x-trunc x;
 
-/* Absolute value and sign of a number. */
+/* Absolute value and sign of a number. Note that these don't distinguish
+   between IEEE 754 positive and negative zeros; abs always returns 0.0, sgn 0
+   for these. The real sign bit of a floating point zero can be obtained with
+   sgn (1/x). */
 
 abs x::int | abs x::bigint | abs x::double
-			= if x>=0 then x else -x;
+			= if x>0 then x else -x;
 sgn x::int | sgn x::bigint | sgn x::double
 			= if x>0 then 1 else if x<0 then -1 else 0;
 
