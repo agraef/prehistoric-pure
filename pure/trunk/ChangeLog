@@ -1,3 +1,19 @@
+2008-09-15  Albert Graef  <Dr.Graef@t-online.de>
+
+	* configure.ac: Bump version number.
+
+	* printer.cc: Fix up precedence calculation so that it properly
+	deals with the case of negative floating point zeros.
+
+	* lib/primitives.pure: Moved the inf and nan constants to the end
+	of the module so that double arithmetic is already defined when
+	these definitions are processed. Simplified the definitions of
+	infp and nanp. Corrected the definition of abs so that it always
+	returns 0.0 for both IEEE 754 positive and negative zeros.
+
+	* configure.ac: Add configury for GSL support. Also added basic
+	GSL checks and setup to interpreter.cc, pure.cc and runtime.cc.
+
 2008-09-12  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.6 release.
