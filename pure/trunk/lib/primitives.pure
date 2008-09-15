@@ -69,8 +69,8 @@ const inf = 1.0e307 * 1.0e307; const nan = inf-inf;
 
 /* Predicates to check for inf and nan values. */
 
-infp x		= case x of x::double = x!==nan && x-x===nan; _ = 0 end;
-nanp x		= case x of x::double = x===nan; _ = 0 end;
+infp x		= case x of x::double = x==inf || x==-inf; _ = 0 end;
+nanp x		= case x of x::double = not (x==x); _ = 0 end;
 
 /* Compute a 32 bit hash code of a Pure expression. */
 
