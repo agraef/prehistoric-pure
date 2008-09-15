@@ -330,6 +330,7 @@ void interpreter::init_sys_vars(const string& version,
 				const string& host,
 				const list<string>& argv)
 {
+  static const double inf = 1.0e307 * 1.0e307, nan = inf-inf;
   // command line arguments, system and version information
   pure_expr *args = pure_const(symtab.nil_sym().f);
   for (list<string>::const_reverse_iterator it = argv.rbegin();
@@ -346,6 +347,8 @@ void interpreter::init_sys_vars(const string& version,
 #ifdef HAVE_GSL
   defn("gsl_version",	pure_cstring_dup(gsl_version));
 #endif
+  const_defn("inf",	pure_double(inf));
+  const_defn("nan",	pure_double(nan));
 }
 
 // Errors and warnings.

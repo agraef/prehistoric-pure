@@ -63,11 +63,7 @@ tuplep ()	= 1;
 tuplep (x,xs)	= 1;
 tuplep _	= 0 otherwise;
 
-/* IEEE floating point infinities and NaNs. */
-
-const inf = 1.0e307 * 1.0e307; const nan = inf-inf;
-
-/* Predicates to check for inf and nan values. */
+/* Predicates to check for IEEE floating point infinities and NaNs. */
 
 infp x		= case x of x::double = x==inf || x==-inf; _ = 0 end;
 nanp x		= case x of x::double = not (x==x); _ = 0 end;
