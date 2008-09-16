@@ -6105,13 +6105,8 @@ void interpreter::simple_match(Value *x, state*& s,
     else {
       // typed variable, must match type tag against value
       if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
-      if (t.ttag == EXPR::MATRIX) {
-	Value *tagv1 = f.builder.CreateAnd(tagv, UInt(0xfffffff0));
-	f.builder.CreateCondBr
-	  (f.builder.CreateICmpEQ(tagv1, SInt(t.ttag)), matchedbb, failedbb);
-      } else
-	f.builder.CreateCondBr
-	  (f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
+      f.builder.CreateCondBr
+	(f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
     }
     s = t.st;
     break;
@@ -6479,10 +6474,6 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
       vtransbb.push_back
 	(BasicBlock::Create(mklabel("trans.state", s->s, t->st->s)));
       sw->addCase(SInt(t->ttag), vtransbb[i]);
-      if (t->ttag == EXPR::MATRIX) {
-	sw->addCase(SInt(EXPR::CMATRIX), vtransbb[i]);
-	sw->addCase(SInt(EXPR::IMATRIX), vtransbb[i]);
-      }
     }
     // now handle the transitions on the different type tags
     for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {
