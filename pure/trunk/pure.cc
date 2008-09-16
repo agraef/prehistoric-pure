@@ -18,7 +18,7 @@
 
 #include "config.h"
 
-#if HAVE_GSL
+#ifdef HAVE_GSL
 #include <gsl/gsl_errno.h>
 #endif
 
