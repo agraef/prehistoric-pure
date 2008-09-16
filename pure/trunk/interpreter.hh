@@ -520,6 +520,7 @@ private:
   Env& act_env() { assert(!envstk.empty()); return *envstk.front(); }
   Builder& act_builder() { return act_env().builder; }
   pure_expr *const_value(expr x);
+  pure_expr *const_matrix_value(expr x);
   pure_expr *const_app_value(expr x);
   expr pure_expr_to_expr(pure_expr *x);
   pure_expr *doeval(expr x, pure_expr*& e);

@@ -6,6 +6,12 @@
 
 #include <sstream>
 
+#include "config.h"
+
+#ifdef HAVE_GSL
+#include <gsl/gsl_matrix.h>
+#endif
+
 static inline const string& pname(int32_t f)
 {
   assert(f > 0);
@@ -60,6 +66,7 @@ static prec_t expr_nprec(expr x, bool aspat = true)
   case EXPR::VAR:
   case EXPR::STR:
   case EXPR::PTR:
+  case EXPR::MATRIX:
     return 100;
   case EXPR::FVAR:
     return sym_nprec(x.vtag());
@@ -160,6 +167,8 @@ static inline ostream& print_ttag(ostream& os, int8_t ttag)
     return os << "::double";
   case EXPR::STR:
     return os << "::string";
+  case EXPR::MATRIX:
+    return os << "::matrix";
   default:
     return os;
   }
@@ -246,6 +255,30 @@ static ostream& printx(ostream& os, const expr& x, bool pat, bool aspat)
   }
   case EXPR::PTR:
     return os << "#<pointer " << x.pval() << ">";
+  case EXPR::MATRIX: {
+    os << "{";
+    for (exprll::const_iterator xs = x.xvals()->begin(),
+	   end = x.xvals()->end(); xs != end; ) {
+      size_t n = xs->size();
+      if (n>1 || n==1 && xs->front().is_pair()) {
+	// matrix elements at a precedence not larger than ',' have to be
+	// parenthesized
+	prec_t p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
+	for (exprl::const_iterator it = xs->begin(), end = xs->end();
+	     it != end; ) {
+	  os << paren(p, *it, pat);
+	  if (++it != end) os << ",";
+	}
+      } else
+	for (exprl::const_iterator it = xs->begin(), end = xs->end();
+	     it != end; ) {
+	  printx(os, *it, pat);
+	  if (++it != end) os << ",";
+	}
+      if (++xs != end) os << ";";
+    }
+    return os << "}";
+  }
   case EXPR::APP: {
     expr u, v, w, y;
     exprl xs;
@@ -565,6 +598,9 @@ static prec_t pure_expr_nprec(const pure_expr *x)
   switch (x->tag) {
   case EXPR::STR:
   case EXPR::PTR:
+  case EXPR::MATRIX:
+  case EXPR::CMATRIX:
+  case EXPR::IMATRIX:
     return 100;
   case EXPR::INT:
     if (x->data.i < 0)
@@ -718,6 +754,54 @@ ostream& operator << (ostream& os, const pure_expr *x)
   }
   case EXPR::PTR:
     return os << "#<pointer " << x->data.p << ">";
+  /* NOTE: For performance reasons, we don't do any custom representations for
+     matrix elements. As a workaround, you can define __show__ on matrices as
+     a whole. */
+  case EXPR::MATRIX:
+    os << "{";
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+      for (size_t i = 0; i < m->size1; i++) {
+	if (i > 0) os << ";";
+	for (size_t j = 0; j < m->size2; j++) {
+	  if (j > 0) os << ",";
+	  os << m->data[i * m->tda + j];
+	}
+      }
+    }
+    return os << "}";
+  case EXPR::IMATRIX:
+    os << "{";
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+      for (size_t i = 0; i < m->size1; i++) {
+	if (i > 0) os << ";";
+	for (size_t j = 0; j < m->size2; j++) {
+	  if (j > 0) os << ",";
+	  os << m->data[i * m->tda + j];
+	}
+      }
+    }
+    return os << "}";
+  case EXPR::CMATRIX:
+    os << "{";
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+      for (size_t i = 0; i < m->size1; i++) {
+	if (i > 0) os << ";";
+	for (size_t j = 0; j < m->size2; j++) {
+	  if (j > 0) os << ",";
+	  /* GSL represents complex matrices using pairs of double values.
+	     FIXME: We take a shortcut here by just printing complex numbers
+	     in rectangular format using the +: operator defined in math.pure.
+	     This has to be adapted when the representation in math.pure
+	     changes. */
+	  os << m->data[2*(i * m->tda + j)] << "+:"
+	     << m->data[2*(i * m->tda + j) + 1];
+	}
+      }
+    }
+    return os << "}";
   case EXPR::APP: {
     list<const pure_expr*> xs;
     prec_t p;

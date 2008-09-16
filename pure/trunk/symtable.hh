@@ -90,12 +90,16 @@ public:
   symbol& fdiv_sym();
   symbol& div_sym();
   symbol& mod_sym();
+  symbol& complex_rect_sym();
+  symbol& complex_polar_sym();
   symbol& catch_sym() { return sym("catch"); }
   symbol& catmap_sym() { return sym("catmap"); }
   symbol& failed_match_sym() { return sym("failed_match"); }
   symbol& failed_cond_sym() { return sym("failed_cond"); }
   symbol& signal_sym() { return sym("signal"); }
   symbol& segfault_sym() { return sym("stack_fault"); }
+  symbol& not_implemented_sym() { return sym("not_implemented"); }
+  symbol& bad_matrix_sym() { return sym("bad_matrix_value"); }
   symbol& amp_sym();
 };
 
