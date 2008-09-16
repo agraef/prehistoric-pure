@@ -169,6 +169,10 @@ static inline ostream& print_ttag(ostream& os, int8_t ttag)
     return os << "::string";
   case EXPR::MATRIX:
     return os << "::matrix";
+  case EXPR::CMATRIX:
+    return os << "::cmatrix";
+  case EXPR::IMATRIX:
+    return os << "::imatrix";
   default:
     return os;
   }
