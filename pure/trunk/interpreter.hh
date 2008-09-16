@@ -478,6 +478,7 @@ public:
   expr *mkcase_expr(expr *x, rulel *rules);
   expr *mkwhen_expr(expr *x, rulel *rules);
   expr *mkwith_expr(expr *x, env *e);
+  exprl *mkrow_exprl(expr *x);
   expr *mklist_expr(expr *x);
   expr *mklistcomp_expr(expr *x, comp_clause_list *cs);
   expr mklistcomp_expr(expr x, comp_clause_list::iterator cs,
