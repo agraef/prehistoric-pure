@@ -16,6 +16,7 @@
 
 #ifdef HAVE_GSL
 #include <gsl/gsl_version.h>
+#include <gsl/gsl_matrix.h>
 #endif
 
 uint8_t interpreter::g_verbose = 0;
@@ -245,6 +246,11 @@ interpreter::interpreter()
 		 "pure_pointer",    "expr*",  1, "void*");
   declare_extern((void*)pure_apply,
 		 "pure_apply",      "expr*",  2, "expr*", "expr*");
+
+  declare_extern((void*)pure_matrix_rows,
+		 "pure_matrix_rows", "expr*", -1, "int");
+  declare_extern((void*)pure_matrix_columns,
+		 "pure_matrix_columns", "expr*", -1, "int");
 
   declare_extern((void*)pure_listl,
 		 "pure_listl",      "expr*", -1, "int");
@@ -862,6 +868,68 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
       // Only null pointer constants permitted right now.
       throw err("pointer must be null in constant definition");
     return expr(EXPR::PTR, x->data.p);
+  case EXPR::MATRIX: {
+#ifdef HAVE_GSL
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+      exprll *xs = new exprll;
+      for (size_t i = 0; i < m->size1; i++) {
+	xs->push_back(exprl());
+	exprl& ys = xs->back();
+	for (size_t j = 0; j < m->size2; j++) {
+	  ys.push_back(expr(EXPR::DBL, m->data[i * m->tda + j]));
+	}
+      }
+      return expr(EXPR::MATRIX, m);
+    } else
+      return expr(EXPR::MATRIX, new exprll);
+#else
+    throw err("GSL matrices not supported in this implementation");
+    return expr(EXPR::MATRIX, new exprll);
+#endif
+  }
+  case EXPR::IMATRIX: {
+#ifdef HAVE_GSL
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+      exprll *xs = new exprll;
+      for (size_t i = 0; i < m->size1; i++) {
+	xs->push_back(exprl());
+	exprl& ys = xs->back();
+	for (size_t j = 0; j < m->size2; j++) {
+	  ys.push_back(expr(EXPR::INT, m->data[i * m->tda + j]));
+	}
+      }
+      return expr(EXPR::MATRIX, m);
+    } else
+      return expr(EXPR::MATRIX, new exprll);
+#else
+    throw err("GSL matrices not supported in this implementation");
+    return expr(EXPR::MATRIX, new exprll);
+#endif
+  }
+  case EXPR::CMATRIX: {
+#ifdef HAVE_GSL
+    if (x->data.mat && x->data.mat->p) {
+      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+      exprll *xs = new exprll;
+      for (size_t i = 0; i < m->size1; i++) {
+	xs->push_back(exprl());
+	exprl& ys = xs->back();
+	for (size_t j = 0; j < m->size2; j++) {
+	  expr u = expr(EXPR::DBL, m->data[2*(i * m->tda + j)]);
+	  expr v = expr(EXPR::DBL, m->data[2*(i * m->tda + j) + 1]);
+	  ys.push_back(expr(symtab.complex_rect_sym().x, u, v));
+	}
+      }
+      return expr(EXPR::MATRIX, m);
+    } else
+      return expr(EXPR::MATRIX, new exprll);
+#else
+    throw err("GSL matrices not supported in this implementation");
+    return expr(EXPR::MATRIX, new exprll);
+#endif
+  }
   default:
     assert(x->tag > 0);
     if (x->data.clos && x->data.clos->local)
@@ -1126,6 +1194,14 @@ void interpreter::compile(expr x)
 {
   if (x.is_null()) return;
   switch (x.tag()) {
+  case EXPR::MATRIX:
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++)
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	compile(*ys);
+      }
+    break;
   case EXPR::APP:
     compile(x.xval1());
     compile(x.xval2());
@@ -1578,6 +1654,9 @@ expr interpreter::bind(env& vars, expr x, bool b, path p)
     break;
   }
   // these must not occur on the lhs:
+  case EXPR::MATRIX:
+    throw err("matrix expression not permitted in pattern");
+    break;
   case EXPR::LAMBDA:
     throw err("lambda expression not permitted in pattern");
     break;
@@ -1717,6 +1796,20 @@ expr interpreter::subst(const env& vars, expr x, uint8_t idx)
   case EXPR::STR:
   case EXPR::PTR:
     return x;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(subst(vars, *ys, idx));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP:
     if (x.xval1().tag() == symtab.amp_sym().f) {
@@ -1827,6 +1920,20 @@ expr interpreter::fsubst(const env& funs, expr x, uint8_t idx)
   case EXPR::STR:
   case EXPR::PTR:
     return x;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(fsubst(funs, *ys, idx));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP:
     if (x.xval1().tag() == symtab.amp_sym().f) {
@@ -1929,6 +2036,20 @@ expr interpreter::csubst(expr x)
   case EXPR::STR:
   case EXPR::PTR:
     return x;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(csubst(*ys));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP:
     if (x.xval1().tag() == symtab.amp_sym().f) {
@@ -2044,6 +2165,20 @@ expr interpreter::macsubst(expr x)
   case EXPR::STR:
   case EXPR::PTR:
     return x;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(macsubst(*ys));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP: {
     expr u = macsubst(x.xval1()),
@@ -2132,6 +2267,20 @@ expr interpreter::varsubst(expr x, uint8_t offs)
   case EXPR::STR:
   case EXPR::PTR:
     return x;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(varsubst(*ys, offs));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP: {
     expr u = varsubst(x.xval1(), offs),
@@ -2226,6 +2375,20 @@ expr interpreter::macred(expr x, expr y, uint8_t idx)
       return v;
     } else
       return y;
+  // matrix:
+  case EXPR::MATRIX: {
+    exprll *us = new exprll;
+    for (exprll::iterator xs = y.xvals()->begin(), end = y.xvals()->end();
+	 xs != end; xs++) {
+      us->push_back(exprl());
+      exprl& vs = us->back();
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	vs.push_back(macred(x, *ys, idx));
+      }
+    }
+    return expr(EXPR::MATRIX, us);
+  }
   // application:
   case EXPR::APP:
     if (y.xval1().tag() == symtab.amp_sym().f) {
@@ -3033,6 +3196,14 @@ void Env::build_map(expr x)
 #endif
       }
     }
+    break;
+  case EXPR::MATRIX:
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++)
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++) {
+	build_map(*ys);
+      }
     break;
   case EXPR::APP: {
     expr f; uint32_t n = count_args(x, f);
@@ -3919,6 +4090,8 @@ pure_expr *interpreter::const_value(expr x)
     return pure_string_dup(x.sval());
   case EXPR::PTR:
     return pure_pointer(x.pval());
+  case EXPR::MATRIX:
+    return const_matrix_value(x);
   case EXPR::APP:
     return const_app_value(x);
   default: {
@@ -3957,6 +4130,36 @@ pure_expr *interpreter::const_value(expr x)
       return 0;
   }
   }
+}
+
+pure_expr *interpreter::const_matrix_value(expr x)
+{
+  size_t n = x.xvals()->size(), m = 0, i = 0, j = 0;
+  pure_expr **us = new pure_expr*[n], **vs = 0, *ret;
+  assert(us);
+  for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+       xs != end; xs++, i++) {
+    m = xs->size(); j = 0; vs = new pure_expr*[m];
+    assert(vs);
+    for (exprl::iterator ys = xs->begin(), end = xs->end();
+	 ys != end; ys++, j++) {
+      vs[j] = const_value(*ys);
+      if (!vs[j]) goto err;
+    }
+    us[i] = pure_matrix_columnsv(m, vs);
+    if (!us[i]) goto err;
+    delete[] vs;
+  }
+  ret = pure_matrix_rowsv(n, us);
+  delete[] us;
+  return ret;
+ err:
+  // bail out
+  for (size_t k = 0; k < j; k++) pure_freenew(vs[k]);
+  if (vs) delete[] vs;
+  for (size_t k = 0; k < i; k++) pure_freenew(us[k]);
+  if (us) delete[] us;
+  return 0;
 }
 
 pure_expr *interpreter::const_app_value(expr x)
@@ -4802,6 +5005,25 @@ Value *interpreter::codegen(expr x)
     // FIXME: Only null pointers are supported right now.
     assert(x.pval() == 0);
     return pbox(x.pval());
+  // matrix:
+  case EXPR::MATRIX: {
+    size_t n = x.xvals()->size(), i = 1;
+    vector<Value*> us(n+1);
+    us[0] = UInt(n);
+    for (exprll::iterator xs = x.xvals()->begin(), end = x.xvals()->end();
+	 xs != end; xs++, i++) {
+      size_t m = xs->size(), j = 1;
+      vector<Value*> vs(m+1);
+      vs[0] = UInt(m);
+      for (exprl::iterator ys = xs->begin(), end = xs->end();
+	   ys != end; ys++, j++) {
+	vs[j] = codegen(*ys);
+      }
+      us[i] =
+	act_env().CreateCall(module->getFunction("pure_matrix_columns"), vs);
+    }
+    return act_env().CreateCall(module->getFunction("pure_matrix_rows"), us);
+  }
   // application:
   case EXPR::APP:
     if (x.ttag() != 0) {
@@ -5926,6 +6148,9 @@ void interpreter::simple_match(Value *x, state*& s,
     break;
   }
   case EXPR::PTR:
+    assert(0 && "not implemented");
+    break;
+  case EXPR::MATRIX:
     assert(0 && "not implemented");
     break;
   case EXPR::APP: {

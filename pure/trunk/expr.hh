@@ -72,6 +72,21 @@ public:
   size_t len() const { return size; }
 };
 
+/* Smart expression pointers (see below for the full definition). These are
+   used recursively as components in matrix representations and rule lists in
+   the expression data structure. */
+
+class expr;
+
+/* Expression lists and lists of those. These are used to represent
+   collections of expressions and generic matrix data in a structured way
+   which facilitates code generation. In the case of exprll, each list member
+   represents a matrix "row" which is in turn described by a list of
+   "columns". */
+
+typedef list<expr> exprl;
+typedef list<exprl> exprll;
+
 /* Rule lists are used to encode collections of equations and other rule sets
    in 'case' expressions and the like. See the definition of the rule struct
    at the end of this header. */
@@ -113,6 +128,16 @@ struct EXPR {
     CASE	= -10,	// case expression
     WHEN	= -11,	// when expression
     WITH	= -12,	// with expression
+    // GSL matrix types:
+    MATRIX	= -32,  // generic GSL matrix, double matrix in runtime exprs
+    CMATRIX	= -31,	// complex matrix in runtime exprs
+    IMATRIX	= -30,	// integer matrix in runtime exprs
+    /* Other values in the range -17..-29 reserved for later use in the
+       runtime expression data structure. Note that all GSL-related tags,
+       taken as an unsigned binary quantity, are of the form 0xffffffe0+t,
+       where the least significant nibble t=0x0..0xf denotes corresponding
+       subtypes in runtime matrix data. For compile time expressions only the
+       EXPR::MATRIX tag (t=0) is used. */
   };
 
   // special flag values used during compilation:
@@ -137,6 +162,7 @@ struct EXPR {
       uint8_t idx;  // de Bruin index
     } v;
     EXPR   *x[3]; // APP, LAMBDA, COND
+    exprll *xs;   // MATRIX
     struct {	  // CASE, WHEN, WITH
       EXPR  *x;   // expression
       union {
@@ -204,6 +230,9 @@ struct EXPR {
     refc(0), tag(_tag), m(0), flags(0), ttag(0), astag(0), aspath(0)
   { assert(_tag == WITH);
     data.c.x = newref(_arg); data.c.e = _e; }
+  EXPR(int32_t _tag, exprll *_args) :
+    refc(0), tag(_tag), m(0), flags(0), ttag(0), astag(0), aspath(0)
+  { assert(_tag == MATRIX); data.xs = _args; }
   EXPR(EXPR *_fun, EXPR *_arg) :
     refc(0), tag(APP), m(0), flags(0), ttag(0), astag(0), aspath(0)
   { data.x[0] = newref(_fun); data.x[1] = newref(_arg); }
@@ -221,9 +250,6 @@ struct EXPR {
 
 /* Smart expression pointers. These take care of reference counting
    automagically. */
-
-class expr;
-typedef list<expr> exprl;
 
 class expr {
   EXPR* p;
@@ -278,6 +304,8 @@ public:
     p(new EXPR(tag, &*arg, rules)) { p->incref(); }
   expr(int32_t tag, expr arg, env *e) :
     p(new EXPR(tag, &*arg, e)) { p->incref(); }
+  expr(int32_t tag, exprll *args) :
+    p(new EXPR(tag, args)) { p->incref(); }
   expr(expr fun, expr arg) :
     p(new EXPR(&*fun, &*arg)) { p->incref(); }
   expr(expr fun, expr arg1, expr arg2) :
@@ -337,6 +365,8 @@ public:
 				  p->tag == EXPR::WHEN ||
 				  p->tag == EXPR::WITH);
                            return expr(p->data.c.x); }
+  exprll  *xvals() const { assert(p->tag == EXPR::MATRIX);
+                           return p->data.xs; }
   rulel   *rules() const { assert(p->tag == EXPR::CASE ||
 				  p->tag == EXPR::WHEN);
                            return p->data.c.r; }

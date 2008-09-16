@@ -36,6 +36,7 @@ char *alloca ();
 
 #ifdef HAVE_GSL
 #include <gsl/gsl_errno.h>
+#include <gsl/gsl_matrix.h>
 #endif
 
 // Hooks to report stack overflows and other kinds of hard errors.
@@ -125,6 +126,12 @@ static inline pure_expr* stack_exception()
 {
   if (!interpreter::g_interp) return 0;
   return pure_const(interpreter::g_interp->symtab.segfault_sym().f);
+}
+
+static inline pure_expr* not_implemented_exception()
+{
+  if (!interpreter::g_interp) return 0;
+  return pure_const(interpreter::g_interp->symtab.not_implemented_sym().f);
 }
 
 static inline pure_expr *get_sentry(pure_expr *x)
@@ -263,6 +270,40 @@ static pure_closure *pure_copy_clos(pure_closure *clos)
   return ret;
 }
 
+static void pure_free_matrix(pure_expr *x)
+{
+#ifdef HAVE_GSL
+  assert(x->data.mat && "pure_free_matrix: null data");
+  assert(x->data.mat->refc > 0 && "pure_free_matrix: unreferenced data");
+  assert(x->data.mat->p && "pure_free_matrix: corrupt data");
+  if (--x->data.mat->refc == 0) {
+    switch (x->tag) {
+    case EXPR::MATRIX: {
+      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+      m->owner = 1;
+      gsl_matrix_free(m);
+      break;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+      m->owner = 1;
+      gsl_matrix_complex_free(m);
+      break;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+      m->owner = 1;
+      gsl_matrix_int_free(m);
+      break;
+    }
+    default:
+      assert(0 && "pure_free_matrix: corrupt data");
+      break;
+    }
+  }
+#endif
+}
+
 #if 1
 
 /* This is implemented (mostly) non-recursively to prevent stack overflows,
@@ -286,6 +327,7 @@ void pure_free_internal(pure_expr *x)
       goto loop;
     case EXPR::INT:
     case EXPR::DBL:
+    case EXPR::PTR:
       // nothing to do
       break;
     case EXPR::BIGINT:
@@ -294,8 +336,10 @@ void pure_free_internal(pure_expr *x)
     case EXPR::STR:
       free(x->data.s);
       break;
-    case EXPR::PTR:
-      // noop right now, should provide installable hook in the future
+    case EXPR::MATRIX:
+    case EXPR::CMATRIX:
+    case EXPR::IMATRIX:
+      if (x->data.mat) pure_free_matrix(x);
       break;
     default:
       assert(x->tag >= 0);
@@ -542,6 +586,110 @@ pure_expr *pure_cstring(char *s)
 }
 
 extern "C"
+pure_expr *pure_double_matrix(void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_complex_matrix(void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_int_matrix(void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_double_matrix_dup(const void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_complex_matrix_dup(const void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_int_matrix_dup(const void *p)
+{
+#ifdef HAVE_GSL
+  return 0; // XXXTODO
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_matrix_rowsl(uint32_t n, ...)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **elems)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_matrix_columnsl(uint32_t n, ...)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **elems)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
 pure_expr *pure_app(pure_expr *fun, pure_expr *arg)
 {
   return pure_apply2(fun, arg);
@@ -720,6 +868,36 @@ bool pure_is_cstring_dup(const pure_expr *x, char **s)
   assert(x);
   if (x->tag == EXPR::STR) {
     if (s) *s = fromutf8(x->data.s);
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
+bool pure_is_double_matrix(const pure_expr *x, const void **p)
+{
+  if (x->tag == EXPR::MATRIX && x->data.mat) {
+    *p = x->data.mat->p;
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
+bool pure_is_complex_matrix(const pure_expr *x, const void **p)
+{
+  if (x->tag == EXPR::CMATRIX && x->data.mat) {
+    *p = x->data.mat->p;
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
+bool pure_is_int_matrix(const pure_expr *x, const void **p)
+{
+  if (x->tag == EXPR::IMATRIX && x->data.mat) {
+    *p = x->data.mat->p;
     return true;
   } else
     return false;
@@ -1353,6 +1531,42 @@ void *pure_get_bigint(pure_expr *x)
 {
   assert(x && x->tag == EXPR::BIGINT);
   return &x->data.z;
+}
+
+static inline pure_expr* bad_matrix_exception(pure_expr *x)
+{
+  if (!interpreter::g_interp) return 0;
+  pure_expr *f = pure_const(interpreter::g_interp->symtab.bad_matrix_sym().f);
+  if (x)
+    return pure_apply2(f, x);
+  else
+    return f;
+}
+
+extern "C"
+pure_expr *pure_matrix_rows(uint32_t n, ...)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  pure_throw(not_implemented_exception());
+  return 0;
+#else
+  pure_throw(not_implemented_exception());
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *pure_matrix_columns(uint32_t n, ...)
+{
+#ifdef HAVE_GSL
+  // XXXTODO
+  pure_throw(not_implemented_exception());
+  return 0;
+#else
+  pure_throw(not_implemented_exception());
+  return 0;
+#endif
 }
 
 extern "C"

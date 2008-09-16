@@ -29,6 +29,9 @@ EXPR::~EXPR()
     if (data.x[1]) data.x[1]->del();
     if (data.x[2]) data.x[2]->del();
     break;
+  case MATRIX:
+    if (data.xs) delete data.xs;
+    break;
   case CASE:
     if (data.c.x) data.c.x->del();
     if (data.c.r) delete data.c.r;

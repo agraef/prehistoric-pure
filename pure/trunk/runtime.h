@@ -30,6 +30,16 @@ typedef struct {
   bool thunked;			// thunked closure? (kept unevaluated)
 } pure_closure;
 
+/* Matrix data. The GSL matrix data is represented as a void* whose actual
+   type depends on the expression tag. Different expressions may share the
+   same underlying memory block, so we do our own reference counting to manage
+   these. */
+
+typedef struct {
+  uint32_t refc;		// reference counter
+  void *p;			// pointer to GSL matrix struct
+} pure_matrix;
+
 /* The runtime expression data structure. Keep this lean and mean. */
 
 typedef struct _pure_expr {
@@ -44,6 +54,7 @@ typedef struct _pure_expr {
     double d;			// double (EXPR::DBL)
     char *s;			// C string (EXPR::STR)
     void *p;			// generic pointer (EXPR::PTR)
+    pure_matrix *mat;		// matrix data (EXPR::MATRIX et al)
     pure_closure *clos;		// closure (0 if none)
   } data;
   /* Internal fields (DO NOT TOUCH). The JIT doesn't care about these. */
@@ -115,6 +126,37 @@ pure_expr *pure_cstring_dup(const char *s);
 pure_expr *pure_string(char *s);
 pure_expr *pure_cstring(char *s);
 
+/* Matrix constructors. The given pointer must point to a valid GSL matrix
+   struct of the corresponding GSL matrix type (gsl_matrix, gsl_matrix_complex,
+   gsl_matrix_int). (These are just given as void* here to avoid depending on
+   the GSL headers which might not be available for some implementations.) In
+   the case of the _matrix routines, the matrix must be allocated dynamically
+   and Pure takes ownership of the matrix. The matrix_dup routines first take
+   a copy of the matrix, so the ownership of the original matrix remains with
+   the caller. The result is a Pure expression representing the matrix object,
+   or null if GSL matrix support is not available or some other error
+   occurs. */
+
+pure_expr *pure_double_matrix(void *p);
+pure_expr *pure_complex_matrix(void *p);
+pure_expr *pure_int_matrix(void *p);
+pure_expr *pure_double_matrix_dup(const void *p);
+pure_expr *pure_complex_matrix_dup(const void *p);
+pure_expr *pure_int_matrix_dup(const void *p);
+
+/* Convenience functions to construct a Pure matrix from a vector or a varargs
+   list of element expressions, which can be component matrices or scalars.
+   The pure_matrix_rows functions arrange the elements vertically, while the
+   pure_matrix_columns functions arrange them horizontally, given that the
+   other dimensions match. The elems vectors are owned by the caller and won't
+   be freed. A null expression is returned in case of an error (no matrix
+   support, dimension mismatch, or invalid element type). */
+
+pure_expr *pure_matrix_rowsl(uint32_t n, ...);
+pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **elems);
+pure_expr *pure_matrix_columnsl(uint32_t n, ...);
+pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **elems);
+
 /* Function applications. pure_app applies the given function to the given
    argument. The result is evaluated if possible (i.e., if it is a saturated
    function call). Otherwise, the result is a literal application and
@@ -171,6 +213,14 @@ bool pure_is_pointer(const pure_expr *x, void **p);
 bool pure_is_string(const pure_expr *x, const char **s);
 bool pure_is_string_dup(const pure_expr *x, char **s);
 bool pure_is_cstring_dup(const pure_expr *x, char **s);
+
+/* Matrix deconstructors. The returned GSL matrix pointer (represented as a
+   const void*) points to memory owned by Pure which should be considered
+   read-only and must not be freed. */
+
+bool pure_is_double_matrix(const pure_expr *x, const void **p);
+bool pure_is_complex_matrix(const pure_expr *x, const void **p);
+bool pure_is_int_matrix(const pure_expr *x, const void **p);
 
 /* Deconstruct literal applications. */
 
@@ -344,6 +394,14 @@ void pure_free_cstrings();
 void *pure_get_bigint(pure_expr *x);
 int64_t pure_get_long(pure_expr *x);
 int32_t pure_get_int(pure_expr *x);
+
+/* Additional matrix constructors. These work like pure_matrix_rowsl and
+   pure_matrix_columnsl in the public API, but are intended to be called
+   directly from generated code and raise the appropriate Pure exceptions in
+   case of an error condition. */
+
+pure_expr *pure_matrix_rows(uint32_t n, ...);
+pure_expr *pure_matrix_columns(uint32_t n, ...);
 
 /* Execute a closure. If the given expression x (or x y in the case of
    pure_apply) is a parameterless closure (or a saturated application of a

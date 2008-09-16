@@ -34,12 +34,17 @@ void symtable::init_builtins()
   fdiv_sym();
   div_sym();
   mod_sym();
+  // complex_rect_sym() and complex_polar_sym() are not initialized here, as
+  // they're supposed to come from math.pure which is not included in the
+  // prelude
   catch_sym();
   catmap_sym();
   failed_match_sym();
   failed_cond_sym();
   signal_sym();
   segfault_sym();
+  not_implemented_sym();
+  bad_matrix_sym();
   amp_sym();
 }
 
@@ -361,6 +366,24 @@ symbol& symtable::mod_sym()
     return *_sym;
   else
     return sym("mod", 7, infixl);
+}
+
+symbol& symtable::complex_rect_sym()
+{
+  symbol *_sym = lookup("+:");
+  if (_sym)
+    return *_sym;
+  else
+    return sym("+", 5, infix);
+}
+
+symbol& symtable::complex_polar_sym()
+{
+  symbol *_sym = lookup("<:");
+  if (_sym)
+    return *_sym;
+  else
+    return sym("+", 5, infix);
 }
 
 symbol& symtable::amp_sym()
