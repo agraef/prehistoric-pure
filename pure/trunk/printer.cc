@@ -759,8 +759,8 @@ ostream& operator << (ostream& os, const pure_expr *x)
      a whole. */
   case EXPR::MATRIX:
     os << "{";
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
       for (size_t i = 0; i < m->size1; i++) {
 	if (i > 0) os << ";";
 	for (size_t j = 0; j < m->size2; j++) {
@@ -772,8 +772,8 @@ ostream& operator << (ostream& os, const pure_expr *x)
     return os << "}";
   case EXPR::IMATRIX:
     os << "{";
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
       for (size_t i = 0; i < m->size1; i++) {
 	if (i > 0) os << ";";
 	for (size_t j = 0; j < m->size2; j++) {
@@ -785,8 +785,8 @@ ostream& operator << (ostream& os, const pure_expr *x)
     return os << "}";
   case EXPR::CMATRIX:
     os << "{";
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
       for (size_t i = 0; i < m->size1; i++) {
 	if (i > 0) os << ";";
 	for (size_t j = 0; j < m->size2; j++) {

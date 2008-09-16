@@ -870,8 +870,8 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
     return expr(EXPR::PTR, x->data.p);
   case EXPR::MATRIX: {
 #ifdef HAVE_GSL
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
       exprll *xs = new exprll;
       for (size_t i = 0; i < m->size1; i++) {
 	xs->push_back(exprl());
@@ -890,8 +890,8 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
   }
   case EXPR::IMATRIX: {
 #ifdef HAVE_GSL
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
       exprll *xs = new exprll;
       for (size_t i = 0; i < m->size1; i++) {
 	xs->push_back(exprl());
@@ -910,8 +910,8 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
   }
   case EXPR::CMATRIX: {
 #ifdef HAVE_GSL
-    if (x->data.mat && x->data.mat->p) {
-      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+    if (x->data.mat.p) {
+      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
       exprll *xs = new exprll;
       for (size_t i = 0; i < m->size1; i++) {
 	xs->push_back(exprl());

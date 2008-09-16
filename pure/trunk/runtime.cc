@@ -272,26 +272,26 @@ static pure_closure *pure_copy_clos(pure_closure *clos)
 
 static void pure_free_matrix(pure_expr *x)
 {
-  assert(x->data.mat && "pure_free_matrix: null data");
-  assert(x->data.mat->refc > 0 && "pure_free_matrix: unreferenced data");
-  assert(x->data.mat->p && "pure_free_matrix: corrupt data");
-  bool owner = --x->data.mat->refc == 0;
+  if (!x->data.mat.p) return;
+  assert(x->data.mat.refc && "pure_free_matrix: corrupt data");
+  assert(*x->data.mat.refc > 0 && "pure_free_matrix: unreferenced data");
+  bool owner = --*x->data.mat.refc == 0;
 #ifdef HAVE_GSL
   switch (x->tag) {
   case EXPR::MATRIX: {
-    gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
     m->owner = owner;
     gsl_matrix_free(m);
     break;
   }
   case EXPR::CMATRIX: {
-    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
     m->owner = owner;
     gsl_matrix_complex_free(m);
     break;
   }
   case EXPR::IMATRIX: {
-    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
     m->owner = owner;
     gsl_matrix_int_free(m);
     break;
@@ -301,7 +301,7 @@ static void pure_free_matrix(pure_expr *x)
     break;
   }
 #endif
-  if (owner) free(x->data.mat);
+  if (owner) free(x->data.mat.refc);
 }
 
 #if 1
@@ -339,7 +339,7 @@ void pure_free_internal(pure_expr *x)
     case EXPR::MATRIX:
     case EXPR::CMATRIX:
     case EXPR::IMATRIX:
-      if (x->data.mat) pure_free_matrix(x);
+      pure_free_matrix(x);
       break;
     default:
       assert(x->tag >= 0);
@@ -876,8 +876,8 @@ bool pure_is_cstring_dup(const pure_expr *x, char **s)
 extern "C"
 bool pure_is_double_matrix(const pure_expr *x, const void **p)
 {
-  if (x->tag == EXPR::MATRIX && x->data.mat) {
-    *p = x->data.mat->p;
+  if (x->tag == EXPR::MATRIX) {
+    *p = x->data.mat.p;
     return true;
   } else
     return false;
@@ -886,8 +886,8 @@ bool pure_is_double_matrix(const pure_expr *x, const void **p)
 extern "C"
 bool pure_is_complex_matrix(const pure_expr *x, const void **p)
 {
-  if (x->tag == EXPR::CMATRIX && x->data.mat) {
-    *p = x->data.mat->p;
+  if (x->tag == EXPR::CMATRIX) {
+    *p = x->data.mat.p;
     return true;
   } else
     return false;
@@ -896,8 +896,8 @@ bool pure_is_complex_matrix(const pure_expr *x, const void **p)
 extern "C"
 bool pure_is_int_matrix(const pure_expr *x, const void **p)
 {
-  if (x->tag == EXPR::IMATRIX && x->data.mat) {
-    *p = x->data.mat->p;
+  if (x->tag == EXPR::IMATRIX) {
+    *p = x->data.mat.p;
     return true;
   } else
     return false;

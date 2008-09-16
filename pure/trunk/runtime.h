@@ -36,7 +36,7 @@ typedef struct {
    these. */
 
 typedef struct {
-  uint32_t refc;		// reference counter
+  uint32_t *refc;		// reference counter
   void *p;			// pointer to GSL matrix struct
 } pure_matrix;
 
@@ -54,7 +54,7 @@ typedef struct _pure_expr {
     double d;			// double (EXPR::DBL)
     char *s;			// C string (EXPR::STR)
     void *p;			// generic pointer (EXPR::PTR)
-    pure_matrix *mat;		// matrix data (EXPR::MATRIX et al)
+    pure_matrix mat;		// matrix data (EXPR::MATRIX et al)
     pure_closure *clos;		// closure (0 if none)
   } data;
   /* Internal fields (DO NOT TOUCH). The JIT doesn't care about these. */
