@@ -272,36 +272,36 @@ static pure_closure *pure_copy_clos(pure_closure *clos)
 
 static void pure_free_matrix(pure_expr *x)
 {
-#ifdef HAVE_GSL
   assert(x->data.mat && "pure_free_matrix: null data");
   assert(x->data.mat->refc > 0 && "pure_free_matrix: unreferenced data");
   assert(x->data.mat->p && "pure_free_matrix: corrupt data");
-  if (--x->data.mat->refc == 0) {
-    switch (x->tag) {
-    case EXPR::MATRIX: {
-      gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
-      m->owner = 1;
-      gsl_matrix_free(m);
-      break;
-    }
-    case EXPR::CMATRIX: {
-      gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
-      m->owner = 1;
-      gsl_matrix_complex_free(m);
-      break;
-    }
-    case EXPR::IMATRIX: {
-      gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
-      m->owner = 1;
-      gsl_matrix_int_free(m);
-      break;
-    }
-    default:
-      assert(0 && "pure_free_matrix: corrupt data");
-      break;
-    }
+  bool owner = --x->data.mat->refc == 0;
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat->p;
+    m->owner = owner;
+    gsl_matrix_free(m);
+    break;
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat->p;
+    m->owner = owner;
+    gsl_matrix_complex_free(m);
+    break;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat->p;
+    m->owner = owner;
+    gsl_matrix_int_free(m);
+    break;
+  }
+  default:
+    assert(0 && "pure_free_matrix: corrupt data");
+    break;
   }
 #endif
+  if (owner) free(x->data.mat);
 }
 
 #if 1
