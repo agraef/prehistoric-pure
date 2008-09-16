@@ -81,6 +81,7 @@ typedef list<comp_clause> comp_clause_list;
   char   *csval;
   expr   *xval;
   exprl  *xlval;
+  exprll *xllval;
   rule   *rval;
   rulel  *rlval;
   rule_info *rinfo;
@@ -235,7 +236,8 @@ typedef list<comp_clause> comp_clause_list;
 %type  <slval>	ids names ctypes opt_ctypes
 %type  <info>	fixity
 %type  <xval>	expr cond simple app prim op qual
-%type  <xlval>	args lhs
+%type  <xlval>	args lhs row
+%type  <xllval>	rows row_list
 %type  <clauselval>  comp_clauses comp_clause_list
 %type  <clauseval>  comp_clause
 %type  <rinfo>	rules rulel
@@ -244,9 +246,9 @@ typedef list<comp_clause> comp_clause_list;
 %type  <rlval>	rule simple_rules simple_rulel
 
 %destructor { delete $$; } ID fixity expr cond simple app prim op
-  comp_clauses comp_clause_list args lhs qual rules rulel rule
-  pat_rules pat_rulel simple_rules simple_rulel simple_rule ids names name
-  optalias opt_ctypes ctypes ctype
+  comp_clauses comp_clause_list rows row_list row args lhs qual
+  rules rulel rule pat_rules pat_rulel simple_rules simple_rulel simple_rule
+  ids names name optalias opt_ctypes ctypes ctype
 %destructor { mpz_clear(*$$); free($$); } BIGINT CBIGINT
 %destructor { free($$); } STR
 %printer { debug_stream() << *$$; } ID name optalias ctype expr cond simple app
@@ -523,6 +525,7 @@ prim
 | BIGINT		{ $$ = new expr(EXPR::BIGINT, *$1); free($1); }
 | DBL			{ $$ = new expr(EXPR::DBL, $1); }
 | STR			{ $$ = new expr(EXPR::STR, $1); }
+| '{' rows '}'		{ $$ = new expr(EXPR::MATRIX, $2); }
 | '[' expr ']'		{ $$ = interp.mklist_expr($2); }
 | '[' expr ';' comp_clauses ']'
 			{ $$ = interp.mklistcomp_expr($2, $4); }
@@ -548,6 +551,22 @@ comp_clause
 { $$ = new comp_clause(*$1, expr()); delete $1; }
 | expr '=' expr
 { $$ = new comp_clause(*$1, *$3); delete $1; delete $3; }
+;
+
+rows
+: row_list
+| /* empty */	{ $$ = new exprll; }
+;
+
+row_list
+: row
+{ $$ = new exprll; $$->push_back(*$1); delete $1; }
+| row_list ';' row
+{ $$ = $1; $$->push_back(*$3); delete $3; }
+;
+
+row
+: expr		{ $$ = interp.mkrow_exprl($1); }
 ;
 
 op

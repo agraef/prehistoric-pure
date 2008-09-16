@@ -2690,6 +2690,15 @@ expr *interpreter::mkwith_expr(expr *x, env *e)
   return u;
 }
 
+exprl *interpreter::mkrow_exprl(expr *x)
+{
+  exprl *xs = new exprl;
+  if (!x->is_pair() || !x->is_tuplel(*xs))
+    xs->push_back(*x);
+  delete x;
+  return xs;
+}
+
 expr *interpreter::mklist_expr(expr *x)
 {
   expr *u;

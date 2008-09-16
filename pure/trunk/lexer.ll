@@ -254,6 +254,7 @@ binttag ::{blank}*bigint
 dbltag  ::{blank}*double
 strtag  ::{blank}*string
 ptrtag  ::{blank}*pointer
+mattag  ::{blank}*matrix
 
 %x comment xdecl xdecl_comment xusing xusing_comment
 
@@ -1185,6 +1186,7 @@ Options may be combined, e.g., dump -fg f* is the same as dump -f -g f*.\n\
 {dbltag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::DBL; return token::TAG;
 {strtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::STR; return token::TAG;
 {ptrtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::PTR; return token::TAG;
+{mattag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::MATRIX; return token::TAG;
 extern     BEGIN(xdecl); return token::EXTERN;
 infix      yylval->fix = infix; return token::FIX;
 infixl     yylval->fix = infixl; return token::FIX;
@@ -1221,7 +1223,7 @@ using      BEGIN(xusing); return token::USING;
     return token::ID;
   }
 }
-[@=|;()\[\]\\] return yy::parser::token_type(yytext[0]);
+[@=|;()\[\]{}\\] return yy::parser::token_type(yytext[0]);
 "->"       return token::MAPSTO;
 "#<"{id}(" "{int})?">" return token::BADTOK;
 ([[:punct:]]|[\200-\377])+  {
