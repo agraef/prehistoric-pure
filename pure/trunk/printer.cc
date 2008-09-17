@@ -713,6 +713,26 @@ static inline bool pstr(ostream& os, pure_expr *x)
     return false;
 }
 
+static inline ostream& print_double(ostream& os, double d)
+{
+  char buf[64];
+  if (is_inf(d))
+    if (d > 0)
+      strcpy(buf, "inf");
+    else
+      strcpy(buf, "-inf");
+  else if (is_nan(d))
+    strcpy(buf, "nan");
+  else
+    my_formatd(buf, "%0.15g", d);
+  // make sure that the output conforms to Pure syntax
+  os << buf;
+  if (strchr("0123456789", buf[buf[0]=='-'?1:0]) &&
+      !strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E'))
+    os << ".0";
+  return os;
+}
+
 ostream& operator << (ostream& os, const pure_expr *x)
 {
   char test;
@@ -720,7 +740,6 @@ ostream& operator << (ostream& os, const pure_expr *x)
       interpreter::stackdir*(&test - interpreter::baseptr) >=
       interpreter::stackmax)
     throw err("stack overflow in printer");
-  char buf[64];
   assert(x);
   if (pstr(os, (pure_expr*)x)) return os;
   //os << "{" << x->refc << "}";
@@ -732,24 +751,8 @@ ostream& operator << (ostream& os, const pure_expr *x)
     os << s << "L"; free(s);
     return os;
   }
-  case EXPR::DBL: {
-    double d = x->data.d;
-    if (is_inf(d))
-      if (d > 0)
-	strcpy(buf, "inf");
-      else
-	strcpy(buf, "-inf");
-    else if (is_nan(d))
-      strcpy(buf, "nan");
-    else
-      my_formatd(buf, "%0.15g", d);
-    // make sure that the output conforms to Pure syntax
-    os << buf;
-    if (strchr("0123456789", buf[buf[0]=='-'?1:0]) &&
-	!strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E'))
-      os << ".0";
-    return os;
-  }
+  case EXPR::DBL:
+    return print_double(os, x->data.d);
   case EXPR::STR: {
     char *s = printstr(x->data.s);
     os << '"' << s << '"';
@@ -758,6 +761,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
   }
   case EXPR::PTR:
     return os << "#<pointer " << x->data.p << ">";
+#ifdef HAVE_GSL
   /* NOTE: For performance reasons, we don't do any custom representations for
      matrix elements. As a workaround, you can define __show__ on matrices as
      a whole. */
@@ -769,7 +773,7 @@ ostream& operator << (ostream& os, const pure_expr *x)
 	if (i > 0) os << ";";
 	for (size_t j = 0; j < m->size2; j++) {
 	  if (j > 0) os << ",";
-	  os << m->data[i * m->tda + j];
+	  print_double(os, m->data[i * m->tda + j]);
 	}
       }
     }
@@ -791,21 +795,44 @@ ostream& operator << (ostream& os, const pure_expr *x)
     os << "{";
     if (x->data.mat.p) {
       gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-      for (size_t i = 0; i < m->size1; i++) {
-	if (i > 0) os << ";";
-	for (size_t j = 0; j < m->size2; j++) {
-	  if (j > 0) os << ",";
-	  /* GSL represents complex matrices using pairs of double values.
-	     FIXME: We take a shortcut here by just printing complex numbers
-	     in rectangular format using the +: operator defined in math.pure.
-	     This has to be adapted when the representation in math.pure
-	     changes. */
-	  os << m->data[2*(i * m->tda + j)] << "+:"
-	     << m->data[2*(i * m->tda + j) + 1];
+      /* GSL represents complex matrices using pairs of double values, while
+	 Pure provides its own complex type in math.pure. If math.pure has
+	 been loaded, then the '+:' operator is defined and we use this
+	 representation. Otherwise, we print complex values as pairs of real
+	 and imaginary part. */
+      symbol *rect = interpreter::g_interp->symtab.complex_rect_sym();
+      if (rect)
+	for (size_t i = 0; i < m->size1; i++) {
+	  if (i > 0) os << ";";
+	  for (size_t j = 0; j < m->size2; j++) {
+	    if (j > 0) os << ",";
+	    print_double(os, m->data[2*(i * m->tda + j)]);
+	    os << rect->s;
+	    print_double(os, m->data[2*(i * m->tda + j) + 1]);
+	  }
 	}
-      }
+      else
+	for (size_t i = 0; i < m->size1; i++) {
+	  if (i > 0) os << ";";
+	  for (size_t j = 0; j < m->size2; j++) {
+	    if (j > 0) os << ",";
+	    os << "(";
+	    print_double(os, m->data[2*(i * m->tda + j)]);
+	    os << ",";
+	    print_double(os, m->data[2*(i * m->tda + j) + 1]);
+	    os << ")";
+	  }
+	}
     }
     return os << "}";
+#else
+  case EXPR::MATRIX:
+    return os << "#<matrix " << x->data.mat.p << ">";
+  case EXPR::IMATRIX:
+    return os << "#<imatrix " << x->data.mat.p << ">";
+  case EXPR::CMATRIX:
+    return os << "#<cmatrix " << x->data.mat.p << ">";
+#endif
   case EXPR::APP: {
     list<const pure_expr*> xs;
     prec_t p;

@@ -368,24 +368,6 @@ symbol& symtable::mod_sym()
     return sym("mod", 7, infixl);
 }
 
-symbol& symtable::complex_rect_sym()
-{
-  symbol *_sym = lookup("+:");
-  if (_sym)
-    return *_sym;
-  else
-    return sym("+", 5, infix);
-}
-
-symbol& symtable::complex_polar_sym()
-{
-  symbol *_sym = lookup("<:");
-  if (_sym)
-    return *_sym;
-  else
-    return sym("+", 5, infix);
-}
-
 symbol& symtable::amp_sym()
 {
   symbol *_sym = lookup("&");

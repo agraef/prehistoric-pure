@@ -90,8 +90,6 @@ public:
   symbol& fdiv_sym();
   symbol& div_sym();
   symbol& mod_sym();
-  symbol& complex_rect_sym();
-  symbol& complex_polar_sym();
   symbol& catch_sym() { return sym("catch"); }
   symbol& catmap_sym() { return sym("catmap"); }
   symbol& failed_match_sym() { return sym("failed_match"); }
@@ -101,6 +99,9 @@ public:
   symbol& not_implemented_sym() { return sym("not_implemented"); }
   symbol& bad_matrix_sym() { return sym("bad_matrix_value"); }
   symbol& amp_sym();
+  // these may be undefined
+  symbol* complex_rect_sym() { return lookup("+:"); }
+  symbol* complex_polar_sym() { return lookup("<:"); }
 };
 
 #endif // ! SYMTABLE_HH
