@@ -817,7 +817,7 @@ int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       data[i++*tda] = (int)x->data.d;
       break;
     case EXPR::MATRIX: {
-      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
+      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
 	for (size_t j = 0; j < mat1->size1; i++, j++)
 	  for (size_t k = 0; k < mat1->size2; k++)
@@ -825,7 +825,7 @@ int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       break;
     }
     case EXPR::IMATRIX: {
-      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
+      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
       if (mat1)
 	for (size_t j = 0; j < mat1->size1; i++, j++)
 	  memcpy(data+i*tda, mat1->data+j*mat1->tda, ncols*sizeof(int));
@@ -869,7 +869,7 @@ int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       data[i++] = (int)x->data.d;
       break;
     case EXPR::MATRIX: {
-      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
+      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
 	for (size_t j = 0; j < mat1->size1; j++)
 	  for (size_t k = 0; k < mat1->size2; k++)
@@ -878,7 +878,7 @@ int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       break;
     }
     case EXPR::IMATRIX: {
-      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
+      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
       if (mat1)
 	for (size_t j = 0; j < mat1->size1; j++)
 	  memcpy(data+j*tda+i, mat1->data+j*mat1->tda,
