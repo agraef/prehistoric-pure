@@ -913,13 +913,15 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
     if (x->data.mat.p) {
       gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
       exprll *xs = new exprll;
+      symbol *rect = symtab.complex_rect_sym();
+      expr f = rect?rect->x:symtab.pair_sym().x;
       for (size_t i = 0; i < m->size1; i++) {
 	xs->push_back(exprl());
 	exprl& ys = xs->back();
 	for (size_t j = 0; j < m->size2; j++) {
 	  expr u = expr(EXPR::DBL, m->data[2*(i * m->tda + j)]);
 	  expr v = expr(EXPR::DBL, m->data[2*(i * m->tda + j) + 1]);
-	  ys.push_back(expr(symtab.complex_rect_sym().x, u, v));
+	  ys.push_back(expr(f, u, v));
 	}
       }
       return expr(EXPR::MATRIX, m);
@@ -5031,7 +5033,10 @@ Value *interpreter::codegen(expr x)
       us[i] =
 	act_env().CreateCall(module->getFunction("pure_matrix_columns"), vs);
     }
-    return act_env().CreateCall(module->getFunction("pure_matrix_rows"), us);
+    if (n == 1)
+      return us[1];
+    else
+      return act_env().CreateCall(module->getFunction("pure_matrix_rows"), us);
   }
   // application:
   case EXPR::APP:
