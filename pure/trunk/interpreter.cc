@@ -5033,10 +5033,7 @@ Value *interpreter::codegen(expr x)
       us[i] =
 	act_env().CreateCall(module->getFunction("pure_matrix_columns"), vs);
     }
-    if (n == 1)
-      return us[1];
-    else
-      return act_env().CreateCall(module->getFunction("pure_matrix_rows"), us);
+    return act_env().CreateCall(module->getFunction("pure_matrix_rows"), us);
   }
   // application:
   case EXPR::APP:

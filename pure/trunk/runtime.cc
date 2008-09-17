@@ -686,11 +686,19 @@ static pure_expr*
 double_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
   gsl_matrix *mat = gsl_matrix_alloc(nrows, ncols);
-  if (!mat) return 0; // XXXTODO: empty matrices
+  if (!mat) {
+    // XXXTODO: empty matrices
+    for (size_t i = 0; i < n; i++)
+      pure_new_internal(xs[i]);
+    for (size_t i = 0; i < n; i++)
+      pure_free_internal(xs[i]);
+    return 0;
+  }
   double *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
     pure_expr *x = xs[count];
+    pure_new_internal(x);
     switch (x->tag) {
     case EXPR::INT:
       data[i++*tda] = (double)x->data.i;
@@ -720,8 +728,9 @@ double_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       assert(0 && "bad matrix element");
       break;
     }
-    pure_freenew(x);
   }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
   return pure_double_matrix(mat);
 }
 
@@ -729,11 +738,19 @@ static pure_expr*
 double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
   gsl_matrix *mat = gsl_matrix_alloc(nrows, ncols);
-  if (!mat) return 0; // XXXTODO: empty matrices
+  if (!mat) {
+    // XXXTODO: empty matrices
+    for (size_t i = 0; i < n; i++)
+      pure_new_internal(xs[i]);
+    for (size_t i = 0; i < n; i++)
+      pure_free_internal(xs[i]);
+    return 0;
+  }
   double *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
     pure_expr *x = xs[count];
+    pure_new_internal(x);
     switch (x->tag) {
     case EXPR::INT:
       data[i++] = (double)x->data.i;
@@ -747,8 +764,9 @@ double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
     case EXPR::MATRIX: {
       gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
-	for (size_t j = 0; j < mat1->size1; i++, j++)
-	  memcpy(data+j*tda+i, mat1->data+j*mat1->tda, ncols*sizeof(double));
+	for (size_t j = 0; j < mat1->size1; j++)
+	  memcpy(data+j*tda+i, mat1->data+j*mat1->tda,
+		 mat1->size2*sizeof(double));
       i += mat1->size2;
       break;
     }
@@ -765,8 +783,9 @@ double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       assert(0 && "bad matrix element");
       break;
     }
-    pure_freenew(x);
   }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
   return pure_double_matrix(mat);
 }
 
@@ -774,11 +793,19 @@ static pure_expr*
 int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
   gsl_matrix_int *mat = gsl_matrix_int_alloc(nrows, ncols);
-  if (!mat) return 0; // XXXTODO: empty matrices
+  if (!mat) {
+    // XXXTODO: empty matrices
+    for (size_t i = 0; i < n; i++)
+      pure_new_internal(xs[i]);
+    for (size_t i = 0; i < n; i++)
+      pure_free_internal(xs[i]);
+    return 0;
+  }
   int *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
     pure_expr *x = xs[count];
+    pure_new_internal(x);
     switch (x->tag) {
     case EXPR::INT:
       data[i++*tda] = x->data.i;
@@ -808,8 +835,9 @@ int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       assert(0 && "bad matrix element");
       break;
     }
-    pure_freenew(x);
   }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
   return pure_int_matrix(mat);
 }
 
@@ -817,11 +845,19 @@ static pure_expr*
 int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
   gsl_matrix_int *mat = gsl_matrix_int_alloc(nrows, ncols);
-  if (!mat) return 0; // XXXTODO: empty matrices
+  if (!mat) {
+    // XXXTODO: empty matrices
+    for (size_t i = 0; i < n; i++)
+      pure_new_internal(xs[i]);
+    for (size_t i = 0; i < n; i++)
+      pure_free_internal(xs[i]);
+    return 0;
+  }
   int *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
     pure_expr *x = xs[count];
+    pure_new_internal(x);
     switch (x->tag) {
     case EXPR::INT:
       data[i++] = x->data.i;
@@ -844,8 +880,9 @@ int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
     case EXPR::IMATRIX: {
       gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
-	for (size_t j = 0; j < mat1->size1; i++, j++)
-	  memcpy(data+j*tda+i, mat1->data+j*mat1->tda, ncols*sizeof(int));
+	for (size_t j = 0; j < mat1->size1; j++)
+	  memcpy(data+j*tda+i, mat1->data+j*mat1->tda,
+		 mat1->size2*sizeof(int));
       i += mat1->size2;
       break;
     }
@@ -853,8 +890,9 @@ int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       assert(0 && "bad matrix element");
       break;
     }
-    pure_freenew(x);
   }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
   return pure_int_matrix(mat);
 }
 #endif
@@ -1762,21 +1800,25 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
 {
 #ifdef HAVE_GSL
   va_list ap;
-  va_start(ap, n);
   pure_expr **xs = (pure_expr**)alloca(n*sizeof(pure_expr*));
-  size_t m = 0; int k = -1;
+  int k = -1;
   size_t nrows = 0, ncols = 0;
   int32_t target = EXPR::IMATRIX;
+  bool have_matrix = false;
+  pure_expr *x = 0, *ret = 0;
+  va_start(ap, n);
+  for (size_t i = 0; i < n; i++)
+    xs[i] = va_arg(ap, pure_expr*);
+  va_end(ap);
   for (size_t i = 0; i < n; i++) {
-    pure_expr *x = va_arg(ap, pure_expr*);
+    x = xs[i];
     switch (x->tag) {
     case EXPR::DBL:
       if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
     case EXPR::INT:
     case EXPR::BIGINT:
-      if (k >= 0 && k != 1) pure_throw(bad_matrix_exception(x));
-      xs[m++] = x; nrows++;
-      k = 1;
+      if (k >= 0 && k != 1) goto err;
+      nrows++; k = 1;
       break;
     case EXPR::APP: {
       pure_expr *u = x->data.x[0], *v = x->data.x[1];
@@ -1788,87 +1830,93 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
 	if ((!rect || f->tag != rect->f) &&
 	    (!polar || f->tag != polar->f) &&
 	    f->tag != interp.symtab.pair_sym().f)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
 	u = u->data.x[1];
 	if (u->tag != EXPR::INT && u->tag != EXPR::BIGINT &&
 	    u->tag != EXPR::DBL)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
 	if (v->tag != EXPR::INT && v->tag != EXPR::BIGINT &&
 	    v->tag != EXPR::DBL)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
       } else
-	pure_throw(bad_matrix_exception(x));
-      if (k >= 0 && k != 1) pure_throw(bad_matrix_exception(x));
+	goto err;
+      if (k >= 0 && k != 1) goto err;
       target = EXPR::CMATRIX;
-      xs[m++] = x; nrows++;
-      k = 1;
+      nrows++; k = 1;
       break;
     }
     case EXPR::MATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
       if (mp) {
 	if (k >= 0 && mp->size2 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size1 > 0) xs[m++] = x;
-	nrows += mp->size1;
-	k = mp->size2;
+	  goto err;
+	nrows += mp->size1; k = mp->size2;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
+	goto err;
       if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+      have_matrix = true;
       break;
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
       if (mp) {
 	if (k >= 0 && mp->size2 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size1 > 0) xs[m++] = x;
-	nrows += mp->size1;
-	k = mp->size2;
+	  goto err;
+	nrows += mp->size1; k = mp->size2;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
+	goto err;
       target = EXPR::CMATRIX;
+      have_matrix = true;
       break;
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
       if (mp) {
 	if (k >= 0 && mp->size2 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size1 > 0) xs[m++] = x;
-	nrows += mp->size1;
-	k = mp->size2;
+	  goto err;
+	nrows += mp->size1; k = mp->size2;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
+	goto err;
+      have_matrix = true;
       break;
     }
     default:
-      pure_throw(bad_matrix_exception(x));
+      goto err;
       break;
     }
   }
-  va_end(ap);
+  if (n == 1 && have_matrix) return xs[0];
   if (k < 0) k = 0;
   ncols = k;
   if (nrows == 0 && ncols == 0) target = EXPR::MATRIX;
-  pure_expr *ret = 0;
   switch (target) {
   case EXPR::MATRIX:
-    ret = double_matrix_rows(nrows, ncols, m, xs);
+    ret = double_matrix_rows(nrows, ncols, n, xs);
     break;
 #if 0 // XXXTODO
   case EXPR::CMATRIX:
-    ret = complex_matrix_rows(nrows, ncols, m, xs);
+    ret = complex_matrix_rows(nrows, ncols, n, xs);
     break;
 #endif
   case EXPR::IMATRIX:
-    ret = int_matrix_rows(nrows, ncols, m, xs);
+    ret = int_matrix_rows(nrows, ncols, n, xs);
     break;
   default:
     break;
   }
   if (!ret) pure_throw(not_implemented_exception());
   return ret;
+ err:
+  /* This is called without a shadow stack frame, so we do our own cleanup
+     here to avoid having temporaries hanging around indefinitely. */
+  if (x) x->refc++;
+  for (size_t i = 0; i < n; i++)
+    pure_new_internal(xs[i]);
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
+  pure_unref_internal(x);
+  pure_throw(bad_matrix_exception(x));
+  return 0;
 #else
   pure_throw(not_implemented_exception());
   return 0;
@@ -1880,21 +1928,25 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
 {
 #ifdef HAVE_GSL
   va_list ap;
-  va_start(ap, n);
   pure_expr **xs = (pure_expr**)alloca(n*sizeof(pure_expr*));
-  size_t m = 0; int k = -1;
+  int k = -1;
   size_t nrows = 0, ncols = 0;
   int32_t target = EXPR::IMATRIX;
+  bool have_matrix = false;
+  pure_expr *x = 0, *ret = 0;
+  va_start(ap, n);
+  for (size_t i = 0; i < n; i++)
+    xs[i] = va_arg(ap, pure_expr*);
+  va_end(ap);
   for (size_t i = 0; i < n; i++) {
-    pure_expr *x = va_arg(ap, pure_expr*);
+    x = xs[i];
     switch (x->tag) {
     case EXPR::DBL:
       if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
     case EXPR::INT:
     case EXPR::BIGINT:
-      if (k >= 0 && k != 1) pure_throw(bad_matrix_exception(x));
-      xs[m++] = x; ncols++;
-      k = 1;
+      if (k >= 0 && k != 1) goto err;
+      ncols++; k = 1;
       break;
     case EXPR::APP: {
       pure_expr *u = x->data.x[0], *v = x->data.x[1];
@@ -1906,87 +1958,93 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
 	if ((!rect || f->tag != rect->f) &&
 	    (!polar || f->tag != polar->f) &&
 	    f->tag != interp.symtab.pair_sym().f)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
 	u = u->data.x[1];
 	if (u->tag != EXPR::INT && u->tag != EXPR::BIGINT &&
 	    u->tag != EXPR::DBL)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
 	if (v->tag != EXPR::INT && v->tag != EXPR::BIGINT &&
 	    v->tag != EXPR::DBL)
-	  pure_throw(bad_matrix_exception(x));
+	  goto err;
       } else
-	pure_throw(bad_matrix_exception(x));
-      if (k >= 0 && k != 1) pure_throw(bad_matrix_exception(x));
+	goto err;
+      if (k >= 0 && k != 1) goto err;
       target = EXPR::CMATRIX;
-      xs[m++] = x; ncols++;
-      k = 1;
+      ncols++; k = 1;
       break;
     }
     case EXPR::MATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
       if (mp) {
 	if (k >= 0 && mp->size1 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size2 > 0) xs[m++] = x;
-	ncols += mp->size2;
-	k = mp->size1;
+	  goto err;
+	ncols += mp->size2; k = mp->size1;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
+	goto err;
       if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+      have_matrix = true;
       break;
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
       if (mp) {
 	if (k >= 0 && mp->size1 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size2 > 0) xs[m++] = x;
-	ncols += mp->size2;
-	k = mp->size1;
+	  goto err;
+	ncols += mp->size2; k = mp->size1;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
+	goto err;
+      target = EXPR::CMATRIX;
+      have_matrix = true;
       break;
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
       if (mp) {
-	if (k >= 0 && mp->size2 != (size_t)k)
-	  pure_throw(bad_matrix_exception(x));
-	if (mp->size1 > 0) xs[m++] = x;
-	ncols += mp->size2;
-	k = mp->size2;
+	if (k >= 0 && mp->size1 != (size_t)k)
+	  goto err;
+	ncols += mp->size2; k = mp->size1;
       } else if (k>0)
-	pure_throw(bad_matrix_exception(x));
-      target = EXPR::CMATRIX;
+	goto err;
+      have_matrix = true;
       break;
     }
     default:
-      pure_throw(bad_matrix_exception(x));
+      goto err;
       break;
     }
   }
-  va_end(ap);
+  if (n == 1 && have_matrix) return xs[0];
   if (k < 0) k = 0;
   nrows = k;
   if (nrows == 0 && ncols == 0) target = EXPR::MATRIX;
-  pure_expr *ret = 0;
   switch (target) {
   case EXPR::MATRIX:
-    ret = double_matrix_columns(nrows, ncols, m, xs);
+    ret = double_matrix_columns(nrows, ncols, n, xs);
     break;
 #if 0 // XXXTODO
   case EXPR::CMATRIX:
-    ret = complex_matrix_columns(nrows, ncols, m, xs);
+    ret = complex_matrix_columns(nrows, ncols, n, xs);
     break;
 #endif
   case EXPR::IMATRIX:
-    ret = int_matrix_columns(nrows, ncols, m, xs);
+    ret = int_matrix_columns(nrows, ncols, n, xs);
     break;
   default:
     break;
   }
   if (!ret) pure_throw(not_implemented_exception());
   return ret;
+ err:
+  /* This is called without a shadow stack frame, so we do our own cleanup
+     here to avoid having temporaries hanging around indefinitely. */
+  if (x) x->refc++;
+  for (size_t i = 0; i < n; i++)
+    pure_new_internal(xs[i]);
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
+  pure_unref_internal(x);
+  pure_throw(bad_matrix_exception(x));
+  return 0;
 #else
   pure_throw(not_implemented_exception());
   return 0;
