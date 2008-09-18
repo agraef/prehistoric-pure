@@ -46,6 +46,22 @@ matrixp x	= case x of _::matrix  = 1; _ = 0 end;
 cmatrixp x	= case x of _::cmatrix = 1; _ = 0 end;
 imatrixp x	= case x of _::imatrix = 1; _ = 0 end;
 
+/* Pure represents row and column vectors as matrices with 1 row or column,
+   respectively. The following predicates allow you to check for these special
+   kinds of matrices. */
+
+vectorp x	= matrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
+rowvectorp x	= matrixp x && dim x!0==1;
+colvectorp x	= matrixp x && dim x!1==1;
+
+cvectorp x	= cmatrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
+rowcvectorp x	= cmatrixp x && dim x!0==1;
+colcvectorp x	= cmatrixp x && dim x!1==1;
+
+ivectorp x	= imatrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
+rowivectorp x	= imatrixp x && dim x!0==1;
+colivectorp x	= imatrixp x && dim x!1==1;
+
 /* Predicates to check for function objects, global (unbound) variables,
    function applications, proper lists, list nodes and tuples. */
 
@@ -409,7 +425,7 @@ x::matrix!(i::int,j::int) | x::cmatrix!(i::int,j::int) |
 x::imatrix!(i::int,j::int)
 			= matrix_elem x i j
 			    if (i>=0 && i<n && j>=0 && j<m
-				when n,m = dim x end);
+				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
 /* IEEE floating point infinities and NaNs. Place these after the definitions
