@@ -1128,19 +1128,97 @@ extern "C"
 pure_expr *pure_matrix_rowsl(uint32_t n, ...)
 {
 #ifdef HAVE_GSL
-  // XXXTODO
-  return 0;
+  va_list ap;
+  pure_expr **xs = (pure_expr**)alloca(n*sizeof(pure_expr*));
+  va_start(ap, n);
+  for (size_t i = 0; i < n; i++)
+    xs[i] = va_arg(ap, pure_expr*);
+  va_end(ap);
+  return pure_matrix_rowsv(n, xs);
 #else
   return 0;
 #endif
 }
 
 extern "C"
-pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **elems)
+pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
 {
 #ifdef HAVE_GSL
-  // XXXTODO
-  return 0;
+  int k = -1;
+  size_t nrows = 0, ncols = 0;
+  int32_t target = EXPR::IMATRIX;
+  bool have_matrix = false;
+  for (size_t i = 0; i < n; i++) {
+    pure_expr *x = xs[i];
+    switch (x->tag) {
+    case EXPR::DBL:
+      if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+    case EXPR::INT:
+    case EXPR::BIGINT:
+      if (k >= 0 && k != 1) return 0;
+      nrows++; k = 1;
+      break;
+    case EXPR::APP: {
+      double a, b;
+      if (!get_complex(x, a, b)) return 0;
+      if (k >= 0 && k != 1) return 0;
+      target = EXPR::CMATRIX;
+      nrows++; k = 1;
+      break;
+    }
+    case EXPR::MATRIX: {
+      gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size2 != (size_t)k)
+	  return 0;
+	nrows += mp->size1; k = mp->size2;
+      } else if (k>0)
+	return 0;
+      if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+      have_matrix = true;
+      break;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size2 != (size_t)k)
+	  return 0;
+	nrows += mp->size1; k = mp->size2;
+      } else if (k>0)
+	return 0;
+      target = EXPR::CMATRIX;
+      have_matrix = true;
+      break;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size2 != (size_t)k)
+	  return 0;
+	nrows += mp->size1; k = mp->size2;
+      } else if (k>0)
+	return 0;
+      have_matrix = true;
+      break;
+    }
+    default:
+      return 0;
+    }
+  }
+  if (n == 1 && have_matrix) return xs[0];
+  if (k < 0) k = 0;
+  ncols = k;
+  if (nrows == 0 && ncols == 0) target = EXPR::MATRIX;
+  switch (target) {
+  case EXPR::MATRIX:
+    return double_matrix_rows(nrows, ncols, n, xs);
+  case EXPR::CMATRIX:
+    return complex_matrix_rows(nrows, ncols, n, xs);
+  case EXPR::IMATRIX:
+    return int_matrix_rows(nrows, ncols, n, xs);
+  default:
+    return 0;
+  }
 #else
   return 0;
 #endif
@@ -1150,19 +1228,97 @@ extern "C"
 pure_expr *pure_matrix_columnsl(uint32_t n, ...)
 {
 #ifdef HAVE_GSL
-  // XXXTODO
-  return 0;
+  va_list ap;
+  pure_expr **xs = (pure_expr**)alloca(n*sizeof(pure_expr*));
+  va_start(ap, n);
+  for (size_t i = 0; i < n; i++)
+    xs[i] = va_arg(ap, pure_expr*);
+  va_end(ap);
+  return pure_matrix_columnsv(n, xs);
 #else
   return 0;
 #endif
 }
 
 extern "C"
-pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **elems)
+pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
 {
 #ifdef HAVE_GSL
-  // XXXTODO
-  return 0;
+  int k = -1;
+  size_t nrows = 0, ncols = 0;
+  int32_t target = EXPR::IMATRIX;
+  bool have_matrix = false;
+  for (size_t i = 0; i < n; i++) {
+    pure_expr *x = xs[i];
+    switch (x->tag) {
+    case EXPR::DBL:
+      if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+    case EXPR::INT:
+    case EXPR::BIGINT:
+      if (k >= 0 && k != 1) return 0;
+      ncols++; k = 1;
+      break;
+    case EXPR::APP: {
+      double a, b;
+      if (!get_complex(x, a, b)) return 0;
+      if (k >= 0 && k != 1) return 0;
+      target = EXPR::CMATRIX;
+      ncols++; k = 1;
+      break;
+    }
+    case EXPR::MATRIX: {
+      gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size1 != (size_t)k)
+	  return 0;
+	ncols += mp->size2; k = mp->size1;
+      } else if (k>0)
+	return 0;
+      if (target == EXPR::IMATRIX) target = EXPR::MATRIX;
+      have_matrix = true;
+      break;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size1 != (size_t)k)
+	  return 0;
+	ncols += mp->size2; k = mp->size1;
+      } else if (k>0)
+	return 0;
+      target = EXPR::CMATRIX;
+      have_matrix = true;
+      break;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
+      if (mp) {
+	if (k >= 0 && mp->size1 != (size_t)k)
+	  return 0;
+	ncols += mp->size2; k = mp->size1;
+      } else if (k>0)
+	return 0;
+      have_matrix = true;
+      break;
+    }
+    default:
+      return 0;
+    }
+  }
+  if (n == 1 && have_matrix) return xs[0];
+  if (k < 0) k = 0;
+  nrows = k;
+  if (nrows == 0 && ncols == 0) target = EXPR::MATRIX;
+  switch (target) {
+  case EXPR::MATRIX:
+    return double_matrix_columns(nrows, ncols, n, xs);
+  case EXPR::CMATRIX:
+    return complex_matrix_columns(nrows, ncols, n, xs);
+  case EXPR::IMATRIX:
+    return int_matrix_columns(nrows, ncols, n, xs);
+  default:
+    return 0;
+  }
 #else
   return 0;
 #endif

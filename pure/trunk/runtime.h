@@ -149,10 +149,10 @@ pure_expr *pure_int_matrix_dup(const void *p);
    The pure_matrix_rows functions arrange the elements vertically, while the
    pure_matrix_columns functions arrange them horizontally, given that the
    other dimensions match. A null expression is returned in case of an error
-   (no matrix support, dimension mismatch, or invalid element type). Otherwise
-   a new matrix expression is returned. Temporary element expressions are
-   taken over by the callee and will be garbage-collected, but the elems
-   vectors are owned by the caller and won't be freed. */
+   (no matrix support, dimension mismatch, or invalid element type), leaving
+   the input expressions untouched. Otherwise a new matrix expression is
+   returned and temporary element expressions are garbage-collected. In any
+   case, the elems vectors are owned by the caller and won't be freed. */
 
 pure_expr *pure_matrix_rowsl(uint32_t n, ...);
 pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **elems);
