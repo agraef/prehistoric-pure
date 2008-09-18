@@ -42,6 +42,10 @@ doublep x	= case x of _::double  = 1; _ = 0 end;
 stringp x	= case x of _::string  = 1; _ = 0 end;
 pointerp x	= case x of _::pointer = 1; _ = 0 end;
 
+matrixp x	= case x of _::matrix  = 1; _ = 0 end;
+cmatrixp x	= case x of _::cmatrix = 1; _ = 0 end;
+imatrixp x	= case x of _::imatrix = 1; _ = 0 end;
+
 /* Predicates to check for function objects, global (unbound) variables,
    function applications, proper lists, list nodes and tuples. */
 
@@ -382,6 +386,31 @@ x::pointer<=y::pointer	= bigint x <= bigint y;
 x::pointer>=y::pointer	= bigint x >= bigint y;
 x::pointer==y::pointer	= bigint x == bigint y;
 x::pointer!=y::pointer	= bigint x != bigint y;
+
+/* Basic matrix operations. */
+
+private matrix_size matrix_dim;
+extern int matrix_size(expr *x), expr* matrix_dim(expr *x);
+
+#x::matrix | #x::cmatrix | #x::imatrix = matrix_size x;
+dim x::matrix | dim x::cmatrix | dim x::imatrix = matrix_dim x;
+
+private matrix_elem_at;
+extern expr* matrix_elem_at(expr* x, int i);
+
+x::matrix!i::int | x::cmatrix!i::int | x::imatrix!i::int
+			= matrix_elem_at x i if i>=0 && i<#x;
+			= throw out_of_bounds otherwise;
+
+private matrix_elem;
+extern expr* matrix_elem(expr* x, int i, int j);
+
+x::matrix!(i::int,j::int) | x::cmatrix!(i::int,j::int) |
+x::imatrix!(i::int,j::int)
+			= matrix_elem x i j
+			    if (i>=0 && i<n && j>=0 && j<m
+				when n,m = dim x end);
+			= throw out_of_bounds otherwise;
 
 /* IEEE floating point infinities and NaNs. Place these after the definitions
    of the built-in operators so that the double arithmetic works. */

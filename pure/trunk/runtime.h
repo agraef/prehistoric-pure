@@ -602,6 +602,30 @@ pure_expr *eval(const char *s);
 
 const char *lasterr();
 
+/* Basic matrix operations. These work with all supported GSL matrix types.
+   matrix_size determines the number of elements in a matrix, matrix_dim the
+   number of rows and columns, which are returned as a pair (n,m). */
+
+uint32_t matrix_size(pure_expr *x);
+pure_expr *matrix_dim(pure_expr *x);
+
+/* Matrix elements can be retrieved either by a single index (using row-major
+   order), or by row and column index. All indices are zero-based. Indices
+   aren't range-checked, if this is needed you have to do it beforehand using
+   matrix_size or matrix_dim above. */
+
+pure_expr *matrix_elem_at(pure_expr *x, uint32_t i);
+pure_expr *matrix_elem(pure_expr *x, uint32_t i, uint32_t j);
+
+/* The following operation retrieves a slice a.k.a. submatrix of a matrix and
+   returns it as a matrix object. The new matrix object shares the underlying
+   storage with the original matrix (i.e., matrix elements are *not* copied)
+   and so this is a comparatively cheap operation. Indices are zero-based and
+   not checked. */
+
+pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
+			uint32_t i2, uint32_t j2);
+
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
 
