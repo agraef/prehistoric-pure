@@ -28,6 +28,7 @@ char *alloca ();
 #include <unistd.h>
 #include <limits.h>
 #include <locale.h>
+#include <math.h>
 #include <iostream>
 #include <sstream>
 
@@ -825,6 +826,208 @@ double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
   for (size_t i = 0; i < n; i++)
     pure_free_internal(xs[i]);
   return pure_double_matrix(mat);
+}
+
+static inline bool get_complex(pure_expr *x, double& a, double& b)
+{
+  if (x->tag != EXPR::APP) return false;
+  pure_expr *u = x->data.x[0], *v = x->data.x[1];
+  if (u->tag == EXPR::APP) {
+    interpreter& interp = *interpreter::g_interp;
+    pure_expr *f = u->data.x[0];
+    symbol *rect = interp.symtab.complex_rect_sym(),
+      *polar = interp.symtab.complex_polar_sym();
+    if ((!rect || f->tag != rect->f) &&
+	(!polar || f->tag != polar->f) &&
+	f->tag != interp.symtab.pair_sym().f)
+      return false;
+    u = u->data.x[1];
+    switch (u->tag) {
+    case EXPR::INT:
+      a = (double)u->data.i;
+      break;
+    case EXPR::BIGINT:
+      a = mpz_get_d(x->data.z);
+      break;
+    case EXPR::DBL:
+      a = u->data.d;
+      break;
+    default:
+      return false;
+    }
+    switch (v->tag) {
+    case EXPR::INT:
+      b = (double)v->data.i;
+      break;
+    case EXPR::BIGINT:
+      b = mpz_get_d(x->data.z);
+      break;
+    case EXPR::DBL:
+      b = v->data.d;
+      break;
+    default:
+      return false;
+    }
+    if (polar && f->tag == polar->f) {
+      double r = a, t = b;
+      a = r*cos(t); b = r*sin(t);
+    }
+    return true;
+  } else
+    return false;
+}
+
+static pure_expr*
+complex_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
+{
+  gsl_matrix_complex *mat = create_complex_matrix(nrows, ncols);
+  if (!mat) return 0;
+  double *data = mat->data;
+  size_t tda = mat->tda;
+  for (size_t count = 0, i = 0; count < n; count++) {
+    pure_expr *x = xs[count];
+    pure_new_internal(x);
+    switch (x->tag) {
+    case EXPR::INT:
+      data[2*i*tda] = (double)x->data.i;
+      data[2*i*tda+1] = 0.0;
+      i++;
+      break;
+    case EXPR::BIGINT:
+      data[2*i*tda] = mpz_get_d(x->data.z);
+      data[2*i*tda+1] = 0.0;
+      i++;
+      break;
+    case EXPR::DBL:
+      data[2*i*tda] = x->data.d;
+      data[2*i*tda+1] = 0.0;
+      i++;
+      break;
+    case EXPR::APP: {
+      double a, b;
+      if (get_complex(x, a, b)) {
+	data[2*i*tda] = a;
+	data[2*i*tda+1] = b;
+	i++;
+      } else {
+	assert(0 && "bad matrix element");
+      }
+      break;
+    }
+    case EXPR::MATRIX: {
+      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; i++, j++)
+	  for (size_t k = 0; k < mat1->size2; k++) {
+	    data[2*(i*tda+k)] = mat1->data[j*mat1->tda+k];
+	    data[2*(i*tda+k)+1] = 0.0;
+	  }
+      break;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; i++, j++)
+	  for (size_t k = 0; k < mat1->size2; k++) {
+	    data[2*(i*tda+k)] = (double)mat1->data[j*mat1->tda+k];
+	    data[2*(i*tda+k)+1] = 0.0;
+	  }
+      break;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *mat1 = (gsl_matrix_complex*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; i++, j++)
+	  memcpy(data+2*i*tda, mat1->data+2*j*mat1->tda,
+		 ncols*2*sizeof(double));
+      break;
+    }
+    default:
+      assert(0 && "bad matrix element");
+      break;
+    }
+  }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
+  return pure_complex_matrix(mat);
+}
+
+static pure_expr*
+complex_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
+{
+  gsl_matrix_complex *mat = create_complex_matrix(nrows, ncols);
+  if (!mat) return 0;
+  double *data = mat->data;
+  size_t tda = mat->tda;
+  for (size_t count = 0, i = 0; count < n; count++) {
+    pure_expr *x = xs[count];
+    pure_new_internal(x);
+    switch (x->tag) {
+    case EXPR::INT:
+      data[2*i] = (double)x->data.i;
+      data[2*i+1] = 0.0;
+      i++;
+      break;
+    case EXPR::BIGINT:
+      data[2*i] = mpz_get_d(x->data.z);
+      data[2*i+1] = 0.0;
+      i++;
+      break;
+    case EXPR::DBL:
+      data[2*i] = x->data.d;
+      data[2*i+1] = 0.0;
+      i++;
+      break;
+    case EXPR::APP: {
+      double a, b;
+      if (get_complex(x, a, b)) {
+	data[2*i] = a;
+	data[2*i+1] = b;
+	i++;
+      } else {
+	assert(0 && "bad matrix element");
+      }
+      break;
+    }
+    case EXPR::MATRIX: {
+      gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; j++)
+	  for (size_t k = 0; k < mat1->size2; k++) {
+	    data[2*(j*tda+k+i)] = mat1->data[j*mat1->tda+k];
+	    data[2*(j*tda+k+i)+1] = 0.0;
+	  }
+      i += mat1->size2;
+      break;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *mat1 = (gsl_matrix_int*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; j++)
+	  for (size_t k = 0; k < mat1->size2; k++) {
+	    data[2*(j*tda+k+i)] = (double)mat1->data[j*mat1->tda+k];
+	    data[2*(j*tda+k+i)+1] = 0.0;
+	  }
+      i += mat1->size2;
+      break;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *mat1 = (gsl_matrix_complex*)x->data.mat.p;
+      if (mat1)
+	for (size_t j = 0; j < mat1->size1; j++)
+	  memcpy(data+2*(j*tda+i), mat1->data+2*j*mat1->tda,
+		 mat1->size2*2*sizeof(double));
+      i += mat1->size2;
+      break;
+    }
+    default:
+      assert(0 && "bad matrix element");
+      break;
+    }
+  }
+  for (size_t i = 0; i < n; i++)
+    pure_free_internal(xs[i]);
+  return pure_complex_matrix(mat);
 }
 
 static pure_expr*
@@ -1845,25 +2048,8 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
       nrows++; k = 1;
       break;
     case EXPR::APP: {
-      pure_expr *u = x->data.x[0], *v = x->data.x[1];
-      if (u->tag == EXPR::APP) {
-	interpreter& interp = *interpreter::g_interp;
-	pure_expr *f = u->data.x[0];
-	symbol *rect = interp.symtab.complex_rect_sym(),
-	  *polar = interp.symtab.complex_polar_sym();
-	if ((!rect || f->tag != rect->f) &&
-	    (!polar || f->tag != polar->f) &&
-	    f->tag != interp.symtab.pair_sym().f)
-	  goto err;
-	u = u->data.x[1];
-	if (u->tag != EXPR::INT && u->tag != EXPR::BIGINT &&
-	    u->tag != EXPR::DBL)
-	  goto err;
-	if (v->tag != EXPR::INT && v->tag != EXPR::BIGINT &&
-	    v->tag != EXPR::DBL)
-	  goto err;
-      } else
-	goto err;
+      double a, b;
+      if (!get_complex(x, a, b)) goto err;
       if (k >= 0 && k != 1) goto err;
       target = EXPR::CMATRIX;
       nrows++; k = 1;
@@ -1917,11 +2103,9 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
   case EXPR::MATRIX:
     ret = double_matrix_rows(nrows, ncols, n, xs);
     break;
-#if 0 // XXXTODO
   case EXPR::CMATRIX:
     ret = complex_matrix_rows(nrows, ncols, n, xs);
     break;
-#endif
   case EXPR::IMATRIX:
     ret = int_matrix_rows(nrows, ncols, n, xs);
     break;
@@ -1973,25 +2157,8 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
       ncols++; k = 1;
       break;
     case EXPR::APP: {
-      pure_expr *u = x->data.x[0], *v = x->data.x[1];
-      if (u->tag == EXPR::APP) {
-	interpreter& interp = *interpreter::g_interp;
-	pure_expr *f = u->data.x[0];
-	symbol *rect = interp.symtab.complex_rect_sym(),
-	  *polar = interp.symtab.complex_polar_sym();
-	if ((!rect || f->tag != rect->f) &&
-	    (!polar || f->tag != polar->f) &&
-	    f->tag != interp.symtab.pair_sym().f)
-	  goto err;
-	u = u->data.x[1];
-	if (u->tag != EXPR::INT && u->tag != EXPR::BIGINT &&
-	    u->tag != EXPR::DBL)
-	  goto err;
-	if (v->tag != EXPR::INT && v->tag != EXPR::BIGINT &&
-	    v->tag != EXPR::DBL)
-	  goto err;
-      } else
-	goto err;
+      double a, b;
+      if (!get_complex(x, a, b)) goto err;
       if (k >= 0 && k != 1) goto err;
       target = EXPR::CMATRIX;
       ncols++; k = 1;
@@ -2045,11 +2212,9 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
   case EXPR::MATRIX:
     ret = double_matrix_columns(nrows, ncols, n, xs);
     break;
-#if 0 // XXXTODO
   case EXPR::CMATRIX:
     ret = complex_matrix_columns(nrows, ncols, n, xs);
     break;
-#endif
   case EXPR::IMATRIX:
     ret = int_matrix_columns(nrows, ncols, n, xs);
     break;
