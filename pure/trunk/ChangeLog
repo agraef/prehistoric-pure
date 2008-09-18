@@ -1,3 +1,37 @@
+2008-09-18  Albert Graef  <Dr.Graef@t-online.de>
+
+	* expr.cc, interpreter.cc, runtime.cc, printer.cc: Add basic GSL
+	matrix support. GSL double, complex and integer matrices can be
+	created with the new {x,y;u,v} syntax, which works more or less
+	like Octave/MATLAB matrices, but using curly braces instead of
+	brackets.
+
+	GSL matrices are always homogeneous, i.e., they only contain
+	values from one numeric type. Integer matrices can be created from
+	any combination of Pure machine int and bigint values (the latter
+	are converted to machine ints automatically). Matrices with at
+	least one double or complex element become double and complex
+	matrices, respectively.
+
+	Complex matrices can be created from either pairs of double or
+	integer values, such as {(1,2),(3,4)}, or from Pure complex
+	values, such as {1+:2,3<:4} (the latter requires math.pure to be
+	loaded). The expression printer uses the former notation, unless
+	math.pure has been loaded in which case complex values are printed
+	in rectangular format x+:y. Also note that, for performance
+	reasons, the expression printer doesn't use the __show__ function
+	to print matrix elements, but of course it is possible to override
+	the default print representation of matrix values as a whole.
+
+	Note that the {...} syntax can be used only on the right-hand side
+	of a definition, matrix patterns are not supported right now. As a
+	remedy, there are three new type tags, matrix, cmatrix and
+	imatrix, which can be used in patterns to match double, complex
+	and integer matrices, respectively.
+
+	Operations to handle Pure matrix expressions have been added to
+	the public runtime API.
+
 2008-09-15  Albert Graef  <Dr.Graef@t-online.de>
 
 	* configure.ac: Bump version number.
