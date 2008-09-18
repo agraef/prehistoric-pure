@@ -585,6 +585,52 @@ pure_expr *pure_cstring(char *s)
   return x;
 }
 
+#ifdef HAVE_GSL
+/* GSL doesn't really support empty matrices, so we fake them by allocating 1
+   dummy row or column if the corresponding dimension is actually zero. */
+static inline gsl_matrix*
+create_double_matrix(size_t nrows, size_t ncols)
+{
+  if (nrows == 0 || ncols == 0 ) {
+    size_t nrows1 = (nrows>0)?nrows:1;
+    size_t ncols1 = (ncols>0)?ncols:1;
+    gsl_matrix *m = gsl_matrix_calloc(nrows1, ncols1);
+    if (!m) return 0;
+    m->size1 = nrows; m->size2 = ncols;
+    return m;
+  } else
+    return gsl_matrix_alloc(nrows, ncols);
+}
+
+static inline gsl_matrix_complex*
+create_complex_matrix(size_t nrows, size_t ncols)
+{
+  if (nrows == 0 || ncols == 0 ) {
+    size_t nrows1 = (nrows>0)?nrows:1;
+    size_t ncols1 = (ncols>0)?ncols:1;
+    gsl_matrix_complex *m = gsl_matrix_complex_calloc(nrows1, ncols1);
+    if (!m) return 0;
+    m->size1 = nrows; m->size2 = ncols;
+    return m;
+  } else
+    return gsl_matrix_complex_alloc(nrows, ncols);
+}
+
+static inline gsl_matrix_int*
+create_int_matrix(size_t nrows, size_t ncols)
+{
+  if (nrows == 0 || ncols == 0 ) {
+    size_t nrows1 = (nrows>0)?nrows:1;
+    size_t ncols1 = (ncols>0)?ncols:1;
+    gsl_matrix_int *m = gsl_matrix_int_calloc(nrows1, ncols1);
+    if (!m) return 0;
+    m->size1 = nrows; m->size2 = ncols;
+    return m;
+  } else
+    return gsl_matrix_int_alloc(nrows, ncols);
+}
+#endif
+
 extern "C"
 pure_expr *pure_double_matrix(void *p)
 {
@@ -645,8 +691,10 @@ pure_expr *pure_double_matrix_dup(const void *p)
 #ifdef HAVE_GSL
   gsl_matrix *m1 = (gsl_matrix*)p;
   if (!m1) return 0;
-  gsl_matrix *m2 = gsl_matrix_alloc(m1->size1, m1->size2);
-  gsl_matrix_memcpy(m2, m1);
+  gsl_matrix *m2 = create_double_matrix(m1->size1, m1->size2);
+  if (!m2) return 0;
+  if (m1->size1 > 0 && m1->size2 > 0)
+    gsl_matrix_memcpy(m2, m1);
   return pure_double_matrix(m2);
 #else
   return 0;
@@ -659,8 +707,10 @@ pure_expr *pure_complex_matrix_dup(const void *p)
 #ifdef HAVE_GSL
   gsl_matrix_complex *m1 = (gsl_matrix_complex*)p;
   if (!m1) return 0;
-  gsl_matrix_complex *m2 = gsl_matrix_complex_alloc(m1->size1, m1->size2);
-  gsl_matrix_complex_memcpy(m2, m1);
+  gsl_matrix_complex *m2 = create_complex_matrix(m1->size1, m1->size2);
+  if (!m2) return 0;
+  if (m1->size1 > 0 && m1->size2 > 0)
+    gsl_matrix_complex_memcpy(m2, m1);
   return pure_complex_matrix(m2);
 #else
   return 0;
@@ -673,8 +723,10 @@ pure_expr *pure_int_matrix_dup(const void *p)
 #ifdef HAVE_GSL
   gsl_matrix_int *m1 = (gsl_matrix_int*)p;
   if (!m1) return 0;
-  gsl_matrix_int *m2 = gsl_matrix_int_alloc(m1->size1, m1->size2);
-  gsl_matrix_int_memcpy(m2, m1);
+  gsl_matrix_int *m2 = create_int_matrix(m1->size1, m1->size2);
+  if (!m2) return 0;
+  if (m1->size1 > 0 && m1->size2 > 0)
+    gsl_matrix_int_memcpy(m2, m1);
   return pure_int_matrix(m2);
 #else
   return 0;
@@ -685,15 +737,8 @@ pure_expr *pure_int_matrix_dup(const void *p)
 static pure_expr*
 double_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
-  gsl_matrix *mat = gsl_matrix_alloc(nrows, ncols);
-  if (!mat) {
-    // XXXTODO: empty matrices
-    for (size_t i = 0; i < n; i++)
-      pure_new_internal(xs[i]);
-    for (size_t i = 0; i < n; i++)
-      pure_free_internal(xs[i]);
-    return 0;
-  }
+  gsl_matrix *mat = create_double_matrix(nrows, ncols);
+  if (!mat) return 0;
   double *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
@@ -737,15 +782,8 @@ double_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 static pure_expr*
 double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
-  gsl_matrix *mat = gsl_matrix_alloc(nrows, ncols);
-  if (!mat) {
-    // XXXTODO: empty matrices
-    for (size_t i = 0; i < n; i++)
-      pure_new_internal(xs[i]);
-    for (size_t i = 0; i < n; i++)
-      pure_free_internal(xs[i]);
-    return 0;
-  }
+  gsl_matrix *mat = create_double_matrix(nrows, ncols);
+  if (!mat) return 0;
   double *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
@@ -792,15 +830,8 @@ double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 static pure_expr*
 int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
-  gsl_matrix_int *mat = gsl_matrix_int_alloc(nrows, ncols);
-  if (!mat) {
-    // XXXTODO: empty matrices
-    for (size_t i = 0; i < n; i++)
-      pure_new_internal(xs[i]);
-    for (size_t i = 0; i < n; i++)
-      pure_free_internal(xs[i]);
-    return 0;
-  }
+  gsl_matrix_int *mat = create_int_matrix(nrows, ncols);
+  if (!mat) return 0;
   int *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
@@ -844,15 +875,8 @@ int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 static pure_expr*
 int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 {
-  gsl_matrix_int *mat = gsl_matrix_int_alloc(nrows, ncols);
-  if (!mat) {
-    // XXXTODO: empty matrices
-    for (size_t i = 0; i < n; i++)
-      pure_new_internal(xs[i]);
-    for (size_t i = 0; i < n; i++)
-      pure_free_internal(xs[i]);
-    return 0;
-  }
+  gsl_matrix_int *mat = create_int_matrix(nrows, ncols);
+  if (!mat) return 0;
   int *data = mat->data;
   size_t tda = mat->tda;
   for (size_t count = 0, i = 0; count < n; count++) {
