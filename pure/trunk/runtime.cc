@@ -638,6 +638,7 @@ pure_expr *pure_double_matrix(void *p)
 #ifdef HAVE_GSL
   gsl_matrix *m = (gsl_matrix*)p;
   if (!m || !m->owner) return 0;
+  m->owner = 0;
   pure_expr *x = new_expr();
   x->tag = EXPR::MATRIX;
   x->data.mat.p = p;
@@ -656,6 +657,7 @@ pure_expr *pure_complex_matrix(void *p)
 #ifdef HAVE_GSL
   gsl_matrix_complex *m = (gsl_matrix_complex*)p;
   if (!m || !m->owner) return 0;
+  m->owner = 0;
   pure_expr *x = new_expr();
   x->tag = EXPR::CMATRIX;
   x->data.mat.p = p;
@@ -674,6 +676,7 @@ pure_expr *pure_int_matrix(void *p)
 #ifdef HAVE_GSL
   gsl_matrix_int *m = (gsl_matrix_int*)p;
   if (!m || !m->owner) return 0;
+  m->owner = 0;
   pure_expr *x = new_expr();
   x->tag = EXPR::IMATRIX;
   x->data.mat.p = p;
