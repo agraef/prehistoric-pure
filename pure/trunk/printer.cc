@@ -169,6 +169,8 @@ static inline ostream& print_ttag(ostream& os, int8_t ttag)
     return os << "::string";
   case EXPR::MATRIX:
     return os << "::matrix";
+  case EXPR::DMATRIX:
+    return os << "::dmatrix";
   case EXPR::CMATRIX:
     return os << "::cmatrix";
   case EXPR::IMATRIX:
@@ -603,6 +605,7 @@ static prec_t pure_expr_nprec(const pure_expr *x)
   case EXPR::STR:
   case EXPR::PTR:
   case EXPR::MATRIX:
+  case EXPR::DMATRIX:
   case EXPR::CMATRIX:
   case EXPR::IMATRIX:
     return 100;
@@ -768,6 +771,20 @@ ostream& operator << (ostream& os, const pure_expr *x)
   case EXPR::MATRIX:
     os << "{";
     if (x->data.mat.p) {
+      prec_t p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
+      gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+      for (size_t i = 0; i < m->size1; i++) {
+	if (i > 0) os << ";";
+	for (size_t j = 0; j < m->size2; j++) {
+	  if (j > 0) os << ",";
+	  os << pure_paren(p, m->data[i * m->tda + j]);
+	}
+      }
+    }
+    return os << "}";
+  case EXPR::DMATRIX:
+    os << "{";
+    if (x->data.mat.p) {
       gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
       for (size_t i = 0; i < m->size1; i++) {
 	if (i > 0) os << ";";
@@ -828,6 +845,8 @@ ostream& operator << (ostream& os, const pure_expr *x)
 #else
   case EXPR::MATRIX:
     return os << "#<matrix " << x->data.mat.p << ">";
+  case EXPR::DMATRIX:
+    return os << "#<dmatrix " << x->data.mat.p << ">";
   case EXPR::IMATRIX:
     return os << "#<imatrix " << x->data.mat.p << ">";
   case EXPR::CMATRIX:

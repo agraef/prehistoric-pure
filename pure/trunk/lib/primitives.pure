@@ -42,9 +42,25 @@ doublep x	= case x of _::double  = 1; _ = 0 end;
 stringp x	= case x of _::string  = 1; _ = 0 end;
 pointerp x	= case x of _::pointer = 1; _ = 0 end;
 
+/* Matrix predicates. Note that matrixp checks for any kind of (symbolic or
+   numeric) matrix. The numeric matrix types will only be available if the
+   interpreter was built with support for the GNU Scientific Library (GSL).
+   This is the case iff the global gsl_version variable is predefined by the
+   interpreter. */
+
 matrixp x	= case x of _::matrix  = 1; _ = 0 end;
+dmatrixp x	= case x of _::dmatrix = 1; _ = 0 end;
 cmatrixp x	= case x of _::cmatrix = 1; _ = 0 end;
 imatrixp x	= case x of _::imatrix = 1; _ = 0 end;
+
+/* The nmatrix predicate checks for any kind of numeric (double, complex or
+   int) matrix, smatrix for symbolic matrices. */
+
+nmatrixp x	= case x of
+		    _::dmatrix | _::cmatrix | _::imatrix = 1;
+		    _ = 0
+		  end;
+smatrixp x	= matrixp x && not nmatrixp x;
 
 /* Pure represents row and column vectors as matrices with 1 row or column,
    respectively. The following predicates allow you to check for these special
@@ -53,14 +69,6 @@ imatrixp x	= case x of _::imatrix = 1; _ = 0 end;
 vectorp x	= matrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
 rowvectorp x	= matrixp x && dim x!0==1;
 colvectorp x	= matrixp x && dim x!1==1;
-
-cvectorp x	= cmatrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
-rowcvectorp x	= cmatrixp x && dim x!0==1;
-colcvectorp x	= cmatrixp x && dim x!1==1;
-
-ivectorp x	= imatrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
-rowivectorp x	= imatrixp x && dim x!0==1;
-colivectorp x	= imatrixp x && dim x!1==1;
 
 /* Predicates to check for function objects, global (unbound) variables,
    function applications, proper lists, list nodes and tuples. */
@@ -408,22 +416,18 @@ x::pointer!=y::pointer	= bigint x != bigint y;
 private matrix_size matrix_dim;
 extern int matrix_size(expr *x), expr* matrix_dim(expr *x);
 
-#x::matrix | #x::cmatrix | #x::imatrix = matrix_size x;
-dim x::matrix | dim x::cmatrix | dim x::imatrix = matrix_dim x;
+#x::matrix		= matrix_size x;
+dim x::matrix		= matrix_dim x;
 
-private matrix_elem_at;
+private matrix_elem_at matrix_elem_at2;
 extern expr* matrix_elem_at(expr* x, int i);
+extern expr* matrix_elem_at2(expr* x, int i, int j);
 
-x::matrix!i::int | x::cmatrix!i::int | x::imatrix!i::int
-			= matrix_elem_at x i if i>=0 && i<#x;
+x::matrix!i::int	= matrix_elem_at x i if i>=0 && i<#x;
 			= throw out_of_bounds otherwise;
 
-private matrix_elem;
-extern expr* matrix_elem(expr* x, int i, int j);
-
-x::matrix!(i::int,j::int) | x::cmatrix!(i::int,j::int) |
-x::imatrix!(i::int,j::int)
-			= matrix_elem x i j
+x::matrix!(i::int,j::int)
+			= matrix_elem_at2 x i j
 			    if (i>=0 && i<n && j>=0 && j<m
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
@@ -431,21 +435,22 @@ x::imatrix!(i::int,j::int)
 private matrix_transpose;
 extern expr* matrix_transpose(expr *x);
 
-x::matrix' | x::cmatrix' | x::imatrix' = matrix_transpose x;
+x::matrix'		= matrix_transpose x;
 
 private matrix_double matrix_complex matrix_int;
 extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
   expr* matrix_int(expr *x);
 
-dmatrix x::matrix | dmatrix x::imatrix = matrix_double x;
-imatrix x::matrix | imatrix x::imatrix = matrix_int x;
-cmatrix x::matrix | cmatrix x::cmatrix | cmatrix x::imatrix = matrix_complex x;
+dmatrix x::dmatrix | dmatrix x::imatrix = matrix_double x;
+imatrix x::dmatrix | imatrix x::imatrix = matrix_int x;
+cmatrix x::dmatrix | cmatrix x::cmatrix | cmatrix x::imatrix
+= matrix_complex x;
 
 private matrix_re matrix_im;
 extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
 
-re x::matrix | re x::cmatrix | re x::imatrix = matrix_re x;
-im x::matrix | im x::cmatrix | im x::imatrix = matrix_im x;
+re x::dmatrix | re x::cmatrix | re x::imatrix = matrix_re x;
+im x::dmatrix | im x::cmatrix | im x::imatrix = matrix_im x;
 
 /* IEEE floating point infinities and NaNs. Place these after the definitions
    of the built-in operators so that the double arithmetic works. */

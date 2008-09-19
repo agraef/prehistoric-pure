@@ -869,6 +869,21 @@ expr interpreter::pure_expr_to_expr(pure_expr *x)
       throw err("pointer must be null in constant definition");
     return expr(EXPR::PTR, x->data.p);
   case EXPR::MATRIX: {
+    if (x->data.mat.p) {
+      gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+      exprll *xs = new exprll;
+      for (size_t i = 0; i < m->size1; i++) {
+	xs->push_back(exprl());
+	exprl& ys = xs->back();
+	for (size_t j = 0; j < m->size2; j++) {
+	  ys.push_back(pure_expr_to_expr(m->data[i * m->tda + j]));
+	}
+      }
+      return expr(EXPR::MATRIX, m);
+    } else
+      return expr(EXPR::MATRIX, new exprll);
+  }
+  case EXPR::DMATRIX: {
 #ifdef HAVE_GSL
     if (x->data.mat.p) {
       gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
@@ -6107,8 +6122,13 @@ void interpreter::simple_match(Value *x, state*& s,
     else {
       // typed variable, must match type tag against value
       if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
-      f.builder.CreateCondBr
-	(f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
+      if (t.ttag == EXPR::MATRIX) {
+	Value *tagv1 = f.builder.CreateAnd(tagv, UInt(0xfffffff0));
+	f.builder.CreateCondBr
+	  (f.builder.CreateICmpEQ(tagv1, SInt(t.ttag)), matchedbb, failedbb);
+      } else
+	f.builder.CreateCondBr
+	  (f.builder.CreateICmpEQ(tagv, SInt(t.ttag)), matchedbb, failedbb);
     }
     s = t.st;
     break;
@@ -6476,6 +6496,11 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
       vtransbb.push_back
 	(BasicBlock::Create(mklabel("trans.state", s->s, t->st->s)));
       sw->addCase(SInt(t->ttag), vtransbb[i]);
+      if (t->ttag == EXPR::MATRIX) {
+	sw->addCase(SInt(EXPR::DMATRIX), vtransbb[i]);
+	sw->addCase(SInt(EXPR::CMATRIX), vtransbb[i]);
+	sw->addCase(SInt(EXPR::IMATRIX), vtransbb[i]);
+      }
     }
     // now handle the transitions on the different type tags
     for (t = t1, i = 0; t != s->tr.end() && t->tag == EXPR::VAR; t++, i++) {

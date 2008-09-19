@@ -129,10 +129,11 @@ struct EXPR {
     WHEN	= -11,	// when expression
     WITH	= -12,	// with expression
     // GSL matrix types:
-    MATRIX	= -32,  // generic GSL matrix, double matrix in runtime exprs
-    CMATRIX	= -31,	// complex matrix in runtime exprs
-    IMATRIX	= -30,	// integer matrix in runtime exprs
-    /* Other values in the range -17..-29 reserved for later use in the
+    MATRIX	= -32,  // generic GSL matrix, symbolic matrices
+    DMATRIX	= -31,	// double matrix
+    CMATRIX	= -30,	// complex matrix
+    IMATRIX	= -29,	// integer matrix
+    /* Other values in the range -17..-32 are reserved for later use in the
        runtime expression data structure. Note that all GSL-related tags,
        taken as an unsigned binary quantity, are of the form 0xffffffe0+t,
        where the least significant nibble t=0x0..0xf denotes corresponding
