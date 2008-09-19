@@ -428,6 +428,25 @@ x::imatrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
+private matrix_transpose;
+extern expr* matrix_transpose(expr *x);
+
+x::matrix' | x::cmatrix' | x::imatrix' = matrix_transpose x;
+
+private matrix_double matrix_complex matrix_int;
+extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
+  expr* matrix_int(expr *x);
+
+dmatrix x::matrix | dmatrix x::imatrix = matrix_double x;
+imatrix x::matrix | imatrix x::imatrix = matrix_int x;
+cmatrix x::matrix | cmatrix x::cmatrix | cmatrix x::imatrix = matrix_complex x;
+
+private matrix_re matrix_im;
+extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
+
+re x::matrix | re x::cmatrix | re x::imatrix = matrix_re x;
+im x::matrix | im x::cmatrix | im x::imatrix = matrix_im x;
+
 /* IEEE floating point infinities and NaNs. Place these after the definitions
    of the built-in operators so that the double arithmetic works. */
 
