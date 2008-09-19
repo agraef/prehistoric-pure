@@ -454,16 +454,13 @@ im x::matrix		= matrix_im x if nmatrixp x;
 
 /* Matrix comparisons. */
 
-x::matrix == y::matrix	= x === y if imatrixp x && imatrixp y;
-			= x === y if dmatrixp x && dmatrixp y;
-			= x === y if cmatrixp x && cmatrixp y;
+x::matrix == y::matrix	= x === y
+			    if nmatrixp x && matrix_type x == matrix_type y;
 // mixed numeric cases
+			= cmatrix x === y if nmatrixp x && cmatrixp y;
+			= x === cmatrix y if cmatrixp x && nmatrixp y;
 			= dmatrix x === y if imatrixp x && dmatrixp y;
 			= x === dmatrix y if dmatrixp x && imatrixp y;
-			= cmatrix x === y if imatrixp x && cmatrixp y;
-			= x === cmatrix y if cmatrixp x && imatrixp y;
-			= cmatrix x === y if dmatrixp x && cmatrixp y;
-			= x === cmatrix y if cmatrixp x && dmatrixp y;
 // comparisons with symbolic matrices
 			= 0 if dim x != dim y;
 			= compare 0 with
