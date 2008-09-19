@@ -897,9 +897,6 @@ static inline bool get_complex(pure_expr *x, double& a, double& b)
     case EXPR::INT:
       a = (double)u->data.i;
       break;
-    case EXPR::BIGINT:
-      a = mpz_get_d(x->data.z);
-      break;
     case EXPR::DBL:
       a = u->data.d;
       break;
@@ -909,9 +906,6 @@ static inline bool get_complex(pure_expr *x, double& a, double& b)
     switch (v->tag) {
     case EXPR::INT:
       b = (double)v->data.i;
-      break;
-    case EXPR::BIGINT:
-      b = mpz_get_d(x->data.z);
       break;
     case EXPR::DBL:
       b = v->data.d;
@@ -928,22 +922,19 @@ static inline bool get_complex(pure_expr *x, double& a, double& b)
     return false;
 }
 
-static inline pure_expr *make_complex(double a, double b)
-{
-  interpreter& interp = *interpreter::g_interp;
-  symbol *rect = interp.symtab.complex_rect_sym();
-  if (rect)
-    return pure_appl(pure_symbol(rect->f), 2, pure_double(a), pure_double(b));
-  else
-    return pure_tuplel(2, pure_double(a), pure_double(b));
-}
-
 static inline pure_expr *make_complex2(symbol *rect, double a, double b)
 {
   if (rect)
     return pure_appl(pure_symbol(rect->f), 2, pure_double(a), pure_double(b));
   else
     return pure_tuplel(2, pure_double(a), pure_double(b));
+}
+
+static inline pure_expr *make_complex(double a, double b)
+{
+  interpreter& interp = *interpreter::g_interp;
+  symbol *rect = interp.symtab.complex_rect_sym();
+  return make_complex2(rect, a, b);
 }
 
 #ifdef HAVE_GSL
@@ -4252,7 +4243,6 @@ pure_expr *matrix_double(pure_expr *x)
 	m2->data[i*m2->tda+j] = (double)m1->data[i*m1->tda+j];
     return pure_double_matrix(m2);
   }
-  // XXXTODO: symbolic matrices
   default:
     return 0;
   }
@@ -4292,7 +4282,6 @@ pure_expr *matrix_complex(pure_expr *x)
   }
   case EXPR::CMATRIX:
     return x;
-  // XXXTODO: symbolic matrices
   default:
     return 0;
   }
@@ -4317,7 +4306,6 @@ pure_expr *matrix_int(pure_expr *x)
   }
   case EXPR::IMATRIX:
     return x;
-  // XXXTODO: symbolic matrices
   default:
     return 0;
   }
@@ -4345,7 +4333,6 @@ pure_expr *matrix_re(pure_expr *x)
   case EXPR::DMATRIX:
   case EXPR::IMATRIX:
     return x;
-  // XXXTODO: symbolic matrices
   default:
     return 0;
   }
@@ -4384,7 +4371,6 @@ pure_expr *matrix_im(pure_expr *x)
     memset(m2->data, 0, n*m*sizeof(int));
     return pure_int_matrix(m2);
   }
-  // XXXTODO: symbolic matrices
   default:
     return 0;
   }
