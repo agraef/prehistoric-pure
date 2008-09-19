@@ -645,10 +645,14 @@ const char *lasterr();
 
 /* Basic matrix operations. These work with all supported GSL matrix types.
    matrix_size determines the number of elements in a matrix, matrix_dim the
-   number of rows and columns, which are returned as a pair (n,m). */
+   number of rows and columns, which are returned as a pair (n,m). matrix_type
+   determines the exact type of a matrix, returning an integer denoting the
+   subtype tag (0 = symbolic, 1 = double, 2 = complex, 3 = integer matrix; -1
+   is returned if the given object is not a matrix). */
 
 uint32_t matrix_size(pure_expr *x);
 pure_expr *matrix_dim(pure_expr *x);
+int32_t matrix_type(pure_expr *x);
 
 /* Matrix elements can be retrieved either by a single index (using row-major
    order), or by row and column index. All indices are zero-based. Indices

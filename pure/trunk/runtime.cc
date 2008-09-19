@@ -4042,6 +4042,17 @@ pure_expr *matrix_dim(pure_expr *x)
 }
 
 extern "C"
+int32_t matrix_type(pure_expr *x)
+{
+  uint32_t t = (uint32_t)x->tag;
+  if ((t&0xfffffff0) == (uint32_t)EXPR::MATRIX)
+    // the lowest nibble is the subtype tag
+    return (int32_t)(t&0xf);
+  else
+    return -1;
+}
+
+extern "C"
 pure_expr *matrix_elem_at(pure_expr *x, uint32_t i)
 {
   switch (x->tag) {
