@@ -96,7 +96,6 @@ public:
   symbol& failed_cond_sym() { return sym("failed_cond"); }
   symbol& signal_sym() { return sym("signal"); }
   symbol& segfault_sym() { return sym("stack_fault"); }
-  symbol& not_implemented_sym() { return sym("not_implemented"); }
   symbol& bad_matrix_sym() { return sym("bad_matrix_value"); }
   symbol& amp_sym();
   // these may be undefined

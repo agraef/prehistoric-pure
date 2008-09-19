@@ -43,7 +43,6 @@ void symtable::init_builtins()
   failed_cond_sym();
   signal_sym();
   segfault_sym();
-  not_implemented_sym();
   bad_matrix_sym();
   amp_sym();
 }

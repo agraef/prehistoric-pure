@@ -61,6 +61,30 @@ typedef struct _pure_expr {
   struct _pure_expr *xp;	// freelist pointer
 } pure_expr;
 
+/* Fake GSL matrix struct used to represent symbolic matrix expressions. These
+   mimic GSL's interface to numeric matrices. */
+
+typedef struct _gsl_block_symbolic
+{
+  size_t size;
+  pure_expr **data;
+} gsl_block_symbolic;
+
+typedef struct _gsl_matrix_symbolic
+{
+  size_t size1;
+  size_t size2;
+  size_t tda;
+  pure_expr **data;
+  gsl_block_symbolic *block;
+  int owner;
+} gsl_matrix_symbolic;
+
+typedef struct _gsl_matrix_symbolic_view
+{
+  gsl_matrix_symbolic matrix;
+} gsl_matrix_symbolic_view;
+
 /* Blocks of expression memory allocated in one chunk. */
 
 #define MEMSIZE 0x20000 // 128K
@@ -127,32 +151,47 @@ pure_expr *pure_string(char *s);
 pure_expr *pure_cstring(char *s);
 
 /* Matrix constructors. The given pointer must point to a valid GSL matrix
-   struct of the corresponding GSL matrix type (gsl_matrix, gsl_matrix_complex,
-   gsl_matrix_int). (These are just given as void* here to avoid depending on
-   the GSL headers which might not be available for some implementations.) In
-   the case of the _matrix routines, the matrix must be allocated dynamically
-   and Pure takes ownership of the matrix. The matrix_dup routines first take
-   a copy of the matrix, so the ownership of the original matrix remains with
-   the caller. The result is a Pure expression representing the matrix object,
-   or null if GSL matrix support is not available or some other error
-   occurs. */
+   struct of the corresponding GSL matrix type (gsl_matrix,
+   gsl_matrix_complex, gsl_matrix_int), or a pointer to the special
+   gsl_matrix_symbolic struct provide by the runtime. (These are just given as
+   void* here to avoid depending on the GSL headers which might not be
+   available for some implementations.) In the case of the _matrix routines,
+   the matrix must be allocated dynamically and Pure takes ownership of the
+   matrix. The matrix_dup routines first take a copy of the matrix, so the
+   ownership of the original matrix remains with the caller. The result is a
+   Pure expression representing the matrix object, or null if GSL matrix
+   support is not available or some other error occurs. */
 
+pure_expr *pure_symbolic_matrix(void *p);
 pure_expr *pure_double_matrix(void *p);
 pure_expr *pure_complex_matrix(void *p);
 pure_expr *pure_int_matrix(void *p);
+pure_expr *pure_symbolic_matrix_dup(const void *p);
 pure_expr *pure_double_matrix_dup(const void *p);
 pure_expr *pure_complex_matrix_dup(const void *p);
 pure_expr *pure_int_matrix_dup(const void *p);
 
 /* Convenience functions to construct a Pure matrix from a vector or a varargs
    list of element expressions, which can be component matrices or scalars.
-   The pure_matrix_rows functions arrange the elements vertically, while the
+   These work like the built-in matrix construction operations ({...}). The
+   pure_matrix_rows functions arrange the elements vertically, while the
    pure_matrix_columns functions arrange them horizontally, given that the
-   other dimensions match. A null expression is returned in case of an error
-   (no matrix support, dimension mismatch, or invalid element type), leaving
-   the input expressions untouched. Otherwise a new matrix expression is
-   returned and temporary element expressions are garbage-collected. In any
-   case, the elems vectors are owned by the caller and won't be freed. */
+   other dimensions match.
+
+   The result is always a matrix of the smallest type necessary to accomodate
+   all component values. Thus if all components are integers or integer
+   matrices, the result will again be an integer matrix; likewise for double
+   and complex values. If any component is a symbolic matrix or some other
+   symbolic value (i.e., a value which cannot be represented as a machine int,
+   double or complex value; this includes bigints), or if the (numeric) values
+   in the matrix have different types, the result is a symbolic matrix.
+
+   A null expression is returned in case of an error (dimension mismatch,
+   insufficient memory), leaving the input expressions untouched. Otherwise a
+   new matrix expression is returned and references are counted on component
+   expressions as appropriate (temporary components may also be
+   garbage-collected if they are no longer needed). In any case, the elems
+   vectors are owned by the caller and won't be freed. */
 
 pure_expr *pure_matrix_rowsl(uint32_t n, ...);
 pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **elems);
@@ -217,12 +256,13 @@ bool pure_is_string_dup(const pure_expr *x, char **s);
 bool pure_is_cstring_dup(const pure_expr *x, char **s);
 
 /* Matrix deconstructors. The returned GSL matrix pointer (represented as a
-   const void*) points to memory owned by Pure which should be considered
-   read-only and must not be freed. */
+   void*) points to memory owned by Pure which should be considered read-only
+   and must not be freed. */
 
-bool pure_is_double_matrix(const pure_expr *x, const void **p);
-bool pure_is_complex_matrix(const pure_expr *x, const void **p);
-bool pure_is_int_matrix(const pure_expr *x, const void **p);
+bool pure_is_symbolic_matrix(const pure_expr *x, void **p);
+bool pure_is_double_matrix(const pure_expr *x, void **p);
+bool pure_is_complex_matrix(const pure_expr *x, void **p);
+bool pure_is_int_matrix(const pure_expr *x, void **p);
 
 /* Deconstruct literal applications. */
 
@@ -611,17 +651,17 @@ pure_expr *matrix_dim(pure_expr *x);
 
 /* Matrix elements can be retrieved either by a single index (using row-major
    order), or by row and column index. All indices are zero-based. Indices
-   aren't range-checked, if this is needed you have to do it beforehand using
-   matrix_size or matrix_dim above. */
+   aren't range-checked, if this is needed you have to do it beforehand,
+   checking against matrix_size or matrix_dim above. */
 
 pure_expr *matrix_elem_at(pure_expr *x, uint32_t i);
-pure_expr *matrix_elem(pure_expr *x, uint32_t i, uint32_t j);
+pure_expr *matrix_elem_at2(pure_expr *x, uint32_t i, uint32_t j);
 
 /* The following operation retrieves a slice a.k.a. submatrix of a matrix and
-   returns it as a matrix object. The new matrix object shares the underlying
-   storage with the original matrix (i.e., matrix elements are *not* copied)
-   and so this is a comparatively cheap operation. Indices are zero-based and
-   not checked. */
+   returns it as a new matrix object. The result matrix shares the underlying
+   storage with the input matrix (i.e., matrix elements are *not* copied) and
+   so this is a comparatively cheap operation. Indices are zero-based and must
+   be checked by the caller if necessary. */
 
 pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 			uint32_t i2, uint32_t j2);
@@ -631,18 +671,18 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 
 pure_expr *matrix_transpose(pure_expr *x);
 
-/* Convert an existing matrix to a double, complex or int matrix,
-   respectively. Any kind of matrix can be converted to a complex matrix, but
-   the input must be a double or integer matrix for the other conversions (see
-   matrix_re and matrix_im below to handle the complex->double case). */
+/* Convert between different types of numeric matrices. Note that any numeric
+   matrix can be converted to a complex matrix, but for the other conversions
+   the input must be a a double or integer matrix (see matrix_re and matrix_im
+   below to handle the complex->double case). */
 
 pure_expr *matrix_double(pure_expr *x);
 pure_expr *matrix_complex(pure_expr *x);
 pure_expr *matrix_int(pure_expr *x);
 
-/* Extract the real and imaginary parts of a matrix. If the input is a complex
-   matrix, the result is a double matrix. Otherwise the type of the result is
-   the same as that of the input matrix. */
+/* Extract the real and imaginary parts of a numeric matrix. If the input is a
+   complex matrix, the result is a double matrix. Otherwise the type of the
+   result is the same as that of the input matrix. */
 
 pure_expr *matrix_re(pure_expr *x);
 pure_expr *matrix_im(pure_expr *x);
