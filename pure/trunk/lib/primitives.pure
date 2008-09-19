@@ -452,6 +452,28 @@ extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
 re x::matrix		= matrix_re x if nmatrixp x;
 im x::matrix		= matrix_im x if nmatrixp x;
 
+/* Matrix comparisons. */
+
+x::matrix == y::matrix	= x === y if imatrixp x && imatrixp y;
+			= x === y if dmatrixp x && dmatrixp y;
+			= x === y if cmatrixp x && cmatrixp y;
+// mixed numeric cases
+			= dmatrix x === y if imatrixp x && dmatrixp y;
+			= x === dmatrix y if dmatrixp x && imatrixp y;
+			= cmatrix x === y if imatrixp x && cmatrixp y;
+			= x === cmatrix y if cmatrixp x && imatrixp y;
+			= cmatrix x === y if dmatrixp x && cmatrixp y;
+			= x === cmatrix y if cmatrixp x && dmatrixp y;
+// comparisons with symbolic matrices
+			= 0 if dim x != dim y;
+			= compare 0 with
+			    compare i::int = 1 if i>=n;
+					   = 0 if x!i != y!i;
+					   = compare (i+1);
+			  end when n::int = #x end;
+
+x::matrix != y::matrix	= not x == y;
+
 /* IEEE floating point infinities and NaNs. Place these after the definitions
    of the built-in operators so that the double arithmetic works. */
 
