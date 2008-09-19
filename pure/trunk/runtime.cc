@@ -4520,6 +4520,58 @@ bool same(pure_expr *x, pure_expr *y)
       return strcmp(x->data.s, y->data.s) == 0;
     case EXPR::PTR:
       return x->data.p == y->data.p;
+    case EXPR::MATRIX: {
+      gsl_matrix_symbolic *m1 = (gsl_matrix_symbolic*)x->data.mat.p;
+      gsl_matrix_symbolic *m2 = (gsl_matrix_symbolic*)y->data.mat.p;
+      const size_t tda1 = m1->tda, tda2 = m2->tda;
+      if (m1->size1 != m2->size1 || m1->size2 != m2->size2)
+	return 0;
+      checkstk(test);
+      for (size_t i = 0; i < m1->size1; i++)
+	for (size_t j = 0; j < m1->size2; j++)
+	  if (!same(m1->data[i*tda1+j], m2->data[i*tda2+j]))
+	    return 0;
+      return 1;
+    }
+    case EXPR::DMATRIX: {
+      gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+      gsl_matrix *m2 = (gsl_matrix*)y->data.mat.p;
+      const size_t tda1 = m1->tda, tda2 = m2->tda;
+      if (m1->size1 != m2->size1 || m1->size2 != m2->size2)
+	return 0;
+      for (size_t i = 0; i < m1->size1; i++)
+	for (size_t j = 0; j < m1->size2; j++)
+	  if (m1->data[i*tda1+j] != m2->data[i*tda2+j])
+	    return 0;
+      return 1;
+    }
+    case EXPR::CMATRIX: {
+      gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+      gsl_matrix_complex *m2 = (gsl_matrix_complex*)y->data.mat.p;
+      const size_t tda1 = m1->tda, tda2 = m2->tda;
+      if (m1->size1 != m2->size1 || m1->size2 != m2->size2)
+	return 0;
+      for (size_t i = 0; i < m1->size1; i++)
+	for (size_t j = 0; j < m1->size2; j++) {
+	  const size_t k1 = 2*(i*tda1+j), k2 = 2*(i*tda2+j);
+	  if (m1->data[k1] != m2->data[k2] ||
+	      m1->data[k1+1] != m2->data[k2+1])
+	    return 0;
+	}
+      return 1;
+    }
+    case EXPR::IMATRIX: {
+      gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+      gsl_matrix_int *m2 = (gsl_matrix_int*)y->data.mat.p;
+      const size_t tda1 = m1->tda, tda2 = m2->tda;
+      if (m1->size1 != m2->size1 || m1->size2 != m2->size2)
+	return 0;
+      for (size_t i = 0; i < m1->size1; i++)
+	for (size_t j = 0; j < m1->size2; j++)
+	  if (m1->data[i*tda1+j] != m2->data[i*tda2+j])
+	    return 0;
+      return 1;
+    }
     default:
       return 1;
     }
