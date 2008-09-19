@@ -9,7 +9,7 @@
 	all values are of the same type (and GSL support is available). In
 	all other cases a symbolic matrix is created (this also includes
 	the case of bigints, which are now considered as symbolic values
-	and are *not* automagically cast to machine ints any more).
+	in matrix creation).
 
 	The 'matrix' type tag now matches all kinds of symbolic and
 	numeric matrices. The new 'dmatrix' tag matches just double
@@ -19,7 +19,8 @@
 	The matrixp family of predicates in primitives.pure can be used to
 	check for the different kinds of matrices. Predicates to check for
 	row and column vectors (which are simply matrices with one row or
-	column) are also provided, see primitives.pure for details.
+	column) are also provided, as are some routines for transposing
+	and converting matrix values, see primitives.pure for details.
 
 2008-09-18  Albert Graef  <Dr.Graef@t-online.de>
 
