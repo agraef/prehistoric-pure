@@ -6123,6 +6123,7 @@ void interpreter::simple_match(Value *x, state*& s,
       // typed variable, must match type tag against value
       if (!tagv) tagv = f.CreateLoadGEP(x, Zero, Zero, "tag");
       if (t.ttag == EXPR::MATRIX) {
+	// this can denote any type of matrix, mask the subtype nibble
 	Value *tagv1 = f.builder.CreateAnd(tagv, UInt(0xfffffff0));
 	f.builder.CreateCondBr
 	  (f.builder.CreateICmpEQ(tagv1, SInt(t.ttag)), matchedbb, failedbb);
@@ -6497,6 +6498,7 @@ void interpreter::complex_match(matcher *pm, const list<Value*>& xs, state *s,
 	(BasicBlock::Create(mklabel("trans.state", s->s, t->st->s)));
       sw->addCase(SInt(t->ttag), vtransbb[i]);
       if (t->ttag == EXPR::MATRIX) {
+	// this can denote any type of matrix, add the other possible cases
 	sw->addCase(SInt(EXPR::DMATRIX), vtransbb[i]);
 	sw->addCase(SInt(EXPR::CMATRIX), vtransbb[i]);
 	sw->addCase(SInt(EXPR::IMATRIX), vtransbb[i]);

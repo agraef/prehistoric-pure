@@ -255,9 +255,6 @@ dbltag  ::{blank}*double
 strtag  ::{blank}*string
 ptrtag  ::{blank}*pointer
 mattag  ::{blank}*matrix
-dmattag  ::{blank}*dmatrix
-cmattag  ::{blank}*cmatrix
-imattag  ::{blank}*imatrix
 
 %x comment xdecl xdecl_comment xusing xusing_comment
 
@@ -1190,9 +1187,6 @@ Options may be combined, e.g., dump -fg f* is the same as dump -f -g f*.\n\
 {strtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::STR; return token::TAG;
 {ptrtag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::PTR; return token::TAG;
 {mattag}/[^a-zA-Z_0-9]   yylval->ival = EXPR::MATRIX; return token::TAG;
-{dmattag}/[^a-zA-Z_0-9]  yylval->ival = EXPR::DMATRIX; return token::TAG;
-{cmattag}/[^a-zA-Z_0-9]  yylval->ival = EXPR::CMATRIX; return token::TAG;
-{imattag}/[^a-zA-Z_0-9]  yylval->ival = EXPR::IMATRIX; return token::TAG;
 extern     BEGIN(xdecl); return token::EXTERN;
 infix      yylval->fix = infix; return token::FIX;
 infixl     yylval->fix = infixl; return token::FIX;
