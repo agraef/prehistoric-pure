@@ -626,6 +626,27 @@ pure_expr *matrix_elem(pure_expr *x, uint32_t i, uint32_t j);
 pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 			uint32_t i2, uint32_t j2);
 
+/* Transpose a matrix. The resulting matrix has the rows of the original
+   matrix as its columns, and vice versa. */
+
+pure_expr *matrix_transpose(pure_expr *x);
+
+/* Convert an existing matrix to a double, complex or int matrix,
+   respectively. Any kind of matrix can be converted to a complex matrix, but
+   the input must be a double or integer matrix for the other conversions (see
+   matrix_re and matrix_im below to handle the complex->double case). */
+
+pure_expr *matrix_double(pure_expr *x);
+pure_expr *matrix_complex(pure_expr *x);
+pure_expr *matrix_int(pure_expr *x);
+
+/* Extract the real and imaginary parts of a matrix. If the input is a complex
+   matrix, the result is a double matrix. Otherwise the type of the result is
+   the same as that of the input matrix. */
+
+pure_expr *matrix_re(pure_expr *x);
+pure_expr *matrix_im(pure_expr *x);
+
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
 
