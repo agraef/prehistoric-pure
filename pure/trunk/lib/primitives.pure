@@ -432,6 +432,9 @@ x::matrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
+extern expr* matrix_rows(expr *x) = rowmatrix;
+extern expr* matrix_columns(expr *x) = colmatrix;
+
 private matrix_transpose;
 extern expr* matrix_transpose(expr *x);
 
