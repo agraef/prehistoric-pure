@@ -4178,6 +4178,32 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 }
 
 extern "C"
+pure_expr *matrix_rows(pure_expr *xs)
+{
+  size_t n;
+  pure_expr **elems;
+  if (pure_is_listv(xs, &n, &elems)) {
+    pure_expr *ret = pure_matrix_rowsv(n, elems);
+    if (elems) free(elems);
+    return ret;
+  } else
+    return 0;
+}
+
+extern "C"
+pure_expr *matrix_columns(pure_expr *xs)
+{
+  size_t n;
+  pure_expr **elems;
+  if (pure_is_listv(xs, &n, &elems)) {
+    pure_expr *ret = pure_matrix_columnsv(n, elems);
+    if (elems) free(elems);
+    return ret;
+  } else
+    return 0;
+}
+
+extern "C"
 pure_expr *matrix_transpose(pure_expr *x)
 {
   switch (x->tag) {

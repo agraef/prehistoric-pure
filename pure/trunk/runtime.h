@@ -173,7 +173,7 @@ pure_expr *pure_int_matrix_dup(const void *p);
 
 /* Convenience functions to construct a Pure matrix from a vector or a varargs
    list of element expressions, which can be component matrices or scalars.
-   These work like the built-in matrix construction operations ({...}). The
+   These work like the built-in matrix construction operations. The
    pure_matrix_rows functions arrange the elements vertically, while the
    pure_matrix_columns functions arrange them horizontally, given that the
    other dimensions match.
@@ -182,9 +182,10 @@ pure_expr *pure_int_matrix_dup(const void *p);
    all component values. Thus if all components are integers or integer
    matrices, the result will again be an integer matrix; likewise for double
    and complex values. If any component is a symbolic matrix or some other
-   symbolic value (i.e., a value which cannot be represented as a machine int,
-   double or complex value; this includes bigints), or if the (numeric) values
-   in the matrix have different types, the result is a symbolic matrix.
+   symbolic value (i.e., a scalar value which cannot be represented as a
+   machine int, double or complex value; this includes bigints), or if the
+   (numeric) values in the matrix have different types, the result is always a
+   symbolic matrix.
 
    A null expression is returned in case of an error (dimension mismatch,
    insufficient memory), leaving the input expressions untouched. Otherwise a
@@ -665,6 +666,13 @@ pure_expr *matrix_elem_at2(pure_expr *x, uint32_t i, uint32_t j);
 
 pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 			uint32_t i2, uint32_t j2);
+
+/* Matrix construction. These work like the pure_matrix_rows/
+   pure_matrix_columns functions in the public API, but take their input from
+   a Pure list. */
+
+pure_expr *matrix_rows(pure_expr *xs);
+pure_expr *matrix_columns(pure_expr *xs);
 
 /* Transpose a matrix. The resulting matrix has the rows of the original
    matrix as its columns, and vice versa. */
