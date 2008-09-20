@@ -430,6 +430,16 @@ x::matrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
+/* Slices. */
+
+x::matrix!!(ns,ms)	= colcatmap (mth (rowcatmap (nth x) ns)) ms with
+			    nth x n = catch (cst {}) (row x n);
+			    mth x m = catch (cst {}) (col x m);
+			  end;
+x::matrix!!ns		= colcatmap (nth x) ns with
+			    nth x n = catch (cst {}) {x!n};
+			  end;
+
 /* Extract rows and columns from a matrix. */
 
 private matrix_slice;
