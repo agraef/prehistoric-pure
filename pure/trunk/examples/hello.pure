@@ -141,7 +141,7 @@ map fib3 (1..50);
    the same little 2.5-liner. ;-) */
 
 qsort p []	= [];
-qsort p (x:xs)	= qsort p [l; l = xs; l<x] + (x : qsort p [r; r = xs; r>=x])
+qsort p (x:xs)	= qsort p [l | l = xs; l<x] + (x : qsort p [r | r = xs; r>=x])
 		  with x<y = p x y; x>=y = not p x y end;
 
 qsort (<) (1..20); // ascending sort, no-op in this case
@@ -153,15 +153,15 @@ qsort (>) (1..20); // descending sort, reverses the list in this case
 
 extern int rand();
 
-qsort (<) [rand; i = 1..20]; // sort 20 random numbers in ascending order
-qsort (>) [rand; i = 1..20]; // sort 20 random numbers in descending order
+qsort (<) [rand|i = 1..20]; // sort 20 random numbers in ascending order
+qsort (>) [rand|i = 1..20]; // sort 20 random numbers in descending order
 
 /* Erathosthenes' classical prime sieve. Another example showing the beauty
    and usefulness of list comprehensions. */
 
 primes n	= sieve (2..n) with
   sieve []	= [];
-  sieve (p:qs)	= p : sieve [q; q = qs; q mod p];
+  sieve (p:qs)	= p : sieve [q | q = qs; q mod p];
 end;
 
 primes 100;
@@ -170,7 +170,7 @@ primes 100;
    prime numbers. */
 
 all_primes	= sieve (2..inf) with
-  sieve (p:qs)	= p : sieve [q; q = qs; q mod p] &;
+  sieve (p:qs)	= p : sieve [q | q = qs; q mod p] &;
 end;
 
 // Assign this to a variable, so we can take advantage of memoization.
@@ -193,7 +193,7 @@ P!299;
 queens n	= search n 1 []
 with
   search n i p	= [reverse p] if i>n;
-		= cat [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
+		= cat [search n (i+1) ((i,j):p) | j = 1..n; safe (i,j) p];
   safe (i,j) p	= not any (check (i,j)) p;
   check (i1,j1) (i2,j2)
 		= i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
@@ -206,7 +206,7 @@ end;
 queens1 n	= catch reverse (search n 1 [])
 with
   search n i p	= throw p if i>n;
-		= void [search n (i+1) ((i,j):p); j = 1..n; safe (i,j) p];
+		= void [search n (i+1) ((i,j):p) | j = 1..n; safe (i,j) p];
   safe (i,j) p	= not any (check (i,j)) p;
   check (i1,j1) (i2,j2)
 		= i1==i2 || j1==j2 || i1+j1==i2+j2 || i1-j1==i2-j2;
@@ -286,4 +286,4 @@ members (bin x L R)	= members L + (x:members R);
 
 // A random example:
 
-let xs = [rand; i = 1..20]; let T = bintree xs; xs; T; members T;
+let xs = [rand|i = 1..20]; let T = bintree xs; xs; T; members T;
