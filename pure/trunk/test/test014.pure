@@ -3,7 +3,7 @@ using math;
 
 // Random number generator.
 
-drop 97 [random; i=1..100] when () = srandom 0 end;
+drop 97 [random | i=1..100] when () = srandom 0 end;
 
 // Some rational arithmetic tests, pilfered from Rob Hubbard's Q+Q manual.
 
