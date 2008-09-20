@@ -1,7 +1,105 @@
 
 ** Pure 0.7 (in progress)
 
-GSL matrix support. (Work in progress.)
+Basic GSL (GNU Scientific Library) matrix support has been implemented,
+including matrix comprehensions. Here's some preliminary documentation (at the
+time of this writing, the manual still needs to be updated). For more
+information on GSL please refer to http://www.gnu.org/software/gsl.
+
+GSL double, complex and integer matrices can be created with the new {x,y;u,v}
+syntax, which works more or less like Octave/MATLAB matrices, but using curly
+braces instead of brackets. Also, indices are zero-based (rather than
+one-based) to be consistent with Pure's list and tuple structures.
+
+Here are some simple examples of matrices:
+
+- {1,2,3}		a row vector consisting of machine ints
+- {1.0;2.0;3.0}		a column vector of double values (';' separates rows)
+- {1,2;3,4}		a 2x2 int matrix
+- {1L,y+1;foo,bar}	a "symbolic" matrix (see explanation below)
+
+Note that the {...} syntax can be used only on the right-hand side of a
+definition to construct new matrices. Matrix patterns are not supported.
+However, the new 'matrix' type tag can be used in patterns to match matrix
+values, e.g.:
+
+foo a::matrix = {a!(i,j)+1 | i=0..n-1; j=0..m-1} when n,m = dim a end;
+
+(Additional predicates to check for the different subtypes of matrices are
+available in the prelude.)
+
+As mentioned above, there's also a special built-in type of "symbolic"
+matrices. These work like the numeric matrices, but can contain an arbitrary
+mixture of Pure values, and also work if GSL support isn't available.
+
+GSL matrices are always homogeneous, i.e., they only contain values from one
+numeric type, which in the Pure implementation can be machine ints, double and
+complex double values. (The latter are represented using Pure's infix notation
+for complex values defined in math.pure; this requires math.pure to be
+loaded. The same notation is also used to print complex matrices. Note that,
+for performance reasons, the expression printer doesn't use the __show__
+function to print individual matrix elements. It is possible to override the
+default print representation of matrix values as a whole, though.)
+
+If a matrix contains values of different types, or Pure values which cannot be
+stored in a GSL matrix, then a symbolic matrix is created instead (this also
+includes the case of bigints, which are considered as symbolic values as far
+as matrix construction is concerned). If the interpreter was built without GSL
+support then symbolic matrices are the only kind of matrices supported by the
+interpreter.
+
+Pure also provides so-called matrix comprehensions as a convenient means to
+create matrices from a template expression (which can denote either a scalar
+or a submatrix), drawing values from lists and (optionally) filtering the
+elements with predicates. These work pretty much like list comprehensions, but
+return matrices instead of lists. Generator clauses in matrix comprehensions
+alternate between row and column generation so that most common mathematical
+abbreviations carry over quite easily. E.g., here's a simple example which
+illustrates how you can define a function which returns a square identity
+matrix of a given dimension:
+
+> eye n = {i==j|i=1..n;j=1..n};
+> eye 3;
+{1,0,0;0,1,0;0,0,1}
+
+The prelude provides some additional basic matrix operations like determining
+the size and dimensions of a matrix, indexing and slicing, transposition,
+type-checking and various conversions between the different kinds of
+matrices. To these ends, various basic operations to deal with matrix objects
+have been added to the runtime, including some public API operations to create
+and inspect Pure matrix values from external C modules.
+
+Here is a brief synopsis of some important operations which are already
+implemented in the prelude (you can find the definitions of these and the
+other matrix operations in primitives.pure):
+
+- #x			total number of elements
+- dim x			number of rows and columns (as a pair)
+- x'			transposed matrix
+- x!i			ith matrix element in row-major order (zero-based)
+- x!(i,j)		jth element in ith row of the matrix (zero-based)
+- x!!is, x!!(is,js)	slicing (is and js are lists of machine ints)
+- x==y, x!=y		matrix comparisons
+
+Other user-visible changes prompted by the introduction of the matrix syntax
+are listed below:
+
+- Changes in the comprehension syntax: '|' is now used to separate the
+template expression and the generator and filter clauses. This change was
+necessary to accommodate the matrix syntax which uses ';' to separate
+different rows in a matrix. For consistency, this applies to both list and
+matrix comprehensions. The old [x;...] syntax is still supported in list
+comprehensions, but is flagged with a "deprecated" warning by the compiler.
+
+- Arithmetic sequences with a stepsize different from 1 are now written
+x:y..z instead of x,y..z. This makes it possible to give the .. operator a
+lower precedence than the ',' operator, which makes writing matrix slices like
+x!!(i..j,k..l) much more convenient.
+
+Stuff that's still missing:
+
+- Marshalling of GSL matrices in the C interface, so that it becomes possible
+to access all the advanced functionality available in GSL.
 
 ** Pure 0.6 2008-09-12
 

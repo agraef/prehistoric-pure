@@ -1,68 +1,14 @@
-2008-09-19  Albert Graef  <Dr.Graef@t-online.de>
-	
-	* runtime.cc, interpreter.cc et al: Support for symbolic matrices.
+2008-09-20  Albert Graef  <Dr.Graef@t-online.de>
 
-	These work like the numeric GSL matrices, but can contain an
-	arbitrary mixture of Pure values, and also work if GSL support
-	isn't available. Numeric matrices will now only be created for
-	matrices consisting of machine int, double and complex values, if
-	all values are of the same type (and GSL support is available). In
-	all other cases a symbolic matrix is created (this also includes
-	the case of bigints, which are now considered as symbolic values
-	in matrix creation).
+	* Implemented basic GSL matrix support, including support for
+	symbolic matrices (which is independent from GSL, so these will
+	also work when building the interpreter without GSL) and matrix
+	comprehensions. This required many additions and changes to the
+	parser, interpreter, compiler, runtime and the prelude; details
+	can be found in the svn log (see r759 and r769ff.).
 
-	There's now only a single 'matrix' type tag which matches all
-	kinds of symbolic and numeric matrices. The matrixp family of
-	predicates in primitives.pure can be used to distinguish the
-	different kinds of matrices. Predicates to check for row and
-	column vectors (which are simply matrices with one row or column)
-	are also provided, as are some routines for transposing and
-	converting matrix values, see primitives.pure for details.
-
-2008-09-18  Albert Graef  <Dr.Graef@t-online.de>
-
-	* lib/primitives.pure: Add definitions of basic matrix operations.
-	Currently only size, dimensions and indexing are supported.
-
-	Synopsis:
-	- #x		total number of elements
-	- dim x		number of rows and columns (as a pair)
-	- x!i		ith matrix element in row-major order
-	- x!(i,j)	jth element in ith row of the matrix
-
-	* expr.cc, interpreter.cc, runtime.cc, printer.cc: Add basic GSL
-	matrix support. GSL double, complex and integer matrices can be
-	created with the new {x,y;u,v} syntax, which works more or less
-	like Octave/MATLAB matrices, but using curly braces instead of
-	brackets. Moreover, various basic operations to handle this kind
-	of objects (conversions, determining sizes, indexing, slicing)
-	have been added to the runtime, including some public API
-	operations to create and inspect matrix objects.
-
-	Note that the {...} syntax can be used only on the right-hand side
-	of a definition, matrix patterns are not supported right now. As a
-	remedy, there are three new type tags, matrix, cmatrix and
-	imatrix, which can be used in patterns to match double, complex
-	and integer matrices, respectively.
-
-	GSL matrices are always homogeneous, i.e., they only contain
-	values from one numeric type. Integer matrices can be created from
-	any combination of Pure machine int and bigint values (the latter
-	are converted to machine ints automatically). Matrices with at
-	least one double or complex element become double and complex
-	matrices, respectively, casting the other matrix elements as
-	needed.
-
-	Complex matrices can be created from either pairs of double or
-	integer values, such as {(1,2),(3,4)}, or from Pure complex
-	values, such as {1+:2,3<:4} (the latter requires math.pure to be
-	loaded). The expression printer uses the former notation, unless
-	math.pure has been loaded in which case complex values are printed
-	in rectangular format x+:y. Also note that, for performance
-	reasons, the expression printer doesn't use the __show__ function
-	to print individual matrix elements, but of course it is possible
-	to override the default print representation of matrix values as a
-	whole.
+	Preliminary documentation is in the NEWS file for now (the manual
+	still needs to be updated).
 
 2008-09-15  Albert Graef  <Dr.Graef@t-online.de>
 
