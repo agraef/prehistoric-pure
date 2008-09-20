@@ -4183,7 +4183,7 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
   y->tag = x->tag;
   y->data.mat.p = p;
   y->data.mat.refc = x->data.mat.refc;
-  *y->data.mat.refc++;
+  (*y->data.mat.refc)++;
   MEMDEBUG_NEW(y)
   return y;
 }
