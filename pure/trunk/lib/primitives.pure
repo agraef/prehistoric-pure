@@ -409,7 +409,7 @@ x::pointer>=y::pointer	= bigint x >= bigint y;
 x::pointer==y::pointer	= bigint x == bigint y;
 x::pointer!=y::pointer	= bigint x != bigint y;
 
-/* Basic matrix operations. */
+/* Basic matrix operations: size, dimensions and indexing. */
 
 private matrix_size matrix_dim;
 extern int matrix_size(expr *x), expr* matrix_dim(expr *x);
@@ -430,13 +430,48 @@ x::matrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
-extern expr* matrix_rows(expr *x) = rowmatrix;
-extern expr* matrix_columns(expr *x) = colmatrix;
+/* Extract rows and columns from a matrix. */
+
+private matrix_slice;
+extern expr* matrix_slice(expr* x, int i1, int j1, int i2, int j2);
+
+row x::matrix i::int	= if i>=0 && i<n then matrix_slice x i 0 i (m-1)
+			  else throw out_of_bounds
+			  when n::int,m::int = dim x end;
+
+col x::matrix j::int	= if j>=0 && j<m then matrix_slice x 0 j (n-1) j
+			  else throw out_of_bounds
+			  when n::int,m::int = dim x end;
+
+rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
+
+cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
+
+/* Construct matrices from lists of rows and columns. These take either
+   scalars or submatrices as inputs; corresponding dimensions must match.
+   rowcat combines submatrices vertically, like {x;y}; colcat combines them
+   horizontally, like {x,y}. */
+
+extern expr* matrix_rows(expr *x) = rowcat;
+extern expr* matrix_columns(expr *x) = colcat;
+
+/* Combinations of rowcat/colcat and map, to be used in matrix
+   comprehensions. */
+
+rowcatmap f []		= {};
+rowcatmap f xs@(_:_)	= rowcat (map f xs);
+
+colcatmap f []		= {};
+colcatmap f xs@(_:_)	= colcat (map f xs);
+
+/* Transpose a matrix. */
 
 private matrix_transpose;
 extern expr* matrix_transpose(expr *x);
 
 x::matrix'		= matrix_transpose x;
+
+/* Matrix conversions. */
 
 private matrix_double matrix_complex matrix_int;
 extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),

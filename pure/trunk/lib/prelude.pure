@@ -45,6 +45,7 @@ nullary    [] ();		// empty list and tuple
 
 infixl  0   $$ ;		// sequence operator
 infixr  0   $ ;			// right-associative application
+infix   1   .. ;		// arithmetic sequences
 infixr  1   , ;			// pair (tuple)
 infix   2   => ;		// mapsto constructor
 infixr  2   || ;		// logical or (short-circuit)
@@ -252,8 +253,6 @@ xs!!ns		= catmap (nth xs) ns
 		  with nth xs n = catch (cst []) [xs!n] end;
 
 /* Arithmetic sequences. */
-
-infix 1 .. ;
 
 n1,n2..m	= if m===s*inf then iterate (\x->x+k) n1
 		  else while (\i->s*i<=s*m) (\x->x+k) n1
