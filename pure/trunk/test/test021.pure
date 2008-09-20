@@ -36,11 +36,11 @@ tests =
 puts "*** EXACT/INEXACT ***" $$
 // These should all return exact results, except +/- with polar operands, as
 // well as / and ^ which always return inexact results.
-do test [op,2,a;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
-do test [op,a,2;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+do test [op,2,a|op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+do test [op,a,2|op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
 puts "*** SYMBOLIC ***" $$
 // If everything is all right here, these should all print __failed__.
-do test [op,x,a;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
-do test [op,a,x;op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]];
+do test [op,x,a|op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]] $$
+do test [op,a,x|op=[(+),(-),(*),(%),(/),(^)];a=[2+:3,2<:3,2%3]];
 
 tests;

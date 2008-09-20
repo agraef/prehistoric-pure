@@ -123,18 +123,18 @@ foldl delete (foldl insert emptybag randlist) randlist;
 ********************************************/
 // Create data structures
 
-let a = dict [(i => (double i)); i =  1..10];
-let b = dict [(i => (double i)); i = 11..20];
+let a = dict [i => (double i) | i =  1..10];
+let b = dict [i => (double i) | i = 11..20];
  
-let c = hdict $ zipwith (=>) [(i, double i, str i); i =   1..10] ( 1..10);
-let d = hdict $ zipwith (=>) [(i, double i, str i); i =  11..20] (11..20);
+let c = hdict $ zipwith (=>) [i, double i, str i | i =   1..10] ( 1..10);
+let d = hdict $ zipwith (=>) [i, double i, str i | i =  11..20] (11..20);
 
 let e = dict $ zipwith (=>) (map str (1..10)) (map str (1..10));
 
 a; b; c; d; e;
 
 mkdict 1000 (1..10);
-mkhdict 1000 [(i, double i, str i); i =   1..10];
+mkhdict 1000 [i, double i, str i | i = 1..10];
 
 // Type tests
 
@@ -167,7 +167,7 @@ a!5; e!"5"; c!(5, 5.0, "5"); a!50; c!(50, 50.0, "50");
 
 // Slicing
 a!!(5..15);
-c!![(i, double i, str i); i =   5..15];
+c!![i, double i, str i | i = 5..15];
 
 // Convert data set to list
 
@@ -185,7 +185,7 @@ update c (5, 5.0, "5") 5000; update c (5000, 5000.0, "5000") 5000;
 foldl delete a (1..10);
 delete a 5000;
 
-foldl delete c [(i, double i, str i); i =   1..10];
+foldl delete c [i, double i, str i | i = 1..10];
 delete c (5000, 5000.0, "5000");
 
 // Relations
@@ -259,8 +259,8 @@ a == a; a != a;
 let a = array ( 1..10);
 let b = array (11..20);
 
-let c = array2 [[str (i + j); i = j..10]; j =  1..10];
-let d = array2 [[str (i + j); i = j..10]; j = 11..20];
+let c = array2 [[str (i + j) | i = j..10] | j =  1..10];
+let d = array2 [[str (i + j) | i = j..10] | j = 11..20];
 
 a; b; c; d;
 
@@ -293,7 +293,7 @@ a!5; c!(2, 3); a!50; c!(20, 30);
 
 // Slicing
 a!!(5..15);
-c!![(i, j); i = 3..15; j =  3..15];
+c!![(i, j) | i = 3..15; j = 3..15];
 
 // Convert data set to list
 
