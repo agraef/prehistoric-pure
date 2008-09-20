@@ -457,6 +457,11 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
+/* Extract a submatrix of a given size at a given offset. */
+
+submat x::matrix (i::int,j::int) (n::int,m::int)
+			= matrix_slice x i j (i+n) (j+m);
+
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.
    rowcat combines submatrices vertically, like {x;y}; colcat combines them
