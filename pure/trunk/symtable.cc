@@ -34,11 +34,10 @@ void symtable::init_builtins()
   fdiv_sym();
   div_sym();
   mod_sym();
-  // complex_rect_sym() and complex_polar_sym() are not initialized here, as
-  // they're supposed to come from math.pure which is not included in the
-  // prelude
   catch_sym();
   catmap_sym();
+  rowcatmap_sym();
+  colcatmap_sym();
   failed_match_sym();
   failed_cond_sym();
   signal_sym();

@@ -526,8 +526,14 @@ prim
 | DBL			{ $$ = new expr(EXPR::DBL, $1); }
 | STR			{ $$ = new expr(EXPR::STR, $1); }
 | '{' rows '}'		{ $$ = new expr(EXPR::MATRIX, $2); }
+| '{' expr '|' comp_clauses '}'
+			{ $$ = interp.mkmatcomp_expr($2, $4); }
 | '[' expr ']'		{ $$ = interp.mklist_expr($2); }
 | '[' expr ';' comp_clauses ']'
+			{ interp.warning(yyloc,
+			    "warning: deprecated comprehension syntax");
+			  $$ = interp.mklistcomp_expr($2, $4); }
+| '[' expr '|' comp_clauses ']'
 			{ $$ = interp.mklistcomp_expr($2, $4); }
 | '(' expr ')'		{ $$ = $2;
 			  if ($$->is_pair()) $$->flags() |= EXPR::PAREN; }
