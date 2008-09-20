@@ -470,8 +470,7 @@ submat x::matrix (i::int,j::int) (n::int,m::int)
 extern expr* matrix_rows(expr *x) = rowcat;
 extern expr* matrix_columns(expr *x) = colcat;
 
-/* Combinations of rowcat/colcat and map, to be used in matrix
-   comprehensions. */
+/* Combinations of rowcat/colcat and map. */
 
 rowcatmap f []		= {};
 rowcatmap f xs@(_:_)	= rowcat (map f xs);
