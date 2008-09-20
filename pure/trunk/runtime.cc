@@ -375,6 +375,12 @@ static void pure_free_matrix(pure_expr *x)
   switch (x->tag) {
   case EXPR::MATRIX: {
     gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    if (owner) {
+      const size_t k = m->size1, l = m->size2, tda = m->tda;;
+      for (size_t i = 0; i < k; i++)
+	for (size_t j = 0; j < l; j++)
+	  pure_free(m->data[i*tda+j]);
+    }
     m->owner = owner;
     gsl_matrix_symbolic_free(m);
     break;
@@ -756,6 +762,11 @@ pure_expr *pure_symbolic_matrix(void *p)
   pure_expr *x = new_expr();
   x->tag = EXPR::MATRIX;
   x->data.mat.p = p;
+  // count references
+  const size_t k = m->size1, l = m->size2, tda = m->tda;;
+  for (size_t i = 0; i < k; i++)
+    for (size_t j = 0; j < l; j++)
+      pure_new_internal(m->data[i*tda+j]);
   x->data.mat.refc = new uint32_t;
   *x->data.mat.refc = 1;
   MEMDEBUG_NEW(x)
@@ -1348,13 +1359,14 @@ symbolic_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       break;
     }
     default:
-      data[i++*tda] = pure_new_internal(x);
+      data[i++*tda] = x;
       break;
     }
   }
+  pure_expr *ret = pure_symbolic_matrix(mat);
   for (size_t i = 0; i < n; i++)
     pure_free_internal(xs[i]);
-  return pure_symbolic_matrix(mat);
+  return ret;
 }
 
 static pure_expr*
@@ -1411,13 +1423,14 @@ symbolic_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       break;
     }
     default:
-      data[i++] = pure_new_internal(x);
+      data[i++] = x;
       break;
     }
   }
+  pure_expr *ret = pure_symbolic_matrix(mat);
   for (size_t i = 0; i < n; i++)
     pure_free_internal(xs[i]);
-  return pure_symbolic_matrix(mat);
+  return ret;
 }
 
 static inline void set_target_type(int32_t& target, int32_t t)
