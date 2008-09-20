@@ -137,7 +137,7 @@ strcat xs		= string_concat_list xs if listp xs && all stringp xs;
 
 join delim::string []	= "";
 join delim::string (x::string:xs)
-			= x + strcat [delim+x; x = xs]
+			= x + strcat [delim+x | x = xs]
 			    if listp xs && all stringp xs;
 
 /* Split a string into parts delimited by the given (nonempty) string. */
