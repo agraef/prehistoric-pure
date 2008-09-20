@@ -92,6 +92,8 @@ public:
   symbol& mod_sym();
   symbol& catch_sym() { return sym("catch"); }
   symbol& catmap_sym() { return sym("catmap"); }
+  symbol& rowcatmap_sym() { return sym("rowcatmap"); }
+  symbol& colcatmap_sym() { return sym("colcatmap"); }
   symbol& failed_match_sym() { return sym("failed_match"); }
   symbol& failed_cond_sym() { return sym("failed_cond"); }
   symbol& signal_sym() { return sym("signal"); }

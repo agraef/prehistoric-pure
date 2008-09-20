@@ -483,6 +483,9 @@ public:
   expr *mklistcomp_expr(expr *x, comp_clause_list *cs);
   expr mklistcomp_expr(expr x, comp_clause_list::iterator cs,
 		       comp_clause_list::iterator end);
+  expr *mkmatcomp_expr(expr *x, comp_clause_list *cs);
+  expr mkmatcomp_expr(expr x, size_t n, comp_clause_list::iterator cs,
+		      comp_clause_list::iterator end);
 
   // LLVM code generation and execution.
 
