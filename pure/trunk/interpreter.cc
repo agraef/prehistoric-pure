@@ -2758,13 +2758,15 @@ expr interpreter::mkmatcomp_expr(expr x, size_t n,
 				 comp_clause_list::iterator cs,
 				 comp_clause_list::iterator end)
 {
-  if (cs == end)
-    return expr::cons(x, expr::nil());
-  else {
+  if (cs == end) {
+    exprll *xs = new exprll(1, exprl(1, x));
+    return expr(EXPR::MATRIX, xs);
+  } else {
     comp_clause& c = *cs;
     if (c.second.is_null()) {
       expr p = c.first;
-      return expr::cond(p, mkmatcomp_expr(x, n, ++cs, end), expr::nil());
+      return expr::cond(p, mkmatcomp_expr(x, n, ++cs, end),
+			expr(EXPR::MATRIX, new exprll));
     } else {
       expr pat = c.first, body = mkmatcomp_expr(x, n-1, ++cs, end),
 	arg = c.second;
