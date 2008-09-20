@@ -4,7 +4,7 @@
 MathIter1 op i1 i2 f = foldl1 op (map f (i1..i2));
 
 MathIter2 op i1 i2 j1 j2 f = 
-		foldl1 op (map (uncurry f) [x,y; x = i1..i2; y = j1..j2]);
+		foldl1 op (map (uncurry f) [x,y | x = i1..i2; y = j1..j2]);
       
 //Examples on how to use the mathematical iterators
 Sigma i1 i2 f = MathIter1 (+) i1 i2 f;
