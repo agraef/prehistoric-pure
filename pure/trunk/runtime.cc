@@ -973,6 +973,10 @@ double_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 	    data[i*tda+k] = (double)mat1->data[j*mat1->tda+k];
       break;
     }
+    case EXPR::CMATRIX:
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1021,6 +1025,10 @@ double_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       i += mat1->size2;
       break;
     }
+    case EXPR::CMATRIX:
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1096,6 +1104,9 @@ complex_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 		 ncols*2*sizeof(double));
       break;
     }
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1174,6 +1185,9 @@ complex_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       i += mat1->size2;
       break;
     }
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1219,6 +1233,10 @@ int_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 	  memcpy(data+i*tda, mat1->data+j*mat1->tda, ncols*sizeof(int));
       break;
     }
+    case EXPR::CMATRIX:
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1267,6 +1285,10 @@ int_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       i += mat1->size2;
       break;
     }
+    case EXPR::CMATRIX:
+    case EXPR::MATRIX:
+      // empty matrix, skip
+      break;
     default:
       assert(0 && "bad matrix element");
       break;
@@ -1431,13 +1453,10 @@ pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
     switch (x->tag) {
     case EXPR::MATRIX: {
       gsl_matrix_symbolic *mp = (gsl_matrix_symbolic*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  return 0;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::MATRIX);
 	have_matrix = true;
       }
@@ -1466,13 +1485,10 @@ pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::DMATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  return 0;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::DMATRIX);
 	have_matrix = true;
       }
@@ -1480,13 +1496,10 @@ pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  return 0;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::CMATRIX);
 	have_matrix = true;
       }
@@ -1494,13 +1507,10 @@ pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  return 0;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::IMATRIX);
 	have_matrix = true;
       }
@@ -1556,13 +1566,10 @@ pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
     switch (x->tag) {
     case EXPR::MATRIX: {
       gsl_matrix_symbolic *mp = (gsl_matrix_symbolic*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  return 0;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::MATRIX);
 	have_matrix = true;
       }
@@ -1591,13 +1598,10 @@ pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::DMATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  return 0;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::DMATRIX);
 	have_matrix = true;
       }
@@ -1605,13 +1609,10 @@ pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  return 0;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::CMATRIX);
 	have_matrix = true;
       }
@@ -1619,13 +1620,10 @@ pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  return 0;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	return 0;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::IMATRIX);
 	have_matrix = true;
       }
@@ -2530,13 +2528,10 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
     switch (x->tag) {
     case EXPR::MATRIX: {
       gsl_matrix_symbolic *mp = (gsl_matrix_symbolic*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  goto err;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::MATRIX);
 	have_matrix = true;
       }
@@ -2565,13 +2560,10 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
     }
     case EXPR::DMATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  goto err;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::DMATRIX);
 	have_matrix = true;
       }
@@ -2579,13 +2571,10 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  goto err;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::CMATRIX);
 	have_matrix = true;
       }
@@ -2593,13 +2582,10 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size2 != (size_t)k)
 	  goto err;
 	nrows += mp->size1; k = mp->size2;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::IMATRIX);
 	have_matrix = true;
       }
@@ -2662,13 +2648,10 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
     switch (x->tag) {
     case EXPR::MATRIX: {
       gsl_matrix_symbolic *mp = (gsl_matrix_symbolic*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  goto err;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::MATRIX);
 	have_matrix = true;
       }
@@ -2697,13 +2680,10 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
     }
     case EXPR::DMATRIX: {
       gsl_matrix *mp = (gsl_matrix*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  goto err;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::DMATRIX);
 	have_matrix = true;
       }
@@ -2711,13 +2691,10 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
     }
     case EXPR::CMATRIX: {
       gsl_matrix_complex *mp = (gsl_matrix_complex*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  goto err;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::CMATRIX);
 	have_matrix = true;
       }
@@ -2725,13 +2702,10 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
     }
     case EXPR::IMATRIX: {
       gsl_matrix_int *mp = (gsl_matrix_int*)x->data.mat.p;
-      if (mp) {
+      if (mp->size1 > 0 && mp->size2 > 0) {
 	if (k >= 0 && mp->size1 != (size_t)k)
 	  goto err;
 	ncols += mp->size2; k = mp->size1;
-      } else if (k>0)
-	goto err;
-      if (mp->size1 > 0 && mp->size2 > 0) {
 	set_target_type(target, EXPR::IMATRIX);
 	have_matrix = true;
       }
