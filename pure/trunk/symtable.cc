@@ -374,3 +374,21 @@ symbol& symtable::amp_sym()
   else
     return sym("&", 9, postfix);
 }
+
+symbol* symtable::complex_rect_sym(bool force)
+{
+  symbol *_sym = lookup("+:");
+  if (!force || _sym)
+    return _sym;
+  else
+    return &sym("+:", 5, infix);
+}
+
+symbol* symtable::complex_polar_sym(bool force)
+{
+  symbol *_sym = lookup("<:");
+  if (!force || _sym)
+    return _sym;
+  else
+    return &sym("<:", 5, infix);
+}

@@ -817,38 +817,25 @@ ostream& operator << (ostream& os, const pure_expr *x)
     }
     return os << "}";
   case EXPR::CMATRIX:
+    /* Print complex values in rectangular format using the infix notation
+       defined in math.pure. FIXME: We require the +: symbol to be predefined
+       no matter whether math.pure has actually been loaded. */
     os << "{";
     if (x->data.mat.p) {
+      interpreter& interp = *interpreter::g_interp;
+      symbol *rect = interp.symtab.complex_rect_sym(true);
+      string& rectsym = rect->s;
       gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
       if (m->size1>0 && m->size2>0) {
-	/* GSL represents complex matrices using pairs of double values, while
-	   Pure provides its own complex type in math.pure. If math.pure has
-	   been loaded, then the '+:' operator is defined and we use this
-	   representation. Otherwise, we print complex values as pairs of real
-	   and imaginary part. */
-	symbol *rect = interpreter::g_interp->symtab.complex_rect_sym();
-	if (rect)
-	  for (size_t i = 0; i < m->size1; i++) {
-	    if (i > 0) os << ";";
-	    for (size_t j = 0; j < m->size2; j++) {
-	      if (j > 0) os << ",";
-	      print_double(os, m->data[2*(i * m->tda + j)]);
-	      os << rect->s;
-	      print_double(os, m->data[2*(i * m->tda + j) + 1]);
-	    }
+	for (size_t i = 0; i < m->size1; i++) {
+	  if (i > 0) os << ";";
+	  for (size_t j = 0; j < m->size2; j++) {
+	    if (j > 0) os << ",";
+	    print_double(os, m->data[2*(i * m->tda + j)]);
+	    os << rectsym;
+	    print_double(os, m->data[2*(i * m->tda + j) + 1]);
 	  }
-	else
-	  for (size_t i = 0; i < m->size1; i++) {
-	    if (i > 0) os << ";";
-	    for (size_t j = 0; j < m->size2; j++) {
-	      if (j > 0) os << ",";
-	      os << "(";
-	      print_double(os, m->data[2*(i * m->tda + j)]);
-	      os << ",";
-	      print_double(os, m->data[2*(i * m->tda + j) + 1]);
-	      os << ")";
-	    }
-	  }
+	}
       }
     }
     return os << "}";
