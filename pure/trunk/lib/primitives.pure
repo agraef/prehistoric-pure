@@ -460,7 +460,7 @@ cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 /* Extract a submatrix of a given size at a given offset. */
 
 submat x::matrix (i::int,j::int) (n::int,m::int)
-			= matrix_slice x i j (i+n) (j+m);
+			= matrix_slice x i j (i+n-1) (j+m-1);
 
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.

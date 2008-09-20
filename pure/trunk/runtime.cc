@@ -4053,7 +4053,7 @@ int32_t matrix_type(pure_expr *x)
 }
 
 extern "C"
-pure_expr *matrix_elem_at(pure_expr *x, uint32_t i)
+pure_expr *matrix_elem_at(pure_expr *x, int32_t i)
 {
   switch (x->tag) {
   case EXPR::MATRIX: {
@@ -4080,7 +4080,7 @@ pure_expr *matrix_elem_at(pure_expr *x, uint32_t i)
 }
 
 extern "C"
-pure_expr *matrix_elem_at2(pure_expr *x, uint32_t i, uint32_t j)
+pure_expr *matrix_elem_at2(pure_expr *x, int32_t i, int32_t j)
 {
   switch (x->tag) {
   case EXPR::MATRIX: {
@@ -4111,14 +4111,18 @@ pure_expr *matrix_elem_at2(pure_expr *x, uint32_t i, uint32_t j)
 }
 
 extern "C"
-pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
-			uint32_t i2, uint32_t j2)
+pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
+			int32_t i2, int32_t j2)
 {
   void *p = 0;
+  if (i1<0) i1 = 0; if (j1<0) j1 = 0;
   switch (x->tag) {
   case EXPR::MATRIX: {
     gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
-    size_t n1 = (i2>=i1)?(i2+1-i1):0, n2 = (j2>=j1)?(j2+1-j1):0;
+    if (i2 >= (int)m->size1) i2 = m->size1-1;
+    if (j2 >= (int)m->size2) j2 = m->size2-1;
+    size_t n1 = (i1<(int)m->size1 && i2>=i1)?(i2+1-i1):0,
+      n2 = (j1<(int)m->size2 && j2>=j1)?(j2+1-j1):0;
     if (n1 == 0 || n2 == 0) // empty matrix
       return pure_symbolic_matrix(create_symbolic_matrix(n1, n2));
     gsl_matrix_symbolic_view v =
@@ -4134,7 +4138,10 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
 #ifdef HAVE_GSL
   case EXPR::DMATRIX: {
     gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
-    size_t n1 = (i2>=i1)?(i2+1-i1):0, n2 = (j2>=j1)?(j2+1-j1):0;
+    if (i2 >= (int)m->size1) i2 = m->size1-1;
+    if (j2 >= (int)m->size2) j2 = m->size2-1;
+    size_t n1 = (i1<(int)m->size1 && i2>=i1)?(i2+1-i1):0,
+      n2 = (j1<(int)m->size2 && j2>=j1)?(j2+1-j1):0;
     if (n1 == 0 || n2 == 0) // empty matrix
       return pure_double_matrix(create_double_matrix(n1, n2));
     gsl_matrix_view v = gsl_matrix_submatrix(m, i1, j1, n1, n2);
@@ -4147,7 +4154,10 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
   }
   case EXPR::CMATRIX: {
     gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-    size_t n1 = (i2>=i1)?(i2+1-i1):0, n2 = (j2>=j1)?(j2+1-j1):0;
+    if (i2 >= (int)m->size1) i2 = m->size1-1;
+    if (j2 >= (int)m->size2) j2 = m->size2-1;
+    size_t n1 = (i1<(int)m->size1 && i2>=i1)?(i2+1-i1):0,
+      n2 = (j1<(int)m->size2 && j2>=j1)?(j2+1-j1):0;
     if (n1 == 0 || n2 == 0) // empty matrix
       return pure_complex_matrix(create_complex_matrix(n1, n2));
     gsl_matrix_complex_view v =
@@ -4162,7 +4172,10 @@ pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
   }
   case EXPR::IMATRIX: {
     gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
-    size_t n1 = (i2>=i1)?(i2+1-i1):0, n2 = (j2>=j1)?(j2+1-j1):0;
+    if (i2 >= (int)m->size1) i2 = m->size1-1;
+    if (j2 >= (int)m->size2) j2 = m->size2-1;
+    size_t n1 = (i1<(int)m->size1 && i2>=i1)?(i2+1-i1):0,
+      n2 = (j1<(int)m->size2 && j2>=j1)?(j2+1-j1):0;
     if (n1 == 0 || n2 == 0) // empty matrix
       return pure_int_matrix(create_int_matrix(n1, n2));
     gsl_matrix_int_view v = gsl_matrix_int_submatrix(m, i1, j1, n1, n2);

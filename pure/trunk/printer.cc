@@ -764,33 +764,37 @@ ostream& operator << (ostream& os, const pure_expr *x)
   }
   case EXPR::PTR:
     return os << "#<pointer " << x->data.p << ">";
-#ifdef HAVE_GSL
   /* NOTE: For performance reasons, we don't do any custom representations for
      matrix elements. As a workaround, you can define __show__ on matrices as
      a whole. */
   case EXPR::MATRIX:
     os << "{";
     if (x->data.mat.p) {
-      prec_t p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
       gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
-      for (size_t i = 0; i < m->size1; i++) {
-	if (i > 0) os << ";";
-	for (size_t j = 0; j < m->size2; j++) {
-	  if (j > 0) os << ",";
-	  os << pure_paren(p, m->data[i * m->tda + j]);
+      if (m->size1>0 && m->size2>0) {
+	prec_t p = sym_nprec(interpreter::g_interp->symtab.pair_sym().f) + 1;
+	for (size_t i = 0; i < m->size1; i++) {
+	  if (i > 0) os << ";";
+	  for (size_t j = 0; j < m->size2; j++) {
+	    if (j > 0) os << ",";
+	    os << pure_paren(p, m->data[i * m->tda + j]);
+	  }
 	}
       }
     }
     return os << "}";
+#ifdef HAVE_GSL
   case EXPR::DMATRIX:
     os << "{";
     if (x->data.mat.p) {
       gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
-      for (size_t i = 0; i < m->size1; i++) {
-	if (i > 0) os << ";";
-	for (size_t j = 0; j < m->size2; j++) {
-	  if (j > 0) os << ",";
-	  print_double(os, m->data[i * m->tda + j]);
+      if (m->size1>0 && m->size2>0) {
+	for (size_t i = 0; i < m->size1; i++) {
+	  if (i > 0) os << ";";
+	  for (size_t j = 0; j < m->size2; j++) {
+	    if (j > 0) os << ",";
+	    print_double(os, m->data[i * m->tda + j]);
+	  }
 	}
       }
     }
@@ -799,11 +803,15 @@ ostream& operator << (ostream& os, const pure_expr *x)
     os << "{";
     if (x->data.mat.p) {
       gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
-      for (size_t i = 0; i < m->size1; i++) {
-	if (i > 0) os << ";";
-	for (size_t j = 0; j < m->size2; j++) {
-	  if (j > 0) os << ",";
-	  os << m->data[i * m->tda + j];
+      if (m->size1>0 && m->size2>0) {
+	if (m->size1>0 && m->size2>0) {
+	  for (size_t i = 0; i < m->size1; i++) {
+	    if (i > 0) os << ";";
+	    for (size_t j = 0; j < m->size2; j++) {
+	      if (j > 0) os << ",";
+	      os << m->data[i * m->tda + j];
+	    }
+	  }
 	}
       }
     }
@@ -812,39 +820,39 @@ ostream& operator << (ostream& os, const pure_expr *x)
     os << "{";
     if (x->data.mat.p) {
       gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-      /* GSL represents complex matrices using pairs of double values, while
-	 Pure provides its own complex type in math.pure. If math.pure has
-	 been loaded, then the '+:' operator is defined and we use this
-	 representation. Otherwise, we print complex values as pairs of real
-	 and imaginary part. */
-      symbol *rect = interpreter::g_interp->symtab.complex_rect_sym();
-      if (rect)
-	for (size_t i = 0; i < m->size1; i++) {
-	  if (i > 0) os << ";";
-	  for (size_t j = 0; j < m->size2; j++) {
-	    if (j > 0) os << ",";
-	    print_double(os, m->data[2*(i * m->tda + j)]);
-	    os << rect->s;
-	    print_double(os, m->data[2*(i * m->tda + j) + 1]);
+      if (m->size1>0 && m->size2>0) {
+	/* GSL represents complex matrices using pairs of double values, while
+	   Pure provides its own complex type in math.pure. If math.pure has
+	   been loaded, then the '+:' operator is defined and we use this
+	   representation. Otherwise, we print complex values as pairs of real
+	   and imaginary part. */
+	symbol *rect = interpreter::g_interp->symtab.complex_rect_sym();
+	if (rect)
+	  for (size_t i = 0; i < m->size1; i++) {
+	    if (i > 0) os << ";";
+	    for (size_t j = 0; j < m->size2; j++) {
+	      if (j > 0) os << ",";
+	      print_double(os, m->data[2*(i * m->tda + j)]);
+	      os << rect->s;
+	      print_double(os, m->data[2*(i * m->tda + j) + 1]);
+	    }
 	  }
-	}
-      else
-	for (size_t i = 0; i < m->size1; i++) {
-	  if (i > 0) os << ";";
-	  for (size_t j = 0; j < m->size2; j++) {
-	    if (j > 0) os << ",";
-	    os << "(";
-	    print_double(os, m->data[2*(i * m->tda + j)]);
-	    os << ",";
-	    print_double(os, m->data[2*(i * m->tda + j) + 1]);
-	    os << ")";
+	else
+	  for (size_t i = 0; i < m->size1; i++) {
+	    if (i > 0) os << ";";
+	    for (size_t j = 0; j < m->size2; j++) {
+	      if (j > 0) os << ",";
+	      os << "(";
+	      print_double(os, m->data[2*(i * m->tda + j)]);
+	      os << ",";
+	      print_double(os, m->data[2*(i * m->tda + j) + 1]);
+	      os << ")";
+	    }
 	  }
-	}
+      }
     }
     return os << "}";
 #else
-  case EXPR::MATRIX:
-    return os << "#<matrix " << x->data.mat.p << ">";
   case EXPR::DMATRIX:
     return os << "#<dmatrix " << x->data.mat.p << ">";
   case EXPR::IMATRIX:
