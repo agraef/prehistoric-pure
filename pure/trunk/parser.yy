@@ -555,6 +555,7 @@ comp_clause
 
 rows
 : row_list
+| row_list ';'	{ $$ = $1; }
 | /* empty */	{ $$ = new exprll; }
 ;
 
