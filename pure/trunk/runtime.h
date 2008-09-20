@@ -659,17 +659,17 @@ int32_t matrix_type(pure_expr *x);
    aren't range-checked, if this is needed you have to do it beforehand,
    checking against matrix_size or matrix_dim above. */
 
-pure_expr *matrix_elem_at(pure_expr *x, uint32_t i);
-pure_expr *matrix_elem_at2(pure_expr *x, uint32_t i, uint32_t j);
+pure_expr *matrix_elem_at(pure_expr *x, int32_t i);
+pure_expr *matrix_elem_at2(pure_expr *x, int32_t i, int32_t j);
 
 /* The following operation retrieves a slice a.k.a. submatrix of a matrix and
    returns it as a new matrix object. The result matrix shares the underlying
    storage with the input matrix (i.e., matrix elements are *not* copied) and
-   so this is a comparatively cheap operation. Indices are zero-based and must
-   be checked by the caller if necessary. */
+   so this is a comparatively cheap operation. Indices are zero-based and are
+   clamped to the available index range automatically. */
 
-pure_expr *matrix_slice(pure_expr *x, uint32_t i1, uint32_t j1,
-			uint32_t i2, uint32_t j2);
+pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
+			int32_t i2, int32_t j2);
 
 /* Matrix construction. These work like the pure_matrix_rows/
    pure_matrix_columns functions in the public API, but take their input from
