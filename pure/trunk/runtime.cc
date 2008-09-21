@@ -4139,24 +4139,38 @@ pure_expr *matrix_elem_at(pure_expr *x, int32_t _i)
   switch (x->tag) {
   case EXPR::MATRIX: {
     gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
-    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
-    return m->data[k];
+    if (m->tda > m->size2) {
+      const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+      return m->data[k];
+    } else
+      return m->data[_i];
   }
 #ifdef HAVE_GSL
   case EXPR::DMATRIX: {
     gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
-    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
-    return pure_double(m->data[k]);
+    if (m->tda > m->size2) {
+      const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+      return pure_double(m->data[k]);
+    } else
+      return pure_double(m->data[_i]);
   }
   case EXPR::CMATRIX: {
     gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-    const size_t i = _i/m->size2, j = _i%m->size2, k = 2*(i*m->tda+j);
-    return make_complex(m->data[k], m->data[k+1]);
+    if (m->tda > m->size2) {
+      const size_t i = _i/m->size2, j = _i%m->size2, k = 2*(i*m->tda+j);
+      return make_complex(m->data[k], m->data[k+1]);
+    } else {
+      const size_t k = 2*_i;
+      return make_complex(m->data[k], m->data[k+1]);
+    }
   }
   case EXPR::IMATRIX: {
     gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
-    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
-    return pure_int(m->data[k]);
+    if (m->tda > m->size2) {
+      const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+      return pure_int(m->data[k]);
+    } else
+      return pure_int(m->data[_i]);
   }
 #endif
   default:
