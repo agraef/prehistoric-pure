@@ -412,11 +412,13 @@ x::pointer!=y::pointer	= bigint x != bigint y;
 
 /* Basic matrix operations: size, dimensions and indexing. */
 
-private matrix_size matrix_dim;
-extern int matrix_size(expr *x), expr* matrix_dim(expr *x);
+private matrix_size matrix_dim matrix_stride;
+extern int matrix_size(expr *x), int matrix_stride(expr *x);
+extern expr* matrix_dim(expr *x);
 
 #x::matrix		= matrix_size x;
 dim x::matrix		= matrix_dim x;
+stride x::matrix	= matrix_stride x;
 
 private matrix_elem_at matrix_elem_at2;
 extern expr* matrix_elem_at(expr* x, int i);
