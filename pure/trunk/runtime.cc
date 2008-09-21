@@ -890,6 +890,28 @@ pure_expr *pure_int_matrix_dup(const void *p)
 #endif
 }
 
+static inline bool is_complex(pure_expr *x)
+{
+  if (x->tag != EXPR::APP) return false;
+  pure_expr *u = x->data.x[0], *v = x->data.x[1];
+  if (u->tag == EXPR::APP) {
+    interpreter& interp = *interpreter::g_interp;
+    pure_expr *f = u->data.x[0];
+    symbol *rect = interp.symtab.complex_rect_sym(),
+      *polar = interp.symtab.complex_polar_sym();
+    if ((!rect || f->tag != rect->f) &&
+	(!polar || f->tag != polar->f))
+      return false;
+    u = u->data.x[1];
+    if (u->tag != EXPR::INT && u->tag != EXPR::DBL ||
+	v->tag != EXPR::INT && v->tag != EXPR::DBL)
+      return false;
+    else
+      return true;
+  } else
+    return false;
+}
+
 static inline bool get_complex(pure_expr *x, double& a, double& b)
 {
   if (x->tag != EXPR::APP) return false;
@@ -2520,6 +2542,32 @@ void *pure_get_bigint(pure_expr *x)
   assert(x && x->tag == EXPR::BIGINT);
   return &x->data.z;
 }
+
+#if COMPLEX_NUMBERS
+extern "C"
+pure_expr *pure_complex(__complex_double c)
+{
+  return make_complex(c.x[0], c.x[1]);
+}
+
+extern "C"
+bool pure_is_complex(pure_expr *x)
+{
+  return is_complex(x);
+}
+
+extern "C"
+__complex_double pure_get_complex(pure_expr *x)
+{
+  __complex_double res = {{0.0,0.0}};
+  double a, b;
+  if (get_complex(x, a, b)) {
+    res.x[0] = a;
+    res.x[1] = b;
+  }
+  return res;
+}
+#endif
 
 extern "C"
 void *pure_get_matrix(pure_expr *x)

@@ -41,6 +41,13 @@
    default, use 0 to disable this option). */
 #define LIST_KLUDGE 10
 
+/* Experimental support for marshalling of complex numbers in the C
+   interface. This doesn't work right now and is disabled. LLVM doesn't seem
+   to provide a transparent way to handle complex values in function calls
+   yet, and maybe this isn't even possible because different compilers might
+   specify different ABIs to do that kind of thing. */
+#define COMPLEX_NUMBERS 0
+
 using namespace std;
 
 /* The Pure interpreter. */
