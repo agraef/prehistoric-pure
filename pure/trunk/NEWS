@@ -67,7 +67,10 @@ the size and dimensions of a matrix, indexing and slicing, transposition,
 type-checking and various conversions between the different kinds of
 matrices. To these ends, various basic operations to deal with matrix objects
 have been added to the runtime, including some public API operations to create
-and inspect Pure matrix values from external C modules.
+and inspect Pure matrix values from external C modules. Moreover, the
+'pointer' function in the prelude can be used to convert matrices to Pure
+pointer values, and marshalling of GSL matrices in the C interface is also
+available.
 
 Here is a brief synopsis of some important operations which are already
 implemented in the prelude (you can find the definitions of these and the
@@ -80,6 +83,8 @@ other matrix operations in primitives.pure):
 - x!(i,j)		jth element in ith row of the matrix (zero-based)
 - x!!is, x!!(is,js)	slicing (is and js are lists of machine ints)
 - x==y, x!=y		matrix comparisons
+
+Adding other operations by interfacing to GSL should be a piece of cake.
 
 Other user-visible changes prompted by the introduction of the matrix syntax
 are listed below:
@@ -95,11 +100,6 @@ comprehensions, but is flagged with a "deprecated" warning by the compiler.
 x:y..z instead of x,y..z. This makes it possible to give the .. operator a
 lower precedence than the ',' operator, which makes writing matrix slices like
 x!!(i..j,k..l) much more convenient.
-
-Stuff that's still missing:
-
-- Marshalling of GSL matrices in the C interface, so that it becomes possible
-to access all the advanced functionality available in GSL.
 
 ** Pure 0.6 2008-09-12
 

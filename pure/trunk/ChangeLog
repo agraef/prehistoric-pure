@@ -3,7 +3,9 @@
 	* Implemented basic GSL matrix support, including support for
 	symbolic matrices (which is independent from GSL, so these will
 	also work when building the interpreter without GSL) and matrix
-	comprehensions. This required many additions and changes to the
+	comprehensions. Marshalling of matrices in the C interface is also
+	implemented, so that you can interface to GSL matrix functions
+	without much ado. This required many additions and changes to the
 	parser, interpreter, compiler, runtime and the prelude; details
 	can be found in the svn log (see r759 and r769ff.).
 
