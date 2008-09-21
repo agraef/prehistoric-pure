@@ -133,8 +133,7 @@ interpreter::interpreter()
   // Complex numbers (complex double).
   {
     std::vector<const Type*> elts;
-    elts.push_back(Type::DoubleTy);
-    elts.push_back(Type::DoubleTy);
+    elts.push_back(ArrayType::get(Type::DoubleTy, 2));
     ComplexTy = StructType::get(elts);
     ComplexPtrTy = PointerType::get(ComplexTy, 0);
   }
@@ -375,6 +374,16 @@ interpreter::interpreter()
 		 "pure_get_int",     "int",   1, "expr*");
   declare_extern((void*)pure_get_matrix,
 		 "pure_get_matrix",  "void*", 1, "expr*");
+
+#if COMPLEX_NUMBERS
+  /* Marshalling of complex numbers. This doesn't work yet and is disabled. */
+  declare_extern((void*)pure_complex,
+		 "pure_complex",    "expr*",  1, "complex");
+  declare_extern((void*)pure_is_complex,
+		 "pure_is_complex", "bool",   1, "expr*");
+  declare_extern((void*)pure_get_complex,
+		 "pure_get_complex", "complex", 1, "expr*");
+#endif
 
   declare_extern((void*)pure_catch,
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
@@ -3664,7 +3673,7 @@ const Type *interpreter::named_type(string name)
     return Type::FloatTy;
   else if (name == "double")
     return Type::DoubleTy;
-#if 0 // no marshalling available yet, does LLVM support these?
+#if COMPLEX_NUMBERS
   else if (name == "complex")
     return ComplexTy;
 #endif
@@ -3678,7 +3687,7 @@ const Type *interpreter::named_type(string name)
     return PointerType::get(Type::Int64Ty, 0);
   else if (name == "double*")
     return PointerType::get(Type::DoubleTy, 0);
-#if 0
+#if COMPLEX_NUMBERS
   else if (name == "complex*")
     return ComplexPtrTy;
 #endif
@@ -3721,8 +3730,10 @@ const char *interpreter::type_name(const Type *type)
     return "float";
   else if (type == Type::DoubleTy)
     return "double";
+#if COMPLEX_NUMBERS
   else if (type == ComplexTy)
     return "complex";
+#endif
   else if (type == CharPtrTy)
     return "char*";
   else if (type == PointerType::get(Type::Int16Ty, 0))
@@ -3733,8 +3744,10 @@ const char *interpreter::type_name(const Type *type)
     return "long*";
   else if (type == PointerType::get(Type::DoubleTy, 0))
     return "double*";
+#if COMPLEX_NUMBERS
   else if (type == ComplexPtrTy)
     return "complex*";
+#endif
   else if (type == ExprPtrTy)
     return "expr*";
   else if (type == ExprPtrPtrTy)
@@ -4080,6 +4093,19 @@ Function *interpreter::declare_extern(string name, string restype,
       idx[1] = ValFldIndex;
       Value *dv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "dblval");
       unboxed[i] = dv;
+#if COMPLEX_NUMBERS
+    } else if (argt[i] == ComplexTy) {
+      BasicBlock *okbb = BasicBlock::Create("ok");
+      // Pure's complex values are a special algebraic data type defined in
+      // math.pure, hence we have to go to some lengths here to get these
+      // values.
+      Value *chk = b.CreateCall(module->getFunction("pure_is_complex"), x);
+      b.CreateCondBr(chk, okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *cv = b.CreateCall(module->getFunction("pure_get_complex"), x);
+      unboxed[i] = cv;
+#endif
     } else if (argt[i] == CharPtrTy) {
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
@@ -4094,7 +4120,11 @@ Function *interpreter::declare_extern(string name, string restype,
 	       argt[i] == PointerType::get(Type::Int32Ty, 0) ||
 	       argt[i] == PointerType::get(Type::Int64Ty, 0) ||
 	       argt[i] == PointerType::get(Type::FloatTy, 0) ||
-	       argt[i] == PointerType::get(Type::DoubleTy, 0)) {
+	       argt[i] == PointerType::get(Type::DoubleTy, 0)
+#if COMPLEX_NUMBERS
+	       || argt[i] == ComplexPtrTy
+#endif
+	       ) {
       BasicBlock *okbb = BasicBlock::Create("ok");
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
@@ -4200,13 +4230,21 @@ Function *interpreter::declare_extern(string name, string restype,
 		     b.CreateFPExt(u, Type::DoubleTy));
   else if (type == Type::DoubleTy)
     u = b.CreateCall(module->getFunction("pure_double"), u);
+#if COMPLEX_NUMBERS
+  else if (type == ComplexTy)
+    u = b.CreateCall(module->getFunction("pure_complex"), u);
+#endif
   else if (type == CharPtrTy)
     u = b.CreateCall(module->getFunction("pure_cstring_dup"), u);
   else if (type == PointerType::get(Type::Int16Ty, 0) ||
 	   type == PointerType::get(Type::Int32Ty, 0) ||
 	   type == PointerType::get(Type::Int64Ty, 0) ||
 	   type == PointerType::get(Type::FloatTy, 0) ||
-	   type == PointerType::get(Type::DoubleTy, 0))
+	   type == PointerType::get(Type::DoubleTy, 0)
+#if COMPLEX_NUMBERS
+	   || type == ComplexPtrTy
+#endif
+	   )
     u = b.CreateCall(module->getFunction("pure_pointer"),
 		     b.CreateBitCast(u, VoidPtrTy));
   else if (type == GSLMatrixPtrTy)

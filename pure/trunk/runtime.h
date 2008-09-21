@@ -438,6 +438,21 @@ void *pure_get_bigint(pure_expr *x);
 int64_t pure_get_long(pure_expr *x);
 int32_t pure_get_int(pure_expr *x);
 
+#if 0
+// This stuff is disabled right now as it doesn't work yet.
+/* Marshall complex numbers. These are actually defined as an algebraic type
+   in math.pure, but we need some basic support for these values in the C
+   interface. */
+
+/* We don't want to rely on ISO complex number support here. The following
+   should do the job on all supported systems. */
+typedef struct { double x[2]; } __complex_double;
+
+pure_expr *pure_complex(__complex_double c);
+bool pure_is_complex(pure_expr *x);
+__complex_double pure_get_complex(pure_expr *x);
+#endif
+
 /* Convert a matrix expression to a pointer to the corresponding GSL matrix
    struct. This is used to marshall matrix arguments in the C interface. */
 
