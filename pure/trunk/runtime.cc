@@ -2048,6 +2048,26 @@ bool pure_is_tuplev(pure_expr *x, size_t *_size, pure_expr ***_elems)
 }
 
 extern "C"
+pure_expr *pure_complex(double c[2])
+{
+  return make_complex(c[0], c[1]);
+}
+
+extern "C"
+bool pure_is_complex(pure_expr *x, double *c)
+{
+  double a, b;
+  if (get_complex(x, a, b)) {
+    if (c) {
+      c[0] = a;
+      c[1] = b;
+    }
+    return true;
+  } else
+    return false;
+}
+
+extern "C"
 pure_expr *pure_new(pure_expr *x)
 {
   return pure_new_internal(x);
@@ -2542,32 +2562,6 @@ void *pure_get_bigint(pure_expr *x)
   assert(x && x->tag == EXPR::BIGINT);
   return &x->data.z;
 }
-
-#if COMPLEX_NUMBERS
-extern "C"
-pure_expr *pure_complex(__complex_double c)
-{
-  return make_complex(c.x[0], c.x[1]);
-}
-
-extern "C"
-bool pure_is_complex(pure_expr *x)
-{
-  return is_complex(x);
-}
-
-extern "C"
-__complex_double pure_get_complex(pure_expr *x)
-{
-  __complex_double res = {{0.0,0.0}};
-  double a, b;
-  if (get_complex(x, a, b)) {
-    res.x[0] = a;
-    res.x[1] = b;
-  }
-  return res;
-}
-#endif
 
 extern "C"
 void *pure_get_matrix(pure_expr *x)
