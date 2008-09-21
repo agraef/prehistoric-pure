@@ -3536,10 +3536,24 @@ pure_expr *pure_pointerval(pure_expr *x)
 #else
       return pure_pointer((void*)(uint32_t)pure_get_int(x));
 #endif
-  case EXPR::MATRIX:
-  case EXPR::DMATRIX:
-  case EXPR::CMATRIX:
-  case EXPR::IMATRIX:	return pure_pointer(x->data.mat.p);
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    return pure_pointer(m->data);
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    return pure_pointer(m->data);
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    return pure_pointer(m->data);
+  }
+  case EXPR::IMATRIX:{
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    return pure_pointer(m->data);
+  }
+#endif
   default:		return 0;
   }
 }
