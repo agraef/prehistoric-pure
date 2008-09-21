@@ -4096,6 +4096,33 @@ pure_expr *matrix_dim(pure_expr *x)
 }
 
 extern "C"
+uint32_t matrix_stride(pure_expr *x)
+{
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    return m->tda;
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    return m->tda;
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    return m->tda;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    return m->tda;
+  }
+#endif
+  default:
+    return 0;
+  }
+}
+
+extern "C"
 int32_t matrix_type(pure_expr *x)
 {
   uint32_t t = (uint32_t)x->tag;

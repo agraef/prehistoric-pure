@@ -660,13 +660,19 @@ const char *lasterr();
 
 /* Basic matrix operations. These work with all supported GSL matrix types.
    matrix_size determines the number of elements in a matrix, matrix_dim the
-   number of rows and columns, which are returned as a pair (n,m). matrix_type
-   determines the exact type of a matrix, returning an integer denoting the
-   subtype tag (0 = symbolic, 1 = double, 2 = complex, 3 = integer matrix; -1
-   is returned if the given object is not a matrix). */
+   number of rows and columns, which are returned as a pair (n,m).
+   matrix_stride returns the real row length of a matrix, which may be larger
+   than its column count if the matrix is actually a slice of a larger matrix.
+   (This value won't be of much use in Pure programs since there is no way to
+   access the "extra" elements in each row, but may be useful if the data
+   pointer is passed to an external C routine.) matrix_type determines the
+   exact type of a matrix, returning an integer denoting the subtype tag (0 =
+   symbolic, 1 = double, 2 = complex, 3 = integer matrix; -1 is returned if
+   the given object is not a matrix). */
 
 uint32_t matrix_size(pure_expr *x);
 pure_expr *matrix_dim(pure_expr *x);
+uint32_t matrix_stride(pure_expr *x);
 int32_t matrix_type(pure_expr *x);
 
 /* Matrix elements can be retrieved either by a single index (using row-major
