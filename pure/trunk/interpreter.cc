@@ -126,6 +126,98 @@ interpreter::interpreter()
   // Char pointer type.
   CharPtrTy = PointerType::get(Type::Int8Ty, 0);
 
+  // int and double pointers.
+  IntPtrTy = PointerType::get(Type::Int32Ty, 0);
+  DoublePtrTy = PointerType::get(Type::DoubleTy, 0);
+
+  // Complex numbers (complex double).
+  {
+    std::vector<const Type*> elts;
+    elts.push_back(Type::DoubleTy);
+    elts.push_back(Type::DoubleTy);
+    ComplexTy = StructType::get(elts);
+    ComplexPtrTy = PointerType::get(ComplexTy, 0);
+  }
+
+  // GSL matrix types. These are used to marshall GSL matrices in the C
+  // interface.
+  {
+    std::vector<const Type*> elts;
+    if (sizeof(size_t) == 4) {
+      elts.push_back(Type::Int32Ty);	// size1
+      elts.push_back(Type::Int32Ty);	// size2
+      elts.push_back(Type::Int32Ty);	// tda
+    } else {
+      assert(sizeof(size_t) == 8);
+      elts.push_back(Type::Int64Ty);	// size1
+      elts.push_back(Type::Int64Ty);	// size2
+      elts.push_back(Type::Int64Ty);	// tda
+    }
+    elts.push_back(VoidPtrTy);		// data
+    elts.push_back(VoidPtrTy);		// block
+    elts.push_back(Type::Int32Ty);	// owner
+    GSLMatrixTy = StructType::get(elts);
+    module->addTypeName("struct.gsl_matrix", GSLMatrixTy);
+    GSLMatrixPtrTy = PointerType::get(GSLMatrixTy, 0);
+  }
+  {
+    std::vector<const Type*> elts;
+    if (sizeof(size_t) == 4) {
+      elts.push_back(Type::Int32Ty);	// size1
+      elts.push_back(Type::Int32Ty);	// size2
+      elts.push_back(Type::Int32Ty);	// tda
+    } else {
+      assert(sizeof(size_t) == 8);
+      elts.push_back(Type::Int64Ty);	// size1
+      elts.push_back(Type::Int64Ty);	// size2
+      elts.push_back(Type::Int64Ty);	// tda
+    }
+    elts.push_back(DoublePtrTy);	// data
+    elts.push_back(VoidPtrTy);		// block
+    elts.push_back(Type::Int32Ty);	// owner
+    GSLDoubleMatrixTy = StructType::get(elts);
+    module->addTypeName("struct.gsl_matrix_double", GSLDoubleMatrixTy);
+    GSLDoubleMatrixPtrTy = PointerType::get(GSLDoubleMatrixTy, 0);
+  }
+  {
+    std::vector<const Type*> elts;
+    if (sizeof(size_t) == 4) {
+      elts.push_back(Type::Int32Ty);	// size1
+      elts.push_back(Type::Int32Ty);	// size2
+      elts.push_back(Type::Int32Ty);	// tda
+    } else {
+      assert(sizeof(size_t) == 8);
+      elts.push_back(Type::Int64Ty);	// size1
+      elts.push_back(Type::Int64Ty);	// size2
+      elts.push_back(Type::Int64Ty);	// tda
+    }
+    elts.push_back(ComplexPtrTy);	// data
+    elts.push_back(VoidPtrTy);		// block
+    elts.push_back(Type::Int32Ty);	// owner
+    GSLComplexMatrixTy = StructType::get(elts);
+    module->addTypeName("struct.gsl_matrix_complex", GSLComplexMatrixTy);
+    GSLComplexMatrixPtrTy = PointerType::get(GSLComplexMatrixTy, 0);
+  }
+  {
+    std::vector<const Type*> elts;
+    if (sizeof(size_t) == 4) {
+      elts.push_back(Type::Int32Ty);	// size1
+      elts.push_back(Type::Int32Ty);	// size2
+      elts.push_back(Type::Int32Ty);	// tda
+    } else {
+      assert(sizeof(size_t) == 8);
+      elts.push_back(Type::Int64Ty);	// size1
+      elts.push_back(Type::Int64Ty);	// size2
+      elts.push_back(Type::Int64Ty);	// tda
+    }
+    elts.push_back(IntPtrTy);		// data
+    elts.push_back(VoidPtrTy);		// block
+    elts.push_back(Type::Int32Ty);	// owner
+    GSLIntMatrixTy = StructType::get(elts);
+    module->addTypeName("struct.gsl_matrix_int", GSLIntMatrixTy);
+    GSLIntMatrixPtrTy = PointerType::get(GSLIntMatrixTy, 0);
+  }
+
   // Create the expr struct type.
 
   /* NOTE: This is in fact just a part of the prologue of the expression data
@@ -248,9 +340,17 @@ interpreter::interpreter()
 		 "pure_apply",      "expr*",  2, "expr*", "expr*");
 
   declare_extern((void*)pure_matrix_rows,
-		 "pure_matrix_rows", "expr*", -1, "int");
+		 "pure_matrix_rows", "expr*",    -1, "int");
   declare_extern((void*)pure_matrix_columns,
 		 "pure_matrix_columns", "expr*", -1, "int");
+  declare_extern((void*)pure_symbolic_matrix,
+		 "pure_symbolic_matrix", "expr*", 1, "void*");
+  declare_extern((void*)pure_double_matrix,
+		 "pure_double_matrix", "expr*",   1, "void*");
+  declare_extern((void*)pure_complex_matrix,
+		 "pure_complex_matrix", "expr*",  1, "void*");
+  declare_extern((void*)pure_int_matrix,
+		 "pure_int_matrix", "expr*",      1, "void*");
 
   declare_extern((void*)pure_listl,
 		 "pure_listl",      "expr*", -1, "int");
@@ -273,6 +373,8 @@ interpreter::interpreter()
 		 "pure_get_long",    "long",  1, "expr*");
   declare_extern((void*)pure_get_int,
 		 "pure_get_int",     "int",   1, "expr*");
+  declare_extern((void*)pure_get_matrix,
+		 "pure_get_matrix",  "void*", 1, "expr*");
 
   declare_extern((void*)pure_catch,
 		 "pure_catch",      "expr*",  2, "expr*", "expr*");
@@ -3562,6 +3664,10 @@ const Type *interpreter::named_type(string name)
     return Type::FloatTy;
   else if (name == "double")
     return Type::DoubleTy;
+#if 0 // no marshalling available yet, does LLVM support these?
+  else if (name == "complex")
+    return ComplexTy;
+#endif
   else if (name == "char*")
     return CharPtrTy;
   else if (name == "short*")
@@ -3572,10 +3678,22 @@ const Type *interpreter::named_type(string name)
     return PointerType::get(Type::Int64Ty, 0);
   else if (name == "double*")
     return PointerType::get(Type::DoubleTy, 0);
+#if 0
+  else if (name == "complex*")
+    return ComplexPtrTy;
+#endif
   else if (name == "expr*")
     return ExprPtrTy;
   else if (name == "expr**")
     return ExprPtrPtrTy;
+  else if (name == "matrix*")
+    return GSLMatrixPtrTy;
+  else if (name == "dmatrix*")
+    return GSLDoubleMatrixPtrTy;
+  else if (name == "cmatrix*")
+    return GSLComplexMatrixPtrTy;
+  else if (name == "imatrix*")
+    return GSLIntMatrixPtrTy;
   else if (name == "void*")
     return VoidPtrTy;
   else if (name.size() > 0 && name[name.size()-1] == '*')
@@ -3603,6 +3721,8 @@ const char *interpreter::type_name(const Type *type)
     return "float";
   else if (type == Type::DoubleTy)
     return "double";
+  else if (type == ComplexTy)
+    return "complex";
   else if (type == CharPtrTy)
     return "char*";
   else if (type == PointerType::get(Type::Int16Ty, 0))
@@ -3613,10 +3733,20 @@ const char *interpreter::type_name(const Type *type)
     return "long*";
   else if (type == PointerType::get(Type::DoubleTy, 0))
     return "double*";
+  else if (type == ComplexPtrTy)
+    return "complex*";
   else if (type == ExprPtrTy)
     return "expr*";
   else if (type == ExprPtrPtrTy)
     return "expr**";
+  else if (type == GSLMatrixPtrTy)
+    return "matrix*";
+  else if (type == GSLDoubleMatrixPtrTy)
+    return "dmatrix*";
+  else if (type == GSLComplexMatrixPtrTy)
+    return "cmatrix*";
+  else if (type == GSLIntMatrixPtrTy)
+    return "imatrix*";
   else if (type == VoidPtrTy)
     return "void*";
   else if (type->getTypeID() == Type::PointerTyID)
@@ -3794,7 +3924,6 @@ Function *interpreter::declare_extern(string name, string restype,
     Value *x = args[i];
     // check for thunks which must be forced
     if (argt[i] != ExprPtrTy) {
-#if 1
       // do a quick check on the tag value
       Value *idx[2] = { Zero, Zero };
       Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
@@ -3808,9 +3937,6 @@ Function *interpreter::declare_extern(string name, string restype,
       b.CreateBr(skipbb);
       f->getBasicBlockList().push_back(skipbb);
       b.SetInsertPoint(skipbb);
-#else
-      b.CreateCall(module->getFunction("pure_force"), x);
-#endif
     }
     if (argt[i] == Type::Int1Ty) {
       BasicBlock *okbb = BasicBlock::Create("ok");
@@ -3980,6 +4106,28 @@ Function *interpreter::declare_extern(string name, string restype,
       idx[1] = ValFldIndex;
       Value *ptrv = b.CreateLoad(b.CreateGEP(pv, idx, idx+2), "ptrval");
       unboxed[i] = b.CreateBitCast(ptrv, argt[i]);
+    } else if (argt[i] == GSLMatrixPtrTy ||
+	       argt[i] == GSLDoubleMatrixPtrTy ||
+	       argt[i] == GSLComplexMatrixPtrTy ||
+	       argt[i] == GSLIntMatrixPtrTy) {
+      BasicBlock *okbb = BasicBlock::Create("ok");
+      Value *idx[2] = { Zero, Zero };
+      Value *tagv = b.CreateLoad(b.CreateGEP(x, idx, idx+2), "tag");
+      int32_t ttag = -99;
+      if (argt[i] == GSLMatrixPtrTy)
+	ttag = EXPR::MATRIX;
+      else if (argt[i] == GSLDoubleMatrixPtrTy)
+	ttag = EXPR::DMATRIX;
+      else if (argt[i] == GSLComplexMatrixPtrTy)
+	ttag = EXPR::CMATRIX;
+      else if (argt[i] == GSLIntMatrixPtrTy)
+	ttag = EXPR::IMATRIX;
+      b.CreateCondBr
+	(b.CreateICmpEQ(tagv, SInt(ttag), "cmp"), okbb, failedbb);
+      f->getBasicBlockList().push_back(okbb);
+      b.SetInsertPoint(okbb);
+      Value *matv = b.CreateCall(module->getFunction("pure_get_matrix"), x);
+      unboxed[i] = b.CreateBitCast(matv, argt[i]);
     } else if (argt[i] == ExprPtrTy) {
       // passed through
       unboxed[i] = x;
@@ -4060,6 +4208,18 @@ Function *interpreter::declare_extern(string name, string restype,
 	   type == PointerType::get(Type::FloatTy, 0) ||
 	   type == PointerType::get(Type::DoubleTy, 0))
     u = b.CreateCall(module->getFunction("pure_pointer"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == GSLMatrixPtrTy)
+    u = b.CreateCall(module->getFunction("pure_symbolic_matrix"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == GSLDoubleMatrixPtrTy)
+    u = b.CreateCall(module->getFunction("pure_double_matrix"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == GSLComplexMatrixPtrTy)
+    u = b.CreateCall(module->getFunction("pure_complex_matrix"),
+		     b.CreateBitCast(u, VoidPtrTy));
+  else if (type == GSLIntMatrixPtrTy)
+    u = b.CreateCall(module->getFunction("pure_int_matrix"),
 		     b.CreateBitCast(u, VoidPtrTy));
   else if (type == ExprPtrTy) {
     // check that we actually got a valid pointer; otherwise the call failed
