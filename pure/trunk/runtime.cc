@@ -2522,6 +2522,14 @@ void *pure_get_bigint(pure_expr *x)
 }
 
 extern "C"
+void *pure_get_matrix(pure_expr *x)
+{
+  assert(x && x->tag == EXPR::MATRIX || x->tag == EXPR::DMATRIX ||
+	 x->tag == EXPR::CMATRIX || x->tag == EXPR::IMATRIX);
+  return x->data.mat.p;
+}
+
+extern "C"
 pure_expr *pure_matrix_rows(uint32_t n, ...)
 {
   va_list ap;
@@ -3486,6 +3494,10 @@ pure_expr *pure_pointerval(pure_expr *x)
 #else
       return pure_pointer((void*)(uint32_t)pure_get_int(x));
 #endif
+  case EXPR::MATRIX:
+  case EXPR::DMATRIX:
+  case EXPR::CMATRIX:
+  case EXPR::IMATRIX:	return pure_pointer(x->data.mat.p);
   default:		return 0;
   }
 }

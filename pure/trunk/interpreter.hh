@@ -493,9 +493,13 @@ public:
   llvm::ExecutionEngine *JIT;
   llvm::FunctionPassManager *FPM;
   llvm::StructType  *ExprTy, *IntExprTy, *DblExprTy, *StrExprTy, *PtrExprTy;
+  llvm::StructType  *ComplexTy, *GSLMatrixTy, *GSLDoubleMatrixTy,
+    *GSLComplexMatrixTy, *GSLIntMatrixTy;
   llvm::PointerType *ExprPtrTy, *ExprPtrPtrTy;
   llvm::PointerType *IntExprPtrTy, *DblExprPtrTy, *StrExprPtrTy, *PtrExprPtrTy;
-  llvm::PointerType *VoidPtrTy, *CharPtrTy;
+  llvm::PointerType *VoidPtrTy, *CharPtrTy, *IntPtrTy, *DoublePtrTy;
+  llvm::PointerType *ComplexPtrTy, *GSLMatrixPtrTy, *GSLDoubleMatrixPtrTy,
+    *GSLComplexMatrixPtrTy, *GSLIntMatrixPtrTy;
   const llvm::Type *named_type(string name);
   const char *type_name(const llvm::Type *type);
   map<int32_t,GlobalVar> globalvars;

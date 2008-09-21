@@ -117,7 +117,8 @@ pointer x::pointer	= x;
 pointer x::int		|
 pointer x::bigint	|
 pointer x::double	|
-pointer x::string	= pure_pointerval x;
+pointer x::string	|
+pointer x::matrix	= pure_pointerval x;
 
 /* Convert signed (8/16/32/64) bit integers to the corresponding unsigned
    quantities. These functions behave as if the value was "cast" to the

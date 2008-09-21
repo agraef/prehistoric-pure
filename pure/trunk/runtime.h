@@ -438,6 +438,11 @@ void *pure_get_bigint(pure_expr *x);
 int64_t pure_get_long(pure_expr *x);
 int32_t pure_get_int(pure_expr *x);
 
+/* Convert a matrix expression to a pointer to the corresponding GSL matrix
+   struct. This is used to marshall matrix arguments in the C interface. */
+
+void *pure_get_matrix(pure_expr *x);
+
 /* Additional matrix constructors. These work like pure_matrix_rowsl and
    pure_matrix_columnsl in the public API, but are intended to be called
    directly from generated code and raise the appropriate Pure exceptions in
@@ -546,7 +551,8 @@ void pure_debug(int32_t tag, const char *format, ...);
    an expression denoting an int, double, bigint or pointer value. The numeric
    value of a pointer is its address, cast to a suitably large integer type,
    which can be converted to/from an integer, but not a double value. Strings
-   can be converted to pointers as well, but not the other way round. */
+   and matrices can be converted to pointers as well, but not the other way
+   round. */
 
 pure_expr *pure_intval(pure_expr *x);
 pure_expr *pure_dblval(pure_expr *x);
