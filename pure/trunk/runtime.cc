@@ -4107,25 +4107,29 @@ int32_t matrix_type(pure_expr *x)
 }
 
 extern "C"
-pure_expr *matrix_elem_at(pure_expr *x, int32_t i)
+pure_expr *matrix_elem_at(pure_expr *x, int32_t _i)
 {
   switch (x->tag) {
   case EXPR::MATRIX: {
     gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
-    return m->data[i];
+    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+    return m->data[k];
   }
 #ifdef HAVE_GSL
   case EXPR::DMATRIX: {
     gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
-    return pure_double(m->data[i]);
+    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+    return pure_double(m->data[k]);
   }
   case EXPR::CMATRIX: {
     gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-    return make_complex(m->data[2*i], m->data[2*i+1]);
+    const size_t i = _i/m->size2, j = _i%m->size2, k = 2*(i*m->tda+j);
+    return make_complex(m->data[k], m->data[k+1]);
   }
   case EXPR::IMATRIX: {
     gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
-    return pure_int(m->data[i]);
+    const size_t i = _i/m->size2, j = _i%m->size2, k = i*m->tda+j;
+    return pure_int(m->data[k]);
   }
 #endif
   default:
@@ -4139,23 +4143,23 @@ pure_expr *matrix_elem_at2(pure_expr *x, int32_t i, int32_t j)
   switch (x->tag) {
   case EXPR::MATRIX: {
     gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
-    size_t k = i*m->tda+j;
+    const size_t k = i*m->tda+j;
     return m->data[k];
   }
 #ifdef HAVE_GSL
   case EXPR::DMATRIX: {
     gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
-    size_t k = i*m->tda+j;
+    const size_t k = i*m->tda+j;
     return pure_double(m->data[k]);
   }
   case EXPR::CMATRIX: {
     gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
-    size_t k = 2*(i*m->tda+j);
+    const size_t k = 2*(i*m->tda+j);
     return make_complex(m->data[k], m->data[k+1]);
   }
   case EXPR::IMATRIX: {
     gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
-    size_t k = i*m->tda+j;
+    const size_t k = i*m->tda+j;
     return pure_int(m->data[k]);
   }
 #endif
