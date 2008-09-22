@@ -435,7 +435,15 @@ x::matrix!(i::int,j::int)
 
 /* Slices. */
 
-x::matrix!!(ns,ms)	= colcatmap (mth (rowcatmap (nth x) ns)) ms with
+x::matrix!!(ns,ms)	= case ns,ms of
+			    // optimize the case of contiguous slices
+			    ns@(n:_),ms@(m:_) = submat x (n,m) (#ns,#ms)
+			      if cont ns && cont ms;
+			    _ = colcatmap (mth (rowcatmap (nth x) ns)) ms;
+			  end with
+			    cont [n] = 1;
+			    cont (n::int:ns@(m::int:_)) = cont ns if m==n+1;
+			    cont _ = 0 otherwise;
 			    nth x n = catch (cst {}) (row x n);
 			    mth x m = catch (cst {}) (col x m);
 			  end;
