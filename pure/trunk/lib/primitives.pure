@@ -532,6 +532,13 @@ extern expr* matrix_transpose(expr *x);
 
 x::matrix'		= matrix_transpose x;
 
+/* Reverse a matrix. rowrev reverses the rows, colrev the columns, reverse
+   both dimensions. */
+
+rowrev x::matrix	= rowcat (reverse (rows x));
+colrev x::matrix	= colcat (reverse (cols x));
+reverse x::matrix	= rowrev (colrev x);
+
 /* Matrix conversions. */
 
 private matrix_double matrix_complex matrix_int;
