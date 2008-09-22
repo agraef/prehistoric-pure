@@ -469,6 +469,20 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
+/* Convert a matrix to a list and vice versa. */
+
+list x::matrix		= [[x!(i,j) | j=0..m-1] | i=0..n-1]
+			    when n::int,m::int = dim x end;
+matrix []		= {};
+matrix xs@(x:_)		= rowcatmap colcat xs;
+
+/* Convenience functions to create vectors from lists. */
+
+rowvector xs@[] | rowvector xs@(_:_)
+			= colcat xs;
+colvector xs@[] | colvector xs@(_:_)
+			= rowcat xs;
+
 /* Extract (sub-,super-) diagonals from a matrix. Sub- and super-diagonals for
    k=0 return the main diagonal. Indices for sub- and super-diagonals can also
    be negative, in which case the corresponding super- or sub-diagonal is
