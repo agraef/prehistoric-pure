@@ -469,6 +469,16 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
+/* Extract (sub-,super-) diagonals from a matrix. Sub- and super-diagonals for
+   k=0 return the main diagonal. Indices for sub- and super-diagonals can also
+   be negative, in which case the corresponding super- or sub-diagonal is
+   returned instead. */
+
+private matrix_diag matrix_subdiag matrix_supdiag;
+extern expr* matrix_diag(expr* x) = diag;
+extern expr* matrix_subdiag(expr* x, int k) = subdiag;
+extern expr* matrix_supdiag(expr* x, int k) = supdiag;
+
 /* Extract a submatrix of a given size at a given offset. The result shares
    the underlying storage with the input matrix (i.e., matrix elements are
    *not* copied) and so this is a comparatively cheap operation. */

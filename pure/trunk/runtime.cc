@@ -4313,6 +4313,154 @@ pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
 }
 
 extern "C"
+pure_expr *matrix_diag(pure_expr *x)
+{
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n = (n1<n2)?n1:n2;
+    gsl_matrix_symbolic *m1 = create_symbolic_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[i*(m->tda+1)];
+    return pure_symbolic_matrix(m1);
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n = (n1<n2)?n1:n2;
+    gsl_matrix *m1 = create_double_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[i*(m->tda+1)];
+    return pure_double_matrix(m1);
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n = (n1<n2)?n1:n2;
+    gsl_matrix_complex *m1 = create_complex_matrix(1, n);
+    for (size_t i = 0; i < n; i++) {
+      const size_t k = 2*i*(m->tda+1);
+      m1->data[2*i] = m->data[k];
+      m1->data[2*i+1] = m->data[k+1];
+    }
+    return pure_complex_matrix(m1);
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n = (n1<n2)?n1:n2;
+    gsl_matrix_int *m1 = create_int_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[i*(m->tda+1)];
+    return pure_int_matrix(m1);
+  }
+#endif
+  default:
+    return 0;
+  }
+}
+
+extern "C"
+pure_expr *matrix_subdiag(pure_expr *x, int32_t k)
+{
+  if (k<0) return matrix_supdiag(x, -k);
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k*m->tda;
+    gsl_matrix_symbolic *m1 = create_symbolic_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_symbolic_matrix(m1);
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k*m->tda;
+    gsl_matrix *m1 = create_double_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_double_matrix(m1);
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k*m->tda;
+    gsl_matrix_complex *m1 = create_complex_matrix(1, n);
+    for (size_t i = 0; i < n; i++) {
+      const size_t k = 2*k0+2*i*(m->tda+1);
+      m1->data[2*i] = m->data[k];
+      m1->data[2*i+1] = m->data[k+1];
+    }
+    return pure_complex_matrix(m1);
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k*m->tda;
+    gsl_matrix_int *m1 = create_int_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_int_matrix(m1);
+  }
+#endif
+  default:
+    return 0;
+  }
+}
+
+extern "C"
+pure_expr *matrix_supdiag(pure_expr *x, int32_t k)
+{
+  if (k<0) return matrix_subdiag(x, -k);
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k;
+    gsl_matrix_symbolic *m1 = create_symbolic_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_symbolic_matrix(m1);
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k;
+    gsl_matrix *m1 = create_double_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_double_matrix(m1);
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k;
+    gsl_matrix_complex *m1 = create_complex_matrix(1, n);
+    for (size_t i = 0; i < n; i++) {
+      const size_t k = 2*k0+2*i*(m->tda+1);
+      m1->data[2*i] = m->data[k];
+      m1->data[2*i+1] = m->data[k+1];
+    }
+    return pure_complex_matrix(m1);
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    const size_t n1 = m->size1, n2 = m->size2, n0 = (n1<n2)?n1:n2;
+    const size_t n = (n0>(size_t)k)?n0-k:0, k0 = k;
+    gsl_matrix_int *m1 = create_int_matrix(1, n);
+    for (size_t i = 0; i < n; i++)
+      m1->data[i] = m->data[k0+i*(m->tda+1)];
+    return pure_int_matrix(m1);
+  }
+#endif
+  default:
+    return 0;
+  }
+}
+
+extern "C"
 pure_expr *matrix_redim(pure_expr *x, int32_t n, int32_t m)
 {
   void *p = 0;
