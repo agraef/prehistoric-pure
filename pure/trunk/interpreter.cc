@@ -133,9 +133,9 @@ interpreter::interpreter()
   // Complex numbers (complex double).
   {
     std::vector<const Type*> elts;
-    //elts.push_back(ArrayType::get(Type::DoubleTy, 2));
-    elts.push_back(Type::DoubleTy);
-    elts.push_back(Type::DoubleTy);
+    elts.push_back(ArrayType::get(Type::DoubleTy, 2));
+    //elts.push_back(Type::DoubleTy);
+    //elts.push_back(Type::DoubleTy);
     ComplexTy = StructType::get(elts);
     ComplexPtrTy = PointerType::get(ComplexTy, 0);
   }
