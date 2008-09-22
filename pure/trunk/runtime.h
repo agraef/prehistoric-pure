@@ -714,8 +714,10 @@ pure_expr *matrix_complex(pure_expr *x);
 pure_expr *matrix_int(pure_expr *x);
 
 /* Extract the real and imaginary parts of a numeric matrix. If the input is a
-   complex matrix, the result is a double matrix. Otherwise the type of the
-   result is the same as that of the input matrix. */
+   complex matrix, the result is a new double matrix. Otherwise the type of
+   the result is the same as that of the input matrix (in this case matrix_re
+   just returns the same matrix, and matrix_im returns a new zero matrix of
+   the same dimensions). */
 
 pure_expr *matrix_re(pure_expr *x);
 pure_expr *matrix_im(pure_expr *x);
