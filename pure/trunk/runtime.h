@@ -697,6 +697,12 @@ pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
 
 pure_expr *matrix_redim(pure_expr *x, int32_t n, int32_t m);
 
+/* Retrieve (sub-,super-)diagonals of a matrix, as a 1xn matrix. */
+
+pure_expr *matrix_diag(pure_expr *x);
+pure_expr *matrix_subdiag(pure_expr *x, int32_t k);
+pure_expr *matrix_supdiag(pure_expr *x, int32_t k);
+
 /* Matrix construction. These work like the pure_matrix_rows/
    pure_matrix_columns functions in the public API, but take their input from
    a Pure list. */
