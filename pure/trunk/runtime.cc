@@ -4313,6 +4313,114 @@ pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
 }
 
 extern "C"
+pure_expr *matrix_redim(pure_expr *x, int32_t n, int32_t m)
+{
+  void *p = 0;
+  if (n<0 || m<0) return 0;
+  const size_t n1 = (size_t)n, n2 = (size_t)m;
+  switch (x->tag) {
+  case EXPR::MATRIX: {
+    gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)x->data.mat.p;
+    if (n1*n2!=m->size1*m->size2) return 0;
+    if (m->tda == m->size2) {
+      // No copying necessary, just create a new view of this matrix.
+      gsl_matrix_symbolic *m1 =
+	(gsl_matrix_symbolic*)malloc(sizeof(gsl_matrix_symbolic));
+      assert(m1);
+      *m1 = *m;
+      m1->size1 = n1; m1->tda = m1->size2 = n2;
+      p = m1;
+    } else {
+      // Create a new matrix containing the same elements.
+      pure_expr *y = pure_symbolic_matrix_dup(m);
+      if (y) {
+	gsl_matrix_symbolic *m = (gsl_matrix_symbolic*)y->data.mat.p;
+	m->size1 = n1; m->tda = m->size2 = n2;
+      }
+      return y;
+    }
+    break;
+  }
+#ifdef HAVE_GSL
+  case EXPR::DMATRIX: {
+    gsl_matrix *m = (gsl_matrix*)x->data.mat.p;
+    if (n1*n2!=m->size1*m->size2) return 0;
+    if (m->tda == m->size2) {
+      // No copying necessary, just create a new view of this matrix.
+      gsl_matrix *m1 = (gsl_matrix*)malloc(sizeof(gsl_matrix));
+      assert(m1);
+      *m1 = *m;
+      m1->size1 = n1; m1->tda = m1->size2 = n2;
+      p = m1;
+    } else {
+      // Create a new matrix containing the same elements.
+      pure_expr *y = pure_double_matrix_dup(m);
+      if (y) {
+	gsl_matrix *m = (gsl_matrix*)y->data.mat.p;
+	m->size1 = n1; m->tda = m->size2 = n2;
+      }
+      return y;
+    }
+    break;
+  }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m = (gsl_matrix_complex*)x->data.mat.p;
+    if (n1*n2!=m->size1*m->size2) return 0;
+    if (m->tda == m->size2) {
+      // No copying necessary, just create a new view of this matrix.
+      gsl_matrix_complex *m1 =
+	(gsl_matrix_complex*)malloc(sizeof(gsl_matrix_complex));
+      assert(m1);
+      *m1 = *m;
+      m1->size1 = n1; m1->tda = m1->size2 = n2;
+      p = m1;
+    } else {
+      // Create a new matrix containing the same elements.
+      pure_expr *y = pure_complex_matrix_dup(m);
+      if (y) {
+	gsl_matrix_complex *m = (gsl_matrix_complex*)y->data.mat.p;
+	m->size1 = n1; m->tda = m->size2 = n2;
+      }
+      return y;
+    }
+    break;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m = (gsl_matrix_int*)x->data.mat.p;
+    if (n1*n2!=m->size1*m->size2) return 0;
+    if (m->tda == m->size2) {
+      // No copying necessary, just create a new view of this matrix.
+      gsl_matrix_int *m1 =
+	(gsl_matrix_int*)malloc(sizeof(gsl_matrix_int));
+      assert(m1);
+      *m1 = *m;
+      m1->size1 = n1; m1->tda = m1->size2 = n2;
+      p = m1;
+    } else {
+      // Create a new matrix containing the same elements.
+      pure_expr *y = pure_int_matrix_dup(m);
+      if (y) {
+	gsl_matrix_int *m = (gsl_matrix_int*)y->data.mat.p;
+	m->size1 = n1; m->tda = m->size2 = n2;
+      }
+      return y;
+    }
+    break;
+  }
+#endif
+  default:
+    return 0;
+  }
+  pure_expr *y = new_expr();
+  y->tag = x->tag;
+  y->data.mat.p = p;
+  y->data.mat.refc = x->data.mat.refc;
+  (*y->data.mat.refc)++;
+  MEMDEBUG_NEW(y)
+  return y;
+}
+
+extern "C"
 pure_expr *matrix_rows(pure_expr *xs)
 {
   size_t n;

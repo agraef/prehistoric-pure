@@ -692,6 +692,11 @@ pure_expr *matrix_elem_at2(pure_expr *x, int32_t i, int32_t j);
 pure_expr *matrix_slice(pure_expr *x, int32_t i1, int32_t j1,
 			int32_t i2, int32_t j2);
 
+/* Convert a matrix to a new matrix with same size but different dimensions.
+   Reuse the storage of the original matrix if its data is contiguous. */
+
+pure_expr *matrix_redim(pure_expr *x, int32_t n, int32_t m);
+
 /* Matrix construction. These work like the pure_matrix_rows/
    pure_matrix_columns functions in the public API, but take their input from
    a Pure list. */

@@ -447,7 +447,8 @@ x::matrix!!(ns,ms)	= case ns,ms of
 			    nth x n = catch (cst {}) (row x n);
 			    mth x m = catch (cst {}) (col x m);
 			  end;
-x::matrix!!ns		= colcatmap (nth x) ns with
+x::matrix!!ns		= if packed x then rowvector x!!(1,ns)
+			  else colcatmap (nth x) ns with
 			    nth x n = catch (cst {}) {x!n};
 			  end;
 
@@ -468,10 +469,27 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
-/* Extract a submatrix of a given size at a given offset. */
+/* Extract a submatrix of a given size at a given offset. The result shares
+   the underlying storage with the input matrix (i.e., matrix elements are
+   *not* copied) and so this is a comparatively cheap operation. */
 
 submat x::matrix (i::int,j::int) (n::int,m::int)
 			= matrix_slice x i j (i+n-1) (j+m-1);
+
+/* Change the dimensions of a matrix without changing its size. The total
+   number of elements must match that of the input matrix. Reuses the
+   underlying storage of the input matrix if possible. */
+
+private matrix_redim;
+extern expr* matrix_redim(expr* x, int n, int m);
+
+redim x::matrix (n::int,m::int)
+			= matrix_redim x n m if n*m==#x;
+
+/* Convenience functions for converting a matrix to a row or column vector. */
+
+rowvector x::matrix	= redim x (1,#x);
+colvector x::matrix	= redim x (#x,1);
 
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.
