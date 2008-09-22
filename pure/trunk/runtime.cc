@@ -1350,6 +1350,7 @@ symbolic_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
 	  memcpy(data+i*tda, mat1->data+j*mat1->tda, ncols*sizeof(pure_expr*));
       break;
     }
+#ifdef HAVE_GSL
     case EXPR::DMATRIX: {
       gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
@@ -1380,6 +1381,7 @@ symbolic_matrix_rows(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       }
       break;
     }
+#endif
     default:
       data[i++*tda] = x;
       break;
@@ -1411,6 +1413,7 @@ symbolic_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       i += mat1->size2;
       break;
     }
+#ifdef HAVE_GSL
     case EXPR::DMATRIX: {
       gsl_matrix *mat1 = (gsl_matrix*)x->data.mat.p;
       if (mat1)
@@ -1444,6 +1447,7 @@ symbolic_matrix_columns(size_t nrows, size_t ncols, size_t n, pure_expr **xs)
       i += mat1->size2;
       break;
     }
+#endif
     default:
       data[i++] = x;
       break;
@@ -1565,12 +1569,14 @@ pure_expr *pure_matrix_rowsv(uint32_t n, pure_expr **xs)
   switch (target) {
   case EXPR::MATRIX:
     return symbolic_matrix_rows(nrows, ncols, n, xs);
+#ifdef HAVE_GSL
   case EXPR::DMATRIX:
     return double_matrix_rows(nrows, ncols, n, xs);
   case EXPR::CMATRIX:
     return complex_matrix_rows(nrows, ncols, n, xs);
   case EXPR::IMATRIX:
     return int_matrix_rows(nrows, ncols, n, xs);
+#endif
   default:
     return 0;
   }
@@ -1678,12 +1684,14 @@ pure_expr *pure_matrix_columnsv(uint32_t n, pure_expr **xs)
   switch (target) {
   case EXPR::MATRIX:
     return symbolic_matrix_columns(nrows, ncols, n, xs);
+#ifdef HAVE_GSL
   case EXPR::DMATRIX:
     return double_matrix_columns(nrows, ncols, n, xs);
   case EXPR::CMATRIX:
     return complex_matrix_columns(nrows, ncols, n, xs);
   case EXPR::IMATRIX:
     return int_matrix_columns(nrows, ncols, n, xs);
+#endif
   default:
     return 0;
   }
@@ -2668,12 +2676,14 @@ pure_expr *pure_matrix_rows(uint32_t n, ...)
   switch (target) {
   case EXPR::MATRIX:
     return symbolic_matrix_rows(nrows, ncols, n, xs);
+#ifdef HAVE_GSL
   case EXPR::DMATRIX:
     return double_matrix_rows(nrows, ncols, n, xs);
   case EXPR::CMATRIX:
     return complex_matrix_rows(nrows, ncols, n, xs);
   case EXPR::IMATRIX:
     return int_matrix_rows(nrows, ncols, n, xs);
+#endif
   default:
     assert(0 && "this can't happen");
     return 0;
@@ -2788,12 +2798,14 @@ pure_expr *pure_matrix_columns(uint32_t n, ...)
   switch (target) {
   case EXPR::MATRIX:
     return symbolic_matrix_columns(nrows, ncols, n, xs);
+#ifdef HAVE_GSL
   case EXPR::DMATRIX:
     return double_matrix_columns(nrows, ncols, n, xs);
   case EXPR::CMATRIX:
     return complex_matrix_columns(nrows, ncols, n, xs);
   case EXPR::IMATRIX:
     return int_matrix_columns(nrows, ncols, n, xs);
+#endif
   default:
     assert(0 && "this can't happen");
     return 0;
@@ -4656,6 +4668,7 @@ bool same(pure_expr *x, pure_expr *y)
 	    return 0;
       return 1;
     }
+#ifdef HAVE_GSL
     case EXPR::DMATRIX: {
       gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
       gsl_matrix *m2 = (gsl_matrix*)y->data.mat.p;
@@ -4695,6 +4708,7 @@ bool same(pure_expr *x, pure_expr *y)
 	    return 0;
       return 1;
     }
+#endif
     default:
       return 1;
     }
