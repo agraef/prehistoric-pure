@@ -45,6 +45,10 @@
       <item> string </item>
       <item> pointer </item>
       <item> void </item>
+      <item> matrix </item>
+      <item> dmatrix </item>
+      <item> cmatrix </item>
+      <item> imatrix </item>
     </list>
     <contexts>
       <context attribute="Normal Text" lineEndContext="#stay" name="Normal">

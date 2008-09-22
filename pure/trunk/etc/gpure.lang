@@ -126,6 +126,10 @@
       <keyword>void</keyword>
       <keyword>string</keyword>
       <keyword>pointer</keyword>
+      <keyword>matrix</keyword>
+      <keyword>dmatrix</keyword>
+      <keyword>cmatrix</keyword>
+      <keyword>imatrix</keyword>
     </context>
     
     <!-- http://www.lysator.liu.se/c/ANSI-C-grammar-l.html -->

@@ -38,6 +38,7 @@ syn keyword pureKeyword	using when with
 syn keyword pureSpecial catch throw
 syn keyword pureType bigint bool char short int long double
 syn keyword pureType expr string pointer void
+syn keyword pureType matrix dmatrix cmatrix imatrix
 
 syn match   pureNumber	         "\<[0-9]*\>"
 syn match   pureHexNumber	 "\<0[Xx][0-9A-Fa-f]*\>"
