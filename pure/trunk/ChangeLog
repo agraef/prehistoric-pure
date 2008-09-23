@@ -1,5 +1,8 @@
 2008-09-23  Albert Graef  <Dr.Graef@t-online.de>
 
+	* lib/matrices.pure: Moved the matrix operations from
+	primitives.pure to their own module.
+
 	* lib/primitives.pure: Added a bunch of new matrix operations. In
 	particular, list operations like filter and map now work on
 	matrices, too.

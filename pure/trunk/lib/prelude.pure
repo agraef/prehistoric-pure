@@ -74,7 +74,7 @@ const false, true = 0, 1;
    Note that the math and system modules are *not* included here, so you have
    to do that yourself if your program requires any of those operations. */
 
-using primitives, strings;
+using primitives, matrices, strings;
 
 /* Basic combinators. */
 
