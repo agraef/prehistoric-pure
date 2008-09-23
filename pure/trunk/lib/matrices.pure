@@ -342,6 +342,9 @@ packed x::matrix	= stride x==dim x!1;
    doubt use the 'pack' function from above to place the data in contiguous
    storage first. */
 
+private pure_pointerval;
+extern expr* pure_pointerval(expr*);
+
 pointer x::matrix	= pure_pointerval x;
 
 /* Create a numeric matrix from a pointer. The pointer to be converted must
