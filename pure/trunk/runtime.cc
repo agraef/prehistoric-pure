@@ -105,7 +105,7 @@ gsl_matrix_symbolic_submatrix(gsl_matrix_symbolic *m,
      s.tda = m->tda;
      s.block = m->block;
      s.owner = 0;
-     view.matrix = s;     
+     view.matrix = s;
      return view;
   }
 }
@@ -5005,6 +5005,95 @@ pure_expr *matrix_im(pure_expr *x)
   default:
     return 0;
   }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_double_array(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_double_matrix(create_double_matrix(n1, n2));
+  if (!p) p = calloc(n1*n2, sizeof(double));
+  if (!p) return 0;
+  gsl_matrix_view v = gsl_matrix_view_array((double*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix *m = (gsl_matrix*)malloc(sizeof(gsl_matrix));
+  gsl_block *b = (gsl_block*)malloc(sizeof(gsl_block));
+  assert(m && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::DMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_complex_array(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_complex_matrix(create_complex_matrix(n1, n2));
+  if (!p) p = calloc(2*n1*n2, sizeof(double));
+  if (!p) return 0;
+  gsl_matrix_complex_view v =
+    gsl_matrix_complex_view_array((double*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix_complex *m =
+    (gsl_matrix_complex*)malloc(sizeof(gsl_matrix_complex));
+  gsl_block_complex *b = (gsl_block_complex*)malloc(sizeof(gsl_block_complex));
+  assert(m && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::CMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_int_array(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_int_matrix(create_int_matrix(n1, n2));
+  if (!p) p = calloc(n1*n2, sizeof(int));
+  if (!p) return 0;
+  gsl_matrix_int_view v = gsl_matrix_int_view_array((int*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix_int *m = (gsl_matrix_int*)malloc(sizeof(gsl_matrix_int));
+  gsl_block_int *b = (gsl_block_int*)malloc(sizeof(gsl_block_int));
+  assert(m && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::IMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
 #else
   return 0;
 #endif

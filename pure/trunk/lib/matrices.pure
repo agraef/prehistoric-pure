@@ -43,6 +43,18 @@ vectorp x	= matrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
 rowvectorp x	= matrixp x && dim x!0==1;
 colvectorp x	= matrixp x && dim x!1==1;
 
+/* Convenience functions to create numeric matrices with the given dimensions
+   (either a pair denoting the number of rows and columns, or just the row
+   size in order to create a row vector), and all elements zero. */
+
+dmatrix (n::int,m::int)	= cdmatrix (pointer 0) (n,m);
+cmatrix (n::int,m::int)	= ccmatrix (pointer 0) (n,m);
+imatrix (n::int,m::int)	= cimatrix (pointer 0) (n,m);
+
+dmatrix n::int		= cdmatrix (pointer 0) n;
+cmatrix n::int		= ccmatrix (pointer 0) n;
+imatrix n::int		= cimatrix (pointer 0) n;
+
 /* Size of a matrix (#x) and its dimensions (dim x=n,m where n is the number
    of rows, m the number of columns). Note that Pure supports empty matrices,
    thus the total size may well be zero, meaning that either the number of
@@ -331,6 +343,37 @@ packed x::matrix	= stride x==dim x!1;
    storage first. */
 
 pointer x::matrix	= pure_pointerval x;
+
+/* Create a numeric matrix from a pointer. The pointer to be converted must
+   point to a malloc'ed, properly initialized memory area big enough to
+   accommodate the requested dimensions. The pointer may also be NULL in which
+   case a suitable pointer is allocated automatically. This memory is taken
+   over by Pure and will be freed automatically when the matrix object is
+   garbage-collected. CAVEAT: These are low-level operations and hence should
+   be used with care. They are useful, in particular, if you need to handle
+   massive amounts of matrix or vector data generated or processed by external
+   C software, such as graphics and sound libraries. */
+
+private matrix_from_double_array;
+private matrix_from_complex_array;
+private matrix_from_int_array;
+extern expr* matrix_from_double_array(void* p, int n, int m);
+extern expr* matrix_from_complex_array(void* p, int n, int m);
+extern expr* matrix_from_int_array(void* p, int n, int m);
+
+cdmatrix p::pointer (n::int,m::int)
+			= matrix_from_double_array p n m;
+ccmatrix p::pointer (n::int,m::int)
+			= matrix_from_complex_array p n m;
+cimatrix p::pointer (n::int,m::int)
+			= matrix_from_int_array p n m;
+
+cdmatrix p::pointer n::int
+			= cdmatrix p (1,n);
+ccmatrix p::pointer n::int
+			= ccmatrix p (1,n);
+cimatrix p::pointer n::int
+			= cimatrix p (1,n);
 
 /* Matrix comparisons. */
 
