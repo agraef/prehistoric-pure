@@ -733,6 +733,18 @@ pure_expr *matrix_int(pure_expr *x);
 pure_expr *matrix_re(pure_expr *x);
 pure_expr *matrix_im(pure_expr *x);
 
+/* Create a matrix object of the given dimensions which uses the given pointer
+   p as its underlying C array. There are no checks whatsoever, so the caller
+   is responsible for making sure that the memory has the right size and is
+   properly initialized. p must point to a malloc'ed memory area, which is
+   taken over by Pure and will be freed automatically when the matrix is
+   garbage-collected. p may also be NULL in which case a suitable pointer is
+   allocated automatically. */
+
+pure_expr *matrix_from_double_array(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_complex_array(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_int_array(void *p, uint32_t n, uint32_t m);
+
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
 
