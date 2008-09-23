@@ -746,12 +746,18 @@ pure_expr *matrix_from_int_array(void *p, uint32_t n, uint32_t m);
 
 /* The following routines work like the above, but copy the data to newly
    allocated memory, so the original data can be freed after the call.
+   Additional routines are provided for various alternate data sizes.
    Moreover, the source pointer p may also be NULL in which case the new
    matrix is filled with zeros instead. */
 
 pure_expr *matrix_from_double_array_dup(void *p, uint32_t n, uint32_t m);
 pure_expr *matrix_from_complex_array_dup(void *p, uint32_t n, uint32_t m);
 pure_expr *matrix_from_int_array_dup(void *p, uint32_t n, uint32_t m);
+
+pure_expr *matrix_from_float_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_complex_float_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_short_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_byte_array_dup(void *p, uint32_t n, uint32_t m);
 
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
