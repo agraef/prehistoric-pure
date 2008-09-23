@@ -157,6 +157,14 @@ list s::string		= chars s;
 stream s::string	= stream (chars s);
 tuple s::string		= tuple (chars s);
 
+string []		= "";
+string xs@(_::string:_)	= strcat xs if all stringp xs;
+
+/* Conversions between strings and matrices. */
+
+matrix s::string	= matrix (chars s);
+string x::matrix	= string (list x) if all stringp x;
+
 /* Define the customary list operations on strings, so that these can mostly
    be used as if they were lists. */
 
