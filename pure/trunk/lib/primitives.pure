@@ -416,6 +416,7 @@ private matrix_size matrix_dim matrix_stride;
 extern int matrix_size(expr *x), int matrix_stride(expr *x);
 extern expr* matrix_dim(expr *x);
 
+null x::matrix		= #x==0;
 #x::matrix		= matrix_size x;
 dim x::matrix		= matrix_dim x;
 stride x::matrix	= matrix_stride x;
@@ -447,7 +448,7 @@ x::matrix!!(ns,ms)	= case ns,ms of
 			    nth x n = catch (cst {}) (row x n);
 			    mth x m = catch (cst {}) (col x m);
 			  end;
-x::matrix!!ns		= if packed x then rowvector x!!(1,ns)
+x::matrix!!ns		= if packed x then rowvector x!!([0],ns)
 			  else colcatmap (nth x) ns with
 			    nth x n = catch (cst {}) {x!n};
 			  end;
@@ -469,16 +470,14 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
-/* Convert a matrix to a list and vice versa. If x is a row vector then list x
-   converts it to a list of its elements; otherwise the result is the list of
-   the rows of the matrix. You can also use list2 to convert a matrix to a
-   list of lists. Conversely, matrix xs converts a list of lists or matrices
-   to the corresponding matrix; otherwise, the result is a row vector.
-   NOTE: The matrix function may throw a 'bad_matrix_value x' in case of
-   dimension mismatch, where x denotes the offending submatrix. */
+/* Convert a matrix to a list and vice versa. list x converts a matrix x to a
+   flat list of its elements, while list2 converts it to a list of lists.
+   Conversely, matrix xs converts a list of lists or matrices specifying the
+   rows of the matrix to the corresponding matrix; otherwise, the result is a
+   row vector. NOTE: The matrix function may throw a 'bad_matrix_value x' in
+   case of dimension mismatch, where x denotes the offending submatrix. */
 
-list x::matrix		= [x!i|i=0..#x-1] if rowvectorp x;
-			= rows x otherwise;
+list x::matrix		= [x!i|i=0..#x-1];
 list2 x::matrix		= [[x!(i,j)|j=0..m-1]|i=0..n-1]
 			    when n::int,m::int = dim x end;
 
@@ -512,12 +511,17 @@ private matrix_redim;
 extern expr* matrix_redim(expr* x, int n, int m);
 
 redim x::matrix (n::int,m::int)
-			= matrix_redim x n m if n*m==#x;
+			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
+
+/* You can also redim a matrix to a given positive row size. In this case the
+   row size must divide the total size of the matrix, */
+
+redim x::matrix m::int	= redim x (#x div m,m) if m>0 && #x mod m==0;
 
 /* Convenience functions for converting a matrix to a row or column vector. */
 
-rowvector x::matrix	= redim x (1,#x);
-colvector x::matrix	= redim x (#x,1);
+rowvector x::matrix	= redim x (#x);
+colvector x::matrix	= redim x 1;
 
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.
@@ -558,6 +562,78 @@ x::matrix'		= matrix_transpose x;
 rowrev x::matrix	= rowcat (reverse (rows x));
 colrev x::matrix	= colcat (reverse (cols x));
 reverse x::matrix	= rowrev (colrev x);
+
+/* catmap et al on matrices. This allows list and matrix comprehensions to
+   draw values from matrices just as well as from lists, treating the matrix
+   as a flat list of its elements. */
+
+catmap f x::matrix	= catmap f (list x);
+rowcatmap f x::matrix	= rowcat (map f (list x));
+colcatmap f x::matrix	= colcat (map f (list x));
+
+/* Implementations of the other customary list operations, so that these can
+   be used on matrices, too. These operations treat the matrix essentially as
+   if it was a flat list of its elements. Aggregate results are then converted
+   back to matrices with the appropriate dimensions. (This depends on the
+   operation; operations like map and zip keep the dimensions of the input
+   matrix intact, while other functions like filter, take or scanl always
+   return a flat row vector. Also note that the zip-style operations require
+   that the row sizes of all arguments match.) */
+
+cycle x::matrix		= cycle (list x);
+cyclen n::int x::matrix	= cyclen n (list x) if not null x;
+
+all p x::matrix		= all p (list x);
+any p x::matrix		= any p (list x);
+do f x::matrix		= do f (list x);
+drop k::int x::matrix	= x!!(k..#x-1);
+dropwhile p x::matrix	= colcat (dropwhile p (list x));
+filter p x::matrix	= colcat (filter p (list x));
+foldl f a x::matrix	= foldl f a (list x);
+foldl1 f x::matrix	= foldl1 f (list x);
+foldr f a x::matrix	= foldr f a (list x);
+foldr1 f x::matrix	= foldr1 f (list x);
+head x::matrix		= x!0 if not null x;
+init x::matrix		= x!!(0..#x-2) if not null x;
+last x::matrix		= x!(#x-1) if not null x;
+map f x::matrix		= flip redim (dim x) $ colcat (map f (list x));
+scanl f a x::matrix	= colcat (scanl f a (list x));
+scanl1 f x::matrix	= colcat (scanl1 f (list x));
+scanr f a x::matrix	= colcat (scanr f a (list x));
+scanr1 f x::matrix	= colcat (scanr1 f (list x));
+take k::int x::matrix	= x!!(0..k-1);
+takewhile p x::matrix	= colcat (takewhile p (list x));
+tail x::matrix		= x!!(1..#x-1) if not null x;
+
+zip x::matrix y::matrix	= flip redim (dim x!1) $
+			  colcat (zip (list x) (list y))
+			    if dim x!1==dim y!1;
+zip3 x::matrix y::matrix z::matrix
+			= flip redim (dim x!1) $
+			  colcat (zip3 (list x) (list y) (list z))
+			    if dim x!1==dim y!1 && dim x!1==dim z!1;
+zipwith f x::matrix y::matrix
+			= flip redim (dim x!1) $
+			  colcat (zipwith f (list x) (list y))
+			    if dim x!1==dim y!1;
+zipwith3 f x::matrix y::matrix z::matrix
+			= flip redim (dim x!1) $
+			  colcat (zipwith3 f (list x) (list y) (list z))
+			    if dim x!1==dim y!1 && dim x!1==dim z!1;
+dowith f x::matrix y::matrix
+			= dowith f (list x) (list y)
+			    if dim x!1==dim y!1;
+dowith3 f x::matrix y::matrix z::matrix
+			= dowith3 f (list x) (list y) (list z)
+			    if dim x!1==dim y!1 && dim x!1==dim z!1;
+
+unzip x::matrix		= flip redim (dim x) (colcat u),
+			  flip redim (dim x) (colcat v)
+			    when u,v = unzip (list x) end;
+unzip3 x::matrix	= flip redim (dim x) (colcat u),
+			  flip redim (dim x) (colcat v),
+			  flip redim (dim x) (colcat w)
+			    when u,v,w = unzip3 (list x) end;
 
 /* Matrix conversions. */
 
