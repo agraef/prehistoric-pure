@@ -421,3 +421,34 @@ cmatrix_from_array_dup p::pointer n::int
 			= cmatrix_from_array_dup p (1,n);
 imatrix_from_array_dup p::pointer n::int
 			= imatrix_from_array_dup p (1,n);
+
+/* Some helper routines for dealing with alternate base types. These work like
+   the routines above, but initialize the data from float, complex float,
+   short and byte arrays, respectively. */
+
+private matrix_from_float_array_dup;
+private matrix_from_complex_float_array_dup;
+private matrix_from_short_array_dup;
+private matrix_from_byte_array_dup;
+extern expr* matrix_from_float_array_dup(void* p, int n, int m);
+extern expr* matrix_from_complex_float_array_dup(void* p, int n, int m);
+extern expr* matrix_from_short_array_dup(void* p, int n, int m);
+extern expr* matrix_from_byte_array_dup(void* p, int n, int m);
+
+fmatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_float_array_dup p n m;
+cfmatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_complex_float_array_dup p n m;
+smatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_short_array_dup p n m;
+bmatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_byte_array_dup p n m;
+
+fmatrix_from_array_dup p::pointer n::int
+			= fmatrix_from_array_dup p (1,n);
+cfmatrix_from_array_dup p::pointer n::int
+			= cfmatrix_from_array_dup p (1,n);
+smatrix_from_array_dup p::pointer n::int
+			= smatrix_from_array_dup p (1,n);
+bmatrix_from_array_dup p::pointer n::int
+			= bmatrix_from_array_dup p (1,n);

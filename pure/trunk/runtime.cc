@@ -5191,6 +5191,152 @@ pure_expr *matrix_from_int_array_dup(void *p, uint32_t n1, uint32_t n2)
 #endif
 }
 
+extern "C"
+pure_expr *matrix_from_float_array_dup(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_double_matrix(create_double_matrix(n1, n2));
+  if (!p)
+    p = calloc(n1*n2, sizeof(double));
+  else {
+    void *q = malloc(n1*n2*sizeof(double));
+    float *p1 = (float*)p; double *q1 = (double*)q;
+    for (size_t i = 0; i < n1*n2; i++) q1[i] = (double)p1[i];
+    p = q;
+  }
+  if (!p) return 0;
+  gsl_matrix_view v = gsl_matrix_view_array((double*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix *m = (gsl_matrix*)malloc(sizeof(gsl_matrix));
+  gsl_block *b = (gsl_block*)malloc(sizeof(gsl_block));
+  assert(m && b && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::DMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_complex_float_array_dup(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_complex_matrix(create_complex_matrix(n1, n2));
+  if (!p)
+    p = calloc(2*n1*n2, sizeof(double));
+  else {
+    void *q = malloc(2*n1*n2*sizeof(double));
+    float *p1 = (float*)p; double *q1 = (double*)q;
+    for (size_t i = 0; i < 2*n1*n2; i++) q1[i] = (double)p1[i];
+    p = q;
+  }
+  if (!p) return 0;
+  gsl_matrix_complex_view v =
+    gsl_matrix_complex_view_array((double*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix_complex *m =
+    (gsl_matrix_complex*)malloc(sizeof(gsl_matrix_complex));
+  gsl_block_complex *b = (gsl_block_complex*)malloc(sizeof(gsl_block_complex));
+  assert(m && b && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::CMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_short_array_dup(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_int_matrix(create_int_matrix(n1, n2));
+  if (!p)
+    p = calloc(n1*n2, sizeof(int));
+  else {
+    void *q = malloc(n1*n2*sizeof(int));
+    short *p1 = (short*)p; int *q1 = (int*)q;
+    for (size_t i = 0; i < n1*n2; i++) q1[i] = (int)p1[i];
+    p = q;
+  }
+  if (!p) return 0;
+  gsl_matrix_int_view v = gsl_matrix_int_view_array((int*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix_int *m = (gsl_matrix_int*)malloc(sizeof(gsl_matrix_int));
+  gsl_block_int *b = (gsl_block_int*)malloc(sizeof(gsl_block_int));
+  assert(m && b && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::IMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_byte_array_dup(void *p, uint32_t n1, uint32_t n2)
+{
+#ifdef HAVE_GSL
+  if (n1 == 0 || n2 == 0) // empty matrix
+    return pure_int_matrix(create_int_matrix(n1, n2));
+  if (!p)
+    p = calloc(n1*n2, sizeof(int));
+  else {
+    void *q = malloc(n1*n2*sizeof(int));
+    int8_t *p1 = (int8_t*)p; int *q1 = (int*)q;
+    for (size_t i = 0; i < n1*n2; i++) q1[i] = (int)p1[i];
+    p = q;
+  }
+  if (!p) return 0;
+  gsl_matrix_int_view v = gsl_matrix_int_view_array((int*)p, n1, n2);
+  // take a copy of the view matrix
+  gsl_matrix_int *m = (gsl_matrix_int*)malloc(sizeof(gsl_matrix_int));
+  gsl_block_int *b = (gsl_block_int*)malloc(sizeof(gsl_block_int));
+  assert(m && b && v.matrix.data);
+  *m = v.matrix;
+  b->size = n1*n2;
+  b->data = m->data;
+  m->block = b;
+  pure_expr *x = new_expr();
+  x->tag = EXPR::IMATRIX;
+  x->data.mat.p = m;
+  x->data.mat.refc = new uint32_t;
+  *x->data.mat.refc = 1;
+  MEMDEBUG_NEW(x)
+  return x;
+#else
+  return 0;
+#endif
+}
+
 static uint32_t mpz_hash(const mpz_t z)
 {
   uint32_t h = 0;
