@@ -352,7 +352,7 @@ pointer x::matrix	= pure_pointerval x;
    garbage-collected. CAVEAT: These are low-level operations and hence should
    be used with care. They are useful, in particular, if you need to handle
    massive amounts of matrix or vector data generated or processed by external
-   C software, such as graphics and sound libraries. */
+   C functions, such as routines dealing with graphics and sound data. */
 
 private matrix_from_double_array;
 private matrix_from_complex_array;
