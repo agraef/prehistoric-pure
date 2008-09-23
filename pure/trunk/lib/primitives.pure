@@ -473,7 +473,9 @@ cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
    converts it to a list of its elements; otherwise the result is the list of
    the rows of the matrix. You can also use list2 to convert a matrix to a
    list of lists. Conversely, matrix xs converts a list of lists or matrices
-   to the corresponding matrix. Otherwise, the result is a row vector. */
+   to the corresponding matrix; otherwise, the result is a row vector.
+   NOTE: The matrix function may throw a 'bad_matrix_value x' in case of
+   dimension mismatch, where x denotes the offending submatrix. */
 
 list x::matrix		= [x!i|i=0..#x-1] if rowvectorp x;
 			= rows x otherwise;
@@ -520,7 +522,9 @@ colvector x::matrix	= redim x (#x,1);
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.
    rowcat combines submatrices vertically, like {x;y}; colcat combines them
-   horizontally, like {x,y}. */
+   horizontally, like {x,y}. NOTE: Like the built-in matrix constructs, these
+   operations may throw a 'bad_matrix_value x' in case of dimension mismatch,
+   where x denotes the offending submatrix. */
 
 extern expr* matrix_rows(expr *x) = rowcat;
 extern expr* matrix_columns(expr *x) = colcat;
