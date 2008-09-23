@@ -703,9 +703,9 @@ pure_expr *matrix_diag(pure_expr *x);
 pure_expr *matrix_subdiag(pure_expr *x, int32_t k);
 pure_expr *matrix_supdiag(pure_expr *x, int32_t k);
 
-/* Matrix construction. These work like the pure_matrix_rows/
-   pure_matrix_columns functions in the public API, but take their input from
-   a Pure list. */
+/* Matrix construction. These work like the corresponding functions in the
+   public API, but take their input from a Pure list and raise the appropriate
+   exception in case of dimension mismatch. */
 
 pure_expr *matrix_rows(pure_expr *xs);
 pure_expr *matrix_columns(pure_expr *xs);
