@@ -734,16 +734,24 @@ pure_expr *matrix_re(pure_expr *x);
 pure_expr *matrix_im(pure_expr *x);
 
 /* Create a matrix object of the given dimensions which uses the given pointer
-   p as its underlying C array. There are no checks whatsoever, so the caller
-   is responsible for making sure that the memory has the right size and is
-   properly initialized. p must point to a malloc'ed memory area, which is
-   taken over by Pure and will be freed automatically when the matrix is
-   garbage-collected. p may also be NULL in which case a suitable pointer is
-   allocated automatically. */
+   p as its underlying storage. There are no checks whatsoever and the data is
+   *not* copied, so the caller is responsible for making sure that the memory
+   has the right size, is properly initialized and is not freed while the
+   matrix is still in use. The memory is *not* freed when the matrix is
+   garbage-collected but remains in the ownership of the caller. */
 
 pure_expr *matrix_from_double_array(void *p, uint32_t n, uint32_t m);
 pure_expr *matrix_from_complex_array(void *p, uint32_t n, uint32_t m);
 pure_expr *matrix_from_int_array(void *p, uint32_t n, uint32_t m);
+
+/* The following routines work like the above, but copy the data to newly
+   allocated memory, so the original data can be freed after the call.
+   Moreover, the source pointer p may also be NULL in which case the new
+   matrix is filled with zeros instead. */
+
+pure_expr *matrix_from_double_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_complex_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_int_array_dup(void *p, uint32_t n, uint32_t m);
 
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */

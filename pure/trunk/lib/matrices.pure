@@ -43,17 +43,36 @@ vectorp x	= matrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
 rowvectorp x	= matrixp x && dim x!0==1;
 colvectorp x	= matrixp x && dim x!1==1;
 
-/* Convenience functions to create numeric matrices with the given dimensions
+/* Matrix comparisons. */
+
+x::matrix == y::matrix	= x === y
+			    if nmatrixp x && matrix_type x == matrix_type y;
+// mixed numeric cases
+			= cmatrix x === y if nmatrixp x && cmatrixp y;
+			= x === cmatrix y if cmatrixp x && nmatrixp y;
+			= dmatrix x === y if imatrixp x && dmatrixp y;
+			= x === dmatrix y if dmatrixp x && imatrixp y;
+// comparisons with symbolic matrices
+			= 0 if dim x != dim y;
+			= compare 0 with
+			    compare i::int = 1 if i>=n;
+					   = 0 if x!i != y!i;
+					   = compare (i+1);
+			  end when n::int = #x end;
+
+x::matrix != y::matrix	= not x == y;
+
+/* Convenience functions to create zero matrices with the given dimensions
    (either a pair denoting the number of rows and columns, or just the row
-   size in order to create a row vector), and all elements zero. */
+   size in order to create a row vector). */
 
-dmatrix (n::int,m::int)	= cdmatrix (pointer 0) (n,m);
-cmatrix (n::int,m::int)	= ccmatrix (pointer 0) (n,m);
-imatrix (n::int,m::int)	= cimatrix (pointer 0) (n,m);
+dmatrix (n::int,m::int)	= dmatrix_from_array_dup (pointer 0) (n,m);
+cmatrix (n::int,m::int)	= cmatrix_from_array_dup (pointer 0) (n,m);
+imatrix (n::int,m::int)	= imatrix_from_array_dup (pointer 0) (n,m);
 
-dmatrix n::int		= cdmatrix (pointer 0) n;
-cmatrix n::int		= ccmatrix (pointer 0) n;
-imatrix n::int		= cimatrix (pointer 0) n;
+dmatrix n::int		= dmatrix (1,n);
+cmatrix n::int		= cmatrix (1,n);
+imatrix n::int		= imatrix (1,n);
 
 /* Size of a matrix (#x) and its dimensions (dim x=n,m where n is the number
    of rows, m the number of columns). Note that Pure supports empty matrices,
@@ -328,34 +347,34 @@ re x::matrix		= matrix_re x if nmatrixp x;
 im x::matrix		= matrix_im x if nmatrixp x;
 
 /* 'Pack' a matrix. This creates a copy of the matrix which has the data in
-   contiguous storage. If possible, it also frees up extra memory if the
-   matrix was created as a slice from a bigger matrix. The 'packed' predicate
-   can be used to verify whether a matrix is already packed. */
+   contiguous storage. It also frees up extra memory if the matrix was created
+   as a slice from a bigger matrix. The 'packed' predicate can be used to
+   verify whether a matrix is already packed. */
 
 pack x::matrix		= colcat [x,{}];
 packed x::matrix	= stride x==dim x!1;
 
-/* Convert a matrix to a pointer. This returns a pointer to the underlying C
-   array, which allows you to change the data in-place by shelling out to C
-   functions, so beware. You also need to be careful when passing such a
-   pointer to C functions if the underlying data is non-contiguous; when in
-   doubt use the 'pack' function from above to place the data in contiguous
-   storage first. */
+/* Low-level operations for converting between matrices and raw pointers.
+   These are typically used to shovel around massive amounts of numeric data
+   between Pure and external C routines, when performance and throughput is an
+   important consideration (e.g., graphics, video and audio applications). The
+   usual caveats apply. */
+
+/* Convert a matrix to a pointer. Returns a pointer pointing directly to the
+   underlying C array. You have to be careful when passing such a pointer to C
+   functions if the underlying data is non-contiguous; when in doubt, first
+   use the 'pack' function from above to place the data in contiguous
+   storage. */
 
 private pure_pointerval;
 extern expr* pure_pointerval(expr*);
 
 pointer x::matrix	= pure_pointerval x;
 
-/* Create a numeric matrix from a pointer. The pointer to be converted must
-   point to a malloc'ed, properly initialized memory area big enough to
-   accommodate the requested dimensions. The pointer may also be NULL in which
-   case a suitable pointer is allocated automatically. This memory is taken
-   over by Pure and will be freed automatically when the matrix object is
-   garbage-collected. CAVEAT: These are low-level operations and hence should
-   be used with care. They are useful, in particular, if you need to handle
-   massive amounts of matrix or vector data generated or processed by external
-   C functions, such as routines dealing with graphics and sound data. */
+/* Create a numeric matrix from a pointer, without copying the data. The
+   caller must ensure that the pointer points to properly initialized memory
+   big enough to accommodate the requested dimensions, which persists for the
+   entire lifetime of the matrix object. */
 
 private matrix_from_double_array;
 private matrix_from_complex_array;
@@ -364,35 +383,41 @@ extern expr* matrix_from_double_array(void* p, int n, int m);
 extern expr* matrix_from_complex_array(void* p, int n, int m);
 extern expr* matrix_from_int_array(void* p, int n, int m);
 
-cdmatrix p::pointer (n::int,m::int)
+dmatrix_from_array p::pointer (n::int,m::int)
 			= matrix_from_double_array p n m;
-ccmatrix p::pointer (n::int,m::int)
+cmatrix_from_array p::pointer (n::int,m::int)
 			= matrix_from_complex_array p n m;
-cimatrix p::pointer (n::int,m::int)
+imatrix_from_array p::pointer (n::int,m::int)
 			= matrix_from_int_array p n m;
 
-cdmatrix p::pointer n::int
-			= cdmatrix p (1,n);
-ccmatrix p::pointer n::int
-			= ccmatrix p (1,n);
-cimatrix p::pointer n::int
-			= cimatrix p (1,n);
+dmatrix_from_array p::pointer n::int
+			= dmatrix_from_array p (1,n);
+cmatrix_from_array p::pointer n::int
+			= cmatrix_from_array p (1,n);
+imatrix_from_array p::pointer n::int
+			= imatrix_from_array p (1,n);
 
-/* Matrix comparisons. */
+/* Create a numeric matrix from a pointer, copying the data to fresh memory.
+   The source pointer p may also be NULL, in which case the new matrix is
+   filled with zeros instead. */
 
-x::matrix == y::matrix	= x === y
-			    if nmatrixp x && matrix_type x == matrix_type y;
-// mixed numeric cases
-			= cmatrix x === y if nmatrixp x && cmatrixp y;
-			= x === cmatrix y if cmatrixp x && nmatrixp y;
-			= dmatrix x === y if imatrixp x && dmatrixp y;
-			= x === dmatrix y if dmatrixp x && imatrixp y;
-// comparisons with symbolic matrices
-			= 0 if dim x != dim y;
-			= compare 0 with
-			    compare i::int = 1 if i>=n;
-					   = 0 if x!i != y!i;
-					   = compare (i+1);
-			  end when n::int = #x end;
+private matrix_from_double_array_dup;
+private matrix_from_complex_array_dup;
+private matrix_from_int_array_dup;
+extern expr* matrix_from_double_array_dup(void* p, int n, int m);
+extern expr* matrix_from_complex_array_dup(void* p, int n, int m);
+extern expr* matrix_from_int_array_dup(void* p, int n, int m);
 
-x::matrix != y::matrix	= not x == y;
+dmatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_double_array_dup p n m;
+cmatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_complex_array_dup p n m;
+imatrix_from_array_dup p::pointer (n::int,m::int)
+			= matrix_from_int_array_dup p n m;
+
+dmatrix_from_array_dup p::pointer n::int
+			= dmatrix_from_array_dup p (1,n);
+cmatrix_from_array_dup p::pointer n::int
+			= cmatrix_from_array_dup p (1,n);
+imatrix_from_array_dup p::pointer n::int
+			= imatrix_from_array_dup p (1,n);
