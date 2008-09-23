@@ -433,7 +433,7 @@ x::matrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
-/* Slices. */
+/* Matrix slices. */
 
 x::matrix!!(ns,ms)	= case ns,ms of
 			    // optimize the case of contiguous slices
@@ -469,24 +469,26 @@ rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
 
 cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
 
-/* Convert a matrix to a list and vice versa. */
+/* Convert a matrix to a list and vice versa. If x is a row vector then list x
+   converts it to a list of its elements; otherwise the result is the list of
+   the rows of the matrix. You can also use list2 to convert a matrix to a
+   list of lists. Conversely, matrix xs converts a list of lists or matrices
+   to the corresponding matrix. Otherwise, the result is a row vector. */
 
-list x::matrix		= [[x!(i,j) | j=0..m-1] | i=0..n-1]
+list x::matrix		= [x!i|i=0..#x-1] if rowvectorp x;
+			= rows x otherwise;
+list2 x::matrix		= [[x!(i,j)|j=0..m-1]|i=0..n-1]
 			    when n::int,m::int = dim x end;
+
 matrix []		= {};
-matrix xs@(x:_)		= rowcatmap colcat xs;
-
-/* Convenience functions to create vectors from lists. */
-
-rowvector xs@[] | rowvector xs@(_:_)
-			= colcat xs;
-colvector xs@[] | colvector xs@(_:_)
-			= rowcat xs;
+matrix xs@(x:_)		= rowcatmap colcat xs if all listp xs;
+			= rowcat xs if any matrixp xs;
+			= colcat xs otherwise;
 
 /* Extract (sub-,super-) diagonals from a matrix. Sub- and super-diagonals for
    k=0 return the main diagonal. Indices for sub- and super-diagonals can also
    be negative, in which case the corresponding super- or sub-diagonal is
-   returned instead. */
+   returned instead. In each case the result is a row vector. */
 
 private matrix_diag matrix_subdiag matrix_supdiag;
 extern expr* matrix_diag(expr* x) = diag;
