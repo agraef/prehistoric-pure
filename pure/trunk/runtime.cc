@@ -5301,7 +5301,14 @@ bool varp(const pure_expr *x)
 extern "C"
 int32_t pointer_get_byte(void *ptr)
 {
-  uint8_t *p = (uint8_t*)ptr;
+  int8_t *p = (int8_t*)ptr;
+  return *p;
+}
+
+extern "C"
+int32_t pointer_get_short(void *ptr)
+{
+  int16_t *p = (int16_t*)ptr;
   return *p;
 }
 
@@ -5309,6 +5316,13 @@ extern "C"
 int32_t pointer_get_int(void *ptr)
 {
   int32_t *p = (int32_t*)ptr;
+  return *p;
+}
+
+extern "C"
+double pointer_get_float(void *ptr)
+{
+  float *p = (float*)ptr;
   return *p;
 }
 
@@ -5343,7 +5357,14 @@ pure_expr *pointer_get_expr(void *ptr)
 extern "C"
 void pointer_put_byte(void *ptr, int32_t x)
 {
-  uint8_t *p = (uint8_t*)ptr;
+  int8_t *p = (int8_t*)ptr;
+  *p = x;
+}
+
+extern "C"
+void pointer_put_short(void *ptr, int32_t x)
+{
+  int16_t *p = (int16_t*)ptr;
   *p = x;
 }
 
@@ -5351,6 +5372,13 @@ extern "C"
 void pointer_put_int(void *ptr, int32_t x)
 {
   int32_t *p = (int32_t*)ptr;
+  *p = x;
+}
+
+extern "C"
+void pointer_put_float(void *ptr, double x)
+{
+  float *p = (float*)ptr;
   *p = x;
 }
 
