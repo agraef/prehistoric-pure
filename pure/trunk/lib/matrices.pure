@@ -62,18 +62,6 @@ x::matrix == y::matrix	= x === y
 
 x::matrix != y::matrix	= not x == y;
 
-/* Convenience functions to create zero matrices with the given dimensions
-   (either a pair denoting the number of rows and columns, or just the row
-   size in order to create a row vector). */
-
-dmatrix (n::int,m::int)	= dmatrix_from_array_dup (pointer 0) (n,m);
-cmatrix (n::int,m::int)	= cmatrix_from_array_dup (pointer 0) (n,m);
-imatrix (n::int,m::int)	= imatrix_from_array_dup (pointer 0) (n,m);
-
-dmatrix n::int		= dmatrix (1,n);
-cmatrix n::int		= cmatrix (1,n);
-imatrix n::int		= imatrix (1,n);
-
 /* Size of a matrix (#x) and its dimensions (dim x=n,m where n is the number
    of rows, m the number of columns). Note that Pure supports empty matrices,
    thus the total size may well be zero, meaning that either the number of
@@ -118,7 +106,7 @@ x::matrix!(i::int,j::int)
 				when n::int,m::int = dim x end);
 			= throw out_of_bounds otherwise;
 
-/* Matrix slices (x!!ns). As with simple indexing, elements can addressed
+/* Matrix slices (x!!ns). As with simple indexing, elements can be addressed
    using either singleton (row-major) indices or index pair (row,column). The
    former is specified as a list of int values, the latter as a pair of lists
    of int values. As with list slicing, index ranges may be non-contiguous
@@ -197,26 +185,6 @@ extern expr* matrix_supdiag(expr* x, int k) = supdiag;
 submat x::matrix (i::int,j::int) (n::int,m::int)
 			= matrix_slice x i j (i+n-1) (j+m-1);
 
-/* Change the dimensions of a matrix without changing its size. The total
-   number of elements must match that of the input matrix. Reuses the
-   underlying storage of the input matrix if possible. */
-
-private matrix_redim;
-extern expr* matrix_redim(expr* x, int n, int m);
-
-redim x::matrix (n::int,m::int)
-			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
-
-/* You can also redim a matrix to a given row size. In this case the row size
-   must be positive and divide the total size of the matrix, */
-
-redim x::matrix m::int	= redim x (#x div m,m) if m>0 && #x mod m==0;
-
-/* Convenience functions for converting a matrix to a row or column vector. */
-
-rowvector x::matrix	= redim x (#x);
-colvector x::matrix	= redim x 1;
-
 /* Construct matrices from lists of rows and columns. These take either
    scalars or submatrices as inputs; corresponding dimensions must match.
    rowcat combines submatrices vertically, like {x;y}; colcat combines them
@@ -241,6 +209,65 @@ colcatmap f xs@(_:_)	= colcat (map f xs);
 
 def void (rowcatmap f x) = do f x;
 def void (colcatmap f x) = do f x;
+
+/* Convenience functions to create zero matrices with the given dimensions
+   (either a pair denoting the number of rows and columns, or just the row
+   size in order to create a row vector). */
+
+dmatrix (n::int,m::int)	= dmatrix_dup (pointer 0,n,m);
+cmatrix (n::int,m::int)	= cmatrix_dup (pointer 0,n,m);
+imatrix (n::int,m::int)	= imatrix_dup (pointer 0,n,m);
+
+dmatrix n::int		= dmatrix (1,n);
+cmatrix n::int		= cmatrix (1,n);
+imatrix n::int		= imatrix (1,n);
+
+/* Matrix conversions. These convert between different types of numeric
+   matrices. You can also extract the real and imaginary parts of a (complex)
+   matrix. */
+
+private matrix_double matrix_complex matrix_int;
+extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
+  expr* matrix_int(expr *x);
+
+dmatrix x::matrix	= matrix_double x if imatrixp x || dmatrixp x;
+imatrix x::matrix	= matrix_int x if imatrixp x || dmatrixp x;
+cmatrix x::matrix	= matrix_complex x if nmatrixp x;
+
+private matrix_re matrix_im;
+extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
+
+re x::matrix		= matrix_re x if nmatrixp x;
+im x::matrix		= matrix_im x if nmatrixp x;
+
+/* Pack a matrix. This creates a copy of the matrix which has the data in
+   contiguous storage. It also frees up extra memory if the matrix was created
+   as a slice from a bigger matrix (see 'submat' above). The 'packed'
+   predicate can be used to verify whether a matrix is already packed. */
+
+pack x::matrix		= colcat [x,{}];
+packed x::matrix	= stride x==dim x!1;
+
+/* Change the dimensions of a matrix without changing its size. The total
+   number of elements must match that of the input matrix. Reuses the
+   underlying storage of the input matrix if possible (i.e., if the matrix is
+   packed). */
+
+private matrix_redim;
+extern expr* matrix_redim(expr* x, int n, int m);
+
+redim x::matrix (n::int,m::int)
+			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
+
+/* You can also redim a matrix to a given row size. In this case the row size
+   must be positive and divide the total size of the matrix, */
+
+redim x::matrix m::int	= redim x (#x div m,m) if m>0 && #x mod m==0;
+
+/* Convert a matrix to a row or column vector. */
+
+rowvector x::matrix	= redim x (1,#x);
+colvector x::matrix	= redim x 1;
 
 /* Transpose a matrix. */
 
@@ -328,43 +355,16 @@ unzip3 x::matrix	= flip redim (dim x) (colcat u),
 			  flip redim (dim x) (colcat w)
 			    when u,v,w = unzip3 (list x) end;
 
-/* Matrix conversions. These convert between different types of numeric
-   matrices. You can also extract the real and imaginary parts of a (complex)
-   matrix. */
-
-private matrix_double matrix_complex matrix_int;
-extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
-  expr* matrix_int(expr *x);
-
-dmatrix x::matrix	= matrix_double x if imatrixp x || dmatrixp x;
-imatrix x::matrix	= matrix_int x if imatrixp x || dmatrixp x;
-cmatrix x::matrix	= matrix_complex x if nmatrixp x;
-
-private matrix_re matrix_im;
-extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
-
-re x::matrix		= matrix_re x if nmatrixp x;
-im x::matrix		= matrix_im x if nmatrixp x;
-
-/* 'Pack' a matrix. This creates a copy of the matrix which has the data in
-   contiguous storage. It also frees up extra memory if the matrix was created
-   as a slice from a bigger matrix. The 'packed' predicate can be used to
-   verify whether a matrix is already packed. */
-
-pack x::matrix		= colcat [x,{}];
-packed x::matrix	= stride x==dim x!1;
-
 /* Low-level operations for converting between matrices and raw pointers.
    These are typically used to shovel around massive amounts of numeric data
    between Pure and external C routines, when performance and throughput is an
    important consideration (e.g., graphics, video and audio applications). The
    usual caveats apply. */
 
-/* Convert a matrix to a pointer. Returns a pointer pointing directly to the
-   underlying C array. You have to be careful when passing such a pointer to C
-   functions if the underlying data is non-contiguous; when in doubt, first
-   use the 'pack' function from above to place the data in contiguous
-   storage. */
+/* Convert a matrix to a pointer, which points directly to the underlying C
+   array. You have to be careful when passing such a pointer to C functions if
+   the underlying data is non-contiguous; when in doubt, first use the 'pack'
+   function from above to place the data in contiguous storage. */
 
 private pure_pointerval;
 extern expr* pure_pointerval(expr*);
@@ -383,19 +383,19 @@ extern expr* matrix_from_double_array(void* p, int n, int m);
 extern expr* matrix_from_complex_array(void* p, int n, int m);
 extern expr* matrix_from_int_array(void* p, int n, int m);
 
-dmatrix_from_array p::pointer (n::int,m::int)
+dmatrix (p::pointer,n::int,m::int)
 			= matrix_from_double_array p n m;
-cmatrix_from_array p::pointer (n::int,m::int)
+cmatrix (p::pointer,n::int,m::int)
 			= matrix_from_complex_array p n m;
-imatrix_from_array p::pointer (n::int,m::int)
+imatrix (p::pointer,n::int,m::int)
 			= matrix_from_int_array p n m;
 
-dmatrix_from_array p::pointer n::int
-			= dmatrix_from_array p (1,n);
-cmatrix_from_array p::pointer n::int
-			= cmatrix_from_array p (1,n);
-imatrix_from_array p::pointer n::int
-			= imatrix_from_array p (1,n);
+dmatrix (p::pointer,n::int)
+			= dmatrix (p,1,n);
+cmatrix (p::pointer,n::int)
+			= cmatrix (p,1,n);
+imatrix (p::pointer,n::int)
+			= imatrix (p,1,n);
 
 /* Create a numeric matrix from a pointer, copying the data to fresh memory.
    The source pointer p may also be NULL, in which case the new matrix is
@@ -408,23 +408,23 @@ extern expr* matrix_from_double_array_dup(void* p, int n, int m);
 extern expr* matrix_from_complex_array_dup(void* p, int n, int m);
 extern expr* matrix_from_int_array_dup(void* p, int n, int m);
 
-dmatrix_from_array_dup p::pointer (n::int,m::int)
+dmatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_double_array_dup p n m;
-cmatrix_from_array_dup p::pointer (n::int,m::int)
+cmatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_complex_array_dup p n m;
-imatrix_from_array_dup p::pointer (n::int,m::int)
+imatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_int_array_dup p n m;
 
-dmatrix_from_array_dup p::pointer n::int
-			= dmatrix_from_array_dup p (1,n);
-cmatrix_from_array_dup p::pointer n::int
-			= cmatrix_from_array_dup p (1,n);
-imatrix_from_array_dup p::pointer n::int
-			= imatrix_from_array_dup p (1,n);
+dmatrix_dup (p::pointer,n::int)
+			= dmatrix_dup (p,1,n);
+cmatrix_dup (p::pointer,n::int)
+			= cmatrix_dup (p,1,n);
+imatrix_dup (p::pointer,n::int)
+			= imatrix_dup (p,1,n);
 
-/* Some helper routines for dealing with alternate base types. These work like
-   the routines above, but initialize the data from float, complex float,
-   short and byte arrays, respectively. */
+/* Some additional functions for alternate base types. These work like the
+   routines above, but initialize the data from float, complex float, short
+   and byte arrays, respectively. */
 
 private matrix_from_float_array_dup;
 private matrix_from_complex_float_array_dup;
@@ -435,20 +435,20 @@ extern expr* matrix_from_complex_float_array_dup(void* p, int n, int m);
 extern expr* matrix_from_short_array_dup(void* p, int n, int m);
 extern expr* matrix_from_byte_array_dup(void* p, int n, int m);
 
-fmatrix_from_array_dup p::pointer (n::int,m::int)
+float_dmatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_float_array_dup p n m;
-cfmatrix_from_array_dup p::pointer (n::int,m::int)
+float_cmatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_complex_float_array_dup p n m;
-smatrix_from_array_dup p::pointer (n::int,m::int)
+short_imatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_short_array_dup p n m;
-bmatrix_from_array_dup p::pointer (n::int,m::int)
+byte_imatrix_dup (p::pointer,n::int,m::int)
 			= matrix_from_byte_array_dup p n m;
 
-fmatrix_from_array_dup p::pointer n::int
-			= fmatrix_from_array_dup p (1,n);
-cfmatrix_from_array_dup p::pointer n::int
-			= cfmatrix_from_array_dup p (1,n);
-smatrix_from_array_dup p::pointer n::int
-			= smatrix_from_array_dup p (1,n);
-bmatrix_from_array_dup p::pointer n::int
-			= bmatrix_from_array_dup p (1,n);
+float_dmatrix_dup (p::pointer,n::int)
+			= float_dmatrix_dup (p,1,n);
+float_cmatrix_dup (p::pointer,n::int)
+			= float_cmatrix_dup (p,1,n);
+short_imatrix_dup (p::pointer,n::int)
+			= short_imatrix_dup (p,1,n);
+byte_imatrix_dup (p::pointer,n::int)
+			= byte_imatrix_dup (p,1,n);
