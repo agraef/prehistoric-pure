@@ -72,9 +72,9 @@ and inspect Pure matrix values from external C modules. Moreover, the
 pointer values, and marshalling of GSL matrices in the C interface is also
 available.
 
-Here is a brief synopsis of some important operations which are already
-implemented in the prelude (you can find the definitions of these and the
-other matrix operations in primitives.pure):
+Here is a brief synopsis of some important operations which are implemented in
+the prelude (you can find the definitions of these and a bunch of other matrix
+operations in matrices.pure):
 
 - #x			total number of elements
 - dim x			number of rows and columns (as a pair)
