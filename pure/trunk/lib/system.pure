@@ -259,6 +259,8 @@ end with
     res = pure_fprintf fp s;
     count = if res>=0 then count+res else throw (printf_error res);
   end;
+  do_fprintf fp (count,[]) (printf_format_spec t s) =
+    throw (printf_value_error s ());
   do_fprintf fp (count,_) _ = throw (this_cant_happen count);
 end;
 
@@ -328,6 +330,8 @@ end with
     u = if res>=0 then u + cstring buf
         else free buf $$ throw (printf_error res);
   end;
+  do_sprintf (u,[]) (printf_format_spec t s) =
+    throw (printf_value_error s ());
   do_sprintf (u,_) _ = throw (this_cant_happen u);
   check_buf buf = throw malloc_error if null buf;
                 = buf otherwise;
