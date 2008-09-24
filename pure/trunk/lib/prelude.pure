@@ -243,13 +243,14 @@ stream (x:xs)	= x:xs if thunkp xs;
 stream ()	= [];
 stream xs@(_,_)	= stream (list xs);
 
-/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
-   list ns which are in the valid index range. This is a generic definition
-   which will work with any kind of container data structure which defines (!) 
-   in such a manner that it throws an exception when the index is out of
-   bounds. */
+/* Slicing. xs!!ns returns the list (or tuple) of xs!n for all members n of
+   the index list ns which are in the valid index range. This is a generic
+   definition which will work with any kind of container data structure which
+   defines (!) in such a manner that it throws an exception when the index is
+   out of bounds. */
 
-xs!!ns		= catmap (nth xs) ns
+xs!!ns		= if tuplep xs then tuple ys else ys
+		  when ys = catmap (nth xs) ns end
 		  with nth xs n = catch (cst []) [xs!n] end;
 
 /* Arithmetic sequences. */

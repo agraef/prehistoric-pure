@@ -130,7 +130,8 @@ x::matrix!!(ns,ms)	= case ns,ms of
 			    nth x n = catch (cst {}) (row x n);
 			    mth x m = catch (cst {}) (col x m);
 			  end;
-x::matrix!!ns		= if packed x then rowvector x!!([0],ns)
+x::matrix!!ns		= if all intp ns && packed x
+			  then rowvector x!!([0],ns)
 			  else colcatmap (nth x) ns with
 			    nth x n = catch (cst {}) {x!n};
 			  end;
@@ -243,7 +244,10 @@ im x::matrix		= matrix_im x if nmatrixp x;
 /* Pack a matrix. This creates a copy of the matrix which has the data in
    contiguous storage. It also frees up extra memory if the matrix was created
    as a slice from a bigger matrix (see 'submat' above). The 'packed'
-   predicate can be used to verify whether a matrix is already packed. */
+   predicate can be used to verify whether a matrix is already packed. Note
+   that even if a matrix is already packed, 'pack' will make a copy of it
+   anyway, so this routine also provides a quick way to copy a matrix, e.g.,
+   if you want to pass it as an input/output parameter to a GSL routine. */
 
 pack x::matrix		= colcat [x,{}];
 packed x::matrix	= stride x==dim x!1;
