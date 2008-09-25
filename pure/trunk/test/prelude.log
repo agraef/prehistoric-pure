@@ -311,7 +311,12 @@ stream (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:xs/*0:11*/ if thunkp xs/*0:11*/;
 stream (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:stream xs/*1:11*/&;
 stream () = [];
 stream xs@(_/*0:101*/,_/*0:11*/) = stream (list xs/*0:1*/);
-xs/*0:01*/!!ns/*0:1*/ = catmap (nth/*0*/ xs/*0:01*/) ns/*0:1*/ with nth xs/*0:01*/ n/*0:1*/ = catch (cst []) [xs/*1:01*/!n/*1:1*/] {
+xs/*0:01*/!!ns/*0:1*/ = if tuplep xs/*1:01*/ then tuple ys/*0:*/ else ys/*0:*/ when ys/*0:*/ = catmap (nth/*0*/ xs/*0:01*/) ns/*0:1*/ {
+  rule #0: ys = catmap (nth xs) ns
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end with nth xs/*0:01*/ n/*0:1*/ = catch (cst []) [xs/*1:01*/!n/*1:1*/] {
   rule #0: nth xs n = catch (cst []) [xs!n]
   state 0: #0
 	<var> state 1
