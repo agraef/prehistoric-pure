@@ -1189,7 +1189,7 @@ implement common matrix operations. E.g., multiplying a matrix x with a scalar
 a amounts to mapping the function \ex->a*x to x, which can be done as follows:
 .sp
 .nf
-> a::int * x::matrix = map (\ex->a*x) x;
+> a * x::matrix = map (\ex->a*x) x \fBif\fP not matrixp a;
 > 2*{1,2,3;4,5,6};
 {2,4,6;8,10,12}
 .fi
@@ -1254,27 +1254,20 @@ Gaussian elimination, which can be used to solve systems of linear
 equations. The algorithm brings a matrix into ``row echelon'' form, a
 generalization of triangular matrices. The resulting system can then be solved
 quite easily using back substitution. Here is a Pure implementation of the
-algorithm (please refer to any good textbook on numeric mathematics for a
-closer description of the algorithm):
+algorithm:
 .sp
 .nf
 gauss_elimination x::matrix = p,x
 \fBwhen\fP n,m = dim x; p,_,x = foldl step (0..n-1,0,x) (0..m-1) \fBend\fP;
-.fi
-.PP
-The actual pivoting and elimination step is a bit involved. x is our matrix, i
-the current row index, j the current column index, and p keeps track of the
-current permutation of the row indices performed during pivoting. The
-algorithm returns the updated matrix x, row index i and row permutation p.
-.sp
-.nf
+
+// One pivoting and elimination step in column j of the matrix:
 step (p,i,x) j
 = \fBif\fP max_x>0 \fBthen\fP
     // updated row permutation and index:
     transp i max_i p, i+1,
     {// the top rows of the matrix remain unchanged:
      x!!(0..i-1,0..m-1);
-     // the pivot row, divided by the pivot:
+     // the pivot row, divided by the pivot element:
      {x!(i,l)/x!(i,j)                 | l=0..m-1};
      // subtract suitable multiples of the pivot row:
      {x!(k,l)-x!(k,j)*x!(i,l)/x!(i,j) | k=i+1..n-1; l=0..m-1}}
@@ -1288,9 +1281,28 @@ step (p,i,x) j
 \fBend\fP;
 .fi
 .PP
-We also need the following little helper functions to swap two rows of a
-matrix (this is used in the pivoting step above) and to apply a transposition
-to a permutation (represented as a list):
+The real meat is in the pivoting and elimination step ('step' function) which
+is iterated over all columns of the input matrix. In each step, x is the
+current matrix, i the current row index, j the current column index, and p
+keeps track of the current permutation of the row indices performed during
+pivoting. The algorithm returns the updated matrix x, row index i and row
+permutation p.
+.PP
+Please refer to any good textbook on numeric mathematics for a closer
+description of the algorithm. But here is a brief rundown of what happens in
+each elimination step: First we find the pivot element in column j of the
+matrix. (We're doing partial pivoting here, i.e., we only look for the element
+with the largest absolute value in column j, starting at row i. That's usually
+good enough to achieve numerical stability.) If the pivot is zero then we're
+done (the rest of the pivot column is already zeroed out). Otherwise, we bring
+it into the pivot position (swapping row i and the pivot row), divide the
+pivot row by the pivot, and subtract suitable multiples of the pivot row to
+eliminate the elements of the pivot column in all subsequent rows. Finally we
+update i and p accordingly and return the result.
+.PP
+In order to complete the implementation, we still need the following little
+helper functions to swap two rows of a matrix (this is used in the pivoting
+step) and to apply a transposition to a permutation (represented as a list):
 .sp
 .nf
 swap x i j = x!!(transp i j (0..n-1),0..m-1) \fBwhen\fP n,m = dim x \fBend\fP;
