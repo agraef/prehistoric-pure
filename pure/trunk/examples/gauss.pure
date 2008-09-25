@@ -30,7 +30,7 @@ step (p,i,x) j
     transp i max_i p, i+1,
     {// the top rows of the matrix remain unchanged:
      x!!(0..i-1,0..m-1);
-     // the pivot row, divided by the pivot:
+     // the pivot row, divided by the pivot element:
      {x!(i,l)/x!(i,j)                 | l=0..m-1};
      // subtract suitable multiples of the pivot row:
      {x!(k,l)-x!(k,j)*x!(i,l)/x!(i,j) | k=i+1..n-1; l=0..m-1}}
