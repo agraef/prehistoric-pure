@@ -266,14 +266,15 @@ redim x::matrix (n::int,m::int)
 			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
 
 /* You can also redim a matrix to a given row size. In this case the row size
-   must be positive and divide the total size of the matrix, */
+   must divide the total size of the matrix, */
 
 redim x::matrix m::int	= redim x (#x div m,m) if m>0 && #x mod m==0;
+			= x if m==0 && #x==0;
 
 /* Convert a matrix to a row or column vector. */
 
 rowvector x::matrix	= redim x (1,#x);
-colvector x::matrix	= redim x 1;
+colvector x::matrix	= redim x (#x,1);
 
 /* Transpose a matrix. */
 
@@ -331,19 +332,25 @@ take k::int x::matrix	= x!!(0..k-1);
 takewhile p x::matrix	= colcat (takewhile p (list x));
 tail x::matrix		= x!!(1..#x-1) if not null x;
 
-zip x::matrix y::matrix	= flip redim (dim x!1) $
+private zipdim zip3dim;
+zipdim x::matrix y::matrix
+			= min (dim x!0) (dim y!0),dim x!1;
+zip3dim x::matrix y::matrix z::matrix
+			= min (dim x!0) (min (dim y!0) (dim z!0)),dim x!1;
+
+zip x::matrix y::matrix	= flip redim (zipdim x y) $
 			  colcat (zip (list x) (list y))
 			    if dim x!1==dim y!1;
 zip3 x::matrix y::matrix z::matrix
-			= flip redim (dim x!1) $
+			= flip redim (zip3dim x y z) $
 			  colcat (zip3 (list x) (list y) (list z))
 			    if dim x!1==dim y!1 && dim x!1==dim z!1;
 zipwith f x::matrix y::matrix
-			= flip redim (dim x!1) $
+			= flip redim (zipdim x y) $
 			  colcat (zipwith f (list x) (list y))
 			    if dim x!1==dim y!1;
 zipwith3 f x::matrix y::matrix z::matrix
-			= flip redim (dim x!1) $
+			= flip redim (zip3dim x y z) $
 			  colcat (zipwith3 f (list x) (list y) (list z))
 			    if dim x!1==dim y!1 && dim x!1==dim z!1;
 dowith f x::matrix y::matrix
