@@ -1,5 +1,5 @@
 
-** Pure 0.7 (in progress)
+** Pure 0.7 (2008-09-26)
 
 This release brings an important new feature: GSL (GNU Scientific Library)
 matrix support. Here's a brief overview of the new stuff. For more
