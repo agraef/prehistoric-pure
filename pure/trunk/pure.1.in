@@ -1239,9 +1239,9 @@ case of the ``dot'' product of two vectors:
 vectors aren't the same size then you'll get an `out_of_bounds' exception with
 the definition above.)
 .PP
-The matrix product now boils down to a simple matrix comprehension which just
-multiplies all rows of x with all columns of y (the rows and cols functions
-are prelude operations found in matrices.pure):
+The general matrix product now boils down to a simple matrix comprehension
+which just multiplies all rows of x with all columns of y (the rows and cols
+functions are prelude operations found in matrices.pure):
 .sp
 .nf
 > x::matrix * y::matrix = {u*v | u = rows x; v = cols y};
