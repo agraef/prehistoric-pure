@@ -112,12 +112,14 @@ x::matrix!(i::int,j::int)
    of int values. As with list slicing, index ranges may be non-contiguous
    and/or non-monotonous. However, the case of contiguous and monotonous
    ranges is optimized by making good use of the 'submat' operation below. We
-   also add some rules to make slicing work with ranges drawn from a matrix
-   rather than a list. */
+   also add some convenience rules to handle matrix ranges as well "mixed"
+   ranges (ns,ms) where either ns or ms is a singleton. */
 
 x!!ns::matrix		= x!!list ns;
-x!!(ns::matrix,ms::matrix)
-			= x!!(list ns,list ms);
+x!!(ns::matrix,ms)	= x!!(list ns,ms);
+x!!(ns,ms::matrix)	= x!!(ns,list ms);
+x!!(ns::int,ms)		= x!!([ns],ms);
+x!!(ns,ms::int)		= x!!(ns,[ms]);
 
 x::matrix!!(ns,ms)	= case ns,ms of
 			    ns@(n:_),ms@(m:_) = submat x (n,m) (#ns,#ms)
