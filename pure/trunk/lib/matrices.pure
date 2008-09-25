@@ -262,19 +262,19 @@ packed x::matrix	= stride x==dim x!1;
 private matrix_redim;
 extern expr* matrix_redim(expr* x, int n, int m);
 
-redim x::matrix (n::int,m::int)
+redim (n::int,m::int) x::matrix
 			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
 
 /* You can also redim a matrix to a given row size. In this case the row size
    must divide the total size of the matrix, */
 
-redim x::matrix m::int	= redim x (#x div m,m) if m>0 && #x mod m==0;
+redim m::int x::matrix	= redim (#x div m,m) x if m>0 && #x mod m==0;
 			= x if m==0 && #x==0;
 
 /* Convert a matrix to a row or column vector. */
 
-rowvector x::matrix	= redim x (1,#x);
-colvector x::matrix	= redim x (#x,1);
+rowvector x::matrix	= redim (1,#x) x;
+colvector x::matrix	= redim (#x,1) x;
 
 /* Transpose a matrix. */
 
@@ -323,7 +323,7 @@ foldr1 f x::matrix	= foldr1 f (list x);
 head x::matrix		= x!0 if not null x;
 init x::matrix		= x!!(0..#x-2) if not null x;
 last x::matrix		= x!(#x-1) if not null x;
-map f x::matrix		= flip redim (dim x) $ colcat (map f (list x));
+map f x::matrix		= redim (dim x) $ colcat (map f (list x));
 scanl f a x::matrix	= colcat (scanl f a (list x));
 scanl1 f x::matrix	= colcat (scanl1 f (list x));
 scanr f a x::matrix	= colcat (scanr f a (list x));
@@ -338,19 +338,19 @@ zipdim x::matrix y::matrix
 zip3dim x::matrix y::matrix z::matrix
 			= min (dim x!0) (min (dim y!0) (dim z!0)),dim x!1;
 
-zip x::matrix y::matrix	= flip redim (zipdim x y) $
+zip x::matrix y::matrix	= redim (zipdim x y) $
 			  colcat (zip (list x) (list y))
 			    if dim x!1==dim y!1;
 zip3 x::matrix y::matrix z::matrix
-			= flip redim (zip3dim x y z) $
+			= redim (zip3dim x y z) $
 			  colcat (zip3 (list x) (list y) (list z))
 			    if dim x!1==dim y!1 && dim x!1==dim z!1;
 zipwith f x::matrix y::matrix
-			= flip redim (zipdim x y) $
+			= redim (zipdim x y) $
 			  colcat (zipwith f (list x) (list y))
 			    if dim x!1==dim y!1;
 zipwith3 f x::matrix y::matrix z::matrix
-			= flip redim (zip3dim x y z) $
+			= redim (zip3dim x y z) $
 			  colcat (zipwith3 f (list x) (list y) (list z))
 			    if dim x!1==dim y!1 && dim x!1==dim z!1;
 dowith f x::matrix y::matrix
@@ -360,12 +360,12 @@ dowith3 f x::matrix y::matrix z::matrix
 			= dowith3 f (list x) (list y) (list z)
 			    if dim x!1==dim y!1 && dim x!1==dim z!1;
 
-unzip x::matrix		= flip redim (dim x) (colcat u),
-			  flip redim (dim x) (colcat v)
+unzip x::matrix		= redim (dim x) (colcat u),
+			  redim (dim x) (colcat v)
 			    when u,v = unzip (list x) end;
-unzip3 x::matrix	= flip redim (dim x) (colcat u),
-			  flip redim (dim x) (colcat v),
-			  flip redim (dim x) (colcat w)
+unzip3 x::matrix	= redim (dim x) (colcat u),
+			  redim (dim x) (colcat v),
+			  redim (dim x) (colcat w)
 			    when u,v,w = unzip3 (list x) end;
 
 /* Low-level operations for converting between matrices and raw pointers.
