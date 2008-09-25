@@ -17,12 +17,13 @@ when n,m = dim x; p,_,x = foldl step (0..n-1,0,x) (0..m-1) end;
 
 /* Here is a brief rundown of the algorithm: First we find the pivot element
    in column j of the matrix. (We're doing partial pivoting here, i.e., we
-   only look for the pivot in column j, starting at row i.) If the pivot is
-   zero then we're done (the pivot column is already zeroed out). Otherwise,
-   we bring it into the pivot position (swapping row i and the pivot row),
-   divide the picot row by the pivot, and subtract suitable multiples of the
-   pivot row to eliminate the pivot column in all subsequent rows. Finally we
-   update i and p accordingly and return the result. */
+   only look for the pivot in column j, starting at row i. That's usually good
+   enough to achieve numerical stability.) If the pivot is zero then we're
+   done (the pivot column is already zeroed out). Otherwise, we bring it into
+   the pivot position (swapping row i and the pivot row), divide the pivot row
+   by the pivot, and subtract suitable multiples of the pivot row to eliminate
+   the elements of the pivot column in all subsequent rows. Finally we update
+   i and p accordingly and return the result. */
 
 step (p,i,x) j
 = if max_x>0 then
