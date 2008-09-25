@@ -27,7 +27,7 @@ a + x::matrix		= map (\x->a+x) x if not matrixp a;
 x::matrix + a		= map (\x->x+a) x if not matrixp a;
 
 a - x::matrix		= map (\x->a-x) x if not matrixp a;
-x::matrix * a		= map (\x->x-a) x if not matrixp a;
+x::matrix - a		= map (\x->x-a) x if not matrixp a;
 
 a * x::matrix		= map (\x->a*x) x if not matrixp a;
 x::matrix * a		= map (\x->x*a) x if not matrixp a;
