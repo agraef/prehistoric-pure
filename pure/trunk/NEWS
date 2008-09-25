@@ -1,9 +1,9 @@
 
 ** Pure 0.7 (in progress)
 
-Basic GSL (GNU Scientific Library) matrix support has been implemented,
-including matrix comprehensions. Here's a brief overview of the new features.
-For more information on GSL please refer to http://www.gnu.org/software/gsl.
+This release brings an important new feature: GSL (GNU Scientific Library)
+matrix support. Here's a brief overview of the new stuff. For more
+information on GSL please refer to http://www.gnu.org/software/gsl.
 
 GSL double, complex and integer matrices can be created with the new {x,y;u,v}
 syntax, which works more or less like Octave/MATLAB matrices, but using curly
@@ -29,12 +29,12 @@ kind of matrices supported by the interpreter.
 
 Pure also provides so-called matrix comprehensions as a convenient means to
 create matrices from a template expression (which can denote either a scalar
-or a submatrix), drawing values from lists and (optionally) filtering the
-elements with predicates. These work pretty much like list comprehensions, but
-return matrices instead of lists. Generator clauses in matrix comprehensions
-alternate between row and column generation so that customary mathematical
-notation carries over quite easily. E.g., here's a simple example which
-illustrates how you can define a function which returns a square identity
+or a submatrix), drawing values from lists or matrices and (optionally)
+filtering the elements with predicates. These work pretty much like list
+comprehensions, but return matrices instead of lists. Generator clauses in
+matrix comprehensions alternate between row and column generation so that
+customary mathematical notation carries over quite easily. Here's a simple
+example showing how to define a function which returns a square identity
 matrix of a given dimension:
 
 > eye n = {i==j|i=1..n;j=1..n};
