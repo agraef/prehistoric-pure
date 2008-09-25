@@ -336,6 +336,8 @@ you might expect, zero denotes
 .B false
 and any non-zero value
 .BR true ).
+Pure also provides some built-in support for lists and matrices, although most
+of the corresponding operations are actually defined in the prelude.
 .SS Expression Syntax
 Expressions consist of the following elements:
 .TP
@@ -430,15 +432,48 @@ parentheses. E.g., [(1,2),3,(4,5)] is a three element list consisting of the
 tuple 1,2, the integer 3, and another tuple 4,5. Likewise, [(1,2,3)] is list
 with a single element, the tuple 1,2,3.
 .TP
-\fBList comprehensions:\fP [x,y; x = 1..n; y = 1..m; x<y]
-Pure also has list comprehensions which generate lists from an expression and
-one or more ``generator'' and ``filter'' clauses (the former bind a pattern to
-values drawn from a list, the latter are just predicates determining which
-generated elements should actually be added to the output list). List
-comprehensions are in fact syntactic sugar for a combination of nested
-lambdas, conditional expressions and ``catmaps'' (a list operation which
-combines list concatenation and mapping a function over a list, defined in the
-prelude), but they are often much easier to write. Some examples of list
+\fBMatrices:\fP {1.0,2.0,3.0}, {1,2;3,4}, {1L,y+1;foo,bar}
+Pure also offers matrices, a kind of arrays, as a built-in data structure
+which provides efficient storage and element access. These work more or less
+like their Octave/MATLAB equivalents, but using curly braces instead of
+brackets. As indicated, commas are used to separate the columns of a matrix,
+semicolons for its rows. In fact, the {...} construct is rather general,
+allowing you to construct new matrices from individual elements and/or
+submatrices, provided that all dimensions match up. E.g., {{1;3},{2;4}} is
+another way to write a 2x2 matrix in ``column-major'' form (however,
+internally all matrices are stored in C's row-major format).
+.sp
+If the interpreter was built with support for the GNU Scientific Library (GSL)
+then both numeric and symbolic matrices are available. The former are thin
+wrappers around GSL's homogeneous arrays of double, complex double or
+(machine) int matrices, while the latter can contain any mixture of Pure
+expressions. Pure will pick the appropriate type for the data at hand. If a
+matrix contains values of different types, or Pure values which cannot be
+stored in a numeric matrix, then a symbolic matrix is created instead (this
+also includes the case of bigints, which are considered as symbolic values as
+far as matrix construction is concerned). If the interpreter was built without
+GSL support then symbolic matrices are the only kind of matrices supported by
+the interpreter.
+.sp
+More information about matrices and corresponding examples can be found in the
+EXAMPLES section below.
+.TP
+\fBComprehensions:\fP [x,y | x=1..n; y=1..m; x<y], {i!=j | i=1..n; j=1..m}
+Pure provides the usual comprehension syntax as a convenient means to
+construct both list and matrix values from a ``template'' expression and one
+or more ``generator'' and ``filter'' clauses (the former bind a pattern to
+values drawn from a list or matrix, the latter are just predicates determining
+which generated elements should actually be added to the result). Both list
+and matrix comprehensions are in fact syntactic sugar for a combination of
+nested lambdas, conditional expressions and ``catmaps'' (a collection of
+operations which combine list or matrix construction and mapping a function
+over a list or matrix, defined in the prelude), but they are often much easier
+to write.
+.sp
+Matrix comprehensions work pretty much like list comprehensions, but produce
+matrices instead of lists. Generator clauses in matrix comprehensions
+alternate between row and column generation so that most common mathematical
+abbreviations carry over quite easily. Examples of both kinds of
 comprehensions can be found in the EXAMPLES section below.
 .TP
 \fBFunction applications:\fP foo x y z
@@ -712,9 +747,113 @@ evaluated. This means that, even in a script file, you have to define all
 symbols needed in an evaluation
 .I before
 entering the expression to be evaluated.
+.SH RULE SYNTAX
+Basically, the same rule syntax is used in all kinds of global and local
+definitions. However, some constructs (specifically, \fBwhen\fP, \fBlet\fP,
+\fBconst\fP and \fBdef\fP) use a restricted rule syntax where no guards or
+multiple left-hand and right-hand sides are permitted. When matching against a
+function or macro call, or the subject term in a \fBcase\fP expression, the
+rules are always considered in the order in which they are written, and the
+first matching rule (whose guard evaluates to a nonzero value, if applicable)
+is picked. (Again, the \fBwhen\fP construct is treated differently, because
+each rule is actually a separate definition.)
+.PP
+In any case, the left-hand side pattern (which, as already mentioned, is
+always a simple expression) must not contain repeated variables (i.e., rules
+must be ``left-linear''), except for the anonymous variable `_' which matches
+an arbitrary value without binding a variable symbol.
+.PP
+A left-hand side variable (including the anonymous variable) may be followed
+by one of the special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP,
+\fB::string\fP, \fB::matrix\fP, \fB::pointer\fP, to indicate that it can only
+match a constant value of the corresponding built-in type. (This is useful if
+you want to write rules matching \fIany\fP object of one of these types; note
+that there is no way to write out all ``constructors'' for the built-in types,
+as there are infinitely many.)
+.PP
+Pure also supports Haskell-style ``as'' patterns of the form
+.IB variable @ pattern
+which binds the given variable to the expression matched by the subpattern
+.I pattern
+(in addition to the variables bound by
+.I pattern
+itself). This is convenient if the value matched by the subpattern is to be
+used on the right-hand side of an equation. Syntactically, ``as'' patterns are
+primary expressions; if the subpattern is not a primary expression, it must be
+parenthesized. For instance, the following function duplicates the head
+element of a list:
+.sp
+.nf
+foo xs@(x:_) = x:xs;
+.fi
+.PP
+The left-hand side of a rule can be omitted if it is the same as for the
+previous rule. This provides a convenient means to write out a collection of
+equations for the same left-hand side which discriminates over different
+conditions:
+.sp
+.nf
+\fIlhs\fR       = \fIrhs\fP \fBif\fP \fIguard\fP;
+          = \fIrhs\fP \fBif\fP \fIguard\fP;
+          ...
+          = \fIrhs\fP \fBotherwise\fP;
+.fi
+.PP
+For instance:
+.sp
+.nf
+fact n  = n*fact (n-1) \fBif\fP n>0;
+        = 1 \fBotherwise\fP;
+.fi
+.PP
+Pure also allows a collection of rules with different left-hand sides but the
+same right-hand side(s) to be abbreviated as follows:
+.sp
+.nf
+\fIlhs\fP       |
+          ...
+\fIlhs\fP       = \fIrhs\fP;
+.fi
+.PP
+This is useful if you need different specializations of the same rule which
+use different type tags on the left-hand side variables. For instance:
+.sp
+.nf
+fact n::int    |
+fact n::double |
+fact n         = n*fact(n-1) \fBif\fP n>0;
+               = 1 \fBotherwise\fP;
+.fi
+.PP
+In fact, the left-hand sides don't have to be related at all, so that you can
+also write something like:
+.sp
+.nf
+foo x | bar y = x*y;
+.fi
+.PP
+However, this is most useful when using an ``as'' pattern to bind a common
+variable to a parameter value
+.I after
+checking that it matches one of several possible argument patterns (which is
+slightly more efficient than using an equivalent type-checking guard). E.g.,
+the following definition binds the xs variable to the parameter of foo, if it
+is either the empty list or a list starting with an integer:
+.sp
+.nf
+foo xs@[] | foo xs@(_::int:_) = ... xs ...;
+.fi
+.PP
+The same construct also works in
+.B case
+expressions, which is convenient if different cases should be mapped to the
+same value, e.g.:
+.sp
+.nf
+\fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
+.fi
 .SH EXAMPLES
-Here are a few examples of simple Pure programs (see the following section for
-a closer discussion of the rule syntax).
+Here are a few examples of simple Pure programs.
 .PP
 The factorial:
 .sp
@@ -1032,110 +1171,159 @@ variable to print the stream. Otherwise the stream stored in P will grow with
 the number of elements printed until memory is exhausted. Calling `do' on a
 fresh instance of the stream of primes allows `do' to get rid of each `cons'
 cell after having printed the corresponding stream element.)
-.SH RULE SYNTAX
-Basically, the same rule syntax is used in all kinds of global and local
-definitions. However, some constructs (specifically, \fBwhen\fP, \fBlet\fP,
-\fBconst\fP and \fBdef\fP) use a restricted rule syntax where no guards or
-multiple left-hand and right-hand sides are permitted. When matching against a
-function or macro call, or the subject term in a \fBcase\fP expression, the
-rules are always considered in the order in which they are written, and the
-first matching rule (whose guard evaluates to a nonzero value, if applicable)
-is picked. (Again, the \fBwhen\fP construct is treated differently, because
-each rule is actually a separate definition.)
+.SS Matrix Computations
+Pure offers a number of basic matrix operations, such as matrix construction,
+indexing, slicing, as well as getting the size and dimensions of a matrix
+(these are briefly described in the STANDARD LIBRARY section below). However,
+it does
+.I not
+supply built-in support for matrix arithmetic and other linear algebra
+algorithms. The idea is that these can and should be provided through separate
+libraries, such as a GSL interface (which will hopefully be available in the
+near future).
 .PP
-In any case, the left-hand side pattern (which, as already mentioned, is
-always a simple expression) must not contain repeated variables (i.e., rules
-must be ``left-linear''), except for the anonymous variable `_' which matches
-an arbitrary value without binding a variable symbol.
-.PP
-A left-hand side variable (including the anonymous variable) may be followed
-by one of the special type tags \fB::int\fP, \fB::bigint\fP, \fB::double\fP,
-\fB::string\fP, to indicate that it can only match a constant value of the
-corresponding built-in type. (This is useful if you want to write rules
-matching \fIany\fP object of one of these types; note that there is no way to
-write out all ``constructors'' for the built-in types, as there are infinitely
-many.)
-.PP
-Pure also supports Haskell-style ``as'' patterns of the form
-.IB variable @ pattern
-which binds the given variable to the expression matched by the subpattern
-.I pattern
-(in addition to the variables bound by
-.I pattern
-itself). This is convenient if the value matched by the subpattern is to be
-used on the right-hand side of an equation. Syntactically, ``as'' patterns are
-primary expressions; if the subpattern is not a primary expression, it must be
-parenthesized. For instance, the following function duplicates the head
-element of a list:
+But Pure's facilities for matrix and list processing also make it easy to roll
+your own, if desired. First, the prelude provides matrix versions of the
+common list operations like map, fold, zip etc., which provide a way to
+implement common matrix operations. E.g., multiplying a matrix x with a scalar
+a amounts to mapping the function \ex->a*x to x, which can be done as follows:
 .sp
 .nf
-foo xs@(x:_) = x:xs;
+> a::int * x::matrix = map (\ex->a*x) x;
+> 2*{1,2,3;4,5,6};
+{2,4,6;8,10,12}
 .fi
 .PP
-The left-hand side of a rule can be omitted if it is the same as for the
-previous rule. This provides a convenient means to write out a collection of
-equations for the same left-hand side which discriminates over different
-conditions:
+Likewise, matrix addition and other element-wise operations can be realized
+using zipwith, which combines corresponding elements of two matrices using a
+given binary function:
 .sp
 .nf
-\fIlhs\fR       = \fIrhs\fP \fBif\fP \fIguard\fP;
-          = \fIrhs\fP \fBif\fP \fIguard\fP;
-          ...
-          = \fIrhs\fP \fBotherwise\fP;
+> x::matrix + y::matrix = zipwith (+) x y;
+> {1,2,3;4,5,6}+{1,2,1;3,2,3};
+{2,4,4;7,7,9}
 .fi
 .PP
-For instance:
+Second, matrix comprehensions make it easy to express a variety of algorithms
+which would be implemented using `for' loops in conventional programming
+languages. To illustrate the use of matrix comprehensions, here is how we can
+define an operation to create a square identity matrix of a given dimension:
 .sp
 .nf
-fact n  = n*fact (n-1) \fBif\fP n>0;
-        = 1 \fBotherwise\fP;
+> eye n = {i==j | i = 1..n; j = 1..n};
+> eye 3;
+{1,0,0;0,1,0;0,0,1}
 .fi
 .PP
-Pure also allows a collection of rules with different left-hand sides but the
-same right-hand side(s) to be abbreviated as follows:
+Note that the i==j term is just a Pure idiom for the Kronecker symbol. Another
+point worth mentioning here is that the generator clauses of matrix
+comprehensions alternate between row and column generation
+automatically. (More precisely, the last generator, which varies most quickly,
+always yields a row, the next-to-last one a column of these row vectors, and
+so on.) This makes matrix comprehensions resemble customary mathematical
+notation very closely.
+.PP
+As a slightly more comprehensive example (no pun intended!), here is a
+definition of matrix multiplication in Pure. Let's start out with the simple
+case of the ``dot'' product of two vectors:
 .sp
 .nf
-\fIlhs\fP       |
-          ...
-\fIlhs\fP       = \fIrhs\fP;
+> x::matrix * y::matrix = sum [x!i*y!i | i=0..#x-1]
+>   \fBif\fP vectorp x && vectorp y;
+> sum = foldl (+) 0;
+> {1,2,3}*{1,0,1};
+4
 .fi
 .PP
-This is useful if you need different specializations of the same rule which
-use different type tags on the left-hand side variables. For instance:
+(For the sake of simplicity, this doesn't do much error checking; if the two
+vectors aren't the same size then you'll get an `out_of_bounds' exception with
+the definition above.)
+.PP
+The matrix product now boils down to a simple matrix comprehension which just
+multiplies all rows of x with all columns of y (the rows and cols functions
+are prelude operations found in matrices.pure):
 .sp
 .nf
-fact n::int    |
-fact n::double |
-fact n         = n*fact(n-1) \fBif\fP n>0;
-               = 1 \fBotherwise\fP;
+> x::matrix * y::matrix = {u*v | u = rows x; v = cols y};
+> {0,1;1,0;1,1}*{1,2,3;4,5,6};
+{4,5,6;1,2,3;5,7,9}
 .fi
 .PP
-In fact, the left-hand sides don't have to be related at all, so that you can
-also write something like:
+Well, that was easy. So let's take a look at a more challenging example,
+Gaussian elimination, which can be used to solve systems of linear
+equations. The algorithm brings a matrix into ``row echelon'' form, a
+generalization of triangular matrices. The resulting system can then be solved
+quite easily using back substitution. Here is a Pure implementation of the
+algorithm (please refer to any good textbook on numeric mathematics for a
+closer description of the algorithm):
 .sp
 .nf
-foo x | bar y = x*y;
+gauss_elimination x::matrix = p,x
+\fBwhen\fP n,m = dim x; p,_,x = foldl step (0..n-1,0,x) (0..m-1) \fBend\fP;
 .fi
 .PP
-However, this is most useful when using an ``as'' pattern to bind a common
-variable to a parameter value
-.I after
-checking that it matches one of several possible argument patterns (which is
-slightly more efficient than using an equivalent type-checking guard). E.g.,
-the following definition binds the xs variable to the parameter of foo, if it
-is either the empty list or a list starting with an integer:
+The actual pivoting and elimination step is a bit involved. x is our matrix, i
+the current row index, j the current column index, and p keeps track of the
+current permutation of the row indices performed during pivoting. The
+algorithm returns the updated matrix x, row index i and row permutation p.
 .sp
 .nf
-foo xs@[] | foo xs@(_::int:_) = ... xs ...;
+step (p,i,x) j
+= \fBif\fP max_x>0 \fBthen\fP
+    // updated row permutation and index:
+    transp i max_i p, i+1,
+    {// the top rows of the matrix remain unchanged:
+     x!!(0..i-1,0..m-1);
+     // the pivot row, divided by the pivot:
+     {x!(i,l)/x!(i,j)                 | l=0..m-1};
+     // subtract suitable multiples of the pivot row:
+     {x!(k,l)-x!(k,j)*x!(i,l)/x!(i,j) | k=i+1..n-1; l=0..m-1}}
+  \fBelse\fP p,i,x
+\fBwhen\fP
+  n,m = dim x; max_i, max_x = pivot i (col x j);
+  x = \fBif\fP max_x>0 \fBthen\fP swap x i max_i \fBelse\fP x;
+\fBend\fP \fBwith\fP
+  pivot i x       = foldl max (0,0) [j,abs (x!j)|j=i..#x-1];
+  max (i,x) (j,y) = \fBif\fP x<y \fBthen\fP j,y \fBelse\fP i,x;
+\fBend\fP;
 .fi
 .PP
-The same construct also works in
-.B case
-expressions, which is convenient if different cases should be mapped to the
-same value, e.g.:
+We also need the following little helper functions to swap two rows of a
+matrix (this is used in the pivoting step above) and to apply a transposition
+to a permutation (represented as a list):
 .sp
 .nf
-\fBcase\fP ans \fBof\fP "y" | "Y" = 1; _ = 0; \fBend\fP;
+swap x i j = x!!(transp i j (0..n-1),0..m-1) \fBwhen\fP n,m = dim x \fBend\fP;
+transp i j p = [p!tr k | k=0..#p-1]
+\fBwith\fP tr k = \fBif\fP k==i \fBthen\fP j \fBelse\fP \fBif\fP k==j \fBthen\fP i \fBelse\fP k \fBend\fP;
+.fi
+.PP
+Finally, let us define a convenient print representation of double matrices a
+la Octave (the meaning of the __show__ function is explained in the CAVEATS
+and NOTES section):
+.sp
+.nf
+\fBusing\fP system;
+__show__ x::matrix
+= strcat [printd j (x!(i,j))|i=0..n-1; j=0..m-1] + "\en"
+\fBwith\fP printd 0 = sprintf "\en%10.5f"; printd _ = sprintf "%10.5f" \fBend\fP
+\fBwhen\fP n,m = dim x \fBend\fP \fBif\fP dmatrixp x;
+.fi
+.PP
+Example:
+.sp
+.nf
+> \fBlet\fP x = dmatrix {2,1,-1,8; -3,-1,2,-11; -2,1,2,-3};
+> x; gauss_elimination x;
+
+   2.00000   1.00000  -1.00000   8.00000
+  -3.00000  -1.00000   2.00000 -11.00000
+  -2.00000   1.00000   2.00000  -3.00000
+
+[1,2,0],
+   1.00000   0.33333  -0.66667   3.66667
+   0.00000   1.00000   0.40000   2.60000
+   0.00000   0.00000   1.00000  -1.00000
 .fi
 .SH MACROS
 Macros are a special type of functions to be executed as a kind of
@@ -1688,18 +1876,19 @@ Pure considers all integers as signed quantities, but it is possible to pass
 unsigned integers as well (if necessary, you can use a bigint to pass positive
 values which are too big to fit into a machine int). Also note that when an
 unsigned integer is returned by a C routine which is too big to fit into the
-corresponding signed integer type, it will become negative. In this case,
-depending on the target type, you can use the ubyte, ushort, uint and ulong
-functions provided by the prelude to convert the result back to an unsigned
-quantity.
+corresponding signed integer type, it will ``wrap around'' and become
+negative. In this case, depending on the target type, you can use the ubyte,
+ushort, uint and ulong functions provided by the prelude to convert the result
+back to an unsigned quantity.
 .PP
 Concerning the pointer types, char* is for string arguments and return values
 which need translation between Pure's internal utf-8 representation and the
 system encoding, while void* is for any generic kind of pointer (including
 strings, which are \fInot\fP translated when passed/returned as void*). Any
-other kind of pointer (except expr*, see below) is effectively treated as
-void* right now, although in a future version the interpreter may keep track
-of the type names for the purpose of checking parameter types.
+other kind of pointer (except expr* and the GSL matrix pointer types, which
+are discussed below) is effectively treated as void* right now, although in a
+future version the interpreter may keep track of the type names for the
+purpose of checking parameter types.
 .PP
 The expr* pointer type is special; it indicates a Pure expression parameter or
 return value which is just passed through unchanged. All other types of values
@@ -1707,6 +1896,32 @@ have to be ``unboxed'' when they are passed as arguments (i.e., from Pure to
 C) and ``boxed'' again when they are returned as function results (from C to
 Pure). All of this is handled by the runtime system in a transparent way, of
 course.
+.PP
+The matrix pointer types dmatrix*, cmatrix* and imatrix* can be used to pass
+double, complex double and int matrices to GSL functions taking pointers to
+the corresponding GSL types (gsl_matrix, gsl_matrix_complex and
+gsl_matrix_int) as arguments or returning them as results. Note that there is
+no marshalling of Pure's symbolic matrix type, as these aren't supported by
+GSL anyway. Also note that matrices are always passed by reference. If you
+need to pass a matrix as an output parameter of a GSL matrix routine, you can
+either create a zero matrix or a copy of an existing matrix. The prelude
+provides various operations for that purpose (in particular, see the dmatrix,
+cmatrix, imatrix and pack functions in matrices.pure). For instance, here is
+how you can quickly wrap up GSL's double matrix addition function in a way
+that preserves value semantics:
+.sp
+.nf
+> \fBextern\fP int gsl_matrix_add(dmatrix*, dmatrix*);
+> x::matrix + y::matrix = gsl_matrix_add x y $$ x \fBwhen\fP x = pack x \fBend\fP;
+> \fBlet\fP x = dmatrix {1,2,3}; \fBlet\fP y = dmatrix {2,3,2}; x; y; x+y;
+{1.0,2.0,3.0}
+{2.0,3.0,2.0}
+{3.0,5.0,5.0}
+.fi
+.PP
+Most GSL matrix routines can be wrapped in this fashion quite easily. A
+ready-made GSL interface providing access to all of GSL's numeric functions
+will be provided in the future.
 .PP
 As already mentioned, it is possible to augment an external C function with
 ordinary Pure equations, but in this case you have to make sure that the
@@ -1795,17 +2010,81 @@ which can be loaded explicitly with a
 .B using
 clause. The prelude offers the necessary functions to work with the built-in
 types (including arithmetic and logical operations) and to do most kind of
-list processing you can find in ML- and Haskell-like languages. Please refer
-to the
+list processing you can find in ML- and Haskell-like languages. It also
+provides a collection of basic string and matrix operations. Please refer to
+the
 .B prelude.pure
-file for details on the provided operations. Common container data structures
-like sets and dictionaries are also available, see
-.BR set.pure ,
+file (as well as the modules included there, specifically
+.BR primitives.pure ,
+.B matrices.pure
+and
+.BR strings.pure )
+for details on the provided operations. Here is a very brief summary of some
+of the prelude operations which, besides the usual arithmetic and logical
+operators, are probably used most frequently:
+.TP
+x+y
+This is also used to denote list concatenation.
+.TP
+x:y
+This is the list-consing operation. x becomes the head of the list, y its tail.
+.TP
+x..y
+Constructs arithmetic sequences. x:y..z can be used to denote sequences with
+arbitrary stepsize y-x. Infinite sequences can be constructed using an
+infinite bound (i.e., inf or -inf). E.g., 1:3..inf denotes the stream of all
+positive odd (machine) integers.
+.TP
+#x
+The size (number of elements) of the list, tuple or matrix x. In addition, dim
+x yields the dimensions (number of rows and columns) of a matrix.
+.TP
+x'
+The transpose of a matrix.
+.TP
+x!y
+This is the list, tuple and matrix indexing operation. Note that all indices
+in Pure are zero-based, thus x!0 and x!(#x-1) are the first and last element
+of a list, tuple or matrix, respectively. In the case of matrices, the
+subscript may also be a pair of row and column indices, such as x!(1,2).
+.TP
+x!!ys
+This is Pure's list, tuple and matrix ``slicing'' operation, which returns the
+list, tuple or matrix of all x!y while y runs through the (list or matrix) ys.
+Thus, e.g., x!!(i..j) returns all the elements between i and j (inclusive).
+Indices which fall outside the valid index range are quietly discarded. In
+fact, the index range ys may contain any number of indices (also duplicates),
+in any order. Thus x![0|i=1..n] returns the first element of x n times, and,
+if ys is a permutation of the range 0..#x-1, then x!!ys yields the
+corresponding permutation of the elements of x. In the case of matrices the
+index range may also contain two-dimensional subscripts, or the index range
+itself may be specified as a pair of row/column index lists such as
+x!!(i..j,k..l).
+.PP
+The prelude also offers support operations for the implementation of list and
+matrix comprehensions, as well as the customary list operations like head,
+tail, drop, take, filter, map, foldl, foldr, scanl, scanr, zip, unzip, etc.,
+which make list programming so much fun in modern FPLs. In Pure, these also
+work on strings as well as matrices, although, for reasons of efficiency,
+these data structures are internally represented as different kinds of array
+data structures.
+.PP
+Besides the prelude, Pure's standard library also comprises a growing number
+of additional library modules which we can only mention in passing here. In
+particular, the
+.B math.pure
+module provides additional mathematical functions as well as Pure's complex
+and rational number data types. Common container data structures like sets and
+dictionaries are implemented in the
+.B set.pure
+and
 .B dict.pure
-etc. Moreover, the (beginnings of a) system interface can be found in the
+modules, among others. Moreover, the (beginnings of a) system interface can be
+found in the
 .B system.pure
-module. In particular, this module also includes operations to do basic
-I/O. More stuff will likely be provided in future releases.
+module. In particular, this module also provides operations to do basic
+C-style I/O, including printf and scanf. More stuff will likely be provided in
+future releases.
 .SH INTERACTIVE USAGE
 In interactive mode, the interpreter reads definitions and expressions and
 processes them as usual. If the
@@ -2288,12 +2567,24 @@ functional. Pure doesn't get in your way if you want to call external
 operations with side effects (it does allow you to call any C function after
 all), but with a few exceptions the standard library operations are free of
 those. Just stay away from operations marked ``IMPURE'' in the library sources
-(most notably, eval and catch/throw) and avoid the system module, then your
-program will behave according to the semantics of term rewriting.
+(most notably, eval, catch/throw, references, sentries and direct pointer
+manipulations) and avoid the system module, then your program will behave
+according to the semantics of term rewriting.
 .PP
 The short answer is that I simply liked the name, and there wasn't any
 programming language named ``Pure'' yet (quite a feat nowadays), so there's
 one now. :)
+.SS Backward Compatibility
+Pure 0.7 introduced built-in matrix structures, which called for some minor
+changes in the syntax of comprehensions and arithmetic
+sequences. Specifically, the template expression and generator/filter clauses
+of a comprehension are now separated with '|'. (For the time being, the old
+[x; ...] list comprehension syntax is still supported, but the compiler will
+warn you about such constructs and flag them as deprecated.) Moreover,
+arithmetic sequences with arbitrary stepsize are now written x:y..z instead of
+x,y..z, and the `..' operator now has a lower precedence than the `,'
+operator. This makes writing matrix slices like x!!(i..j,k..l) much more
+convenient.
 .SS Debugging
 There's no symbolic debugger yet. So
 .BR printf (3)
@@ -2375,6 +2666,24 @@ context of a rule for other kinds of objects, such as lists. For instance:
 > __show__ (x:xs) = str (x:...) \fBif\fP thunkp xs;
 > 1:2:(3..inf);
 1:2:3:...
+.fi
+.PP
+Another case which needs special consideration are numeric matrices. For
+efficiency, the expression printer will always use the default representation
+for these, unless you override the representation of the matrix as a
+whole. E.g., the following rule for double matrices mimics Octave's default
+output format (for the sake of simplicity, this isn't perfect, but you get the
+idea):
+.sp
+.nf
+> __show__ x::matrix =
+>   strcat [printd j (x!(i,j))|i=0..n-1; j=0..m-1] + "\en"
+> \fBwith\fP printd 0 = sprintf "\en%10.5f"; printd _ = sprintf "%10.5f" \fBend\fP
+> \fBwhen\fP n,m = dim x \fBend\fP \fBif\fP dmatrixp x;
+> {1.0,1/2;1/3,4.0};
+
+   1.00000   0.50000
+   0.33333   4.00000
 .fi
 .PP
 Finally, by just purging the definition of the __show__ function you can
@@ -2826,14 +3135,24 @@ GPL V3 or later. See the accompanying COPYING file for details.
 Albert Graef <Dr.Graef@t-online.de>, Dept. of Computer Music, Johannes
 Gutenberg University of Mainz, Germany.
 .SH SEE ALSO
+(All software listed here is freely available, usually under the GNU Public
+License.)
 .TP
 .B Aardappel
 Another functional programming language based on term rewriting,
 \fIhttp://wouter.fov120.com/aardappel\fP.
 .TP
 .B Alice ML
-A version of ML (see below) with ``futures'',
-\fIhttp://www.ps.uni-sb.de/alice\fP.
+A version of ML (see below) from which Pure borrows its model of lazy
+evaluation, \fIhttp://www.ps.uni-sb.de/alice\fP.
+.TP
+.B GNU Octave
+A popular high-level language for numeric applications and free MATLAB
+replacement, \fIhttp://www.gnu.org/software/octave\fP.
+.TP
+.B GNU Scientific Library
+A free software library for numeric applications, required for Pure's
+numeric matrix support, \fIhttp://www.gnu.org/software/gsl\fP.
 .TP
 .B Haskell
 A popular non-strict FPL, \fIhttp://www.haskell.org\fP.
