@@ -1205,9 +1205,10 @@ given binary function:
 .fi
 .PP
 Second, matrix comprehensions make it easy to express a variety of algorithms
-which would be implemented using `for' loops in conventional programming
-languages. To illustrate the use of matrix comprehensions, here is how we can
-define an operation to create a square identity matrix of a given dimension:
+which would typically be implemented using `for' loops in conventional
+programming languages. To illustrate the use of matrix comprehensions, here is
+how we can define an operation to create a square identity matrix of a given
+dimension:
 .sp
 .nf
 > eye n = {i==j | i = 1..n; j = 1..n};
@@ -1224,14 +1225,12 @@ so on.) This makes matrix comprehensions resemble customary mathematical
 notation very closely.
 .PP
 As a slightly more comprehensive example (no pun intended!), here is a
-definition of matrix multiplication in Pure. Let's start out with the simple
-case of the ``dot'' product of two vectors:
+definition of matrix multiplication in Pure. The building block here is the
+``dot'' product of two vectors which can be defined as follows:
 .sp
 .nf
-> x::matrix * y::matrix = sum [x!i*y!i | i=0..#x-1]
->   \fBif\fP vectorp x && vectorp y;
-> sum = foldl (+) 0;
-> {1,2,3}*{1,0,1};
+> dot x::matrix y::matrix = foldl (+) 0 [x!i*y!i | i=0..#x-1];
+> dot {1,2,3} {1,0,1};
 4
 .fi
 .PP
@@ -1240,11 +1239,11 @@ vectors aren't the same size then you'll get an `out_of_bounds' exception with
 the definition above.)
 .PP
 The general matrix product now boils down to a simple matrix comprehension
-which just multiplies all rows of x with all columns of y (the rows and cols
-functions are prelude operations found in matrices.pure):
+which just computes the dot product of all rows of x with all columns of y
+(the rows and cols functions are prelude operations found in matrices.pure):
 .sp
 .nf
-> x::matrix * y::matrix = {u*v | u = rows x; v = cols y};
+> x::matrix * y::matrix = {dot u v | u = rows x; v = cols y};
 > {0,1;1,0;1,1}*{1,2,3;4,5,6};
 {4,5,6;1,2,3;5,7,9}
 .fi
