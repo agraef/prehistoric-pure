@@ -1261,7 +1261,8 @@ gauss_elimination x::matrix = p,x
 
 // One pivoting and elimination step in column j of the matrix:
 step (p,i,x) j
-= \fBif\fP max_x>0 \fBthen\fP
+= \fBif\fP max_x==0 \fBthen\fP p,i,x
+  \fBelse\fP
     // updated row permutation and index:
     transp i max_i p, i+1,
     {// the top rows of the matrix remain unchanged:
@@ -1270,7 +1271,6 @@ step (p,i,x) j
      {x!(i,l)/x!(i,j)                 | l=0..m-1};
      // subtract suitable multiples of the pivot row:
      {x!(k,l)-x!(k,j)*x!(i,l)/x!(i,j) | k=i+1..n-1; l=0..m-1}}
-  \fBelse\fP p,i,x
 \fBwhen\fP
   n,m = dim x; max_i, max_x = pivot i (col x j);
   x = \fBif\fP max_x>0 \fBthen\fP swap x i max_i \fBelse\fP x;
