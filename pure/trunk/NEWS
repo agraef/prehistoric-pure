@@ -78,7 +78,7 @@ operations in matrices.pure):
 
 - #x			total number of elements
 - dim x			number of rows and columns (as a pair)
-- x'			transposed matrix
+- x'			transpose of a matrix
 - x!i			ith matrix element in row-major order (zero-based)
 - x!(i,j)		jth element in ith row of the matrix (zero-based)
 - x!!is, x!!(is,js)	slicing (is and js are lists of machine ints)
