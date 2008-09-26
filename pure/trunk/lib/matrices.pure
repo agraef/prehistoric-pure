@@ -107,7 +107,7 @@ x::matrix!(i::int,j::int)
 			= throw out_of_bounds otherwise;
 
 /* Matrix slices (x!!ns). As with simple indexing, elements can be addressed
-   using either singleton (row-major) indices or index pair (row,column). The
+   using either singleton (row-major) indices or index pairs (row,column). The
    former is specified as a list of int values, the latter as a pair of lists
    of int values. As with list slicing, index ranges may be non-contiguous
    and/or non-monotonous. However, the case of contiguous and monotonous
