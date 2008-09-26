@@ -49,7 +49,7 @@ let x, y = square x, square (x+2); x; y;
 
 // We also have constant definitions using 'const' in lieu of 'let'. These
 // symbols cannot be redefined and are substituted directly into other
-// definitions. Try something like 'foo x = pi*x;' and then 'list foo' to see
+// definitions. Try something like 'foo x = pi*x;' and then 'show foo' to see
 // the difference.
 const pi = 3.14159265358979;
 
