@@ -17,6 +17,10 @@ almost everywhere (in fact, since you'll need LLVM anyway, you can also use
 the gcc frontend available for LLVM). You'll also need a Bourne-compatible
 shell and GNU make, which are also readily available on most platforms.
 
+A binary package in msi format is provided for Windows users in the download
+area of the pure-lang.sf.net project page. Ports and packages for other
+systems are also available; see the SYSTEM NOTES section below for details.
+
 
 BASIC INSTALLATION
 ===== ============
@@ -31,22 +35,48 @@ details about various options available when building and installing Pure.
 STEP 1. Make sure you have all the necessary dependencies installed (-dev
 denotes corresponding development packages):
 
-- GNU make, GNU C++ and the corresponding libraries;
+- GNU make, GNU C/C++ and the corresponding libraries;
 
 - flex and bison (these are only required when compiling the Pure SVN sources,
   see the INSTALLING FROM SVN SOURCES section below);
 
-- libgmp, -dev;
+- the GNU multiprecision library (libgmp, -dev);
 
-- libreadline, -dev;
+- the GNU scientific library (libgsl, -dev; this isn't a strict requirement,
+but you certainly want to have this library in order to make GSL matrices work
+in Pure);
 
-- libltdl, -dev;
+- the GNU readline library (libreadline, -dev);
 
-- subversion (only needed to fetch the SVN sources, see below).
+- the GNU ltdl library (libltdl, -dev; only required for building LLVM);
+
+- subversion (this is only needed to fetch the SVN sources, see below).
 
 E.g., the required packages for Ubuntu are: make, g++, g++ 4.0 multilib, flex,
-bison, libgmp3c2, libgmp3-dev, readline5-dev, libltdl3, libldtl3-dev,
-subversion.
+bison, libgmp3c2, libgmp3-dev, libgsl0, libgsl0-dev, readline5-dev, libltdl3,
+libldtl3-dev, subversion.
+
+All dependencies are available as free software. Here are some links if you
+need or want to install the dependencies from source:
+
+- GNU C/C++: http://gcc.gnu.org
+
+- GNU make: http://www.gnu.org/software/make
+
+- Flex: http://flex.sourceforge.net
+
+- Bison: http://www.gnu.org/software/bison
+
+- GMP: http://www.gnu.org/software/gmp
+
+- GSL: http://www.gnu.org/software/gsl
+
+- GNU readline: http://cnswww.cns.cwru.edu/php/chet/readline/rltop.html
+
+- GNU ltdl (part of the libtool software): http://www.gnu.org/software/libtool
+
+Subversion is available from http://subversion.tigris.org. There's also a very
+nice Windows frontend, TortoiseSVN, see http://tortoisesvn.tigris.org.
 
 STEP 2. Get and unpack the LLVM 2.3 sources at:
 http://llvm.org/releases/download.html#2.3
@@ -123,6 +153,16 @@ Check that it works:
 
 > 6*7;
 42
+
+Check that GSL support is available:
+
+> show gsl_version
+let gsl_version = "1.9";
+
+(If this doesn't display anything then please review your installation process
+and make sure that you have GSL installed. The configure program should show
+that GSL support is available in the summary. You can run Pure without this,
+but then the numeric GSL matrices won't be available.)
 
 Read the online documentation (this invokes the Pure manual page):
 
@@ -304,6 +344,12 @@ if several interpreter processes are running simultaneously. We only provide
 this as a workaround for systems on which LLVM refuses to be linked into
 shared libraries.
 
+GSL support should be enabled automatically, if the GSL libraries and headers
+are available on your system. If configure fails to find these then you may
+have to set CPPFLAGS and LDFLAGS accordingly and/or use --enable-gsl to
+forcibly enable GSL support. You can also specify --disable-gsl if you don't
+want/need the GSL matrices, but this isn't recommended.
+
 RUNNING PURE FROM THE SOURCE DIRECTORY
 ------- ---- ---- --- ------ ---------
 
@@ -385,6 +431,15 @@ LINUX
 Linux is the primary development platform for this software, and the sources
 should build out of the box on all recent Linux distributions.
 
+Binary packages for openSUSE are maintained by Toni Graffy as part of the
+Packman project: http://packman.links2linux.de/package/pure
+
+Alvaro Castro Castilla has contributed a Gentoo ebuild, which is currently
+available at http://bugs.gentoo.org/show_bug.cgi?id=231966.
+
+We're still looking for people who can maintain Debian and Fedora packages,
+please let us know if you want to help with that.
+
 MAC OSX
 --- ---
 
@@ -411,9 +466,11 @@ headers and precompiled binaries are available from the Pure website
 
 A binary package in msi format is available as well (see "Downloads" on the
 Pure website), which includes all required libraries and some shortcuts to run
-the Pure interpreter and read online documentation in html help format.
+the Pure interpreter and read online documentation in html help format, as
+well as "PurePad", an alternative GUI frontend for editing and running Pure
+scripts on Windows.
 
 
-August 2008
+September 2008
 Albert Graef <Dr.Graef at t-online.de>
 Eddie Rucker <erucker at bmc.edu>
