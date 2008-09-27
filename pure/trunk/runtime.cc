@@ -4882,6 +4882,19 @@ pure_expr *matrix_double(pure_expr *x)
 	m2->data[i*m2->tda+j] = (double)m1->data[i*m1->tda+j];
     return pure_double_matrix(m2);
   }
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    gsl_matrix *m2 = create_double_matrix(n, 2*m);
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t k = i*m2->tda+2*j;
+	size_t l = 2*(i*m1->tda+j);
+	m2->data[k] = m1->data[l];
+	m2->data[k+1] = m1->data[l+1];
+      }
+    return pure_double_matrix(m2);
+  }
   default:
     return 0;
   }
@@ -4945,6 +4958,19 @@ pure_expr *matrix_int(pure_expr *x)
   }
   case EXPR::IMATRIX:
     return x;
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    gsl_matrix_int *m2 = create_int_matrix(n, 2*m);
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t k = i*m2->tda+2*j;
+	size_t l = 2*(i*m1->tda+j);
+	m2->data[k] = (int)m1->data[l];
+	m2->data[k+1] = (int)m1->data[l+1];
+      }
+    return pure_int_matrix(m2);
+  }
   default:
     return 0;
   }
@@ -5019,7 +5045,7 @@ pure_expr *matrix_im(pure_expr *x)
 }
 
 extern "C"
-pure_expr *matrix_from_double_array(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_double_array_nodup(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5043,7 +5069,7 @@ pure_expr *matrix_from_double_array(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_complex_array(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_complex_array_nodup(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5069,7 +5095,7 @@ pure_expr *matrix_from_complex_array(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_int_array(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_int_array_nodup(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5093,7 +5119,7 @@ pure_expr *matrix_from_int_array(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_double_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_double_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5128,7 +5154,7 @@ pure_expr *matrix_from_double_array_dup(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_complex_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_complex_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5165,7 +5191,7 @@ pure_expr *matrix_from_complex_array_dup(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_int_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_int_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5200,7 +5226,176 @@ pure_expr *matrix_from_int_array_dup(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_float_array_dup(void *p, uint32_t n1, uint32_t n2)
+void *matrix_to_double_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = m1->data[l];
+	q[k++] = m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = m1->data[i*m1->tda+j];
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (double)m1->data[i*m1->tda+j];
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_complex_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = m1->data[l];
+	q[k++] = m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	q[k++] = m1->data[i*m1->tda+j];
+	q[k++] = 0.0;
+      }
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(double));
+    if (!p) return 0;
+    double *q = (double*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	q[k++] = (double)m1->data[i*m1->tda+j];
+	q[k++] = 0.0;
+      }
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_int_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(int));
+    if (!p) return 0;
+    int *q = (int*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = (int)m1->data[l];
+	q[k++] = (int)m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(int));
+    if (!p) return 0;
+    int *q = (int*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (int)m1->data[i*m1->tda+j];
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(int));
+    if (!p) return 0;
+    int *q = (int*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = m1->data[i*m1->tda+j];
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+pure_expr *matrix_from_float_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5236,7 +5431,7 @@ pure_expr *matrix_from_float_array_dup(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_complex_float_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_complex_float_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5274,7 +5469,7 @@ pure_expr *matrix_from_complex_float_array_dup(void *p, uint32_t n1, uint32_t n2
 }
 
 extern "C"
-pure_expr *matrix_from_short_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_short_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5310,7 +5505,7 @@ pure_expr *matrix_from_short_array_dup(void *p, uint32_t n1, uint32_t n2)
 }
 
 extern "C"
-pure_expr *matrix_from_byte_array_dup(void *p, uint32_t n1, uint32_t n2)
+pure_expr *matrix_from_byte_array(uint32_t n1, uint32_t n2, void *p)
 {
 #ifdef HAVE_GSL
   if (n1 == 0 || n2 == 0) // empty matrix
@@ -5340,6 +5535,230 @@ pure_expr *matrix_from_byte_array_dup(void *p, uint32_t n1, uint32_t n2)
   *x->data.mat.refc = 1;
   MEMDEBUG_NEW(x)
   return x;
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_float_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = (float)m1->data[l];
+	q[k++] = (float)m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (float)m1->data[i*m1->tda+j];
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (float)m1->data[i*m1->tda+j];
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_complex_float_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = (float)m1->data[l];
+	q[k++] = (float)m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	q[k++] = (float)m1->data[i*m1->tda+j];
+	q[k++] = 0.0;
+      }
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(float));
+    if (!p) return 0;
+    float *q = (float*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	q[k++] = (float)m1->data[i*m1->tda+j];
+	q[k++] = 0.0;
+      }
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_short_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(short));
+    if (!p) return 0;
+    short *q = (short*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = (short)m1->data[l];
+	q[k++] = (short)m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(short));
+    if (!p) return 0;
+    short *q = (short*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (short)m1->data[i*m1->tda+j];
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(short));
+    if (!p) return 0;
+    short *q = (short*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (short)m1->data[i*m1->tda+j];
+    return p;
+  }
+  default:
+    return 0;
+  }
+#else
+  return 0;
+#endif
+}
+
+extern "C"
+void *matrix_to_byte_array(void *p, pure_expr *x)
+{
+#ifdef HAVE_GSL
+  switch (x->tag) {
+  case EXPR::CMATRIX: {
+    gsl_matrix_complex *m1 = (gsl_matrix_complex*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(2*n*m*sizeof(int8_t));
+    if (!p) return 0;
+    int8_t *q = (int8_t*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++) {
+	size_t l = 2*(i*m1->tda+j);
+	q[k++] = (int8_t)m1->data[l];
+	q[k++] = (int8_t)m1->data[l+1];
+      }
+    return p;
+  }
+  case EXPR::DMATRIX: {
+    gsl_matrix *m1 = (gsl_matrix*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(int8_t));
+    if (!p) return 0;
+    int8_t *q = (int8_t*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (int8_t)m1->data[i*m1->tda+j];
+    return p;
+  }
+  case EXPR::IMATRIX: {
+    gsl_matrix_int *m1 = (gsl_matrix_int*)x->data.mat.p;
+    size_t n = m1->size1, m = m1->size2;
+    if (n==0 || m==0) return p;
+    if (!p) p = malloc(n*m*sizeof(int8_t));
+    if (!p) return 0;
+    int8_t *q = (int8_t*)p;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < m; j++)
+	q[k++] = (int8_t)m1->data[i*m1->tda+j];
+    return p;
+  }
+  default:
+    return 0;
+  }
 #else
   return 0;
 #endif

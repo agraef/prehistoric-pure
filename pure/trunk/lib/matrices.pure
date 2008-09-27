@@ -217,9 +217,9 @@ def void (colcatmap f x) = do f x;
    (either a pair denoting the number of rows and columns, or just the row
    size in order to create a row vector). */
 
-dmatrix (n::int,m::int)	= dmatrix_dup (pointer 0,n,m);
-cmatrix (n::int,m::int)	= cmatrix_dup (pointer 0,n,m);
-imatrix (n::int,m::int)	= imatrix_dup (pointer 0,n,m);
+dmatrix (n::int,m::int)	= double_matrix (n,m) (pointer 0);
+cmatrix (n::int,m::int)	= complex_matrix (n,m) (pointer 0);
+imatrix (n::int,m::int)	= int_matrix (n,m) (pointer 0);
 
 dmatrix n::int		= dmatrix (1,n);
 cmatrix n::int		= cmatrix (1,n);
@@ -233,8 +233,8 @@ private matrix_double matrix_complex matrix_int;
 extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
   expr* matrix_int(expr *x);
 
-dmatrix x::matrix	= matrix_double x if imatrixp x || dmatrixp x;
-imatrix x::matrix	= matrix_int x if imatrixp x || dmatrixp x;
+dmatrix x::matrix	= matrix_double x if nmatrixp x;
+imatrix x::matrix	= matrix_int x if nmatrixp x;
 cmatrix x::matrix	= matrix_complex x if nmatrixp x;
 
 private matrix_re matrix_im;
@@ -374,94 +374,126 @@ unzip3 x::matrix	= redim (dim x) (colcat u),
    important consideration (e.g., graphics, video and audio applications). The
    usual caveats apply. */
 
-/* Convert a matrix to a pointer, which points directly to the underlying C
-   array. You have to be careful when passing such a pointer to C functions if
-   the underlying data is non-contiguous; when in doubt, first use the 'pack'
-   function from above to place the data in contiguous storage. */
+/* Get a pointer to the underlying C array of a matrix. The data is *not*
+   copied. Hence you have to be careful when passing such a pointer to C
+   functions if the underlying data is non-contiguous; when in doubt, first
+   use the 'pack' function from above to place the data in contiguous storage,
+   or use one of the matrix-pointer conversion routines below. */
 
 private pure_pointerval;
 extern expr* pure_pointerval(expr*);
 
 pointer x::matrix	= pure_pointerval x;
 
-/* Create a numeric matrix from a pointer, without copying the data. The
-   caller must ensure that the pointer points to properly initialized memory
-   big enough to accommodate the requested dimensions, which persists for the
-   entire lifetime of the matrix object. */
+/* Copy the contents of a matrix to a given pointer and return that pointer,
+   converting to the target data type on the fly if necessary. The given
+   pointer may also be NULL, in which case suitable memory is malloc'ed and
+   returned; otherwise the caller must ensure that the memory pointed to by p
+   is big enough for the contents of the given matrix. */
+
+private matrix_to_double_array;
+private matrix_to_float_array;
+private matrix_to_complex_array;
+private matrix_to_complex_float_array;
+private matrix_to_int_array;
+private matrix_to_short_array;
+private matrix_to_byte_array;
+extern void* matrix_to_double_array(void* p, expr* x);
+extern void* matrix_to_float_array(void* p, expr* x);
+extern void* matrix_to_complex_array(void* p, expr* x);
+extern void* matrix_to_complex_float_array(void* p, expr* x);
+extern void* matrix_to_int_array(void* p, expr* x);
+extern void* matrix_to_short_array(void* p, expr* x);
+extern void* matrix_to_byte_array(void* p, expr* x);
+
+double_pointer p::pointer x::matrix
+			= matrix_to_double_array p x if nmatrixp x;
+float_pointer p::pointer x::matrix
+			= matrix_to_float_array p x if nmatrixp x;
+complex_pointer p::pointer x::matrix
+			= matrix_to_complex_array p x if nmatrixp x;
+complex_float_pointer p::pointer x::matrix
+			= matrix_to_complex_float_array p x if nmatrixp x;
+int_pointer p::pointer x::matrix
+			= matrix_to_int_array p x if nmatrixp x;
+short_pointer p::pointer x::matrix
+			= matrix_to_short_array p x if nmatrixp x;
+byte_pointer p::pointer x::matrix
+			= matrix_to_byte_array p x if nmatrixp x;
+
+/* Create a numeric matrix from a pointer, copying the data and converting it
+   from the source type on the fly if necessary. The source pointer p may also
+   be NULL, in which case the new matrix is filled with zeros instead.
+   Otherwise the caller must ensure that the pointer points to properly
+   initialized memory big enough for the requested dimensions. */
 
 private matrix_from_double_array;
+private matrix_from_float_array;
 private matrix_from_complex_array;
+private matrix_from_complex_float_array;
 private matrix_from_int_array;
-extern expr* matrix_from_double_array(void* p, int n, int m);
-extern expr* matrix_from_complex_array(void* p, int n, int m);
-extern expr* matrix_from_int_array(void* p, int n, int m);
+private matrix_from_short_array;
+private matrix_from_byte_array;
+extern expr* matrix_from_double_array(int n, int m, void* p);
+extern expr* matrix_from_float_array(int n, int m, void* p);
+extern expr* matrix_from_complex_array(int n, int m, void* p);
+extern expr* matrix_from_complex_float_array(int n, int m, void* p);
+extern expr* matrix_from_int_array(int n, int m, void* p);
+extern expr* matrix_from_short_array(int n, int m, void* p);
+extern expr* matrix_from_byte_array(int n, int m, void* p);
 
-dmatrix (p::pointer,n::int,m::int)
-			= matrix_from_double_array p n m;
-cmatrix (p::pointer,n::int,m::int)
-			= matrix_from_complex_array p n m;
-imatrix (p::pointer,n::int,m::int)
-			= matrix_from_int_array p n m;
+double_matrix (n::int,m::int) p::pointer
+			= matrix_from_double_array n m p;
+float_matrix (n::int,m::int) p::pointer
+			= matrix_from_float_array n m p;
+complex_matrix (n::int,m::int) p::pointer
+			= matrix_from_complex_array n m p;
+complex_float_matrix (n::int,m::int) p::pointer
+			= matrix_from_complex_float_array n m p;
+int_matrix (n::int,m::int) p::pointer
+			= matrix_from_int_array n m p;
+short_matrix (n::int,m::int) p::pointer
+			= matrix_from_short_array n m p;
+byte_matrix (n::int,m::int) p::pointer
+			= matrix_from_byte_array n m p;
 
-dmatrix (p::pointer,n::int)
-			= dmatrix (p,1,n);
-cmatrix (p::pointer,n::int)
-			= cmatrix (p,1,n);
-imatrix (p::pointer,n::int)
-			= imatrix (p,1,n);
+double_matrix n::int p::pointer
+			= double_matrix (1,n) p;
+float_matrix n::int p::pointer
+			= float_matrix (1,n) p;
+complex_matrix n::int p::pointer
+			= complex_matrix (1,n) p;
+complex_float_matrix n::int p::pointer
+			= complex_float_matrix (1,n) p;
+int_matrix n::int p::pointer
+			= int_matrix (1,n) p;
+short_matrix n::int p::pointer
+			= short_matrix (1,n) p;
+byte_matrix n::int p::pointer
+			= byte_matrix (1,n) p;
 
-/* Create a numeric matrix from a pointer, copying the data to fresh memory.
-   The source pointer p may also be NULL, in which case the new matrix is
-   filled with zeros instead. */
+/* Create a numeric matrix view of existing data, without copying the data.
+   The data must be double, complex or int, the pointer must not be NULL and
+   the caller must also ensure that the memory persists for the entire
+   lifetime of the matrix object. */
 
-private matrix_from_double_array_dup;
-private matrix_from_complex_array_dup;
-private matrix_from_int_array_dup;
-extern expr* matrix_from_double_array_dup(void* p, int n, int m);
-extern expr* matrix_from_complex_array_dup(void* p, int n, int m);
-extern expr* matrix_from_int_array_dup(void* p, int n, int m);
+private matrix_from_double_array_nodup;
+private matrix_from_complex_array_nodup;
+private matrix_from_int_array_nodup;
+extern expr* matrix_from_double_array_nodup(int n, int m, void* p);
+extern expr* matrix_from_complex_array_nodup(int n, int m, void* p);
+extern expr* matrix_from_int_array_nodup(int n, int m, void* p);
 
-dmatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_double_array_dup p n m;
-cmatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_complex_array_dup p n m;
-imatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_int_array_dup p n m;
+double_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_double_array_nodup n m p;
+complex_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_complex_array_nodup n m p;
+int_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_int_array_nodup n m p;
 
-dmatrix_dup (p::pointer,n::int)
-			= dmatrix_dup (p,1,n);
-cmatrix_dup (p::pointer,n::int)
-			= cmatrix_dup (p,1,n);
-imatrix_dup (p::pointer,n::int)
-			= imatrix_dup (p,1,n);
-
-/* Some additional functions for alternate base types. These work like the
-   routines above, but initialize the data from float, complex float, short
-   and byte arrays, respectively. */
-
-private matrix_from_float_array_dup;
-private matrix_from_complex_float_array_dup;
-private matrix_from_short_array_dup;
-private matrix_from_byte_array_dup;
-extern expr* matrix_from_float_array_dup(void* p, int n, int m);
-extern expr* matrix_from_complex_float_array_dup(void* p, int n, int m);
-extern expr* matrix_from_short_array_dup(void* p, int n, int m);
-extern expr* matrix_from_byte_array_dup(void* p, int n, int m);
-
-float_dmatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_float_array_dup p n m;
-float_cmatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_complex_float_array_dup p n m;
-short_imatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_short_array_dup p n m;
-byte_imatrix_dup (p::pointer,n::int,m::int)
-			= matrix_from_byte_array_dup p n m;
-
-float_dmatrix_dup (p::pointer,n::int)
-			= float_dmatrix_dup (p,1,n);
-float_cmatrix_dup (p::pointer,n::int)
-			= float_cmatrix_dup (p,1,n);
-short_imatrix_dup (p::pointer,n::int)
-			= short_imatrix_dup (p,1,n);
-byte_imatrix_dup (p::pointer,n::int)
-			= byte_imatrix_dup (p,1,n);
+double_matrix_view n::int p::pointer
+			= double_matrix_view (1,n) p;
+complex_matrix_view n::int p::pointer
+			= complex_matrix_view (1,n) p;
+int_matrix_view n::int p::pointer
+			= int_matrix_view (1,n) p;

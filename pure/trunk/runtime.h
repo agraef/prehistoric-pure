@@ -715,10 +715,7 @@ pure_expr *matrix_columns(pure_expr *xs);
 
 pure_expr *matrix_transpose(pure_expr *x);
 
-/* Convert between different types of numeric matrices. Note that any numeric
-   matrix can be converted to a complex matrix, but for the other conversions
-   the input must be a a double or integer matrix (see matrix_re and matrix_im
-   below to handle the complex->double case). */
+/* Convert between different types of numeric matrices. */
 
 pure_expr *matrix_double(pure_expr *x);
 pure_expr *matrix_complex(pure_expr *x);
@@ -740,24 +737,41 @@ pure_expr *matrix_im(pure_expr *x);
    matrix is still in use. The memory is *not* freed when the matrix is
    garbage-collected but remains in the ownership of the caller. */
 
-pure_expr *matrix_from_double_array(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_complex_array(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_int_array(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_double_array_nodup(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_complex_array_nodup(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_int_array_nodup(uint32_t n, uint32_t m, void *p);
 
 /* The following routines work like the above, but copy the data to newly
    allocated memory, so the original data can be freed after the call.
-   Additional routines are provided for various alternate data sizes.
    Moreover, the source pointer p may also be NULL in which case the new
    matrix is filled with zeros instead. */
 
-pure_expr *matrix_from_double_array_dup(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_complex_array_dup(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_int_array_dup(void *p, uint32_t n, uint32_t m);
+pure_expr *matrix_from_double_array(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_complex_array(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_int_array(uint32_t n, uint32_t m, void *p);
 
-pure_expr *matrix_from_float_array_dup(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_complex_float_array_dup(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_short_array_dup(void *p, uint32_t n, uint32_t m);
-pure_expr *matrix_from_byte_array_dup(void *p, uint32_t n, uint32_t m);
+/* Copy data from the given matrix to the given data pointer, which is then
+   returned. If p is NULL then memory of sufficient size is malloc'ed;
+   otherwise p must point to a memory area of sufficient size. */
+
+void *matrix_to_double_array(void *p, pure_expr *x);
+void *matrix_to_complex_array(void *p, pure_expr *x);
+void *matrix_to_int_array(void *p, pure_expr *x);
+
+/* Additional routines for alternative base types. These work like the
+   routines above but take data consisting of base types which are not
+   directly supported by Pure GSL matrices: float, complex float, short,
+   byte. */
+
+pure_expr *matrix_from_float_array(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_complex_float_array(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_short_array(uint32_t n, uint32_t m, void *p);
+pure_expr *matrix_from_byte_array(uint32_t n, uint32_t m, void *p);
+
+void *matrix_to_float_array(void *p, pure_expr *x);
+void *matrix_to_complex_float_array(void *p, pure_expr *x);
+void *matrix_to_short_array(void *p, pure_expr *x);
+void *matrix_to_byte_array(void *p, pure_expr *x);
 
 /* Compute a 32 bit hash code of a Pure expression. This makes it possible to
    use arbitary Pure values as keys in a hash table. */
