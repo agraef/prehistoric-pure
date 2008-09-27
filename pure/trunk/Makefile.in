@@ -218,6 +218,7 @@ config:
 # installation
 
 install: pure$(EXE) etc/pure-mode.el pure.1
+	rm -rf $(addprefix $(DESTDIR), $(includedir)/pure $(includedir)/pure-$(version) $(libdir)/pure $(libdir)/pure-$(version))
 	for x in $(addprefix $(DESTDIR), $(bindir) $(includedir)/pure-$(version) $(libdir)/pure-$(version) $(man1dir)); do $(INSTALL) -d $$x; done
 	$(INSTALL) pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE)
 	ln -sf $(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(bindir)/pure$(EXE)
@@ -233,7 +234,7 @@ endif
 	ln -sf $(man1dir)/pure-$(version).1 $(DESTDIR)$(man1dir)/pure.1
 
 uninstall:
-	rm -rf $(DESTDIR)$(bindir)/pure$(EXE) $(DESTDIR)$(bindir)/pure-$(version)$(EXE) $(DESTDIR)$(libdir)/$(libpure) $(DESTDIR)$(libdir)/$(libpurelnk) $(DESTDIR)$(includedir)/pure $(DESTDIR)$(includedir)/pure-$(version) $(DESTDIR)$(libdir)/pure $(DESTDIR)$(libdir)/pure-$(version) $(DESTDIR)$(man1dir)/pure.1 $(DESTDIR)$(man1dir)/pure-$(version).1
+	rm -rf $(addprefix $(DESTDIR), $(bindir)/pure$(EXE) $(bindir)/pure-$(version)$(EXE) $(libdir)/$(libpurelnk) $(libdir)/$(libpure) $(includedir)/pure $(includedir)/pure-$(version) $(libdir)/pure $(libdir)/pure-$(version) $(man1dir)/pure.1 $(man1dir)/pure-$(version).1)
 
 # roll a distribution tarball
 
