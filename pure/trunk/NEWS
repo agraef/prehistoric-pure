@@ -85,9 +85,9 @@ different rows in a matrix. For consistency, this applies to both list and
 matrix comprehensions. The old [x;...] syntax is still supported in list
 comprehensions, but is flagged with a "deprecated" warning by the compiler.
 
-- Arithmetic sequences with a stepsize different from 1 are now written
-x:y..z instead of x,y..z. This makes it possible to give the .. operator a
-lower precedence than the ',' operator, which makes writing matrix slices like
+- Arithmetic sequences with a stepsize different from 1 are now written x:y..z
+instead of x,y..z. This makes it possible to give the .. operator a higher
+precedence than the ',' operator, which makes writing matrix slices like
 x!!(i..j,k..l) much more convenient.
 
 ** Pure 0.6 2008-09-12

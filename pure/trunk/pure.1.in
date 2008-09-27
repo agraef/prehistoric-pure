@@ -2597,7 +2597,7 @@ of a comprehension are now separated with '|'. (For the time being, the old
 [x; ...] list comprehension syntax is still supported, but the compiler will
 warn you about such constructs and flag them as deprecated.) Moreover,
 arithmetic sequences with arbitrary stepsize are now written x:y..z instead of
-x,y..z, and the `..' operator now has a lower precedence than the `,'
+x,y..z, and the `..' operator now has a higher precedence than the `,'
 operator. This makes writing matrix slices like x!!(i..j,k..l) much more
 convenient.
 .SS Debugging
