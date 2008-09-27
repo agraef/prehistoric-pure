@@ -1,5 +1,13 @@
 
-** Pure 0.7 (2008-09-26)
+** Pure 0.8 (in progress)
+
+This is a maintenance release. It fixes a rather annoying bug in catmap
+(reported by Eddie Rucker) and some minor glitches in the Makefile and the
+documentation. Also, the matrix conversion operations in matrices.pure have
+been overhauled (in particular, the matrix pointer conversions are much more
+complete now). Details can be found in the ChangeLog.
+
+** Pure 0.7 2008-09-26
 
 This release brings an important new feature: GSL (GNU Scientific Library)
 matrix support. Here's a brief overview of the new stuff. For more

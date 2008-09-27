@@ -1,3 +1,16 @@
+2008-09-27  Albert Graef  <Dr.Graef@t-online.de>
+
+	* configure.ac: Bump version number.
+
+	* lib/matrices.pure, interpreter.cc/h: Added missing
+	complex->double/int matrix conversions. Thorough overhaul of
+	matrix<->pointer conversions, which now provide a complete set of
+	conversions from/to any reasonable C array representation,
+	including float, complex float, short and byte arrays.
+
+	* lib/prelude.pure: Fix a bug in cat which broke catmap on
+	strings. Reported by Eddie Rucker.
+
 2008-09-25  Albert Graef  <Dr.Graef@t-online.de>
 
 	* 0.7 release.
