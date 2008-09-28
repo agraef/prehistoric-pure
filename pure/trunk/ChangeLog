@@ -1,3 +1,10 @@
+2008-09-28  Albert Graef  <Dr.Graef@t-online.de>
+
+	* test/test025.pure: matrix tests. NOTE: This test is expected to
+	fail if Pure was built without GSL support.
+
+	* test/test024.pure: catmap and stream tests.
+
 2008-09-27  Albert Graef  <Dr.Graef@t-online.de>
 
 	* configure.ac: Bump version number.
