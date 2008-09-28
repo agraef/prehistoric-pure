@@ -11,7 +11,7 @@
 
 	* configure.ac: Bump version number.
 
-	* lib/matrices.pure, interpreter.cc/h: Added missing
+	* lib/matrices.pure, runtime.cc/h: Added missing
 	complex->double/int matrix conversions. Thorough overhaul of
 	matrix<->pointer conversions, which now provide a complete set of
 	conversions from/to any reasonable C array representation,
