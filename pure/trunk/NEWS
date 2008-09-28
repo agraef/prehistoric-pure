@@ -1,11 +1,11 @@
 
-** Pure 0.8 (in progress)
+** Pure 0.8 2008-09-28
 
-This is a maintenance release. It fixes a rather annoying bug in catmap
-(reported by Eddie Rucker) and some minor glitches in the Makefile and the
-documentation. Also, the matrix conversion operations in matrices.pure have
-been overhauled (in particular, the matrix pointer conversions are much more
-complete now). Details can be found in the ChangeLog.
+This is a maintenance release. It fixes a bug in catmap which slipped into the
+0.6 release (reported by Eddie Rucker) and some minor glitches in the Makefile
+and the documentation. Also, the matrix conversion operations in matrices.pure
+have been overhauled (in particular, the matrix-pointer conversions are much
+more complete now). Details can be found in the ChangeLog.
 
 ** Pure 0.7 2008-09-26
 
